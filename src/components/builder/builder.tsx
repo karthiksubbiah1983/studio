@@ -6,13 +6,20 @@ import { ElementsSidebar } from "./elements-sidebar";
 import { PropertiesSidebar } from "./properties-sidebar";
 import { Canvas } from "./canvas";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { applyPolyfill } from "@/lib/dnd-polyfill";
 
 export function Builder() {
   const isMobile = useIsMobile();
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  
+  useEffect(() => {
+    if (isMobile) {
+      applyPolyfill();
+    }
+  }, [isMobile]);
 
   if (isMobile) {
     return (
