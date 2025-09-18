@@ -24,14 +24,7 @@ type Action =
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index: number } } };
 
 const initialState: State = {
-  sections: [
-    {
-      id: crypto.randomUUID(),
-      title: "Untitled Section",
-      config: "expanded",
-      elements: [],
-    },
-  ],
+  sections: [],
   columns: 2,
   selectedElement: null,
   draggedElement: null,
@@ -148,7 +141,20 @@ type BuilderContextType = {
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(builderReducer, initialState);
+  const [state, dispatch] = useReducer(builderReducer, initialState, (init) => {
+    return {
+      ...init,
+      sections: [
+        {
+          id: crypto.randomUUID(),
+          title: "Untitled Section",
+          config: "expanded",
+          elements: [],
+        },
+      ],
+    }
+  });
+
   return (
     <BuilderContext.Provider value={{ state, dispatch }}>
       {children}
