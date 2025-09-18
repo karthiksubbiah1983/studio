@@ -21,10 +21,11 @@ import { fetchFromApi } from "@/services/api";
 type Props = {
   element: FormElementInstance;
   value: any;
-  onValueChange: (id: string, value: any) => void;
+  onValueChange: (id: string, value: any, fullObject?: any) => void;
+  formState?: { [key: string]: any };
 };
 
-export function FormElementRenderer({ element, value, onValueChange }: Props) {
+export function FormElementRenderer({ element, value, onValueChange, formState }: Props) {
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,7 +38,7 @@ export function FormElementRenderer({ element, value, onValueChange }: Props) {
     }
   }, [element]);
 
-  const { type, label, required, placeholder, helperText, options } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -53,13 +54,26 @@ export function FormElementRenderer({ element, value, onValueChange }: Props) {
       return <h2 className="text-2xl font-bold">{label}</h2>;
     case "Separator":
       return <Separator />;
+    case "Display": {
+      if (!dataSourceConfig || !formState) return null;
+      const { sourceElementId, displayKey } = dataSourceConfig;
+      const sourceObject = formState[sourceElementId]?.fullObject;
+      const displayValue = sourceObject ? sourceObject[displayKey] : `(Not selected)`;
+      
+      return (
+        <div>
+          <Label className="text-base">{label}</Label>
+          <p className="text-muted-foreground text-sm mt-1">{displayValue}</p>
+        </div>
+      );
+    }
     case "Input":
       return (
         <div>
           {renderLabel()}
           <Input 
             placeholder={placeholder}
-            value={value || ""}
+            value={value?.value || ""}
             onChange={(e) => onValueChange(element.id, e.target.value)}
           />
           {helperText && (
@@ -73,7 +87,7 @@ export function FormElementRenderer({ element, value, onValueChange }: Props) {
           {renderLabel()}
           <Textarea 
             placeholder={placeholder}
-            value={value || ""}
+            value={value?.value || ""}
             onChange={(e) => onValueChange(element.id, e.target.value)}
           />
           {helperText && (
@@ -82,10 +96,14 @@ export function FormElementRenderer({ element, value, onValueChange }: Props) {
         </div>
       );
     case "Select":
+        const handleSelectChange = (val: string) => {
+            const fullObject = dynamicOptions.find(opt => String(opt[element.valueKey!]) === val);
+            onValueChange(element.id, val, fullObject);
+        }
       return (
         <div>
           {renderLabel()}
-          <Select value={value} onValueChange={(val) => onValueChange(element.id, val)}>
+          <Select value={value?.value} onValueChange={handleSelectChange}>
             <SelectTrigger>
               <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
             </SelectTrigger>
@@ -115,7 +133,7 @@ export function FormElementRenderer({ element, value, onValueChange }: Props) {
             <div className="flex items-center space-x-2">
                 <Checkbox 
                     id={element.id}
-                    checked={value}
+                    checked={value?.value}
                     onCheckedChange={(checked) => onValueChange(element.id, checked)}
                 />
                 <div className="grid gap-1.5 leading-none">
@@ -128,7 +146,7 @@ export function FormElementRenderer({ element, value, onValueChange }: Props) {
       return (
         <div>
           {renderLabel()}
-          <RadioGroup value={value} onValueChange={(val) => onValueChange(element.id, val)}>
+          <RadioGroup value={value?.value} onValueChange={(val) => onValueChange(element.id, val)}>
             {options?.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <RadioGroupItem
@@ -150,7 +168,7 @@ export function FormElementRenderer({ element, value, onValueChange }: Props) {
           {renderLabel()}
           <Calendar 
             mode="single"
-            selected={value}
+            selected={value?.value}
             onSelect={(date) => onValueChange(element.id, date)}
             className="p-0 border rounded-md"
           />

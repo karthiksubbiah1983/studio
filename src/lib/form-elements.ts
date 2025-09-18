@@ -14,6 +14,7 @@ export const FormElements: {
     { type: 'Checkbox', icon: CheckSquare, label: 'Checkbox' },
     { type: 'RadioGroup', icon: Radio, label: 'Radio Group' },
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
+    { type: 'Display', icon: Type, label: 'Display Text' },
 ];
 
 export const createNewElement = (type: ElementType): FormElementInstance => {
@@ -46,6 +47,8 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
              return { ...baseElement, label: "Radio Group", options: ["Option 1", "Option 2"] };
         case "DatePicker":
             return { ...baseElement, label: "Date Picker" };
+        case "Display":
+            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "" } };
         default:
             throw new Error("Invalid element type");
     }

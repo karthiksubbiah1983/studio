@@ -12,10 +12,10 @@ import { FormElementInstance, Section } from "@/lib/types";
 
 export function FormPreview() {
   const { state } = useBuilder();
-  const [formState, setFormState] = useState<{ [key: string]: any }>({});
+  const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
 
-  const handleValueChange = (elementId: string, value: any) => {
-    setFormState((prev) => ({ ...prev, [elementId]: value }));
+  const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
+    setFormState((prev) => ({ ...prev, [elementId]: { value, fullObject } }));
   };
 
   const isVisible = (element: FormElementInstance | Section) => {
@@ -23,7 +23,7 @@ export function FormPreview() {
     if (!conditionalLogic || !conditionalLogic.enabled || !conditionalLogic.triggerElementId || !conditionalLogic.showWhenValue) {
         return true;
     }
-    const triggerValue = formState[conditionalLogic.triggerElementId];
+    const triggerValue = formState[conditionalLogic.triggerElementId]?.value;
     return triggerValue === conditionalLogic.showWhenValue;
   }
 
@@ -51,6 +51,7 @@ export function FormPreview() {
                         element={element}
                         value={formState[element.id]}
                         onValueChange={handleValueChange}
+                        formState={formState}
                     />
                   ) : null
                 )}

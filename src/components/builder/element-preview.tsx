@@ -11,7 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
-  const { type, label, required, placeholder, helperText, options, dataSource } = element;
+  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -27,6 +27,15 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         return <h2 className="text-2xl font-bold">{label}</h2>;
     case "Separator":
         return <Separator />;
+    case "Display":
+        return (
+            <div>
+                <Label className="text-base">{label}</Label>
+                <p className="text-muted-foreground text-sm mt-1">
+                    {placeholder || `(Value from ${dataSourceConfig?.displayKey || '...'})`}
+                </p>
+            </div>
+        );
     case "Input":
       return (
         <div>

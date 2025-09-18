@@ -1,9 +1,14 @@
-export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker";
+export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display";
 
 export type ConditionalLogic = {
     enabled: boolean;
     triggerElementId: string; // ID of the RadioGroup
     showWhenValue: string;    // Value of the radio option
+};
+
+export type DisplayDataSourceConfig = {
+    sourceElementId: string; // ID of the Select element
+    displayKey: string;      // Key of the property to display from the selected object
 };
 
 export type FormElementInstance = {
@@ -16,11 +21,13 @@ export type FormElementInstance = {
     // For Select, RadioGroup
     dataSource?: 'static' | 'dynamic';
     options?: string[];
-    // For dynamic data source
+    // For dynamic data source (Select)
     apiUrl?: string;
     dataKey?: string; // Key in API response that holds the array
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
+    // For Display
+    dataSourceConfig?: DisplayDataSourceConfig;
     // Conditional Visibility
     conditionalLogic?: ConditionalLogic;
 };

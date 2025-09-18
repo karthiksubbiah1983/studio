@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Loader2 } from "lucide-react";
-import { ConditionalLogic, FormElementInstance, Section } from "@/lib/types";
+import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, Section } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -275,6 +275,12 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   const { selectedElement } = state;
   const [props, setProps] = useState(element);
 
+  const dynamicSelects = useMemo(() =>
+    state.sections.flatMap(s =>
+        s.elements.filter(e => e.type === 'Select' && e.dataSource === 'dynamic' && e.id !== element.id)
+    ), [state.sections, element.id]
+  );
+
   useEffect(() => {
     setProps(element);
   }, [element]);
@@ -305,6 +311,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   const handleConditionalLogicUpdate = (logic: ConditionalLogic) => {
       updateElement('conditionalLogic', logic);
+  }
+
+  const handleDisplayDataSourceUpdate = (config: DisplayDataSourceConfig) => {
+    updateElement('dataSourceConfig', config);
   }
 
   const commonFields = (
@@ -401,6 +411,45 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             break;
         case "Separator":
             fields = <p className="text-sm text-muted-foreground">No properties for this element.</p>;
+            break;
+        case "Display":
+            const config = element.dataSourceConfig || { sourceElementId: "", displayKey: "" };
+            fields = (
+                <>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="label">Label</Label>
+                        <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
+                    </div>
+                    {placeholderField}
+                    <Separator />
+                    <h4 className="font-medium">Data Source</h4>
+                    <div className="flex flex-col gap-2">
+                        <Label>Source Dropdown</Label>
+                        <Select
+                            value={config.sourceElementId}
+                            onValueChange={(value) => handleDisplayDataSourceUpdate({ ...config, sourceElementId: value })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a dropdown..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {dynamicSelects.map(sel => (
+                                    <SelectItem key={sel.id} value={sel.id}>{sel.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="display-key">Display Key</Label>
+                        <Input 
+                            id="display-key" 
+                            value={config.displayKey}
+                            onChange={(e) => handleDisplayDataSourceUpdate({ ...config, displayKey: e.target.value })}
+                            placeholder="e.g., 'email' or 'phone'"
+                        />
+                    </div>
+                </>
+            );
             break;
         case "Input":
         case "Textarea":
