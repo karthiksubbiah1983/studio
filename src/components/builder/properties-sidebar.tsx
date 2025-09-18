@@ -197,6 +197,23 @@ function SectionProperties({ section }: { section: Section }) {
 function ElementProperties({ element }: { element: FormElementInstance }) {
   const { dispatch, state } = useBuilder();
   const { selectedElement } = state;
+  const [props, setProps] = useState(element);
+
+  useEffect(() => {
+    setProps(element);
+  }, [element]);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+        if (!selectedElement) return;
+        dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: props } });
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [props, dispatch, selectedElement]);
+
+  const updateProperty = (key: keyof FormElementInstance, value: any) => {
+    setProps(prev => ({...prev, [key]: value}));
+  };
 
   const updateElement = (key: keyof FormElementInstance, value: any) => {
     if (!selectedElement) return;
@@ -231,7 +248,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
       <Textarea id="helperText" value={element.helperText || ''} onChange={(e) => updateElement('helperText', e.target.value)} />
     </div>
   );
-
+  
   const optionsField = (
     <div className="flex flex-col gap-2">
         <Label>Options</Label>
@@ -262,6 +279,29 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         </Button>
     </div>
   );
+
+  const dynamicDataSourceFields = (
+    <div className="flex flex-col gap-4">
+        <Separator />
+        <p className="font-medium">Dynamic Data Source</p>
+        <div className="flex flex-col gap-2">
+            <Label htmlFor="apiUrl">API URL</Label>
+            <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+        </div>
+        <div className="flex flex-col gap-2">
+            <Label htmlFor="dataKey">Data Key</Label>
+            <Input id="dataKey" value={props.dataKey || ''} onChange={(e) => updateProperty('dataKey', e.target.value)} placeholder="e.g., 'results' or 'data'"/>
+        </div>
+        <div className="flex flex-col gap-2">
+            <Label htmlFor="valueKey">Option Value Key</Label>
+            <Input id="valueKey" value={props.valueKey || ''} onChange={(e) => updateProperty('valueKey', e.target.value)} placeholder="e.g., 'id'"/>
+        </div>
+        <div className="flex flex-col gap-2">
+            <Label htmlFor="labelKey">Option Label Key</Label>
+            <Input id="labelKey" value={props.labelKey || ''} onChange={(e) => updateProperty('labelKey', e.target.value)} placeholder="e.g., 'name'"/>
+        </div>
+    </div>
+  );
   
   const content = () => {
       switch(element.type) {
@@ -278,6 +318,31 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         case "Textarea":
             return <>{commonFields}{placeholderField}{helperTextField}</>
         case "Select":
+            return (
+                <>
+                    {commonFields}
+                    {placeholderField}
+                    {helperTextField}
+                    <Separator />
+                     <div className="flex flex-col gap-2">
+                        <Label>Data Source</Label>
+                        <RadioGroup
+                            defaultValue={element.dataSource || 'static'}
+                            onValueChange={(val) => updateElement('dataSource', val)}
+                        >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="static" id="source-static" />
+                                <Label htmlFor="source-static">Static</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="dynamic" id="source-dynamic" />
+                                <Label htmlFor="source-dynamic">Dynamic (API)</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                    {element.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField}
+                </>
+            );
         case "RadioGroup":
             return <>{commonFields}{placeholderField}{helperTextField}{optionsField}</>
         case "Checkbox":

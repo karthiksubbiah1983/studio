@@ -11,7 +11,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
-  const { type, label, required, placeholder, helperText, options } = element;
+  const { type, label, required, placeholder, helperText, options, dataSource } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -52,7 +52,8 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
               <SelectValue placeholder={placeholder} />
             </SelectTrigger>
             <SelectContent>
-              {options?.map((option, index) => (
+              {dataSource === 'dynamic' && <SelectItem value="dynamic">Data from API</SelectItem>}
+              {dataSource !== 'dynamic' && options?.map((option, index) => (
                 <SelectItem key={index} value={option}>
                   {option}
                 </SelectItem>
