@@ -8,7 +8,7 @@ import { createNewElement } from "@/lib/form-elements";
 type State = {
   sections: Section[];
   selectedElement: { elementId: string; sectionId: string } | null;
-  draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType } | null;
+  draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType } | { sectionId: string } | null;
 };
 
 type Action =
@@ -20,6 +20,7 @@ type Action =
   | { type: "DELETE_ELEMENT"; payload: { elementId: string; sectionId: string } }
   | { type: "DELETE_SECTION"; payload: { sectionId: string } }
   | { type: "SET_DRAGGED_ELEMENT"; payload: State['draggedElement'] }
+  | { type: "MOVE_SECTION"; payload: { fromIndex: number, toIndex: number } }
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index: number } } };
 
 const initialState: State = {
@@ -96,6 +97,13 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SET_DRAGGED_ELEMENT":
         return { ...state, draggedElement: action.payload };
+    case "MOVE_SECTION": {
+        const { fromIndex, toIndex } = action.payload;
+        const newSections = [...state.sections];
+        const [removed] = newSections.splice(fromIndex, 1);
+        newSections.splice(toIndex, 0, removed);
+        return { ...state, sections: newSections };
+    }
     case "MOVE_ELEMENT": {
         const { from, to } = action.payload;
         let elementToMove: FormElementInstance | undefined;
@@ -104,7 +112,7 @@ const builderReducer = (state: State, action: Action): State => {
         const sectionsAfterRemoval = state.sections.map(section => {
             if (section.id === from.sectionId) {
                 elementToMove = section.elements.find(el => el.id === from.elementId);
-                return { ...section, elements: section.elements.filter(el => el.id !== from.elementId) };
+                return { ...section, elements: section.elements.filter(el => el.id !== from.elementid) };
             }
             return section;
         });
@@ -137,10 +145,16 @@ type BuilderContextType = {
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(builderReducer, initialState);
-
+  const [state, dispatch] = useReducer(builderReducer, initialState, (init) => {
+    if (typeof window === "undefined") {
+      return init;
+    }
+    return {
+        ...init,
+    };
+  });
+  
   useEffect(() => {
-    // Add the initial section only on the client-side after hydration
     if (state.sections.length === 0) {
       dispatch({ type: "ADD_SECTION" });
     }

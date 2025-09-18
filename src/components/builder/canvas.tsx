@@ -13,51 +13,117 @@ export function Canvas() {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    setIsOver(true);
+    if (state.draggedElement) {
+      setIsOver(true);
+    }
   };
 
   const handleDragLeave = () => {
     setIsOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, isTopHalf: boolean) => {
     e.preventDefault();
     setIsOver(false);
     
     const { draggedElement } = state;
     if (!draggedElement) return;
 
-    // This drop is for adding a new section when the canvas is empty
-    if ('type' in draggedElement) {
-        if (state.sections.length === 0) {
-            dispatch({ type: "ADD_SECTION" });
+    // Dropping a new section when the canvas is empty
+    if ('type' in draggedElement && state.sections.length === 0) {
+      dispatch({ type: "ADD_SECTION" });
+    }
+    
+    // Dropping an existing section
+    if ('sectionId' in draggedElement && !('element' in draggedElement)) {
+        const fromIndex = state.sections.findIndex(s => s.id === draggedElement.sectionId);
+        const toIndex = isTopHalf ? 0 : state.sections.length;
+        if (fromIndex !== -1) {
+            dispatch({ type: "MOVE_SECTION", payload: { fromIndex, toIndex } });
         }
     }
   };
 
+  const handleSectionDrop = (e: React.DragEvent, targetSectionId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const { draggedElement } = state;
+    if (!draggedElement || !('sectionId' in draggedElement) || ('element' in draggedElement)) return;
+
+    const fromIndex = state.sections.findIndex(s => s.id === draggedElement.sectionId);
+    let toIndex = state.sections.findIndex(s => s.id === targetSectionId);
+
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const isTopHalf = e.clientY - rect.top < rect.height / 2;
+
+    if (!isTopHalf) {
+        toIndex += 1;
+    }
+    
+    if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
+        dispatch({ type: "MOVE_SECTION", payload: { fromIndex, toIndex: fromIndex < toIndex ? toIndex -1 : toIndex } });
+    }
+  };
+
+  const isDraggingSection = state.draggedElement && 'sectionId' in state.draggedElement && !('element' in state.draggedElement);
+
   return (
-    <div
-      className={cn(
-        "flex-grow p-4 md:p-8 lg:p-12 h-full w-full mx-auto",
-        isOver && "bg-accent/10"
-      )}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
-    >
-      <div className="max-w-4xl mx-auto flex flex-col gap-8">
-        {state.sections.map((section) => (
-          <CanvasSection key={section.id} section={section} />
-        ))}
-        <Button
-          variant="outline"
-          className="w-full py-6 border-dashed"
-          onClick={() => dispatch({ type: "ADD_SECTION" })}
+    <>
+        <div
+            className={cn(
+                "flex-grow h-12 w-full mx-auto transition-all",
+                isOver && isDraggingSection && "h-24",
+            )}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, true)}
+        />
+        <div
+            className="max-w-4xl mx-auto flex flex-col gap-8"
         >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Section
-        </Button>
-      </div>
-    </div>
+            {state.sections.map((section, index) => (
+                <div 
+                    key={section.id} 
+                    className="relative"
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => handleSectionDrop(e, section.id)}
+                >
+                    {isDraggingSection && state.draggedElement?.sectionId !== section.id && (
+                        <>
+                            <div className="absolute top-[-16px] left-0 w-full h-1 bg-primary rounded-full z-10 opacity-0 droppable-indicator-top" />
+                            <div className="absolute bottom-[-16px] left-0 w-full h-1 bg-primary rounded-full z-10 opacity-0 droppable-indicator-bottom" />
+                        </>
+                    )}
+                    <CanvasSection section={section} />
+                </div>
+            ))}
+            <Button
+            variant="outline"
+            className="w-full py-6 border-dashed"
+            onClick={() => dispatch({ type: "ADD_SECTION" })}
+            >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Section
+            </Button>
+        </div>
+        <div
+            className={cn(
+                "flex-grow h-12 w-full mx-auto transition-all",
+                isOver && isDraggingSection && "h-24",
+            )}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, false)}
+        />
+        <style jsx>{`
+            .relative:hover .droppable-indicator-top {
+                opacity: 1;
+            }
+             .relative:hover .droppable-indicator-bottom {
+                opacity: 1;
+            }
+        `}</style>
+    </>
   );
 }

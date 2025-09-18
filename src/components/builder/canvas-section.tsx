@@ -14,15 +14,26 @@ import { CanvasElement } from "./canvas-element";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ConditionalWrapper } from "./conditional-wrapper";
+import { GripVertical } from "lucide-react";
 
 
 export function CanvasSection({ section }: { section: Section }) {
   const { state, dispatch } = useBuilder();
   const [isOver, setIsOver] = useState(false);
+  
+  const handleDragStart = (e: React.DragEvent) => {
+    e.stopPropagation();
+    dispatch({ type: 'SET_DRAGGED_ELEMENT', payload: { sectionId: section.id } });
+  }
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
+    dispatch({ type: 'SET_DRAGGED_ELEMENT', payload: null });
+  }
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (state.draggedElement) {
+    if (state.draggedElement && 'type' in state.draggedElement) {
       setIsOver(true);
     }
   };
@@ -90,7 +101,15 @@ export function CanvasSection({ section }: { section: Section }) {
   const sectionContent = () => {
     if (section.config === 'normal') {
       return (
-          <Card className={cn(isSelected && "ring-2 ring-primary", "overflow-visible")} onClick={handleSectionClick}>
+          <Card className={cn(isSelected && "ring-2 ring-primary", "overflow-visible group/section relative")} onClick={handleSectionClick}>
+              <div 
+                draggable 
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                className="absolute top-1/2 -translate-y-1/2 -left-8 h-full flex items-center cursor-grab opacity-0 group-hover/section:opacity-100 transition-opacity"
+              >
+                  <GripVertical className="h-6 w-6 text-muted-foreground" />
+              </div>
               <Accordion type="single" collapsible defaultValue="item-1">
                   <AccordionItem value="item-1" className="border-b-0">
                       <CardHeader className="p-4">
@@ -108,7 +127,15 @@ export function CanvasSection({ section }: { section: Section }) {
     }
   
     return (
-      <Card className={cn(isSelected && "ring-2 ring-primary")} onClick={handleSectionClick}>
+      <Card className={cn(isSelected && "ring-2 ring-primary", "group/section relative")} onClick={handleSectionClick}>
+        <div 
+            draggable 
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+            className="absolute top-1/2 -translate-y-1/2 -left-8 h-full flex items-center cursor-grab opacity-0 group-hover/section:opacity-100 transition-opacity"
+        >
+            <GripVertical className="h-6 w-6 text-muted-foreground" />
+        </div>
         <CardHeader className="flex flex-row items-center justify-between p-4">
           <h3 className="text-lg font-medium">{section.title}</h3>
         </CardHeader>
