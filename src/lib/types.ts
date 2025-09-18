@@ -1,5 +1,11 @@
 export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker";
 
+export type ConditionalLogic = {
+    enabled: boolean;
+    triggerElementId: string; // ID of the RadioGroup
+    showWhenValue: string;    // Value of the radio option
+};
+
 export type FormElementInstance = {
     id: string;
     type: ElementType;
@@ -15,6 +21,8 @@ export type FormElementInstance = {
     dataKey?: string; // Key in API response that holds the array
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
+    // Conditional Visibility
+    conditionalLogic?: ConditionalLogic;
 };
 
 export type Section = {
@@ -22,4 +30,6 @@ export type Section = {
     title: string;
     config: 'expanded' | 'normal'; // normal is collapsible
     elements: FormElementInstance[];
+    // Conditional Visibility
+    conditionalLogic?: ConditionalLogic;
 };

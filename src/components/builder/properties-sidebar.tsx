@@ -7,10 +7,10 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Loader2 } from "lucide-react";
-import { FormElementInstance, Section } from "@/lib/types";
+import { ConditionalLogic, FormElementInstance, Section } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { suggestElementsAction } from "@/actions/suggest-elements";
 import { createNewElement } from "@/lib/form-elements";
 import { useToast } from "@/hooks/use-toast";
@@ -85,6 +85,76 @@ function FormProperties() {
     );
 }
 
+function ConditionalLogicSettings({
+    element,
+    onUpdate,
+}: {
+    element: Section | FormElementInstance;
+    onUpdate: (logic: ConditionalLogic) => void;
+}) {
+    const { state } = useBuilder();
+    const logic = element.conditionalLogic || { enabled: false, triggerElementId: "", showWhenValue: "" };
+
+    const radioGroups = useMemo(() =>
+        state.sections.flatMap(s => s.elements.filter(e => e.type === 'RadioGroup' && e.id !== element.id)
+    ), [state.sections, element.id]);
+
+    const selectedTrigger = radioGroups.find(rg => rg.id === logic.triggerElementId);
+
+    return (
+        <div className="flex flex-col gap-4">
+            <Separator />
+            <h4 className="font-medium">Conditional Logic</h4>
+            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                <Label htmlFor="enable-logic">Enable</Label>
+                <Switch
+                    id="enable-logic"
+                    checked={logic.enabled}
+                    onCheckedChange={(checked) => onUpdate({ ...logic, enabled: checked })}
+                />
+            </div>
+            {logic.enabled && (
+                <>
+                    <div className="flex flex-col gap-2">
+                        <Label>Show this field when...</Label>
+                        <Select
+                            value={logic.triggerElementId}
+                            onValueChange={(value) => onUpdate({ ...logic, triggerElementId: value, showWhenValue: '' })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a radio group..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {radioGroups.map(rg => (
+                                    <SelectItem key={rg.id} value={rg.id}>{rg.label}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    {selectedTrigger && (
+                         <div className="flex flex-col gap-2">
+                            <Label>...this option is selected:</Label>
+                            <Select
+                                value={logic.showWhenValue}
+                                onValueChange={(value) => onUpdate({ ...logic, showWhenValue: value })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select an option..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {selectedTrigger.options?.map(opt => (
+                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+}
+
 function SectionProperties({ section }: { section: Section }) {
     const { dispatch } = useBuilder();
     const { toast } = useToast();
@@ -134,6 +204,10 @@ function SectionProperties({ section }: { section: Section }) {
             toast({ title: "Unknown Element", description: `Element type "${elementType}" is not supported.`, variant: "destructive" });
         }
     }
+    
+    const handleConditionalLogicUpdate = (logic: ConditionalLogic) => {
+        dispatch({ type: "UPDATE_SECTION", payload: { ...section, conditionalLogic: logic } });
+    }
 
     return (
         <div className="flex flex-col gap-4">
@@ -169,6 +243,7 @@ function SectionProperties({ section }: { section: Section }) {
                     </SelectContent>
                 </Select>
             </div>
+            <ConditionalLogicSettings element={section} onUpdate={handleConditionalLogicUpdate} />
             <Separator />
             <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -217,10 +292,19 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   const updateElement = (key: keyof FormElementInstance, value: any) => {
     if (!selectedElement) return;
-    dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: { ...element, [key]: value } } });
+    const newProps = { ...element, [key]: value };
+    // If we're disabling conditional logic, clear the dependent fields
+    if (key === 'conditionalLogic' && value.enabled === false) {
+        newProps.conditionalLogic = { enabled: false, triggerElementId: '', showWhenValue: '' };
+    }
+    dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: newProps } });
   };
   
   if (!element) return null;
+
+  const handleConditionalLogicUpdate = (logic: ConditionalLogic) => {
+      updateElement('conditionalLogic', logic);
+  }
 
   const commonFields = (
     <>
@@ -304,21 +388,25 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   );
   
   const content = () => {
+      let fields;
       switch(element.type) {
         case "Title":
-            return (
+            fields = (
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="label">Title</Label>
                     <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
                 </div>
-            )
+            );
+            break;
         case "Separator":
-            return <p className="text-sm text-muted-foreground">No properties for this element.</p>;
+            fields = <p className="text-sm text-muted-foreground">No properties for this element.</p>;
+            break;
         case "Input":
         case "Textarea":
-            return <>{commonFields}{placeholderField}{helperTextField}</>
+            fields = <>{commonFields}{placeholderField}{helperTextField}</>;
+            break;
         case "Select":
-            return (
+            fields = (
                 <>
                     {commonFields}
                     {placeholderField}
@@ -343,15 +431,27 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     {element.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField}
                 </>
             );
+            break;
         case "RadioGroup":
-            return <>{commonFields}{placeholderField}{helperTextField}{optionsField}</>
+             fields = <>{commonFields}{placeholderField}{helperTextField}{optionsField}</>;
+             break;
         case "Checkbox":
-            return <>{commonFields}{helperTextField}</>
+            fields = <>{commonFields}{helperTextField}</>;
+            break;
         case "DatePicker":
-            return <>{commonFields}{helperTextField}</>
+            fields = <>{commonFields}{helperTextField}</>;
+            break;
         default:
             return null;
       }
+
+      // Don't show conditional logic for Title, Separator, or RadioGroup itself
+      const showConditionalLogic = element.type !== 'Title' && element.type !== 'Separator' && element.type !== 'RadioGroup';
+
+      return <>
+        {fields}
+        {showConditionalLogic && <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />}
+      </>;
   }
 
   return (
