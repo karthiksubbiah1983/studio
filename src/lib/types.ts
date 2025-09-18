@@ -29,6 +29,7 @@ export type Section = {
     id: string;
     title: string;
     config: 'expanded' | 'normal'; // normal is collapsible
+    columns: 1 | 2 | 3;
     elements: FormElementInstance[];
     // Conditional Visibility
     conditionalLogic?: ConditionalLogic;

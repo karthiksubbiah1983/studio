@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
 import { useState } from "react";
-import { FormElementInstance } from "@/lib/types";
+import { FormElementInstance, Section } from "@/lib/types";
 
 export function FormPreview() {
   const { state } = useBuilder();
@@ -18,7 +18,7 @@ export function FormPreview() {
     setFormState((prev) => ({ ...prev, [elementId]: value }));
   };
 
-  const isVisible = (element: FormElementInstance) => {
+  const isVisible = (element: FormElementInstance | Section) => {
     const { conditionalLogic } = element;
     if (!conditionalLogic || !conditionalLogic.enabled || !conditionalLogic.triggerElementId || !conditionalLogic.showWhenValue) {
         return true;
@@ -30,13 +30,7 @@ export function FormPreview() {
   return (
     <div className="p-4 space-y-8">
       {state.sections.map((section) => {
-         const { conditionalLogic } = section;
-         if (conditionalLogic && conditionalLogic.enabled && conditionalLogic.triggerElementId) {
-             const triggerValue = formState[conditionalLogic.triggerElementId];
-             if (triggerValue !== conditionalLogic.showWhenValue) {
-                 return null;
-             }
-         }
+         if (!isVisible(section)) return null;
 
         return (
           <Card key={section.id}>
@@ -47,7 +41,7 @@ export function FormPreview() {
               <div
                 className="grid gap-4"
                 style={{
-                  gridTemplateColumns: `repeat(${state.columns}, 1fr)`,
+                  gridTemplateColumns: `repeat(${section.columns}, 1fr)`,
                 }}
               >
                 {section.elements.map((element) =>

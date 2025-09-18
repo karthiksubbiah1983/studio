@@ -7,13 +7,11 @@ import { createNewElement } from "@/lib/form-elements";
 
 type State = {
   sections: Section[];
-  columns: 2 | 3;
   selectedElement: { elementId: string; sectionId: string } | null;
   draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType } | null;
 };
 
 type Action =
-  | { type: "SET_COLUMNS"; payload: 2 | 3 }
   | { type: "ADD_SECTION" }
   | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number } }
   | { type: "UPDATE_ELEMENT"; payload: { sectionId: string; element: FormElementInstance } }
@@ -26,21 +24,18 @@ type Action =
 
 const initialState: State = {
   sections: [],
-  columns: 2,
   selectedElement: null,
   draggedElement: null,
 };
 
 const builderReducer = (state: State, action: Action): State => {
   switch (action.type) {
-    case "SET_COLUMNS":
-      return { ...state, columns: action.payload };
     case "ADD_SECTION":
       return {
         ...state,
         sections: [
           ...state.sections,
-          { id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] },
+          { id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [], columns: 1 },
         ],
       };
     case "ADD_ELEMENT": {
@@ -149,7 +144,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (state.sections.length === 0) {
       dispatch({ type: "ADD_SECTION" });
     }
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [state.sections.length]);
 
   return (
     <BuilderContext.Provider value={{ state, dispatch }}>

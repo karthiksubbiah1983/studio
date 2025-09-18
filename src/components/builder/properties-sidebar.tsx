@@ -53,36 +53,11 @@ export function PropertiesSidebar() {
         </Button>
       </div>
       <Separator className="my-2" />
-      {!selected && <FormProperties />}
+      {!selected && <p className="text-sm text-muted-foreground">Select an element to see its properties.</p>}
       {selected && 'elements' in selected && <SectionProperties section={selected} />}
       {selected && 'type' in selected && <ElementProperties element={selected} />}
     </aside>
   );
-}
-
-function FormProperties() {
-    const { state, dispatch } = useBuilder();
-    return (
-        <div className="flex flex-col gap-4">
-            <h3 className="font-medium">Form Properties</h3>
-            <div className="flex flex-col gap-2">
-                <Label>Layout Columns</Label>
-                <RadioGroup
-                    defaultValue={String(state.columns)}
-                    onValueChange={(val) => dispatch({ type: "SET_COLUMNS", payload: val === '2' ? 2 : 3 })}
-                >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="2" id="cols-2" />
-                        <Label htmlFor="cols-2">2 Columns</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="3" id="cols-3" />
-                        <Label htmlFor="cols-3">3 Columns</Label>
-                    </div>
-                </RadioGroup>
-            </div>
-        </div>
-    );
 }
 
 function ConditionalLogicSettings({
@@ -209,6 +184,11 @@ function SectionProperties({ section }: { section: Section }) {
         dispatch({ type: "UPDATE_SECTION", payload: { ...section, conditionalLogic: logic } });
     }
 
+    const handleColumnChange = (value: string) => {
+        const columns = parseInt(value, 10) as 1 | 2 | 3;
+        dispatch({ type: "UPDATE_SECTION", payload: { ...section, columns } });
+    }
+
     return (
         <div className="flex flex-col gap-4">
              <div className="flex justify-between items-center">
@@ -225,6 +205,27 @@ function SectionProperties({ section }: { section: Section }) {
             <div className="flex flex-col gap-2">
                 <Label htmlFor="section-title">Title</Label>
                 <Input id="section-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+            </div>
+             <div className="flex flex-col gap-2">
+                <Label>Layout Columns</Label>
+                <RadioGroup
+                    value={String(section.columns)}
+                    onValueChange={handleColumnChange}
+                    className="flex gap-4"
+                >
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="1" id="cols-1" />
+                        <Label htmlFor="cols-1">1</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="2" id="cols-2" />
+                        <Label htmlFor="cols-2">2</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="3" id="cols-3" />
+                        <Label htmlFor="cols-3">3</Label>
+                    </div>
+                </RadioGroup>
             </div>
             <div className="flex flex-col gap-2">
                 <Label>Configuration</Label>

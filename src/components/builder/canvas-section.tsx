@@ -72,7 +72,7 @@ export function CanvasSection({ section }: { section: Section }) {
         <div
           className={cn(
             "grid gap-4",
-            `grid-cols-1 md:grid-cols-${state.columns}`
+            `grid-cols-1 md:grid-cols-${section.columns}`
           )}
         >
           {section.elements.map((element, index) => (
