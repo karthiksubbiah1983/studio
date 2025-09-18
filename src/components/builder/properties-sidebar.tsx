@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -12,7 +13,6 @@ import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
 import { suggestElementsAction } from "@/actions/suggest-elements";
-import { createNewElement } from "@/lib/form-elements";
 import { useToast } from "@/hooks/use-toast";
 import {
   Select,
@@ -40,7 +40,7 @@ export function PropertiesSidebar() {
   const selected = getSelectedElementInstance();
 
   return (
-    <aside className="w-80 p-4 border-l bg-card overflow-y-auto">
+    <aside className="w-full md:w-80 p-4 border-l bg-card overflow-y-auto h-full">
       <div className="flex justify-between items-center">
         <p className="text-sm text-foreground/70">Properties</p>
         <Button
