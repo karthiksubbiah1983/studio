@@ -112,7 +112,7 @@ const builderReducer = (state: State, action: Action): State => {
         const sectionsAfterRemoval = state.sections.map(section => {
             if (section.id === from.sectionId) {
                 elementToMove = section.elements.find(el => el.id === from.elementId);
-                return { ...section, elements: section.elements.filter(el => el.id !== from.elementid) };
+                return { ...section, elements: section.elements.filter(el => el.id !== from.elementId) };
             }
             return section;
         });
@@ -158,7 +158,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (state.sections.length === 0) {
       dispatch({ type: "ADD_SECTION" });
     }
-  }, [state.sections.length]);
+  }, [state.sections.length, dispatch]);
 
   return (
     <BuilderContext.Provider value={{ state, dispatch }}>
