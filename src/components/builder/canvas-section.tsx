@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/accordion";
 import { CanvasElement } from "./canvas-element";
 import { cn } from "@/lib/utils";
-import { Trash } from "lucide-react";
 import { Button } from "../ui/button";
+import { ConditionalWrapper } from "./conditional-wrapper";
+
 
 export function CanvasSection({ section }: { section: Section }) {
   const { state, dispatch } = useBuilder();
@@ -86,31 +87,39 @@ export function CanvasSection({ section }: { section: Section }) {
     </div>
   );
 
-  if (section.config === 'normal') {
+  const sectionContent = () => {
+    if (section.config === 'normal') {
+      return (
+          <Card className={cn(isSelected && "ring-2 ring-primary", "overflow-visible")} onClick={handleSectionClick}>
+              <Accordion type="single" collapsible defaultValue="item-1">
+                  <AccordionItem value="item-1" className="border-b-0">
+                      <CardHeader className="p-4">
+                          <AccordionTrigger className="flex justify-between items-center text-lg font-medium hover:no-underline">
+                             {section.title}
+                          </AccordionTrigger>
+                      </CardHeader>
+                      <AccordionContent>
+                          <CardContent className="p-0">{content}</CardContent>
+                      </AccordionContent>
+                  </AccordionItem>
+              </Accordion>
+          </Card>
+      );
+    }
+  
     return (
-        <Card className={cn(isSelected && "ring-2 ring-primary", "overflow-visible")} onClick={handleSectionClick}>
-            <Accordion type="single" collapsible defaultValue="item-1">
-                <AccordionItem value="item-1" className="border-b-0">
-                    <CardHeader className="p-4">
-                        <AccordionTrigger className="flex justify-between items-center text-lg font-medium hover:no-underline">
-                           {section.title}
-                        </AccordionTrigger>
-                    </CardHeader>
-                    <AccordionContent>
-                        <CardContent className="p-0">{content}</CardContent>
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
-        </Card>
+      <Card className={cn(isSelected && "ring-2 ring-primary")} onClick={handleSectionClick}>
+        <CardHeader className="flex flex-row items-center justify-between p-4">
+          <h3 className="text-lg font-medium">{section.title}</h3>
+        </CardHeader>
+        <CardContent>{content}</CardContent>
+      </Card>
     );
   }
 
   return (
-    <Card className={cn(isSelected && "ring-2 ring-primary")} onClick={handleSectionClick}>
-      <CardHeader className="flex flex-row items-center justify-between p-4">
-        <h3 className="text-lg font-medium">{section.title}</h3>
-      </CardHeader>
-      <CardContent>{content}</CardContent>
-    </Card>
-  );
+    <ConditionalWrapper logic={section.conditionalLogic}>
+      {sectionContent()}
+    </ConditionalWrapper>
+  )
 }

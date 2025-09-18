@@ -7,6 +7,7 @@ import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ConditionalWrapper } from "./conditional-wrapper";
 
 type Props = {
   element: FormElementInstance;
@@ -72,40 +73,42 @@ export function CanvasElement({ element, sectionId, index }: Props) {
   };
 
   return (
-    <div
-      draggable
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-      onMouseEnter={() => setMouseIsOver(true)}
-      onMouseLeave={() => setMouseIsOver(false)}
-      onClick={handleClick}
-      className={cn(
-        "relative flex flex-col p-4 rounded-lg cursor-pointer bg-card border border-transparent transition-all",
-        mouseIsOver && "border-primary/50",
-        isSelected && "border-primary ring-2 ring-primary"
-      )}
-    >
-      {mouseIsOver && state.draggedElement && isTopHalf && <div className="absolute top-0 left-0 w-full h-1 bg-primary rounded-full z-10" />}
-      {mouseIsOver && state.draggedElement && !isTopHalf && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-full z-10" />}
+    <ConditionalWrapper logic={element.conditionalLogic}>
+      <div
+        draggable
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        onMouseEnter={() => setMouseIsOver(true)}
+        onMouseLeave={() => setMouseIsOver(false)}
+        onClick={handleClick}
+        className={cn(
+          "relative flex flex-col p-4 rounded-lg cursor-pointer bg-card border border-transparent transition-all",
+          mouseIsOver && "border-primary/50",
+          isSelected && "border-primary ring-2 ring-primary"
+        )}
+      >
+        {mouseIsOver && state.draggedElement && isTopHalf && <div className="absolute top-0 left-0 w-full h-1 bg-primary rounded-full z-10" />}
+        {mouseIsOver && state.draggedElement && !isTopHalf && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-full z-10" />}
 
-      {mouseIsOver && (
-        <div className="absolute top-2 right-2 flex gap-2 z-10">
-          <Button
-            variant="destructive"
-            size="icon"
-            className="h-7 w-7"
-            onClick={(e) => {
-              e.stopPropagation();
-              dispatch({ type: "DELETE_ELEMENT", payload: { elementId: element.id, sectionId } });
-            }}
-          >
-            <Trash className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-      <ElementPreview element={element} />
-    </div>
+        {mouseIsOver && (
+          <div className="absolute top-2 right-2 flex gap-2 z-10">
+            <Button
+              variant="destructive"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({ type: "DELETE_ELEMENT", payload: { elementId: element.id, sectionId } });
+              }}
+            >
+              <Trash className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        <ElementPreview element={element} />
+      </div>
+    </ConditionalWrapper>
   );
 }
