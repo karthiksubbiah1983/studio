@@ -39,11 +39,7 @@ export function CanvasSection({ section }: { section: Section }) {
     // Dropping a new element from sidebar
     if ('type' in draggedElement) {
         dispatch({ type: "ADD_ELEMENT", payload: { sectionId: section.id, type: draggedElement.type } });
-        return;
-    }
-
-    // Moving an existing element
-    if ('element' in draggedElement) {
+    } else if ('element' in draggedElement) { // Moving an existing element
         // If dropping on itself or its original section with only one element, do nothing.
         if (draggedElement.sectionId === section.id && section.elements.length === 0) {
             return;
