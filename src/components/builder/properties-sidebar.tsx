@@ -7,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, Loader2 } from "lucide-react";
-import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, Section } from "@/lib/types";
+import { X, Plus, Loader2, icons } from "lucide-react";
+import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -269,6 +269,76 @@ function SectionProperties({ section }: { section: Section }) {
     );
 }
 
+function PopupSettings({
+    element,
+    onUpdate,
+}: {
+    element: FormElementInstance;
+    onUpdate: (popup: PopupConfig) => void;
+}) {
+    const popup = element.popup || { enabled: false, title: "", description: "", icon: "Info", iconColor: "#000000" };
+    const iconNames = Object.keys(icons);
+
+    return (
+        <div className="flex flex-col gap-4">
+            <Separator />
+            <h4 className="font-medium">Info Popup</h4>
+            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                <Label htmlFor="enable-popup">Enable</Label>
+                <Switch
+                    id="enable-popup"
+                    checked={popup.enabled}
+                    onCheckedChange={(checked) => onUpdate({ ...popup, enabled: checked })}
+                />
+            </div>
+            {popup.enabled && (
+                <>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="popup-title">Popup Title</Label>
+                        <Input
+                            id="popup-title"
+                            value={popup.title}
+                            onChange={(e) => onUpdate({ ...popup, title: e.target.value })}
+                        />
+                    </div>
+                     <div className="flex flex-col gap-2">
+                        <Label htmlFor="popup-description">Popup Description</Label>
+                        <Textarea
+                            id="popup-description"
+                            value={popup.description}
+                            onChange={(e) => onUpdate({ ...popup, description: e.target.value })}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="popup-icon">Icon</Label>
+                         <Select
+                            value={popup.icon}
+                            onValueChange={(value) => onUpdate({ ...popup, icon: value })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select an icon" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {iconNames.map(name => (
+                                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="flex flex-col gap-2">
+                        <Label htmlFor="popup-icon-color">Icon Color</Label>
+                        <Input
+                            id="popup-icon-color"
+                            type="color"
+                            value={popup.iconColor}
+                            onChange={(e) => onUpdate({ ...popup, iconColor: e.target.value })}
+                        />
+                    </div>
+                </>
+            )}
+        </div>
+    );
+}
 
 function ElementProperties({ element }: { element: FormElementInstance }) {
   const { dispatch, state } = useBuilder();
@@ -304,6 +374,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     if (key === 'conditionalLogic' && value.enabled === false) {
         newProps.conditionalLogic = { enabled: false, triggerElementId: '', showWhenValue: '' };
     }
+     if (key === 'popup' && value.enabled === false) {
+        newProps.popup = { enabled: false, title: '', description: '', icon: 'Info', iconColor: '#000000' };
+    }
     dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: newProps } });
   };
   
@@ -315,6 +388,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   const handleDisplayDataSourceUpdate = (config: DisplayDataSourceConfig) => {
     updateElement('dataSourceConfig', config);
+  }
+
+  const handlePopupUpdate = (popup: PopupConfig) => {
+    updateElement('popup', popup);
   }
 
   const commonFields = (
@@ -483,10 +560,20 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             );
             break;
         case "RadioGroup":
-             fields = <>{commonFields}{placeholderField}{helperTextField}{optionsField}</>;
+             fields = <>
+                {commonFields}
+                {placeholderField}
+                {helperTextField}
+                {optionsField}
+                <PopupSettings element={element} onUpdate={handlePopupUpdate} />
+             </>;
              break;
         case "Checkbox":
-            fields = <>{commonFields}{helperTextField}</>;
+            fields = <>
+                {commonFields}
+                {helperTextField}
+                <PopupSettings element={element} onUpdate={handlePopupUpdate} />
+            </>;
             break;
         case "DatePicker":
             fields = <>{commonFields}{helperTextField}</>;

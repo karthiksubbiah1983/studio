@@ -11,6 +11,14 @@ export type DisplayDataSourceConfig = {
     displayKey: string;      // Key of the property to display from the selected object
 };
 
+export type PopupConfig = {
+    enabled: boolean;
+    title: string;
+    description: string;
+    icon: string;
+    iconColor: string;
+}
+
 export type FormElementInstance = {
     id: string;
     type: ElementType;
@@ -28,6 +36,8 @@ export type FormElementInstance = {
     labelKey?: string; // Key in each object for option label
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
+    // For Checkbox, RadioGroup
+    popup?: PopupConfig;
     // Conditional Visibility
     conditionalLogic?: ConditionalLogic;
 };

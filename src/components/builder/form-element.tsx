@@ -17,6 +17,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { useEffect, useState } from "react";
 import { fetchFromApi } from "@/services/api";
+import { Popup } from "../ui/popup";
+import { Button } from "../ui/button";
+import { icons, Info } from "lucide-react";
 
 type Props = {
   element: FormElementInstance;
@@ -28,6 +31,7 @@ type Props = {
 export function FormElementRenderer({ element, value, onValueChange, formState }: Props) {
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPopupOpen, setIsPopupOpen] = useState(false);
 
   useEffect(() => {
     if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
@@ -38,7 +42,33 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
     }
   }, [element]);
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
+
+  const LucideIcon = popup?.icon ? (icons as any)[popup.icon] : null;
+
+  const renderLabelWithPopup = () => (
+    <div className="flex items-center gap-2 mb-2">
+       <Label className="text-base">
+        {label}
+        {required && <span className="text-destructive"> *</span>}
+      </Label>
+      {popup?.enabled && (
+        <>
+            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setIsPopupOpen(true)}>
+                <Info className="h-4 w-4 text-muted-foreground" />
+            </Button>
+            <Popup
+                isOpen={isPopupOpen}
+                onOpenChange={setIsPopupOpen}
+                title={popup.title}
+                description={popup.description}
+                icon={LucideIcon}
+                iconColor={popup.iconColor}
+            />
+        </>
+      )}
+    </div>
+  )
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -137,7 +167,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
                     onCheckedChange={(checked) => onValueChange(element.id, checked)}
                 />
                 <div className="grid gap-1.5 leading-none">
-                    <Label htmlFor={element.id}>{label}</Label>
+                    {renderLabelWithPopup()}
                     {helperText && <p className="text-sm text-muted-foreground">{helperText}</p>}
                 </div>
             </div>
@@ -145,7 +175,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
     case "RadioGroup":
       return (
         <div>
-          {renderLabel()}
+          {renderLabelWithPopup()}
           <RadioGroup value={value?.value} onValueChange={(val) => onValueChange(element.id, val)}>
             {options?.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
