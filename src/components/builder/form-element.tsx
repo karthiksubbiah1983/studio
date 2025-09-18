@@ -163,15 +163,40 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
         </div>
       );
     case "DatePicker":
+      const dateValue = value?.value ? new Date(value.value) : undefined;
+      const handleDateChange = (date: Date | undefined) => {
+        const newDate = dateValue || new Date();
+        if(date) {
+            newDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+            onValueChange(element.id, newDate.toISOString());
+        }
+      }
+      const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const time = e.target.value;
+        const [hours, minutes] = time.split(':').map(Number);
+        const newDate = dateValue || new Date();
+        newDate.setHours(hours, minutes);
+        onValueChange(element.id, newDate.toISOString());
+      }
+      const timeValue = dateValue ? `${String(dateValue.getHours()).padStart(2,'0')}:${String(dateValue.getMinutes()).padStart(2, '0')}` : "";
+
       return (
         <div>
           {renderLabel()}
-          <Calendar 
-            mode="single"
-            selected={value?.value}
-            onSelect={(date) => onValueChange(element.id, date)}
-            className="p-0 border rounded-md"
-          />
+          <div className="flex gap-2">
+            <Calendar 
+              mode="single"
+              selected={dateValue}
+              onSelect={handleDateChange}
+              className="p-0 border rounded-md"
+            />
+            <Input 
+              type="time"
+              value={timeValue}
+              onChange={handleTimeChange}
+              className="w-32"
+            />
+          </div>
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
           )}

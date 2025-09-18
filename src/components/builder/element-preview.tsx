@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
+import { Clock } from "lucide-react";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
   const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig } = element;
@@ -101,7 +102,12 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
       return (
         <div>
           {renderLabel()}
-          <Calendar mode="single" className="p-0"/>
+          <div className="flex gap-2">
+            <Calendar mode="single" className="p-0 rounded-md border w-auto"/>
+            <div className="flex items-center justify-center border rounded-md w-32">
+                <Clock className="h-8 w-8 text-muted-foreground" />
+            </div>
+          </div>
           {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
         </div>
       );
