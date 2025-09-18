@@ -1,4 +1,4 @@
-import { ElementType } from "./types";
+import { FormElementInstance, ElementType } from "./types";
 import { CaseSensitive, CheckSquare, Heading1, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays } from "lucide-react";
 
 export const FormElements: {

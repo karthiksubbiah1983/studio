@@ -121,7 +121,7 @@ const builderReducer = (state: State, action: Action): State => {
             sections: sectionsAfterRemoval.map(section => {
                 if (section.id === to.sectionId) {
                     const newElements = [...section.elements];
-                    newElements.splice(to.index, 0, elementToMove!);
+                    newElements.splice(to.index, 0, elementToMove as FormElementInstance);
                     return { ...section, elements: newElements };
                 }
                 return section;
