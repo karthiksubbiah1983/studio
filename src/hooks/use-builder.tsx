@@ -1,6 +1,7 @@
+
 "use client";
 
-import { createContext, useContext, useReducer, Dispatch, ReactNode } from "react";
+import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect } from "react";
 import { FormElementInstance, Section, ElementType } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
@@ -141,19 +142,14 @@ type BuilderContextType = {
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(builderReducer, initialState, (init) => {
-    return {
-      ...init,
-      sections: [
-        {
-          id: crypto.randomUUID(),
-          title: "Untitled Section",
-          config: "expanded",
-          elements: [],
-        },
-      ],
+  const [state, dispatch] = useReducer(builderReducer, initialState);
+
+  useEffect(() => {
+    // Add the initial section only on the client-side after hydration
+    if (state.sections.length === 0) {
+      dispatch({ type: "ADD_SECTION" });
     }
-  });
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   return (
     <BuilderContext.Provider value={{ state, dispatch }}>
