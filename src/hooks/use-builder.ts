@@ -14,7 +14,7 @@ type State = {
 type Action =
   | { type: "SET_COLUMNS"; payload: 2 | 3 }
   | { type: "ADD_SECTION" }
-  | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType } }
+  | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number } }
   | { type: "UPDATE_ELEMENT"; payload: { sectionId: string; element: FormElementInstance } }
   | { type: "UPDATE_SECTION"; payload: Section }
   | { type: "SELECT_ELEMENT"; payload: { elementId: string; sectionId: string } | null }
@@ -50,15 +50,22 @@ const builderReducer = (state: State, action: Action): State => {
         ],
       };
     case "ADD_ELEMENT": {
-      const { sectionId, type } = action.payload;
+      const { sectionId, type, index } = action.payload;
       const newElement = createNewElement(type);
       return {
         ...state,
-        sections: state.sections.map((section) =>
-          section.id === sectionId
-            ? { ...section, elements: [...section.elements, newElement] }
-            : section
-        ),
+        sections: state.sections.map((section) => {
+          if (section.id === sectionId) {
+            const newElements = [...section.elements];
+            if (index !== undefined) {
+              newElements.splice(index, 0, newElement);
+            } else {
+              newElements.push(newElement);
+            }
+            return { ...section, elements: newElements };
+          }
+          return section;
+        }),
       };
     }
     case "UPDATE_ELEMENT": {

@@ -53,7 +53,7 @@ export function CanvasElement({ element, sectionId, index }: Props) {
     
     // Dropping a new element from sidebar
     if ('type' in draggedElement) {
-        dispatch({ type: "ADD_ELEMENT", payload: { sectionId, type: draggedElement.type } });
+        dispatch({ type: "ADD_ELEMENT", payload: { sectionId, type: draggedElement.type, index: targetIndex } });
         return;
     }
 
