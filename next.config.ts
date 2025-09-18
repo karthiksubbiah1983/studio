@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,
+    experimental: {
+      legacyDecorator: true,
+    },
   },
   eslint: {
     ignoreDuringBuilds: true,
