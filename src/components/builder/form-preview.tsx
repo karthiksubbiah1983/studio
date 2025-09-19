@@ -52,7 +52,7 @@ export function FormPreview() {
             <CardContent>
               <div
                 className={cn(
-                  "grid gap-4 grid-cols-1",
+                  "grid gap-x-2.5 gap-y-4 grid-cols-1",
                   getGridColsClass(section)
                 )}
               >

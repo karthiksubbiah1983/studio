@@ -96,7 +96,7 @@ export function CanvasSection({ section }: { section: Section }) {
       {section.elements.length > 0 ? (
         <div
           className={cn(
-            "grid gap-x-4 grid-cols-1 row-gap-0",
+            "grid gap-x-2.5 grid-cols-1 row-gap-0",
             getGridColsClass()
           )}
         >
