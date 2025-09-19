@@ -9,6 +9,7 @@ import {
 import { FormElementRenderer } from "./form-element";
 import { useState } from "react";
 import { FormElementInstance, Section } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export function FormPreview() {
   const { state } = useBuilder();
@@ -39,10 +40,10 @@ export function FormPreview() {
             </CardHeader>
             <CardContent>
               <div
-                className="grid gap-4"
-                style={{
-                  gridTemplateColumns: `repeat(${section.columns}, 1fr)`,
-                }}
+                className={cn(
+                  "grid gap-4 grid-cols-1",
+                  `md:grid-cols-${section.columns}`
+                )}
               >
                 {section.elements.map((element) =>
                   isVisible(element) ? (
