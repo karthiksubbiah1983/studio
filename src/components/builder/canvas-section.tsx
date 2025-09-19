@@ -14,7 +14,7 @@ import { CanvasElement } from "./canvas-element";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ConditionalWrapper } from "./conditional-wrapper";
-import { GripVertical } from "lucide-react";
+import { Copy, GripVertical } from "lucide-react";
 
 
 export function CanvasSection({ section }: { section: Section }) {
@@ -115,10 +115,21 @@ export function CanvasSection({ section }: { section: Section }) {
               </div>
               <Accordion type="single" collapsible defaultValue="item-1">
                   <AccordionItem value="item-1" className="border-b-0">
-                      <CardHeader className="p-4">
-                          <AccordionTrigger className="flex justify-between items-center text-lg font-medium hover:no-underline">
+                      <CardHeader className="p-4 flex flex-row items-center justify-between">
+                          <AccordionTrigger className="flex-1 hover:no-underline text-lg font-medium">
                              {section.title}
                           </AccordionTrigger>
+                           <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 opacity-0 group-hover/section:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
+                              }}
+                            >
+                              <Copy className="h-5 w-5" />
+                          </Button>
                       </CardHeader>
                       <AccordionContent>
                           <CardContent className="p-0">{content}</CardContent>
@@ -141,6 +152,17 @@ export function CanvasSection({ section }: { section: Section }) {
         </div>
         <CardHeader className="flex flex-row items-center justify-between p-4">
           <h3 className="text-lg font-medium">{section.title}</h3>
+           <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 opacity-0 group-hover/section:opacity-100 transition-opacity"
+              onClick={(e) => {
+                  e.stopPropagation();
+                  dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
+              }}
+            >
+              <Copy className="h-5 w-5" />
+          </Button>
         </CardHeader>
         <CardContent>{content}</CardContent>
       </Card>

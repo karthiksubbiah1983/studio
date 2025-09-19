@@ -20,6 +20,8 @@ type Action =
   | { type: "SELECT_ELEMENT"; payload: { elementId: string; sectionId: string } | null }
   | { type: "DELETE_ELEMENT"; payload: { elementId: string; sectionId: string } }
   | { type: "DELETE_SECTION"; payload: { sectionId: string } }
+  | { type: "CLONE_ELEMENT"; payload: { elementId: string; sectionId: string } }
+  | { type: "CLONE_SECTION"; payload: { sectionId: string } }
   | { type: "SET_DRAGGED_ELEMENT"; payload: State['draggedElement'] }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number, toIndex: number } }
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index: number } } }
@@ -33,6 +35,16 @@ const initialState: State = {
   selectedElement: null,
   draggedElement: null,
   versions: [],
+};
+
+// Helper function to deep clone and assign new IDs
+const cloneWithNewIds = <T extends { id: string }>(item: T): T => {
+  const newItem = JSON.parse(JSON.stringify(item));
+  newItem.id = crypto.randomUUID();
+  if ('elements' in newItem && Array.isArray(newItem.elements)) {
+    (newItem as any).elements = newItem.elements.map((el: any) => cloneWithNewIds(el));
+  }
+  return newItem;
 };
 
 const builderReducer = (state: State, action: Action): State => {
@@ -100,6 +112,44 @@ const builderReducer = (state: State, action: Action): State => {
             sections: state.sections.filter(s => s.id !== action.payload.sectionId),
             selectedElement: state.selectedElement?.sectionId === action.payload.sectionId ? null : state.selectedElement,
         };
+    }
+    case "CLONE_ELEMENT": {
+      const { sectionId, elementId } = action.payload;
+      const newSections = [...state.sections];
+      const sectionIndex = newSections.findIndex(s => s.id === sectionId);
+      if (sectionIndex === -1) return state;
+
+      const section = newSections[sectionIndex];
+      const elementIndex = section.elements.findIndex(e => e.id === elementId);
+      if (elementIndex === -1) return state;
+
+      const elementToClone = section.elements[elementIndex];
+      const clonedElement = cloneWithNewIds(elementToClone);
+      
+      section.elements.splice(elementIndex + 1, 0, clonedElement);
+
+      return {
+        ...state,
+        sections: newSections,
+        selectedElement: { sectionId: sectionId, elementId: clonedElement.id }
+      };
+    }
+    case "CLONE_SECTION": {
+      const { sectionId } = action.payload;
+      const sectionIndex = state.sections.findIndex(s => s.id === sectionId);
+      if (sectionIndex === -1) return state;
+
+      const sectionToClone = state.sections[sectionIndex];
+      const clonedSection = cloneWithNewIds(sectionToClone);
+
+      const newSections = [...state.sections];
+      newSections.splice(sectionIndex + 1, 0, clonedSection);
+
+      return {
+        ...state,
+        sections: newSections,
+        selectedElement: { sectionId: clonedSection.id, elementId: "" }
+      };
     }
     case "SET_DRAGGED_ELEMENT":
         return { ...state, draggedElement: action.payload };
@@ -205,7 +255,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (state.sections.length === 0) {
       dispatch({ type: "ADD_SECTION" });
     }
-  }, [state.sections.length]);
+  }, [state.sections.length, dispatch]);
 
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));

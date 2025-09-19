@@ -5,7 +5,7 @@ import { FormElementInstance } from "@/lib/types";
 import { ElementPreview } from "./element-preview";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
-import { Trash } from "lucide-react";
+import { Copy, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConditionalWrapper } from "./conditional-wrapper";
 
@@ -94,6 +94,17 @@ export function CanvasElement({ element, sectionId, index }: Props) {
 
         {mouseIsOver && (
           <div className="absolute top-2 right-2 flex gap-2 z-10">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => {
+                e.stopPropagation();
+                dispatch({ type: "CLONE_ELEMENT", payload: { elementId: element.id, sectionId } });
+              }}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
             <Button
               variant="destructive"
               size="icon"
