@@ -2,13 +2,14 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect } from "react";
-import { FormElementInstance, Section, ElementType } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
 type State = {
   sections: Section[];
   selectedElement: { elementId: string; sectionId: string } | null;
   draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType } | { sectionId: string } | null;
+  versions: FormVersion[];
 };
 
 type Action =
@@ -21,12 +22,17 @@ type Action =
   | { type: "DELETE_SECTION"; payload: { sectionId: string } }
   | { type: "SET_DRAGGED_ELEMENT"; payload: State['draggedElement'] }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number, toIndex: number } }
-  | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index: number } } };
+  | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index: number } } }
+  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[] } }
+  | { type: "LOAD_VERSION"; payload: { versionId: string } }
+  | { type: "DELETE_VERSION"; payload: { versionId: string } }
+  | { type: "SET_STATE"; payload: State };
 
 const initialState: State = {
   sections: [],
   selectedElement: null,
   draggedElement: null,
+  versions: [],
 };
 
 const builderReducer = (state: State, action: Action): State => {
@@ -107,22 +113,21 @@ const builderReducer = (state: State, action: Action): State => {
     case "MOVE_ELEMENT": {
         const { from, to } = action.payload;
         let elementToMove: FormElementInstance | undefined;
+        const fromSection = state.sections.find(s => s.id === from.sectionId);
+        elementToMove = fromSection?.elements.find(el => el.id === from.elementId);
+       
+        if (!elementToMove) return state;
 
-        // Remove element from source
-        const sectionsAfterRemoval = state.sections.map(section => {
+        const newSections = state.sections.map(section => {
             if (section.id === from.sectionId) {
-                elementToMove = section.elements.find(el => el.id === from.elementId);
                 return { ...section, elements: section.elements.filter(el => el.id !== from.elementId) };
             }
             return section;
         });
 
-        if (!elementToMove) return state;
-
-        // Add element to destination
         return {
             ...state,
-            sections: sectionsAfterRemoval.map(section => {
+            sections: newSections.map(section => {
                 if (section.id === to.sectionId) {
                     const newElements = [...section.elements];
                     newElements.splice(to.index, 0, elementToMove as FormElementInstance);
@@ -132,6 +137,40 @@ const builderReducer = (state: State, action: Action): State => {
             })
         };
     }
+    case "SAVE_VERSION": {
+      const { name, description, type, sections } = action.payload;
+      const newVersion: FormVersion = {
+        id: crypto.randomUUID(),
+        name,
+        description,
+        type,
+        timestamp: new Date().toISOString(),
+        sections,
+      };
+      return {
+        ...state,
+        versions: [newVersion, ...state.versions],
+      };
+    }
+    case "LOAD_VERSION": {
+      const version = state.versions.find(v => v.id === action.payload.versionId);
+      if (version) {
+        return {
+          ...state,
+          sections: version.sections,
+          selectedElement: null,
+        };
+      }
+      return state;
+    }
+    case "DELETE_VERSION": {
+      return {
+        ...state,
+        versions: state.versions.filter(v => v.id !== action.payload.versionId),
+      };
+    }
+     case "SET_STATE":
+      return { ...action.payload };
     default:
       return state;
   }
@@ -144,21 +183,33 @@ type BuilderContextType = {
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
+const LOCAL_STORAGE_KEY = "form-builder-state";
+
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(builderReducer, initialState, (init) => {
     if (typeof window === "undefined") {
       return init;
     }
-    return {
-        ...init,
-    };
+    try {
+      const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedState) {
+        return JSON.parse(storedState);
+      }
+    } catch (error) {
+      console.error("Failed to parse state from localStorage", error);
+    }
+    return init;
   });
   
   useEffect(() => {
     if (state.sections.length === 0) {
       dispatch({ type: "ADD_SECTION" });
     }
-  }, [state.sections.length, dispatch]);
+  }, [state.sections.length]);
+
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+  }, [state]);
 
   return (
     <BuilderContext.Provider value={{ state, dispatch }}>

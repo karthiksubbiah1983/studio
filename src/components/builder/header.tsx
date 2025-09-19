@@ -3,33 +3,29 @@
 
 import { Button } from "@/components/ui/button";
 import { useBuilder } from "@/hooks/use-builder";
-import { Download, Eye, PanelLeft, Settings } from "lucide-react";
+import { Eye, PanelLeft, Settings, History, Save, Send } from "lucide-react";
 import { PreviewDialog } from "./preview-dialog";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SaveVersionDialog } from "./save-version-dialog";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
   onRightSidebarToggle?: () => void;
+  onHistorySidebarToggle?: () => void;
 }
 
-export function Header({ onLeftSidebarToggle, onRightSidebarToggle }: Props) {
+export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySidebarToggle }: Props) {
   const { state } = useBuilder();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSaveOpen, setIsSaveOpen] = useState(false);
+  const [saveType, setSaveType] = useState<"draft" | "published">("draft");
   const isMobile = useIsMobile();
 
-  const handleExport = () => {
-    const jsonString = JSON.stringify(state, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "form-config.json";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  const handleSaveClick = (type: "draft" | "published") => {
+    setSaveType(type);
+    setIsSaveOpen(true);
+  }
 
   return (
     <>
@@ -48,11 +44,20 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle }: Props) {
             Preview
           </Button>
           {!isMobile && (
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" />
-                Export JSON
+            <>
+              <Button variant="outline" size="sm" onClick={() => handleSaveClick("draft")}>
+                <Save className="mr-2 h-4 w-4" />
+                Save Draft
               </Button>
+               <Button size="sm" onClick={() => handleSaveClick("published")}>
+                <Send className="mr-2 h-4 w-4" />
+                Publish
+              </Button>
+            </>
           )}
+           <Button variant="ghost" size="icon" onClick={onHistorySidebarToggle}>
+                <History className="h-5 w-5"/>
+            </Button>
            {isMobile && (
                 <Button variant="ghost" size="icon" onClick={onRightSidebarToggle}>
                     <Settings className="h-5 w-5"/>
@@ -61,6 +66,11 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle }: Props) {
         </div>
       </header>
       <PreviewDialog isOpen={isPreviewOpen} onOpenChange={setIsPreviewOpen} />
+      <SaveVersionDialog 
+        isOpen={isSaveOpen}
+        onOpenChange={setIsSaveOpen}
+        saveType={saveType}
+      />
     </>
   );
 }

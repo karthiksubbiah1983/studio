@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Header } from "./header";
@@ -9,11 +8,15 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { applyPolyfill } from "@/lib/dnd-polyfill";
+import { HistorySidebar } from "./history-sidebar";
+import { useBuilder } from "@/hooks/use-builder";
 
 export function Builder() {
   const isMobile = useIsMobile();
+  const { state } = useBuilder();
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
+  const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
   
   useEffect(() => {
     if (isMobile) {
@@ -27,6 +30,7 @@ export function Builder() {
         <Header 
           onLeftSidebarToggle={() => setIsLeftSidebarOpen(prev => !prev)}
           onRightSidebarToggle={() => setIsRightSidebarOpen(prev => !prev)}
+          onHistorySidebarToggle={() => setIsHistorySidebarOpen(prev => !prev)}
         />
         <div className="flex-grow h-full overflow-y-auto bg-background">
           <Canvas />
@@ -41,19 +45,25 @@ export function Builder() {
                 <PropertiesSidebar />
             </SheetContent>
         </Sheet>
+        <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
+            <SheetContent side="right" className="p-0">
+                <HistorySidebar />
+            </SheetContent>
+        </Sheet>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col w-full h-full">
-      <Header />
+      <Header onHistorySidebarToggle={() => setIsHistorySidebarOpen(prev => !prev)} />
       <div className="flex flex-grow h-full overflow-hidden">
         <ElementsSidebar />
         <div className="flex-grow h-full overflow-y-auto bg-background">
           <Canvas />
         </div>
         <PropertiesSidebar />
+        {isHistorySidebarOpen && <HistorySidebar />}
       </div>
     </div>
   );

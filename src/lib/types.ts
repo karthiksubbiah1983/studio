@@ -63,3 +63,12 @@ export type Section = {
     // Conditional Visibility
     conditionalLogic?: ConditionalLogic;
 };
+
+export type FormVersion = {
+  id: string;
+  name: string;
+  description: string;
+  type: "draft" | "published";
+  timestamp: string;
+  sections: Section[];
+};
