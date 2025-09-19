@@ -1,5 +1,5 @@
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, Heading1, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table } from "lucide-react";
+import { CaseSensitive, CheckSquare, Heading1, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table, FileText } from "lucide-react";
 
 export const FormElements: {
   type: ElementType;
@@ -16,6 +16,7 @@ export const FormElements: {
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: Type, label: 'Display Text' },
     { type: 'Table', icon: Table, label: 'Table' },
+    { type: 'RichText', icon: FileText, label: 'Rich Text' },
 ];
 
 export const createNewElement = (type: ElementType): FormElementInstance => {
@@ -63,6 +64,8 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
                 allowEdit: true,
                 allowDelete: true,
             }
+        case "RichText":
+            return { ...baseElement, label: "Rich Text Editor", content: "" };
         default:
             throw new Error("Invalid element type");
     }

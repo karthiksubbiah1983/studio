@@ -596,6 +596,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         case "Textarea":
             fields = <>{commonFields}{placeholderField}{helperTextField}</>;
             break;
+        case "RichText":
+            fields = <>{commonFields}{helperTextField}</>;
+            break;
         case "Select":
             fields = (
                 <>

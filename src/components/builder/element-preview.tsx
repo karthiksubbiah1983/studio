@@ -137,6 +137,16 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                 {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
             </div>
         );
+    case "RichText":
+      return (
+        <div>
+            {renderLabel()}
+            <div className="rounded-md border border-input bg-background min-h-[150px] p-4 text-sm">
+                Rich text content here...
+            </div>
+             {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+        </div>
+      )
     default:
       return <div>Unsupported element type</div>;
   }

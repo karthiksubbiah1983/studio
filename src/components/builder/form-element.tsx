@@ -22,6 +22,7 @@ import { Button } from "../ui/button";
 import { icons, Info, Plus, Trash, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
+import { LexicalEditor } from "../lexical/lexical-editor";
 
 type Props = {
   element: FormElementInstance;
@@ -147,6 +148,19 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
             placeholder={placeholder}
             value={value?.value || ""}
             onChange={(e) => onValueChange(element.id, e.target.value)}
+          />
+          {helperText && (
+            <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
+          )}
+        </div>
+      );
+    case "RichText":
+      return (
+        <div>
+          {renderLabel()}
+          <LexicalEditor
+            initialValue={value?.value}
+            onChange={(html) => onValueChange(element.id, html)}
           />
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>

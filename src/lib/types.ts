@@ -1,4 +1,4 @@
-export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "Table";
+export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "Table" | "RichText";
 
 export type ConditionalLogic = {
     enabled: boolean;
@@ -52,6 +52,8 @@ export type FormElementInstance = {
     allowAdd?: boolean;
     allowEdit?: boolean;
     allowDelete?: boolean;
+    // For RichText
+    content?: string;
 };
 
 export type Section = {
