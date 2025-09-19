@@ -84,8 +84,9 @@ export function CanvasSection({ section }: { section: Section }) {
       {section.elements.length > 0 ? (
         <div
           className={cn(
-            "grid gap-x-4 row-gap-0",
-            `grid-cols-1 md:grid-cols-${section.columns}`
+            "grid gap-x-4",
+            `grid-cols-1 md:grid-cols-${section.columns}`,
+            `row-gap-0`
           )}
         >
           {section.elements.map((element, index) => (
