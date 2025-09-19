@@ -56,7 +56,7 @@ export function Builder() {
   return (
     <div className="flex flex-col w-full h-full">
       <Header />
-      <div className="flex flex-grow h-full overflow-hidden">
+      <div className="flex flex-grow h-full overflow-hidden gap-2.5">
         <ElementsSidebar />
         <div className="flex-grow h-full overflow-y-auto bg-background">
           <Canvas />
