@@ -63,7 +63,7 @@ export function Builder() {
         <div className="flex-grow h-full overflow-y-auto bg-background">
           <Canvas />
         </div>
-        <aside className="flex">
+        <aside className="flex-shrink-0 flex">
             <PropertiesSidebar />
             {isHistorySidebarOpen && <HistorySidebar />}
         </aside>
