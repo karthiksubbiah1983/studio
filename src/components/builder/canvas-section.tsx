@@ -33,7 +33,7 @@ export function CanvasSection({ section }: { section: Section }) {
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (state.draggedElement && 'type' in state.draggedElement) {
+    if (state.draggedElement) {
       setIsOver(true);
     }
   };
@@ -72,6 +72,8 @@ export function CanvasSection({ section }: { section: Section }) {
     e.stopPropagation();
     dispatch({ type: 'SELECT_ELEMENT', payload: { sectionId: section.id, elementId: "" } });
   }
+  
+  const isElementBeingDragged = state.draggedElement && ('type' in state.draggedElement || 'element' in state.draggedElement);
 
   const content = (
     <div className="flex flex-col gap-4 p-4 min-h-[100px] droppable"
@@ -91,7 +93,7 @@ export function CanvasSection({ section }: { section: Section }) {
           ))}
         </div>
       ) : (
-        <div className={cn("flex-1 rounded-lg border-dashed border-2 flex items-center justify-center text-muted-foreground", isOver ? 'border-primary bg-accent/20' : 'bg-transparent')}>
+        <div className={cn("flex-1 rounded-lg border-dashed border-2 flex items-center justify-center text-muted-foreground", isOver && isElementBeingDragged ? 'border-primary bg-accent/20' : 'bg-transparent')}>
           <p>Drop elements here</p>
         </div>
       )}
@@ -101,7 +103,7 @@ export function CanvasSection({ section }: { section: Section }) {
   const sectionContent = () => {
     if (section.config === 'normal') {
       return (
-          <Card className={cn(isSelected && "ring-2 ring-primary", "overflow-visible group/section relative")} onClick={handleSectionClick}>
+          <Card className={cn(isSelected && "ring-2 ring-primary", isOver && isElementBeingDragged && "ring-2 ring-primary/50", "overflow-visible group/section relative")} onClick={handleSectionClick}>
               <div 
                 draggable 
                 onDragStart={handleDragStart}
@@ -127,7 +129,7 @@ export function CanvasSection({ section }: { section: Section }) {
     }
   
     return (
-      <Card className={cn(isSelected && "ring-2 ring-primary", "group/section relative")} onClick={handleSectionClick}>
+      <Card className={cn(isSelected && "ring-2 ring-primary", isOver && isElementBeingDragged && "ring-2 ring-primary/50", "group/section relative")} onClick={handleSectionClick}>
         <div 
             draggable 
             onDragStart={handleDragStart}
