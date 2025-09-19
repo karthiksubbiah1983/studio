@@ -61,7 +61,7 @@ const theme = {
     listitem: "mb-2",
   },
   link: "text-primary underline",
-  quote: "pl-4 border-l-4 border-muted-foreground text-muted-foreground",
+  quote: "pl-4 text-muted-foreground",
 };
 
 const editorConfig = {
@@ -115,7 +115,7 @@ function ToolbarPlugin() {
   }, [updateToolbar, editor]);
 
   return (
-    <div className="flex flex-wrap gap-1 p-2 border-b">
+    <div className="flex flex-wrap gap-1 p-2">
       <Button
         size="icon"
         variant={isBold ? "secondary" : "ghost"}
@@ -198,7 +198,7 @@ export function LexicalEditor({
 
   return (
     <LexicalComposer initialConfig={editorConfig}>
-      <div className="rounded-md border border-input bg-background">
+      <div className="rounded-md bg-background">
         <ToolbarPlugin />
         <div className="relative">
           <RichTextPlugin

@@ -29,7 +29,7 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
 
   return (
     <>
-      <header className="flex items-center justify-between p-2 border-b bg-card shadow-sm">
+      <header className="flex items-center justify-between p-2 bg-card shadow-sm">
         <div className="flex items-center gap-2">
             {isMobile && (
                 <Button variant="ghost" size="icon" onClick={onLeftSidebarToggle}>
