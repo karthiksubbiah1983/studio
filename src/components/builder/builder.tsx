@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Header } from "./header";
@@ -46,7 +47,7 @@ export function Builder() {
             </SheetContent>
         </Sheet>
         <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-            <SheetContent side="right" className="p-0">
+            <SheetContent side="right" className="p-0 w-full max-w-md">
                 <HistorySidebar />
             </SheetContent>
         </Sheet>
@@ -62,8 +63,10 @@ export function Builder() {
         <div className="flex-grow h-full overflow-y-auto bg-background">
           <Canvas />
         </div>
-        <PropertiesSidebar />
-        {isHistorySidebarOpen && <HistorySidebar />}
+        <div className="flex">
+            <PropertiesSidebar />
+            {isHistorySidebarOpen && <HistorySidebar />}
+        </div>
       </div>
     </div>
   );
