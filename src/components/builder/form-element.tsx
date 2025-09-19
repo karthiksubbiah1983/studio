@@ -386,7 +386,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
                         Add Row
                     </Button>
                 )}
-                {helperText && <p className="text-sm text-muted-foreground mt-1">{p_h}</p>}
+                {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
             </div>
         );
     default:
