@@ -27,6 +27,17 @@ export function FormPreview() {
     const triggerValue = formState[conditionalLogic.triggerElementId]?.value;
     return triggerValue === conditionalLogic.showWhenValue;
   }
+  
+  const getGridColsClass = (section: Section) => {
+    switch (section.columns) {
+      case 2:
+        return "md:grid-cols-2";
+      case 3:
+        return "md:grid-cols-3";
+      default:
+        return "md:grid-cols-1";
+    }
+  };
 
   return (
     <div className="p-4 space-y-8">
@@ -42,7 +53,7 @@ export function FormPreview() {
               <div
                 className={cn(
                   "grid gap-4 grid-cols-1",
-                  `md:grid-cols-${section.columns}`
+                  getGridColsClass(section)
                 )}
               >
                 {section.elements.map((element) =>
