@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -14,7 +15,7 @@ import { CanvasElement } from "./canvas-element";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ConditionalWrapper } from "./conditional-wrapper";
-import { Copy, GripVertical } from "lucide-react";
+import { Copy, GripVertical, Trash } from "lucide-react";
 
 
 export function CanvasSection({ section }: { section: Section }) {
@@ -104,7 +105,7 @@ export function CanvasSection({ section }: { section: Section }) {
           ))}
         </div>
       ) : (
-        <div className={cn("flex-1 rounded-lg border-dashed border-2 flex items-center justify-center text-muted-foreground", isOver && isElementBeingDragged ? 'border-primary bg-accent/20' : 'bg-transparent')}>
+        <div className={cn("flex-1 border-dashed border-2 flex items-center justify-center text-muted-foreground", isOver && isElementBeingDragged ? 'border-primary bg-accent/20' : 'bg-transparent')}>
           <p>Drop elements here</p>
         </div>
       )}
@@ -129,17 +130,30 @@ export function CanvasSection({ section }: { section: Section }) {
                           <AccordionTrigger className="flex-1 hover:no-underline text-lg font-medium">
                              {section.title}
                           </AccordionTrigger>
-                           <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover/section:opacity-100 transition-opacity"
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
-                              }}
-                            >
-                              <Copy className="h-5 w-5" />
-                          </Button>
+                           <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                             <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
+                                }}
+                              >
+                                <Copy className="h-5 w-5" />
+                            </Button>
+                             <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
+                                }}
+                              >
+                                <Trash className="h-5 w-5 text-destructive" />
+                            </Button>
+                           </div>
                       </CardHeader>
                       <AccordionContent>
                           <CardContent className="p-0">{content}</CardContent>
@@ -162,17 +176,30 @@ export function CanvasSection({ section }: { section: Section }) {
         </div>
         <CardHeader className="flex flex-row items-center justify-between p-4">
           <h3 className="text-lg font-medium">{section.title}</h3>
-           <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 opacity-0 group-hover/section:opacity-100 transition-opacity"
-              onClick={(e) => {
-                  e.stopPropagation();
-                  dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
-              }}
-            >
-              <Copy className="h-5 w-5" />
-          </Button>
+           <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
+            <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
+                }}
+              >
+                <Copy className="h-5 w-5" />
+            </Button>
+            <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
+                }}
+              >
+                <Trash className="h-5 w-5 text-destructive" />
+            </Button>
+           </div>
         </CardHeader>
         <CardContent>{content}</CardContent>
       </Card>
