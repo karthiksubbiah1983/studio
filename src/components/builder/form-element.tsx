@@ -19,8 +19,9 @@ import { useEffect, useState } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "../ui/popup";
 import { Button } from "../ui/button";
-import { icons, Info, Plus, Trash } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 
 type Props = {
   element: FormElementInstance;
@@ -37,6 +38,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
   const [tableRows, setTableRows] = useState<any[][]>([]);
   const [editingCell, setEditingCell] = useState<{rowIndex: number, colIndex: number} | null>(null);
 
+  const initialColumnVisibility = element.columns?.reduce((acc, col) => {
+    acc[col.id] = col.visible;
+    return acc;
+  }, {} as Record<string, boolean>) || {};
+
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(initialColumnVisibility);
+
+
   useEffect(() => {
     if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
       setIsLoading(true);
@@ -44,12 +53,20 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
         .then(data => setDynamicOptions(data || []))
         .finally(() => setIsLoading(false));
     }
-     if (element.type === 'Table' && value?.value) {
-      setTableRows(value.value);
-    } else if (element.type === 'Table' && !value?.value) {
-      const initial = Array.from({ length: element.initialRows || 1 }, () => Array(element.columns?.length || 1).fill(""));
-      setTableRows(initial);
-      onValueChange(element.id, initial);
+     if (element.type === 'Table') {
+        if (value?.value) {
+            setTableRows(value.value);
+        } else {
+            const initial = Array.from({ length: element.initialRows || 1 }, () => 
+                Array(element.columns?.length || 0).fill("")
+            );
+            setTableRows(initial);
+            onValueChange(element.id, initial);
+        }
+        setColumnVisibility(element.columns?.reduce((acc, col) => {
+            acc[col.id] = col.visible;
+            return acc;
+        }, {} as Record<string, boolean>) || {});
     }
   }, [element, value]);
 
@@ -245,10 +262,10 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
       );
     case "Table":
         const { columns, allowAdd, allowEdit, allowDelete } = element;
-        const visibleColumns = columns?.filter(c => c.visible) || [];
+        const visibleColumns = columns?.filter(c => columnVisibility[c.id]) || [];
 
         const handleAddRow = () => {
-            const newRow = Array(columns?.length || 1).fill("");
+            const newRow = Array(columns?.length || 0).fill("");
             const newRows = [...tableRows, newRow];
             setTableRows(newRows);
             onValueChange(element.id, newRows);
@@ -261,8 +278,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
         };
 
         const handleCellChange = (rowIndex: number, colIndex: number, newValue: string) => {
-            const newRows = [...tableRows];
-            newRows[rowIndex] = [...newRows[rowIndex]];
+            const newRows = tableRows.map(row => [...row]); // Deep copy rows
             newRows[rowIndex][colIndex] = newValue;
             setTableRows(newRows);
             onValueChange(element.id, newRows);
@@ -274,61 +290,89 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
 
         return (
             <div>
-                {renderLabel()}
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            {visibleColumns.map((col) => (
-                                <TableHead key={col.id}>{col.title}</TableHead>
+                <div className="flex justify-between items-center mb-2">
+                    {renderLabel()}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm">
+                                Columns <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            {columns?.map(col => (
+                                <DropdownMenuCheckboxItem
+                                    key={col.id}
+                                    className="capitalize"
+                                    checked={columnVisibility[col.id]}
+                                    onCheckedChange={(value) =>
+                                        setColumnVisibility(prev => ({
+                                            ...prev,
+                                            [col.id]: !!value
+                                        }))
+                                    }
+                                >
+                                    {col.title}
+                                </DropdownMenuCheckboxItem>
                             ))}
-                            {(allowEdit || allowDelete) && <TableHead>Actions</TableHead>}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {tableRows.map((row, rowIndex) => (
-                            <TableRow key={rowIndex}>
-                                {visibleColumns.map((col) => {
-                                    const colIndex = getColumnIndex(col);
-                                    const isEditing = allowEdit && editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex;
-
-                                    return (
-                                        <TableCell key={col.id} onClick={() => allowEdit && setEditingCell({rowIndex, colIndex})}>
-                                            {isEditing ? (
-                                                <Input
-                                                    autoFocus
-                                                    value={row[colIndex]}
-                                                    onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                                                    onBlur={() => setEditingCell(null)}
-                                                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingCell(null) }}
-                                                />
-                                            ) : (
-                                                row[colIndex] || <span className="text-muted-foreground">...</span>
-                                            )}
-                                        </TableCell>
-                                    )
-                                })}
-                                {(allowEdit || allowDelete) && (
-                                    <TableCell>
-                                        <div className="flex gap-2">
-                                            {allowDelete && (
-                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRow(rowIndex)}>
-                                                    <Trash className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {visibleColumns.map((col) => (
+                                    <TableHead key={col.id}>{col.title}</TableHead>
+                                ))}
+                                {(allowEdit || allowDelete) && <TableHead className="w-[80px]">Actions</TableHead>}
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {tableRows.map((row, rowIndex) => (
+                                <TableRow key={rowIndex}>
+                                    {visibleColumns.map((col) => {
+                                        const colIndex = getColumnIndex(col);
+                                        const isEditing = allowEdit && editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex;
+
+                                        return (
+                                            <TableCell key={col.id} onClick={() => allowEdit && setEditingCell({rowIndex, colIndex})}>
+                                                {isEditing ? (
+                                                    <Input
+                                                        autoFocus
+                                                        value={row[colIndex]}
+                                                        onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                                                        onBlur={() => setEditingCell(null)}
+                                                        onKeyDown={(e) => { if (e.key === 'Enter') setEditingCell(null) }}
+                                                    />
+                                                ) : (
+                                                    row[colIndex] || <span className="text-muted-foreground">...</span>
+                                                )}
+                                            </TableCell>
+                                        )
+                                    })}
+                                    {(allowEdit || allowDelete) && (
+                                        <TableCell>
+                                            <div className="flex gap-2">
+                                                {allowDelete && (
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRow(rowIndex)}>
+                                                        <Trash className="h-4 w-4 text-destructive" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    )}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
                 {allowAdd && (
                     <Button variant="outline" size="sm" className="mt-4" onClick={handleAddRow}>
                         <Plus className="mr-2 h-4 w-4" />
                         Add Row
                     </Button>
                 )}
-                {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+                {helperText && <p className="text-sm text-muted-foreground mt-1">{p_h}</p>}
             </div>
         );
     default:
