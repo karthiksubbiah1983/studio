@@ -23,7 +23,7 @@
     --border: 214 32% 91%;
     --input: 214 32% 91%;
     --ring: 208 89% 29%;
-    --radius: 0.5rem;
+    --radius: 0rem;
   }
 
   .dark {
@@ -51,7 +51,7 @@
 
 @layer base {
   * {
-    border: 0;
+    @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
