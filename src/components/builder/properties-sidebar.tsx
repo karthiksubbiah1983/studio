@@ -39,7 +39,7 @@ export function PropertiesSidebar() {
   const selected = getSelectedElementInstance();
 
   return (
-    <aside className="w-full md:w-80 p-4 border-l bg-card overflow-y-auto h-full">
+    <div className="w-full p-4 overflow-y-auto h-full">
       <div className="flex justify-between items-center">
         <p className="text-sm text-foreground/70">Properties</p>
         <Button
@@ -55,7 +55,7 @@ export function PropertiesSidebar() {
       {!selected && <p className="text-sm text-muted-foreground">Select an element to see its properties.</p>}
       {selected && 'elements' in selected && <SectionProperties section={selected} />}
       {selected && 'type' in selected && <ElementProperties element={selected} />}
-    </aside>
+    </div>
   );
 }
 

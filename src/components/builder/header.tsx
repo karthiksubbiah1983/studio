@@ -55,9 +55,11 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
               </Button>
             </>
           )}
-           <Button variant="ghost" size="icon" onClick={onHistorySidebarToggle}>
-                <History className="h-5 w-5"/>
-            </Button>
+           {isMobile && (
+             <Button variant="ghost" size="icon" onClick={onHistorySidebarToggle}>
+                  <History className="h-5 w-5"/>
+              </Button>
+           )}
            {isMobile && (
                 <Button variant="ghost" size="icon" onClick={onRightSidebarToggle}>
                     <Settings className="h-5 w-5"/>

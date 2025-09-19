@@ -26,8 +26,7 @@ export function HistorySidebar() {
   };
 
   return (
-    <aside className="w-full md:w-80 p-4 border-l bg-card overflow-y-auto h-full">
-      <h3 className="text-lg font-medium mb-4">Version History</h3>
+    <div className="w-full p-4 h-full overflow-y-auto">
       {versions.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No versions saved yet. Click 'Save Draft' or 'Publish' to create one.
@@ -78,6 +77,6 @@ export function HistorySidebar() {
           ))}
         </div>
       )}
-    </aside>
+    </div>
   );
 }

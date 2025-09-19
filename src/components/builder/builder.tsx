@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Header } from "./header";
@@ -10,11 +9,10 @@ import { useEffect, useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { applyPolyfill } from "@/lib/dnd-polyfill";
 import { HistorySidebar } from "./history-sidebar";
-import { useBuilder } from "@/hooks/use-builder";
+import { RightSidebar } from "./right-sidebar";
 
 export function Builder() {
   const isMobile = useIsMobile();
-  const { state } = useBuilder();
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
@@ -57,16 +55,13 @@ export function Builder() {
 
   return (
     <div className="flex flex-col w-full h-full">
-      <Header onHistorySidebarToggle={() => setIsHistorySidebarOpen(prev => !prev)} />
+      <Header />
       <div className="flex flex-grow h-full overflow-hidden">
         <ElementsSidebar />
         <div className="flex-grow h-full overflow-y-auto bg-background">
           <Canvas />
         </div>
-        <aside className="flex-shrink-0 flex">
-            <PropertiesSidebar />
-            {isHistorySidebarOpen && <HistorySidebar />}
-        </aside>
+        <RightSidebar />
       </div>
     </div>
   );
