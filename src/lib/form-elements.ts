@@ -1,5 +1,5 @@
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, Heading1, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays } from "lucide-react";
+import { CaseSensitive, CheckSquare, Heading1, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table } from "lucide-react";
 
 export const FormElements: {
   type: ElementType;
@@ -15,6 +15,7 @@ export const FormElements: {
     { type: 'RadioGroup', icon: Radio, label: 'Radio Group' },
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: Type, label: 'Display Text' },
+    { type: 'Table', icon: Table, label: 'Table' },
 ];
 
 export const createNewElement = (type: ElementType): FormElementInstance => {
@@ -49,6 +50,19 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
             return { ...baseElement, label: "Date Picker" };
         case "Display":
             return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "" } };
+        case "Table":
+            return {
+                ...baseElement,
+                label: "Data Table",
+                columns: [
+                    { id: crypto.randomUUID(), title: "Column 1", visible: true },
+                    { id: crypto.randomUUID(), title: "Column 2", visible: true },
+                ],
+                initialRows: 3,
+                allowAdd: true,
+                allowEdit: true,
+                allowDelete: true,
+            }
         default:
             throw new Error("Invalid element type");
     }

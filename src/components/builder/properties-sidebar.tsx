@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -7,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, Loader2, icons } from "lucide-react";
-import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section } from "@/lib/types";
+import { X, Plus, Loader2, icons, EyeOff, Eye } from "lucide-react";
+import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section, TableColumn } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -474,6 +473,71 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         </div>
     </div>
   );
+
+  const tableFields = (
+    <>
+        <div className="flex flex-col gap-2">
+            <Label>Columns</Label>
+            {element.columns?.map((col, index) => (
+                <div key={col.id} className="flex items-center gap-2">
+                    <Input
+                        value={col.title}
+                        onChange={(e) => {
+                            const newCols = [...element.columns!];
+                            newCols[index].title = e.target.value;
+                            updateElement('columns', newCols);
+                        }}
+                    />
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                        const newCols = [...element.columns!];
+                        newCols[index].visible = !newCols[index].visible;
+                        updateElement('columns', newCols);
+                    }}>
+                        {col.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                        const newCols = element.columns!.filter(c => c.id !== col.id);
+                        updateElement('columns', newCols);
+                    }}>
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => {
+                const newCols = [...(element.columns || []), { id: crypto.randomUUID(), title: `Column ${ (element.columns?.length || 0) + 1}`, visible: true }];
+                updateElement('columns', newCols);
+            }}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Column
+            </Button>
+        </div>
+        <Separator />
+         <div className="flex flex-col gap-2">
+            <Label htmlFor="initialRows">Initial Rows</Label>
+            <Input
+                id="initialRows"
+                type="number"
+                value={element.initialRows || 1}
+                onChange={(e) => updateElement('initialRows', parseInt(e.target.value, 10))}
+                min={1}
+            />
+        </div>
+        <Separator />
+        <h4 className="font-medium">User Actions</h4>
+        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+            <Label htmlFor="allowAdd">Allow Add</Label>
+            <Switch id="allowAdd" checked={element.allowAdd} onCheckedChange={(checked) => updateElement('allowAdd', checked)} />
+        </div>
+        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+            <Label htmlFor="allowEdit">Allow Edit</Label>
+            <Switch id="allowEdit" checked={element.allowEdit} onCheckedChange={(checked) => updateElement('allowEdit', checked)} />
+        </div>
+        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+            <Label htmlFor="allowDelete">Allow Delete</Label>
+            <Switch id="allowDelete" checked={element.allowDelete} onCheckedChange={(checked) => updateElement('allowDelete', checked)} />
+        </div>
+    </>
+  );
   
   const content = () => {
       let fields;
@@ -577,6 +641,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             break;
         case "DatePicker":
             fields = <>{commonFields}{helperTextField}</>;
+            break;
+        case "Table":
+            fields = <>{commonFields}{tableFields}{helperTextField}</>
             break;
         default:
             return null;

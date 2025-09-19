@@ -1,6 +1,6 @@
 "use client";
 
-import { FormElementInstance } from "@/lib/types";
+import { FormElementInstance, TableColumn } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +19,8 @@ import { useEffect, useState } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "../ui/popup";
 import { Button } from "../ui/button";
-import { icons, Info } from "lucide-react";
+import { icons, Info, Plus, Trash } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 
 type Props = {
   element: FormElementInstance;
@@ -32,6 +33,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  
+  const [tableRows, setTableRows] = useState<any[][]>([]);
+  const [editingCell, setEditingCell] = useState<{rowIndex: number, colIndex: number} | null>(null);
 
   useEffect(() => {
     if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
@@ -40,7 +44,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
         .then(data => setDynamicOptions(data || []))
         .finally(() => setIsLoading(false));
     }
-  }, [element]);
+     if (element.type === 'Table' && value?.value) {
+      setTableRows(value.value);
+    } else if (element.type === 'Table' && !value?.value) {
+      const initial = Array(element.initialRows || 1).fill(Array(element.columns?.length || 1).fill(""));
+      setTableRows(initial);
+      onValueChange(element.id, initial);
+    }
+  }, [element, value]);
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
 
@@ -232,6 +243,93 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
           )}
         </div>
       );
+    case "Table":
+        const { columns, allowAdd, allowEdit, allowDelete } = element;
+        const visibleColumns = columns?.filter(c => c.visible) || [];
+
+        const handleAddRow = () => {
+            const newRow = Array(columns?.length || 1).fill("");
+            const newRows = [...tableRows, newRow];
+            setTableRows(newRows);
+            onValueChange(element.id, newRows);
+        };
+
+        const handleDeleteRow = (rowIndex: number) => {
+            const newRows = tableRows.filter((_, i) => i !== rowIndex);
+            setTableRows(newRows);
+            onValueChange(element.id, newRows);
+        };
+
+        const handleCellChange = (rowIndex: number, colIndex: number, newValue: string) => {
+            const newRows = [...tableRows];
+            newRows[rowIndex][colIndex] = newValue;
+            setTableRows(newRows);
+            onValueChange(element.id, newRows);
+        };
+
+        const getColumnIndex = (col: TableColumn) => {
+            return columns?.findIndex(c => c.id === col.id) ?? -1;
+        }
+
+        return (
+            <div>
+                {renderLabel()}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {visibleColumns.map((col) => (
+                                <TableHead key={col.id}>{col.title}</TableHead>
+                            ))}
+                            {(allowEdit || allowDelete) && <TableHead>Actions</TableHead>}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {tableRows.map((row, rowIndex) => (
+                            <TableRow key={rowIndex}>
+                                {visibleColumns.map((col) => {
+                                    const colIndex = getColumnIndex(col);
+                                    const isEditing = allowEdit && editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex;
+
+                                    return (
+                                        <TableCell key={col.id} onClick={() => allowEdit && setEditingCell({rowIndex, colIndex})}>
+                                            {isEditing ? (
+                                                <Input
+                                                    autoFocus
+                                                    value={row[colIndex]}
+                                                    onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                                                    onBlur={() => setEditingCell(null)}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') setEditingCell(null) }}
+                                                />
+                                            ) : (
+                                                row[colIndex] || <span className="text-muted-foreground">...</span>
+                                            )}
+                                        </TableCell>
+                                    )
+                                })}
+                                {(allowEdit || allowDelete) && (
+                                    <TableCell>
+                                        <div className="flex gap-2">
+                                            {allowDelete && (
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRow(rowIndex)}>
+                                                    <Trash className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </TableCell>
+                                )}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+                {allowAdd && (
+                    <Button variant="outline" size="sm" className="mt-4" onClick={handleAddRow}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Row
+                    </Button>
+                )}
+                {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+            </div>
+        );
     default:
       return <div>Unsupported element type</div>;
   }

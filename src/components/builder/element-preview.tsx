@@ -10,9 +10,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { Clock } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
-  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig } = element;
+  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, columns, initialRows } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -111,6 +112,31 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
           {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
         </div>
       );
+    case "Table":
+        return (
+            <div>
+                {renderLabel()}
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {columns?.filter(c => c.visible).map(col => (
+                                <TableHead key={col.id}>{col.title}</TableHead>
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {Array.from({ length: initialRows || 1 }).map((_, rowIndex) => (
+                            <TableRow key={rowIndex}>
+                                {columns?.filter(c => c.visible).map(col => (
+                                    <TableCell key={col.id}>...</TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+                {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+            </div>
+        );
     default:
       return <div>Unsupported element type</div>;
   }

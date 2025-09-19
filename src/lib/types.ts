@@ -1,4 +1,4 @@
-export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display";
+export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "Table";
 
 export type ConditionalLogic = {
     enabled: boolean;
@@ -18,6 +18,12 @@ export type PopupConfig = {
     icon: string;
     iconColor: string;
 }
+
+export type TableColumn = {
+    id: string;
+    title: string;
+    visible: boolean;
+};
 
 export type FormElementInstance = {
     id: string;
@@ -40,6 +46,12 @@ export type FormElementInstance = {
     popup?: PopupConfig;
     // Conditional Visibility
     conditionalLogic?: ConditionalLogic;
+    // For Table
+    columns?: TableColumn[];
+    initialRows?: number;
+    allowAdd?: boolean;
+    allowEdit?: boolean;
+    allowDelete?: boolean;
 };
 
 export type Section = {
