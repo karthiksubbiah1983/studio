@@ -47,7 +47,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
      if (element.type === 'Table' && value?.value) {
       setTableRows(value.value);
     } else if (element.type === 'Table' && !value?.value) {
-      const initial = Array(element.initialRows || 1).fill(Array(element.columns?.length || 1).fill(""));
+      const initial = Array.from({ length: element.initialRows || 1 }, () => Array(element.columns?.length || 1).fill(""));
       setTableRows(initial);
       onValueChange(element.id, initial);
     }
@@ -262,6 +262,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
 
         const handleCellChange = (rowIndex: number, colIndex: number, newValue: string) => {
             const newRows = [...tableRows];
+            newRows[rowIndex] = [...newRows[rowIndex]];
             newRows[rowIndex][colIndex] = newValue;
             setTableRows(newRows);
             onValueChange(element.id, newRows);
