@@ -198,7 +198,7 @@ function SectionProperties({ section }: { section: Section }) {
                     className="h-7 w-7"
                     onClick={() => dispatch({ type: 'DELETE_SECTION', payload: { sectionId: section.id } })}
                 >
-                    <X className="h-4 w-4" />
+                    <Trash className="h-4 w-4" />
                 </Button>
             </div>
             <div className="flex flex-col gap-2">
@@ -356,11 +356,23 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-        if (!selectedElement) return;
-        dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: props } });
+      if (!selectedElement) return;
+      const section = state.sections.find(
+        (s) => s.id === selectedElement.sectionId
+      );
+      const elementExists = section?.elements.some(
+        (e) => e.id === selectedElement.elementId
+      );
+
+      if (elementExists) {
+        dispatch({
+          type: "UPDATE_ELEMENT",
+          payload: { sectionId: selectedElement.sectionId, element: props },
+        });
+      }
     }, 500);
     return () => clearTimeout(handler);
-  }, [props, dispatch, selectedElement]);
+  }, [props, dispatch, selectedElement, state.sections]);
 
   const updateProperty = (key: keyof FormElementInstance, value: any) => {
     setProps(prev => ({...prev, [key]: value}));
@@ -663,8 +675,23 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="font-medium">{element.type} Properties</h3>
+      <div className="flex justify-between items-center">
+        <h3 className="font-medium">{element.type} Properties</h3>
+        <Button
+            variant="destructive"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => {
+                if (!selectedElement) return;
+                dispatch({ type: 'DELETE_ELEMENT', payload: { sectionId: selectedElement.sectionId, elementId: element.id } })
+            }}
+        >
+            <X className="h-4 w-4" />
+        </Button>
+      </div>
       {content()}
     </div>
   );
 }
+
+    
