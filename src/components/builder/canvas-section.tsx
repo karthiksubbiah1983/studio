@@ -115,7 +115,7 @@ export function CanvasSection({ section }: { section: Section }) {
   const sectionContent = () => {
     if (section.config === 'normal') {
       return (
-          <Card className={cn(isSelected && "ring-2 ring-primary", isOver && isElementBeingDragged && "ring-2 ring-primary/50", "overflow-visible group/section relative")} onClick={handleSectionClick}>
+          <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "overflow-visible group/section relative")} onClick={handleSectionClick}>
               <div 
                 draggable 
                 onDragStart={handleDragStart}
@@ -165,9 +165,9 @@ export function CanvasSection({ section }: { section: Section }) {
     }
   
     return (
-      <Card className={cn(isSelected && "ring-2 ring-primary", isOver && isElementBeingDragged && "ring-2 ring-primary/50", "group/section relative")} onClick={handleSectionClick}>
+      <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "group/section relative")} onClick={handleSectionClick}>
         <div 
-            draggable 
+            draggable
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
             className="absolute top-1/2 -translate-y-1/2 -left-8 h-full flex items-center cursor-grab opacity-0 group-hover/section:opacity-100 transition-opacity"

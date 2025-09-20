@@ -84,13 +84,12 @@ export function CanvasElement({ element, sectionId, index }: Props) {
         onMouseLeave={() => setMouseIsOver(false)}
         onClick={handleClick}
         className={cn(
-          "relative flex flex-col p-4 rounded-lg cursor-pointer bg-card transition-all",
-          mouseIsOver && "ring-2 ring-primary/50",
-          isSelected && "ring-2 ring-primary"
+          "relative flex flex-col p-4 cursor-pointer bg-card transition-all",
+          (mouseIsOver || isSelected) && "shadow-[inset_0_0_0_1px_#084D8E]"
         )}
       >
-        {mouseIsOver && state.draggedElement && isTopHalf && <div className="absolute top-0 left-0 w-full h-1 bg-primary rounded-full z-10" />}
-        {mouseIsOver && state.draggedElement && !isTopHalf && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary rounded-full z-10" />}
+        {mouseIsOver && state.draggedElement && isTopHalf && <div className="absolute top-0 left-0 w-full h-1 bg-primary z-10" />}
+        {mouseIsOver && state.draggedElement && !isTopHalf && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary z-10" />}
 
         {mouseIsOver && (
           <div className="absolute top-2 right-2 flex gap-2 z-10">
