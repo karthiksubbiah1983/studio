@@ -35,13 +35,10 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
         case "Select":
             return { 
                 ...baseElement, 
-                label: "Select Users", 
-                options: [], 
-                dataSource: 'dynamic', 
-                apiUrl: 'https://jsonplaceholder.typicode.com/users',
-                dataKey: '',
-                valueKey: 'id',
-                labelKey: 'name'
+                label: "Select Field", 
+                options: ["Option 1", "Option 2"], 
+                dataSource: 'static', 
+                placeholder: "Select an option"
             };
         case "Checkbox":
             return { ...baseElement, label: "Checkbox Field", helperText: "This is a helper text" };
