@@ -1,3 +1,4 @@
+
 "use client";
 
 import { FormElementInstance, TableColumn } from "@/lib/types";
@@ -297,15 +298,16 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
         };
 
         const handleCellChange = (rowIndex: number, colIndex: number, newValue: string) => {
-            let newRows = tableRows.map(row => [...row]); // Deep copy rows
+            const newRows = tableRows.map(row => [...row]);
             newRows[rowIndex][colIndex] = newValue;
-            
-            // Recalculate formulas
+        
+            // Create a context object with the most recent values for the current row
             const rowData = columns?.reduce((acc, col, index) => {
                 acc[col.key] = newRows[rowIndex][index];
                 return acc;
-            }, {} as {[key: string]: any}) || {};
-
+            }, {} as { [key: string]: any }) || {};
+        
+            // Recalculate formulas for the row
             columns?.forEach((col, cIndex) => {
                 if (col.formula) {
                     try {
@@ -317,7 +319,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
                     }
                 }
             });
-
+        
             setTableRows(newRows);
             onValueChange(element.id, newRows);
         };
@@ -418,3 +420,5 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
       return <div>Unsupported element type</div>;
   }
 }
+
+    
