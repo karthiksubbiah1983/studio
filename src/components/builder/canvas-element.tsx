@@ -67,11 +67,6 @@ export function CanvasElement({ element, sectionId, index }: Props) {
     }
   };
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
-  };
-
   return (
     <ConditionalWrapper logic={element.conditionalLogic}>
       <div
@@ -82,7 +77,10 @@ export function CanvasElement({ element, sectionId, index }: Props) {
         onDrop={handleDrop}
         onMouseEnter={() => setMouseIsOver(true)}
         onMouseLeave={() => setMouseIsOver(false)}
-        onClick={handleClick}
+        onClick={(e) => {
+          e.stopPropagation();
+          dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
+        }}
         className={cn(
           "relative flex flex-col p-4 cursor-pointer bg-card transition-all",
           (mouseIsOver || isSelected) && "shadow-[inset_0_0_0_1px_#084D8E]"
