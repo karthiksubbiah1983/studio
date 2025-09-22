@@ -31,6 +31,10 @@ type Props = {
   formState?: { [key: string]: any };
 };
 
+const getNestedValue = (obj: any, path: string): any => {
+    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+};
+
 export function FormElementRenderer({ element, value, onValueChange, formState }: Props) {
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -117,7 +121,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
       if (!dataSourceConfig || !formState) return null;
       const { sourceElementId, displayKey } = dataSourceConfig;
       const sourceObject = formState[sourceElementId]?.fullObject;
-      const displayValue = sourceObject ? sourceObject[displayKey] : `(Not selected)`;
+      const displayValue = sourceObject ? getNestedValue(sourceObject, displayKey) : `(Not selected)`;
       
       return (
         <div>
@@ -169,7 +173,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
       );
     case "Select":
         const handleSelectChange = (val: string) => {
-            const fullObject = dynamicOptions.find(opt => String(opt[element.valueKey!]) === val);
+            const fullObject = dynamicOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === val);
             onValueChange(element.id, val, fullObject);
         }
       return (
@@ -181,9 +185,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
             </SelectTrigger>
             <SelectContent>
               {element.dataSource === 'dynamic' ? (
-                dynamicOptions.map((option) => (
-                  <SelectItem key={option[element.valueKey!]} value={String(option[element.valueKey!])}>
-                    {option[element.labelKey!]}
+                dynamicOptions.map((option, index) => (
+                  <SelectItem key={index} value={String(getNestedValue(option, element.valueKey!))}>
+                    {getNestedValue(option, element.labelKey!)}
                   </SelectItem>
                 ))
               ) : (

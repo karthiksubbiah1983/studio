@@ -22,6 +22,10 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
+const getNestedValue = (obj: any, path: string): any => {
+    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
+};
+
 export function PropertiesSidebar() {
   const { state, dispatch } = useBuilder();
   const { selectedElement } = state;
@@ -211,7 +215,10 @@ function SectionProperties({ section }: { section: Section }) {
                     variant="destructive"
                     size="icon"
                     className="h-7 w-7"
-                    onClick={() => dispatch({ type: 'DELETE_SECTION', payload: { sectionId: section.id } })}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        dispatch({ type: 'DELETE_SECTION', payload: { sectionId: section.id } });
+                    }}
                 >
                     <X className="h-4 w-4" />
                 </Button>
@@ -492,11 +499,11 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         </div>
         <div className="flex flex-col gap-2">
             <Label htmlFor="valueKey">Option Value Key</Label>
-            <Input id="valueKey" value={props.valueKey || ''} onChange={(e) => updateProperty('valueKey', e.target.value)} placeholder="e.g., 'id'"/>
+            <Input id="valueKey" value={props.valueKey || ''} onChange={(e) => updateProperty('valueKey', e.target.value)} placeholder="e.g., 'id' or 'address.zipcode'"/>
         </div>
         <div className="flex flex-col gap-2">
             <Label htmlFor="labelKey">Option Label Key</Label>
-            <Input id="labelKey" value={props.labelKey || ''} onChange={(e) => updateProperty('labelKey', e.target.value)} placeholder="e.g., 'name'"/>
+            <Input id="labelKey" value={props.labelKey || ''} onChange={(e) => updateProperty('labelKey', e.target.value)} placeholder="e.g., 'name' or 'address.city'"/>
         </div>
     </div>
   );
@@ -613,7 +620,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             id="display-key" 
                             value={config.displayKey}
                             onChange={(e) => handleDisplayDataSourceUpdate({ ...config, displayKey: e.target.value })}
-                            placeholder="e.g., 'email' or 'phone'"
+                            placeholder="e.g., 'email' or 'address.city'"
                         />
                     </div>
                 </>
@@ -719,3 +726,4 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     
 
     
+
