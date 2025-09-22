@@ -34,11 +34,15 @@ const nextConfig = {
 if (process.env.NODE_ENV === 'development') {
   nextConfig.experimental = {
     ...nextConfig.experimental,
-    allowedDevOrigins: [
-      "https://*.cloudworkstations.dev",
-      "https://*.firebase.studio",
-    ],
   };
+  nextConfig.devIndicators = {
+    ...nextConfig.devIndicators,
+    buildActivityPosition: 'bottom-right',
+  };
+  nextConfig.allowedDevOrigins = [
+    'https://*.cloudworkstations.dev',
+    'https://*.firebase.studio',
+  ];
 }
 
 module.exports = nextConfig;

@@ -8,14 +8,6 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    // This is required to allow requests from the development environment (Firebase Studio)
-    // to the Next.js dev server.
-    allowedDevOrigins: [
-        "https://*.cloudworkstations.dev",
-        "https://*.firebase.studio"
-    ]
-  },
   images: {
     remotePatterns: [
       {
@@ -39,5 +31,13 @@ const nextConfig: NextConfig = {
     ],
   },
 };
+
+if (process.env.NODE_ENV === 'development') {
+    nextConfig.allowedDevOrigins = [
+        "https://*.cloudworkstations.dev",
+        "https://*.firebase.studio"
+    ];
+}
+
 
 export default nextConfig;
