@@ -3,11 +3,12 @@
 
 import { Button } from "@/components/ui/button";
 import { useBuilder } from "@/hooks/use-builder";
-import { Eye, PanelLeft, Settings, History, Save, Send } from "lucide-react";
+import { Eye, PanelLeft, Settings, History, Save, Send, Code } from "lucide-react";
 import { PreviewDialog } from "./preview-dialog";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SaveVersionDialog } from "./save-version-dialog";
+import { JsonPreviewDialog } from "./json-preview-dialog";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
@@ -18,6 +19,7 @@ type Props = {
 export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySidebarToggle }: Props) {
   const { state } = useBuilder();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isJsonPreviewOpen, setIsJsonPreviewOpen] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [saveType, setSaveType] = useState<"draft" | "published">("draft");
   const isMobile = useIsMobile();
@@ -39,6 +41,10 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
             <h1 className="text-xl font-bold text-primary font-headline">FormForge</h1>
         </div>
         <div className="flex items-center gap-2">
+           <Button variant="outline" size="sm" onClick={() => setIsJsonPreviewOpen(true)}>
+            <Code className="mr-2 h-4 w-4" />
+            JSON
+          </Button>
           <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
             <Eye className="mr-2 h-4 w-4" />
             Preview
@@ -68,6 +74,7 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
         </div>
       </header>
       <PreviewDialog isOpen={isPreviewOpen} onOpenChange={setIsPreviewOpen} />
+      <JsonPreviewDialog isOpen={isJsonPreviewOpen} onOpenChange={setIsJsonPreviewOpen} />
       <SaveVersionDialog 
         isOpen={isSaveOpen}
         onOpenChange={setIsSaveOpen}
