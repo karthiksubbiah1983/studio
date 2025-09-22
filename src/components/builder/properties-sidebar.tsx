@@ -92,7 +92,7 @@ function ConditionalLogicSettings({
         <div className="flex flex-col gap-4">
             <Separator />
             <h4 className="font-medium">Conditional Logic</h4>
-            <div className="flex items-center justify-between rounded-lg p-3 shadow-sm">
+            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                 <Label htmlFor="enable-logic">Enable</Label>
                 <Switch
                     id="enable-logic"
@@ -295,7 +295,7 @@ function PopupSettings({
         <div className="flex flex-col gap-4">
             <Separator />
             <h4 className="font-medium">Info Popup</h4>
-            <div className="flex items-center justify-between rounded-lg p-3 shadow-sm">
+            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                 <Label htmlFor="enable-popup">Enable</Label>
                 <Switch
                     id="enable-popup"
@@ -424,7 +424,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         <Label htmlFor="label">Label</Label>
         <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
       </div>
-      <div className="flex items-center justify-between rounded-lg p-3 shadow-sm">
+      <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
         <Label htmlFor="required">Required</Label>
         <Switch id="required" checked={element.required} onCheckedChange={(checked) => updateElement('required', checked)} />
       </div>
@@ -549,15 +549,15 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         </div>
         <Separator />
         <h4 className="font-medium">User Actions</h4>
-        <div className="flex items-center justify-between rounded-lg p-3 shadow-sm">
+        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
             <Label htmlFor="allowAdd">Allow Add</Label>
             <Switch id="allowAdd" checked={element.allowAdd} onCheckedChange={(checked) => updateElement('allowAdd', checked)} />
         </div>
-        <div className="flex items-center justify-between rounded-lg p-3 shadow-sm">
+        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
             <Label htmlFor="allowEdit">Allow Edit</Label>
             <Switch id="allowEdit" checked={element.allowEdit} onCheckedChange={(checked) => updateElement('allowEdit', checked)} />
         </div>
-        <div className="flex items-center justify-between rounded-lg p-3 shadow-sm">
+        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
             <Label htmlFor="allowDelete">Allow Delete</Label>
             <Switch id="allowDelete" checked={element.allowDelete} onCheckedChange={(checked) => updateElement('allowDelete', checked)} />
         </div>
@@ -642,14 +642,15 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                               }
                               dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement!.sectionId, element: newProps } });
                             }}
+                            className="flex"
                         >
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="static" id="source-static" />
-                                <Label htmlFor="source-static">Static Options</Label>
+                                <Label htmlFor="source-static">Static</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="dynamic" id="source-dynamic" />
-                                <Label htmlFor="source-dynamic">Dynamic (API)</Label>
+                                <Label htmlFor="source-dynamic">Dynamic</Label>
                             </div>
                         </RadioGroup>
                     </div>

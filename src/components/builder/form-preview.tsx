@@ -28,7 +28,7 @@ export function FormPreview() {
     
     // For checkbox, triggerValue is boolean
     if (typeof triggerValue === 'boolean') {
-        return triggerValue.toString() === conditionalLogic.showWhenValue;
+        return String(triggerValue) === conditionalLogic.showWhenValue;
     }
 
     return triggerValue === conditionalLogic.showWhenValue;
