@@ -13,17 +13,22 @@ import { RightSidebar } from "./right-sidebar";
 
 export function Builder() {
   const isMobile = useIsMobile();
+  const [isClient, setIsClient] = useState(false);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
   
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   useEffect(() => {
     if (isMobile) {
       applyPolyfill();
     }
   }, [isMobile]);
 
-  if (isMobile) {
+  if (isMobile && isClient) {
     return (
       <div className="flex flex-col w-full h-full">
         <Header 
