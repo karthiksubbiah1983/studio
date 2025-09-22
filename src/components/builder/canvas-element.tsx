@@ -81,6 +81,9 @@ export function CanvasElement({ element, sectionId, index }: Props) {
           e.stopPropagation();
           dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
         }}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
         className={cn(
           "relative flex flex-col p-4 cursor-pointer bg-card transition-all",
           (mouseIsOver || isSelected) && "shadow-[inset_0_0_0_1px_#084D8E]"
