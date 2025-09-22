@@ -513,32 +513,68 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         <div className="flex flex-col gap-2">
             <Label>Columns</Label>
             {element.columns?.map((col, index) => (
-                <div key={col.id} className="flex items-center gap-2">
-                    <Input
-                        value={col.title}
-                        onChange={(e) => {
-                            const newCols = [...element.columns!];
-                            newCols[index].title = e.target.value;
-                            updateElement('columns', newCols);
-                        }}
-                    />
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                        const newCols = [...element.columns!];
-                        newCols[index].visible = !newCols[index].visible;
-                        updateElement('columns', newCols);
-                    }}>
-                        {col.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                        const newCols = element.columns!.filter(c => c.id !== col.id);
-                        updateElement('columns', newCols);
-                    }}>
-                        <X className="h-4 w-4" />
-                    </Button>
+                <div key={col.id} className="border p-3 rounded-lg space-y-3">
+                    <div className="flex justify-between items-center">
+                        <Label className="text-base">Column {index + 1}</Label>
+                        <div className="flex items-center gap-2">
+                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                                const newCols = [...element.columns!];
+                                newCols[index].visible = !newCols[index].visible;
+                                updateElement('columns', newCols);
+                            }}>
+                                {col.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                                const newCols = element.columns!.filter(c => c.id !== col.id);
+                                updateElement('columns', newCols);
+                            }}>
+                                <X className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor={`col-title-${col.id}`}>Title</Label>
+                        <Input
+                            id={`col-title-${col.id}`}
+                            value={col.title}
+                            onChange={(e) => {
+                                const newCols = [...element.columns!];
+                                newCols[index].title = e.target.value;
+                                updateElement('columns', newCols);
+                            }}
+                        />
+                    </div>
+                     <div className="flex flex-col gap-2">
+                        <Label htmlFor={`col-key-${col.id}`}>Key (for formulas)</Label>
+                        <Input
+                            id={`col-key-${col.id}`}
+                            value={col.key}
+                            onChange={(e) => {
+                                const newCols = [...element.columns!];
+                                newCols[index].key = e.target.value.replace(/\s+/g, '_').toLowerCase();
+                                updateElement('columns', newCols);
+                            }}
+                        />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor={`col-formula-${col.id}`}>Formula</Label>
+                        <Input
+                            id={`col-formula-${col.id}`}
+                            placeholder="e.g., {quantity} * {price}"
+                            value={col.formula || ''}
+                            onChange={(e) => {
+                                const newCols = [...element.columns!];
+                                newCols[index].formula = e.target.value;
+                                updateElement('columns', newCols);
+                            }}
+                        />
+                         <p className="text-xs text-muted-foreground">Use column keys like {"{key1} * {key2}"}</p>
+                    </div>
                 </div>
             ))}
-            <Button variant="outline" size="sm" onClick={() => {
-                const newCols = [...(element.columns || []), { id: crypto.randomUUID(), title: `Column ${ (element.columns?.length || 0) + 1}`, visible: true }];
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => {
+                const newKey = `col${(element.columns?.length || 0) + 1}`;
+                const newCols = [...(element.columns || []), { id: crypto.randomUUID(), title: `Column ${ (element.columns?.length || 0) + 1}`, key: newKey, visible: true }];
                 updateElement('columns', newCols);
             }}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -722,8 +758,3 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
-
-    
-
-    
-

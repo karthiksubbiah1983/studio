@@ -21,8 +21,10 @@ export type PopupConfig = {
 
 export type TableColumn = {
     id: string;
-    title: string;
+    title:string;
+    key: string;
     visible: boolean;
+    formula?: string;
 };
 
 export type FormElementInstance = {

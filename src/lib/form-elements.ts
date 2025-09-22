@@ -53,8 +53,8 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
                 ...baseElement,
                 label: "Data Table",
                 columns: [
-                    { id: crypto.randomUUID(), title: "Column 1", visible: true },
-                    { id: crypto.randomUUID(), title: "Column 2", visible: true },
+                    { id: crypto.randomUUID(), title: "Column 1", key: "col1", visible: true },
+                    { id: crypto.randomUUID(), title: "Column 2", key: "col2", visible: true },
                 ],
                 initialRows: 3,
                 allowAdd: true,

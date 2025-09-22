@@ -23,6 +23,7 @@ import { icons, Info, Plus, Trash, ChevronDown } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "../lexical/lexical-editor";
+import { evaluate } from "@/lib/formula-parser";
 
 type Props = {
   element: FormElementInstance;
@@ -296,8 +297,27 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
         };
 
         const handleCellChange = (rowIndex: number, colIndex: number, newValue: string) => {
-            const newRows = tableRows.map(row => [...row]); // Deep copy rows
+            let newRows = tableRows.map(row => [...row]); // Deep copy rows
             newRows[rowIndex][colIndex] = newValue;
+            
+            // Recalculate formulas
+            const rowData = columns?.reduce((acc, col, index) => {
+                acc[col.key] = newRows[rowIndex][index];
+                return acc;
+            }, {} as {[key: string]: any}) || {};
+
+            columns?.forEach((col, cIndex) => {
+                if (col.formula) {
+                    try {
+                        const result = evaluate(col.formula, rowData);
+                        newRows[rowIndex][cIndex] = String(result);
+                    } catch (e) {
+                        console.warn(`Error evaluating formula for ${col.key}:`, e);
+                        newRows[rowIndex][cIndex] = "#ERROR!";
+                    }
+                }
+            });
+
             setTableRows(newRows);
             onValueChange(element.id, newRows);
         };
@@ -351,10 +371,11 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
                                     {visibleColumns.map((col) => {
                                         const colIndex = getColumnIndex(col);
                                         const isEditing = allowEdit && editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex;
+                                        const isFormulaColumn = !!col.formula;
 
                                         return (
-                                            <TableCell key={col.id} onClick={() => allowEdit && setEditingCell({rowIndex, colIndex})}>
-                                                {isEditing ? (
+                                            <TableCell key={col.id} onClick={() => allowEdit && !isFormulaColumn && setEditingCell({rowIndex, colIndex})}>
+                                                {(isEditing && !isFormulaColumn) ? (
                                                     <Input
                                                         autoFocus
                                                         value={row[colIndex]}
