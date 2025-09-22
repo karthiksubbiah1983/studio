@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Header } from "./header";
@@ -12,7 +13,7 @@ import { HistorySidebar } from "./history-sidebar";
 import { RightSidebar } from "./right-sidebar";
 
 export function Builder() {
-  const isMobile = useIsMobile();
+  const isMobileView = useIsMobile();
   const [isClient, setIsClient] = useState(false);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
@@ -23,12 +24,30 @@ export function Builder() {
   }, []);
 
   useEffect(() => {
-    if (isMobile) {
+    if (isMobileView) {
       applyPolyfill();
     }
-  }, [isMobile]);
+  }, [isMobileView]);
 
-  if (isMobile && isClient) {
+  const isMobile = isClient && isMobileView;
+
+  if (!isClient) {
+    // Render a consistent structure on the server and initial client render
+    return (
+       <div className="flex flex-col w-full h-full">
+        <Header />
+        <div className="flex flex-grow h-full overflow-hidden gap-2.5">
+          <ElementsSidebar />
+          <div className="flex-grow h-full overflow-y-auto bg-background">
+            <Canvas />
+          </div>
+          <RightSidebar />
+        </div>
+      </div>
+    );
+  }
+
+  if (isMobile) {
     return (
       <div className="flex flex-col w-full h-full">
         <Header 
