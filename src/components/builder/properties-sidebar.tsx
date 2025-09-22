@@ -72,21 +72,15 @@ function ConditionalLogicSettings({
     const triggerElements = useMemo(() =>
         state.sections.flatMap(s =>
             s.elements.filter(e =>
-                (e.type === 'RadioGroup' || (e.type === 'Select' && e.dataSource === 'static') || e.type === 'Checkbox') && e.id !== element.id
+                (e.type === 'RadioGroup' || e.type === 'Select' || e.type === 'Checkbox') && e.id !== element.id
             )
         ), [state.sections, element.id]
     );
 
     const selectedTrigger = triggerElements.find(el => el.id === logic.triggerElementId);
     
-    let triggerOptions: string[] = [];
-    if (selectedTrigger) {
-        if (selectedTrigger.type === 'Checkbox') {
-            triggerOptions = ['true', 'false'];
-        } else if (selectedTrigger.options) {
-            triggerOptions = selectedTrigger.options;
-        }
-    }
+    const showValueDropdown = selectedTrigger && selectedTrigger.type !== 'Checkbox' && selectedTrigger.dataSource !== 'dynamic';
+    const triggerOptions: string[] = selectedTrigger?.options || [];
 
     return (
         <div className="flex flex-col gap-4">
@@ -120,20 +114,28 @@ function ConditionalLogicSettings({
                     </div>
                     {selectedTrigger && (
                          <div className="flex flex-col gap-2">
-                            <Label>...this option is selected:</Label>
-                            <Select
-                                value={logic.showWhenValue}
-                                onValueChange={(value) => onUpdate({ ...logic, showWhenValue: value })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select an option..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {triggerOptions.map(opt => (
-                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <Label>...this value is selected:</Label>
+                            {showValueDropdown ? (
+                                <Select
+                                    value={logic.showWhenValue}
+                                    onValueChange={(value) => onUpdate({ ...logic, showWhenValue: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select an option..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {triggerOptions.map(opt => (
+                                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            ) : (
+                                <Input 
+                                    placeholder="Enter expected value (e.g., 'true')"
+                                    value={logic.showWhenValue}
+                                    onChange={(e) => onUpdate({ ...logic, showWhenValue: e.target.value })}
+                                />
+                            )}
                         </div>
                     )}
                 </>
@@ -712,5 +714,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
+
+    
 
     
