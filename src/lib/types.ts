@@ -2,8 +2,8 @@ export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select
 
 export type ConditionalLogic = {
     enabled: boolean;
-    triggerElementId: string; // ID of the RadioGroup
-    showWhenValue: string;    // Value of the radio option
+    triggerElementId: string; // ID of the trigger element (e.g., RadioGroup, Select)
+    showWhenValue: string;    // Value of the option that triggers visibility
 };
 
 export type DisplayDataSourceConfig = {

@@ -69,11 +69,24 @@ function ConditionalLogicSettings({
     const { state } = useBuilder();
     const logic = element.conditionalLogic || { enabled: false, triggerElementId: "", showWhenValue: "" };
 
-    const radioGroups = useMemo(() =>
-        state.sections.flatMap(s => s.elements.filter(e => e.type === 'RadioGroup' && e.id !== element.id)
-    ), [state.sections, element.id]);
+    const triggerElements = useMemo(() =>
+        state.sections.flatMap(s =>
+            s.elements.filter(e =>
+                (e.type === 'RadioGroup' || (e.type === 'Select' && e.dataSource === 'static') || e.type === 'Checkbox') && e.id !== element.id
+            )
+        ), [state.sections, element.id]
+    );
 
-    const selectedTrigger = radioGroups.find(rg => rg.id === logic.triggerElementId);
+    const selectedTrigger = triggerElements.find(el => el.id === logic.triggerElementId);
+    
+    let triggerOptions: string[] = [];
+    if (selectedTrigger) {
+        if (selectedTrigger.type === 'Checkbox') {
+            triggerOptions = ['true', 'false'];
+        } else if (selectedTrigger.options) {
+            triggerOptions = selectedTrigger.options;
+        }
+    }
 
     return (
         <div className="flex flex-col gap-4">
@@ -96,11 +109,11 @@ function ConditionalLogicSettings({
                             onValueChange={(value) => onUpdate({ ...logic, triggerElementId: value, showWhenValue: '' })}
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a radio group..." />
+                                <SelectValue placeholder="Select a trigger field..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {radioGroups.map(rg => (
-                                    <SelectItem key={rg.id} value={rg.id}>{rg.label}</SelectItem>
+                                {triggerElements.map(el => (
+                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -116,7 +129,7 @@ function ConditionalLogicSettings({
                                     <SelectValue placeholder="Select an option..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {selectedTrigger.options?.map(opt => (
+                                    {triggerOptions.map(opt => (
                                         <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -198,7 +211,7 @@ function SectionProperties({ section }: { section: Section }) {
                     className="h-7 w-7"
                     onClick={() => dispatch({ type: 'DELETE_SECTION', payload: { sectionId: section.id } })}
                 >
-                    <Trash className="h-4 w-4" />
+                    <X className="h-4 w-4" />
                 </Button>
             </div>
             <div className="flex flex-col gap-2">
@@ -626,7 +639,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         >
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="static" id="source-static" />
-                                <Label htmlFor="source-static">Static</Label>
+                                <Label htmlFor="source-static">Static Options</Label>
                             </div>
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="dynamic" id="source-dynamic" />
@@ -664,8 +677,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return null;
       }
 
-      // Don't show conditional logic for Title, Separator, or RadioGroup itself
-      const showConditionalLogic = element.type !== 'Title' && element.type !== 'Separator' && element.type !== 'RadioGroup';
+      // Don't show conditional logic for Title, Separator, RadioGroup, Checkbox, or Select itself
+      const showConditionalLogic = !['Title', 'Separator', 'RadioGroup', 'Checkbox', 'Select'].includes(element.type);
 
       return <>
         {fields}

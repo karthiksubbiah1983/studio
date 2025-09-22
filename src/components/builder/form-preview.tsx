@@ -25,6 +25,12 @@ export function FormPreview() {
         return true;
     }
     const triggerValue = formState[conditionalLogic.triggerElementId]?.value;
+    
+    // For checkbox, triggerValue is boolean
+    if (typeof triggerValue === 'boolean') {
+        return triggerValue.toString() === conditionalLogic.showWhenValue;
+    }
+
     return triggerValue === conditionalLogic.showWhenValue;
   }
   
