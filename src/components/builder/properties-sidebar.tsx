@@ -635,7 +635,13 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <Label>Data Source</Label>
                         <RadioGroup
                             defaultValue={element.dataSource || 'static'}
-                            onValueChange={(val) => updateElement('dataSource', val)}
+                            onValueChange={(val) => {
+                              const newProps = {...element, dataSource: val as 'static' | 'dynamic'};
+                              if (val === 'static' && !newProps.options) {
+                                newProps.options = ['Option 1'];
+                              }
+                              dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement!.sectionId, element: newProps } });
+                            }}
                         >
                             <div className="flex items-center space-x-2">
                                 <RadioGroupItem value="static" id="source-static" />
@@ -677,8 +683,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return null;
       }
 
-      // Don't show conditional logic for Title, Separator, RadioGroup, Checkbox, or Select itself
-      const showConditionalLogic = !['Title', 'Separator', 'RadioGroup', 'Checkbox', 'Select'].includes(element.type);
+      const showConditionalLogic = !['Title', 'Separator'].includes(element.type);
 
       return <>
         {fields}
