@@ -79,7 +79,7 @@ function ConditionalLogicSettings({
 
     const selectedTrigger = triggerElements.find(el => el.id === logic.triggerElementId);
     
-    const showValueDropdown = selectedTrigger && selectedTrigger.type !== 'Checkbox' && selectedTrigger.dataSource !== 'dynamic';
+    const showValueDropdown = selectedTrigger && (selectedTrigger.type === 'RadioGroup' || (selectedTrigger.type === 'Select' && selectedTrigger.dataSource === 'static'));
     const triggerOptions: string[] = selectedTrigger?.options || [];
 
     return (
@@ -488,7 +488,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         </div>
         <div className="flex flex-col gap-2">
             <Label htmlFor="dataKey">Data Key</Label>
-            <Input id="dataKey" value={props.dataKey || ''} onChange={(e) => updateProperty('dataKey', e.target.value)} placeholder="e.g., 'results' or 'data'"/>
+            <Input id="dataKey" value={props.dataKey || ''} onChange={(e) => updateProperty('dataKey', e.target.value)} placeholder="e.g., 'results' or 'data.users'"/>
         </div>
         <div className="flex flex-col gap-2">
             <Label htmlFor="valueKey">Option Value Key</Label>
@@ -702,7 +702,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             variant="destructive"
             size="icon"
             className="h-7 w-7"
-            onClick={() => {
+            onClick={(e) => {
+                e.stopPropagation();
                 if (!selectedElement) return;
                 dispatch({ type: 'DELETE_ELEMENT', payload: { sectionId: selectedElement.sectionId, elementId: element.id } })
             }}

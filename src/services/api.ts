@@ -8,7 +8,8 @@ export const fetchFromApi = async (url: string, dataKey?: string) => {
         }
         const data = await response.json();
         if (dataKey) {
-            return data[dataKey];
+            // Handle dot notation for nested keys
+            return dataKey.split('.').reduce((acc, part) => acc && acc[part], data);
         }
         return data;
     } catch (error) {
