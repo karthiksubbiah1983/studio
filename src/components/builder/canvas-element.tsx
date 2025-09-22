@@ -77,7 +77,7 @@ export function CanvasElement({ element, sectionId, index }: Props) {
         onDrop={handleDrop}
         onMouseEnter={() => setMouseIsOver(true)}
         onMouseLeave={() => setMouseIsOver(false)}
-        onClick={(e) => {
+        onMouseDown={(e) => {
           e.stopPropagation();
           dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
         }}
