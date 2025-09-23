@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, Loader2, icons, EyeOff, Eye } from "lucide-react";
-import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section, TableColumn } from "@/lib/types";
+import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -454,30 +454,30 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
   
-  const optionsField = (
+  const optionsField = (options: string[] | undefined, onUpdate: (options: string[]) => void) => (
     <div className="flex flex-col gap-2">
         <Label>Options</Label>
-        {element.options?.map((option, index) => (
+        {options?.map((option, index) => (
             <div key={index} className="flex items-center gap-2">
                 <Input 
                     value={option}
                     onChange={(e) => {
-                        const newOptions = [...element.options!];
+                        const newOptions = [...options];
                         newOptions[index] = e.target.value;
-                        updateElement('options', newOptions);
+                        onUpdate(newOptions);
                     }}
                 />
                 <Button variant="ghost" size="icon" onClick={() => {
-                    const newOptions = element.options!.filter((_, i) => i !== index);
-                    updateElement('options', newOptions);
+                    const newOptions = options.filter((_, i) => i !== index);
+                    onUpdate(newOptions);
                 }}>
                     <X className="h-4 w-4" />
                 </Button>
             </div>
         ))}
         <Button variant="outline" size="sm" onClick={() => {
-            const newOptions = [...(element.options || []), `Option ${ (element.options?.length || 0) + 1}`];
-            updateElement('options', newOptions);
+            const newOptions = [...(options || []), `Option ${ (options?.length || 0) + 1}`];
+            onUpdate(newOptions);
         }}>
             <Plus className="mr-2 h-4 w-4" />
             Add Option
@@ -556,6 +556,38 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             }}
                         />
                     </div>
+                     <div className="flex flex-col gap-2">
+                        <Label>Cell Type</Label>
+                        <Select
+                            value={col.cellType || 'text'}
+                            onValueChange={(value: TableColumnCellType) => {
+                                const newCols = [...element.columns!];
+                                newCols[index].cellType = value;
+                                if ((value === 'select' || value === 'radio') && !newCols[index].options) {
+                                    newCols[index].options = ['Option 1'];
+                                }
+                                updateElement('columns', newCols);
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select cell type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="text">Text</SelectItem>
+                                <SelectItem value="select">Select</SelectItem>
+                                <SelectItem value="checkbox">Checkbox</SelectItem>
+                                <SelectItem value="radio">Radio</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {(col.cellType === 'select' || col.cellType === 'radio') && (
+                        optionsField(col.options, (newOptions) => {
+                             const newCols = [...element.columns!];
+                             newCols[index].options = newOptions;
+                             updateElement('columns', newCols);
+                        })
+                    )}
                     <div className="flex flex-col gap-2">
                         <Label htmlFor={`col-formula-${col.id}`}>Formula</Label>
                         <Input
@@ -574,7 +606,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             ))}
             <Button variant="outline" size="sm" className="mt-2" onClick={() => {
                 const newKey = `col${(element.columns?.length || 0) + 1}`;
-                const newCols = [...(element.columns || []), { id: crypto.randomUUID(), title: `Column ${ (element.columns?.length || 0) + 1}`, key: newKey, visible: true }];
+                const newCols = [...(element.columns || []), { id: crypto.randomUUID(), title: `Column ${ (element.columns?.length || 0) + 1}`, key: newKey, visible: true, cellType: 'text' }];
                 updateElement('columns', newCols);
             }}>
                 <Plus className="mr-2 h-4 w-4" />
@@ -699,7 +731,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             </div>
                         </RadioGroup>
                     </div>
-                    {element.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField}
+                    {element.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
                 </>
             );
             break;
@@ -708,7 +740,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                 {commonFields}
                 {placeholderField}
                 {helperTextField}
-                {optionsField}
+                {optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
                 <PopupSettings element={element} onUpdate={handlePopupUpdate} />
              </>;
              break;

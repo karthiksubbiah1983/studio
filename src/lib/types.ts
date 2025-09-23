@@ -19,12 +19,16 @@ export type PopupConfig = {
     iconColor: string;
 }
 
+export type TableColumnCellType = 'text' | 'select' | 'checkbox' | 'radio';
+
 export type TableColumn = {
     id: string;
     title:string;
     key: string;
     visible: boolean;
     formula?: string;
+    cellType?: TableColumnCellType;
+    options?: string[];
 };
 
 export type FormElementInstance = {

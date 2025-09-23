@@ -1,4 +1,3 @@
-
 "use client";
 
 import { FormElementInstance, TableColumn } from "@/lib/types";
@@ -43,7 +42,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   
   const [tableRows, setTableRows] = useState<any[][]>([]);
-  const [editingCell, setEditingCell] = useState<{rowIndex: number, colIndex: number} | null>(null);
 
   const initialColumnVisibility = element.columns?.reduce((acc, col) => {
     acc[col.id] = col.visible;
@@ -297,7 +295,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
             onValueChange(element.id, newRows);
         };
 
-        const handleCellChange = (rowIndex: number, colIndex: number, newValue: string) => {
+        const handleCellChange = (rowIndex: number, colIndex: number, newValue: any) => {
             const newRows = tableRows.map(row => [...row]);
             newRows[rowIndex][colIndex] = newValue;
         
@@ -311,7 +309,12 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
             columns?.forEach((col, cIndex) => {
                 if (col.formula) {
                     try {
-                        const result = evaluate(col.formula, rowData);
+                        // Update rowData context with the latest calculated values for this iteration
+                        const currentContext = columns.reduce((acc, c, i) => {
+                            acc[c.key] = newRows[rowIndex][i];
+                            return acc;
+                        }, {} as { [key: string]: any });
+                        const result = evaluate(col.formula, currentContext);
                         newRows[rowIndex][cIndex] = String(result);
                     } catch (e) {
                         console.warn(`Error evaluating formula for ${col.key}:`, e);
@@ -326,6 +329,64 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
 
         const getColumnIndex = (col: TableColumn) => {
             return columns?.findIndex(c => c.id === col.id) ?? -1;
+        }
+
+        const renderCell = (row: any[], rowIndex: number, col: TableColumn) => {
+            const colIndex = getColumnIndex(col);
+            const cellValue = row[colIndex];
+            const isFormulaColumn = !!col.formula;
+
+            if (isFormulaColumn) {
+                return cellValue || <span className="text-muted-foreground">...</span>;
+            }
+
+            switch(col.cellType) {
+                case 'select':
+                    return (
+                        <Select
+                            value={cellValue}
+                            onValueChange={(val) => handleCellChange(rowIndex, colIndex, val)}
+                        >
+                            <SelectTrigger className="h-8">
+                                <SelectValue placeholder="Select..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {col.options?.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    );
+                case 'checkbox':
+                    return (
+                        <Checkbox 
+                            checked={!!cellValue}
+                            onCheckedChange={(checked) => handleCellChange(rowIndex, colIndex, checked)}
+                        />
+                    );
+                case 'radio':
+                    return (
+                        <RadioGroup
+                            value={cellValue}
+                            onValueChange={(val) => handleCellChange(rowIndex, colIndex, val)}
+                            className="flex gap-2"
+                        >
+                            {col.options?.map(opt => (
+                                <div key={opt} className="flex items-center space-x-1">
+                                    <RadioGroupItem value={opt} id={`${element.id}-${rowIndex}-${col.id}-${opt}`} />
+                                    <Label htmlFor={`${element.id}-${rowIndex}-${col.id}-${opt}`} className="text-xs">{opt}</Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                    );
+                case 'text':
+                default:
+                    return (
+                        <Input
+                            value={cellValue}
+                            onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                            className="h-8"
+                        />
+                    );
+            }
         }
 
         return (
@@ -371,28 +432,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
                             {tableRows.map((row, rowIndex) => (
                                 <TableRow key={rowIndex}>
                                     {visibleColumns.map((col) => {
-                                        const colIndex = getColumnIndex(col);
-                                        const isEditing = allowEdit && editingCell?.rowIndex === rowIndex && editingCell?.colIndex === colIndex;
-                                        const isFormulaColumn = !!col.formula;
-
                                         return (
-                                            <TableCell key={col.id} onClick={() => allowEdit && !isFormulaColumn && setEditingCell({rowIndex, colIndex})}>
-                                                {(isEditing && !isFormulaColumn) ? (
-                                                    <Input
-                                                        autoFocus
-                                                        value={row[colIndex]}
-                                                        onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                                                        onBlur={() => setEditingCell(null)}
-                                                        onKeyDown={(e) => { if (e.key === 'Enter') setEditingCell(null) }}
-                                                    />
-                                                ) : (
-                                                    row[colIndex] || <span className="text-muted-foreground">...</span>
-                                                )}
+                                            <TableCell key={col.id} className="p-2">
+                                                {allowEdit ? renderCell(row, rowIndex, col) : (row[getColumnIndex(col)] || <span className="text-muted-foreground">...</span>)}
                                             </TableCell>
                                         )
                                     })}
                                     {(allowEdit || allowDelete) && (
-                                        <TableCell>
+                                        <TableCell className="p-2">
                                             <div className="flex gap-2">
                                                 {allowDelete && (
                                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRow(rowIndex)}>

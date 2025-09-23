@@ -9,8 +9,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock } from "lucide-react";
+import { Clock, Edit, CheckSquare, List, MousePointerSquareDashed } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { cn } from "@/lib/utils";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
   const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, columns, initialRows } = element;
@@ -23,6 +24,17 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
       </Label>
     </div>
   );
+
+  const CellTypeIcon = ({ type }: { type: string | undefined }) => {
+    switch (type) {
+        case 'select': return <List className="h-3.5 w-3.5 text-muted-foreground" />;
+        case 'checkbox': return <CheckSquare className="h-3.5 w-3.5 text-muted-foreground" />;
+        case 'radio': return <List className="h-3.5 w-3.5 text-muted-foreground" />; // No direct radio icon, using list as placeholder
+        case 'text':
+        default:
+            return <Edit className="h-3.5 w-3.5 text-muted-foreground" />;
+    }
+  }
 
   switch (type) {
     case "Title":
@@ -120,7 +132,10 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                     <TableHeader>
                         <TableRow>
                             {columns?.filter(c => c.visible).map(col => (
-                                <TableHead key={col.id}>{col.title}</TableHead>
+                                <TableHead key={col.id} className="flex items-center gap-2">
+                                  <CellTypeIcon type={col.cellType} />
+                                  {col.title}
+                                </TableHead>
                             ))}
                         </TableRow>
                     </TableHeader>
@@ -128,7 +143,12 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                         {Array.from({ length: initialRows || 1 }).map((_, rowIndex) => (
                             <TableRow key={rowIndex}>
                                 {columns?.filter(c => c.visible).map(col => (
-                                    <TableCell key={col.id}>...</TableCell>
+                                     <TableCell key={col.id} className="text-muted-foreground">
+                                        <div className="flex items-center gap-2">
+                                            {col.cellType === 'checkbox' && <Checkbox disabled />}
+                                            <span>...</span>
+                                        </div>
+                                    </TableCell>
                                 ))}
                             </TableRow>
                         ))}
