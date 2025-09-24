@@ -22,24 +22,13 @@ const nextConfig = {
         pathname: '/**',
       },
       {
-        protocol: 'https',
+        protocol: 'https'
         hostname: 'picsum.photos',
         port: '',
         pathname: '/**',
       },
     ],
   },
-  experimental: {},
 };
-
-if (process.env.NODE_ENV === 'development') {
-  nextConfig.devIndicators = {
-    position: 'bottom-right',
-  };
-  nextConfig.allowedDevOrigins = [
-    'https://*.cloudworkstations.dev',
-    'https://*.firebase.studio',
-  ];
-}
 
 module.exports = nextConfig;
