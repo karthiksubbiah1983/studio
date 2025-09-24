@@ -32,11 +32,7 @@ const nextConfig = {
 };
 
 if (process.env.NODE_ENV === 'development') {
-  nextConfig.experimental = {
-    ...nextConfig.experimental,
-  };
   nextConfig.devIndicators = {
-    ...nextConfig.devIndicators,
     position: 'bottom-right',
   };
   nextConfig.allowedDevOrigins = [
