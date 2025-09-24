@@ -141,20 +141,17 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "Container": {
         const { elements, direction } = element;
         content = (
-            <div>
-                {renderLabel()}
-                <div className={cn("flex gap-4", direction === 'horizontal' ? 'flex-row' : 'flex-col')}>
-                    {elements?.map(el => (
-                        <FormElementRenderer 
-                            key={el.id} 
-                            element={el} 
-                            value={formState?.[el.id]} 
-                            onValueChange={onValueChange} 
-                            formState={formState}
-                            isParentHorizontal={direction === 'horizontal'}
-                        />
-                    ))}
-                </div>
+            <div className={cn("flex gap-4", direction === 'horizontal' ? 'flex-row' : 'flex-col')}>
+                {elements?.map(el => (
+                    <FormElementRenderer 
+                        key={el.id} 
+                        element={el} 
+                        value={formState?.[el.id]} 
+                        onValueChange={onValueChange} 
+                        formState={formState}
+                        isParentHorizontal={direction === 'horizontal'}
+                    />
+                ))}
             </div>
         )
         break;
@@ -507,5 +504,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
+    
 
     
