@@ -59,17 +59,9 @@ export function FormPreview() {
     }
   };
 
-  const renderElements = (elements: FormElementInstance[]) => {
+  const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
     return elements.map((element) => {
       if (!isVisible(element)) return null;
-
-      if (element.type === 'Container') {
-          return (
-              <div key={element.id} className={cn('flex w-full gap-4', element.direction === 'horizontal' ? 'flex-row' : 'flex-col')}>
-                  {element.elements && renderElements(element.elements)}
-              </div>
-          )
-      }
 
       return (
           <FormElementRenderer
@@ -78,6 +70,7 @@ export function FormPreview() {
               value={formState[element.id]}
               onValueChange={handleValueChange}
               formState={formState}
+              isParentHorizontal={isParentHorizontal}
           />
       )
     })

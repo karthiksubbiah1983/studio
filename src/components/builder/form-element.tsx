@@ -1,3 +1,4 @@
+
 "use client";
 
 import { FormElementInstance, TableColumn } from "@/lib/types";
@@ -31,13 +32,14 @@ type Props = {
   value: any;
   onValueChange: (id: string, value: any, fullObject?: any) => void;
   formState?: { [key: string]: any };
+  isParentHorizontal?: boolean;
 };
 
 const getNestedValue = (obj: any, path: string): any => {
     return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 };
 
-export function FormElementRenderer({ element, value, onValueChange, formState }: Props) {
+export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal }: Props) {
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -112,28 +114,33 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
       </Label>
     </div>
   );
+  
+  let content = null;
 
   switch (type) {
     case "Title":
-      return <h2 className="text-2xl font-bold">{label}</h2>;
+      content = <h2 className="text-2xl font-bold">{label}</h2>;
+      break;
     case "Separator":
-      return <Separator />;
+      content = <Separator />;
+      break;
     case "Display": {
       if (!dataSourceConfig || !formState) return null;
       const { sourceElementId, displayKey } = dataSourceConfig;
       const sourceObject = formState[sourceElementId]?.fullObject;
       const displayValue = sourceObject ? getNestedValue(sourceObject, displayKey) : `(Not selected)`;
       
-      return (
+      content = (
         <div>
           <Label className="text-base">{label}</Label>
           <p className="text-muted-foreground text-sm mt-1">{displayValue}</p>
         </div>
       );
+      break;
     }
     case "Container": {
         const { elements, direction } = element;
-        return (
+        content = (
             <div>
                 {renderLabel()}
                 <div className={cn("flex gap-4", direction === 'horizontal' ? 'flex-row' : 'flex-col')}>
@@ -144,14 +151,16 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
                             value={formState?.[el.id]} 
                             onValueChange={onValueChange} 
                             formState={formState}
+                            isParentHorizontal={direction === 'horizontal'}
                         />
                     ))}
                 </div>
             </div>
         )
+        break;
     }
     case "Input":
-      return (
+      content = (
         <div>
           {renderLabel()}
           <Input 
@@ -164,8 +173,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
           )}
         </div>
       );
+      break;
     case "Textarea":
-      return (
+      content = (
         <div>
           {renderLabel()}
           <Textarea 
@@ -178,8 +188,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
           )}
         </div>
       );
+      break;
     case "RichText":
-      return (
+      content = (
         <div>
           {renderLabel()}
           <LexicalEditor
@@ -191,12 +202,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
           )}
         </div>
       );
+      break;
     case "Select":
         const handleSelectChange = (val: string) => {
             const fullObject = dynamicOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === val);
             onValueChange(element.id, val, fullObject);
         }
-      return (
+      content = (
         <div>
           {renderLabel()}
           <Select value={value?.value} onValueChange={handleSelectChange}>
@@ -224,8 +236,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
           )}
         </div>
       );
+      break;
     case "Checkbox":
-        return (
+        content = (
             <div className="flex items-center space-x-2">
                 <Checkbox 
                     id={element.id}
@@ -238,8 +251,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
                 </div>
             </div>
         );
+        break;
     case "RadioGroup":
-      return (
+      content = (
         <div>
           {renderLabelWithPopup()}
           <RadioGroup value={value?.value} onValueChange={(val) => onValueChange(element.id, val)}>
@@ -258,6 +272,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
           )}
         </div>
       );
+      break;
     case "DatePicker":
       const dateValue = value?.value ? new Date(value.value) : undefined;
       const handleDateChange = (date: Date | undefined) => {
@@ -276,7 +291,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
       }
       const timeValue = dateValue ? `${String(dateValue.getHours()).padStart(2,'0')}:${String(dateValue.getMinutes()).padStart(2, '0')}` : "";
 
-      return (
+      content = (
         <div>
           {renderLabel()}
           <div className="flex gap-2">
@@ -298,6 +313,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
           )}
         </div>
       );
+      break;
     case "Table":
         const { columns, allowAdd, allowEdit, allowDelete } = element;
         const visibleColumns = columns?.filter(c => columnVisibility[c.id]) || [];
@@ -409,7 +425,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
             }
         }
 
-        return (
+        content = (
             <div>
                 <div className="flex justify-between items-center mb-2">
                     {renderLabel()}
@@ -483,9 +499,11 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
                 {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
             </div>
         );
+        break;
     default:
-      return <div>Unsupported element type</div>;
+      content = <div>Unsupported element type</div>;
+      break;
   }
-}
 
-    
+  return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
+}
