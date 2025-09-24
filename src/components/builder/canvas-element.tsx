@@ -14,9 +14,10 @@ type Props = {
   element: FormElementInstance;
   sectionId: string;
   index: number;
+  isNested?: boolean;
 };
 
-export function CanvasElement({ element, sectionId, index }: Props) {
+export function CanvasElement({ element, sectionId, index, isNested }: Props) {
   const { state, dispatch } = useBuilder();
   const [mouseIsOver, setMouseIsOver] = useState(false);
   const [isTopHalf, setIsTopHalf] = useState(false);
@@ -89,6 +90,28 @@ export function CanvasElement({ element, sectionId, index }: Props) {
 
   const isElementBeingDragged = state.draggedElement && ('type' in state.draggedElement || 'element' in state.draggedElement);
 
+  const findParent = (elementId: string) => {
+    for (const section of state.sections) {
+      const find = (elements: FormElementInstance[]): FormElementInstance | null => {
+        for (const el of elements) {
+          if (el.elements?.some(child => child.id === elementId)) {
+            return el;
+          }
+          if (el.elements) {
+            const parent = find(el.elements);
+            if (parent) return parent;
+          }
+        }
+        return null;
+      };
+      const parent = find(section.elements);
+      if (parent) return parent;
+    }
+    return null;
+  };
+  
+  const parent = findParent(element.id);
+  const isHorizontalChild = parent?.direction === 'horizontal';
 
   if (element.type === 'Container') {
     return (
@@ -143,7 +166,7 @@ export function CanvasElement({ element, sectionId, index }: Props) {
            >
             {element.elements && element.elements.length > 0 ? (
                 element.elements.map((childElement, idx) => (
-                    <CanvasElement key={childElement.id} element={childElement} sectionId={sectionId} index={idx} />
+                    <CanvasElement key={childElement.id} element={childElement} sectionId={sectionId} index={idx} isNested={true} />
                 ))
             ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -172,7 +195,8 @@ export function CanvasElement({ element, sectionId, index }: Props) {
         }}
         className={cn(
           "relative flex flex-col p-4 cursor-pointer bg-card transition-all",
-          (mouseIsOver || isSelected) && "shadow-[inset_0_0_0_1px_#084D8E]"
+          (mouseIsOver || isSelected) && "shadow-[inset_0_0_0_1px_#084D8E]",
+          isHorizontalChild && 'flex-1'
         )}
       >
         {mouseIsOver && state.draggedElement && isTopHalf && <div className="absolute top-0 left-0 w-full h-1 bg-primary z-10" />}
