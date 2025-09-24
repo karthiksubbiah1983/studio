@@ -86,7 +86,7 @@ export function FormPreview() {
             <CardHeader>
               <h3 className="text-lg font-medium">{section.title}</h3>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <div
                 className={cn(
                   "grid gap-x-5 gap-y-4 grid-cols-1",
@@ -102,3 +102,5 @@ export function FormPreview() {
     </div>
   );
 }
+
+    
