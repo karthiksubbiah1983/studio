@@ -37,7 +37,7 @@ if (process.env.NODE_ENV === 'development') {
   };
   nextConfig.devIndicators = {
     ...nextConfig.devIndicators,
-    buildActivityPosition: 'bottom-right',
+    position: 'bottom-right',
   };
   nextConfig.allowedDevOrigins = [
     'https://*.cloudworkstations.dev',
