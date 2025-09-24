@@ -77,7 +77,7 @@ export function CanvasSection({ section }: { section: Section }) {
   const isElementBeingDragged = state.draggedElement && ('type' in state.draggedElement || 'element' in state.draggedElement);
 
   const content = (
-    <div className="flex flex-col gap-4 min-h-[100px] droppable"
+    <div className="flex flex-col gap-4 min-h-[100px] droppable px-4 pb-4"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -112,7 +112,7 @@ export function CanvasSection({ section }: { section: Section }) {
               </div>
               <Accordion type="single" collapsible defaultValue="item-1">
                   <AccordionItem value="item-1" className="border-b-0">
-                      <CardHeader className="p-4 flex flex-row items-center justify-between">
+                      <CardHeader className="p-4 py-2 flex flex-row items-center justify-between">
                           <AccordionTrigger className="flex-1 hover:no-underline text-lg font-medium">
                              {section.title}
                           </AccordionTrigger>
@@ -142,7 +142,7 @@ export function CanvasSection({ section }: { section: Section }) {
                            </div>
                       </CardHeader>
                       <AccordionContent>
-                          <CardContent className="p-4 pt-0">{content}</CardContent>
+                          {content}
                       </AccordionContent>
                   </AccordionItem>
               </Accordion>
@@ -160,7 +160,7 @@ export function CanvasSection({ section }: { section: Section }) {
         >
             <GripVertical className="h-6 w-6 text-muted-foreground" />
         </div>
-        <CardHeader className="flex flex-row items-center justify-between p-4">
+        <CardHeader className="flex flex-row items-center justify-between p-4 py-2">
           <h3 className="text-lg font-medium">{section.title}</h3>
            <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
             <Button
@@ -187,7 +187,7 @@ export function CanvasSection({ section }: { section: Section }) {
             </Button>
            </div>
         </CardHeader>
-        <CardContent className="p-4 pt-0">{content}</CardContent>
+        <CardContent className="p-0">{content}</CardContent>
       </Card>
     );
   }
