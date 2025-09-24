@@ -29,13 +29,14 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {},
 };
 
 if (process.env.NODE_ENV === 'development') {
   nextConfig.devIndicators = {
     position: 'bottom-right',
   };
-  nextConfig.allowedDevOrigins = [
+  nextConfig.experimental.allowedDevOrigins = [
     'https://*.cloudworkstations.dev',
     'https://*.firebase.studio',
   ];
