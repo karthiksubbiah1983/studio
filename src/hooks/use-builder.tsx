@@ -115,7 +115,7 @@ const builderReducer = (state: State, action: Action): State => {
         ...state,
         sections: [
           ...state.sections,
-          { id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [], columns: 1 },
+          { id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] },
         ],
       };
     case "ADD_ELEMENT": {

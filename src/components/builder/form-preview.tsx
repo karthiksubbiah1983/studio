@@ -48,17 +48,6 @@ export function FormPreview() {
     return triggerValue === conditionalLogic.showWhenValue;
   }
   
-  const getGridColsClass = (section: Section) => {
-    switch (section.columns) {
-      case 2:
-        return "md:grid-cols-2";
-      case 3:
-        return "md:grid-cols-3";
-      default:
-        return "md:grid-cols-1";
-    }
-  };
-
   const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
     return elements.map((element) => {
       if (!isVisible(element)) return null;
@@ -86,11 +75,10 @@ export function FormPreview() {
             <CardHeader>
               <h3 className="text-lg font-medium">{section.title}</h3>
             </CardHeader>
-            <CardContent className="p-4 pt-0">
+            <CardContent>
               <div
                 className={cn(
-                  "grid gap-x-5 gap-y-4 grid-cols-1",
-                  getGridColsClass(section)
+                  "grid gap-4 grid-cols-1"
                 )}
               >
                 {renderElements(section.elements)}

@@ -76,17 +76,6 @@ export function CanvasSection({ section }: { section: Section }) {
   
   const isElementBeingDragged = state.draggedElement && ('type' in state.draggedElement || 'element' in state.draggedElement);
 
-  const getGridColsClass = () => {
-    switch (section.columns) {
-      case 2:
-        return "md:grid-cols-2";
-      case 3:
-        return "md:grid-cols-3";
-      default:
-        return "md:grid-cols-1";
-    }
-  };
-
   const content = (
     <div className="flex flex-col gap-4 p-4 min-h-[100px] droppable"
         onDragOver={handleDragOver}
@@ -95,10 +84,7 @@ export function CanvasSection({ section }: { section: Section }) {
     >
       {section.elements.length > 0 ? (
         <div
-          className={cn(
-            "grid gap-x-5 grid-cols-1 row-gap-0",
-            getGridColsClass()
-          )}
+          className="grid gap-4 grid-cols-1"
         >
           {section.elements.map((element, index) => (
             <CanvasElement key={element.id} element={element} sectionId={section.id} index={index}/>
