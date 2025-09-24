@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -86,6 +87,8 @@ export function CanvasElement({ element, sectionId, index }: Props) {
     }
   }
 
+  const isElementBeingDragged = state.draggedElement && ('type' in state.draggedElement || 'element' in state.draggedElement);
+
 
   if (element.type === 'Container') {
     return (
@@ -93,7 +96,7 @@ export function CanvasElement({ element, sectionId, index }: Props) {
         <div
           onMouseEnter={() => setMouseIsOver(true)}
           onMouseLeave={() => setMouseIsOver(false)}
-          onMouseDown={(e) => {
+          onClick={(e) => {
             e.stopPropagation();
             dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
           }}
@@ -130,12 +133,12 @@ export function CanvasElement({ element, sectionId, index }: Props) {
           )}
            <ElementPreview element={element} />
            <div 
-            onDragOver={(e) => {e.preventDefault(); e.stopPropagation(); setIsOverContainer(true)}}
+            onDragOver={(e) => {e.preventDefault(); e.stopPropagation(); if(isElementBeingDragged) setIsOverContainer(true)}}
             onDragLeave={(e) => {e.preventDefault(); e.stopPropagation(); setIsOverContainer(false)}}
             onDrop={handleContainerDrop}
             className={cn("flex-1 mt-4 min-h-[100px] border-dashed border-2 p-4",
               element.direction === 'horizontal' ? 'flex flex-row gap-2' : 'flex flex-col gap-4',
-              isOverContainer && "border-primary bg-accent/20"
+              isOverContainer && isElementBeingDragged && "border-primary bg-accent/20"
             )}
            >
             {element.elements && element.elements.length > 0 ? (
@@ -163,12 +166,9 @@ export function CanvasElement({ element, sectionId, index }: Props) {
         onDrop={handleDrop}
         onMouseEnter={() => setMouseIsOver(true)}
         onMouseLeave={() => setMouseIsOver(false)}
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
-        }}
         onClick={(e) => {
           e.stopPropagation();
+          dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
         }}
         className={cn(
           "relative flex flex-col p-4 cursor-pointer bg-card transition-all",
