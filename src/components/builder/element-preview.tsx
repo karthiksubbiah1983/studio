@@ -1,3 +1,4 @@
+
 "use client";
 
 import { FormElementInstance } from "@/lib/types";
@@ -171,12 +172,6 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
       return (
         <div>
             {renderLabel()}
-            <div className={cn("flex min-h-[100px] w-full items-center justify-center gap-2 rounded-md border border-dashed border-input p-4",
-              direction === 'horizontal' ? 'flex-row' : 'flex-col'
-            )}>
-              <Layout className="h-8 w-8 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Container ({elements?.length} elements)</p>
-            </div>
         </div>
       )
     default:
