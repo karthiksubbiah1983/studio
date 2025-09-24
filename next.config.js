@@ -36,7 +36,7 @@ if (process.env.NODE_ENV === 'development') {
   nextConfig.devIndicators = {
     position: 'bottom-right',
   };
-  nextConfig.experimental.allowedDevOrigins = [
+  nextConfig.allowedDevOrigins = [
     'https://*.cloudworkstations.dev',
     'https://*.firebase.studio',
   ];
