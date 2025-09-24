@@ -24,6 +24,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "../lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
+import { cn } from "@/lib/utils";
 
 type Props = {
   element: FormElementInstance;
@@ -129,6 +130,25 @@ export function FormElementRenderer({ element, value, onValueChange, formState }
           <p className="text-muted-foreground text-sm mt-1">{displayValue}</p>
         </div>
       );
+    }
+    case "Container": {
+        const { elements, direction } = element;
+        return (
+            <div>
+                {renderLabel()}
+                <div className={cn("flex gap-4", direction === 'horizontal' ? 'flex-row' : 'flex-col')}>
+                    {elements?.map(el => (
+                        <FormElementRenderer 
+                            key={el.id} 
+                            element={el} 
+                            value={formState?.[el.id]} 
+                            onValueChange={onValueChange} 
+                            formState={formState}
+                        />
+                    ))}
+                </div>
+            </div>
+        )
     }
     case "Input":
       return (

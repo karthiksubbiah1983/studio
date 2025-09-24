@@ -1,5 +1,5 @@
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, Heading1, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table, FileText } from "lucide-react";
+import { CaseSensitive, CheckSquare, Heading1, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table, FileText, Layout } from "lucide-react";
 
 export const FormElements: {
   type: ElementType;
@@ -8,6 +8,7 @@ export const FormElements: {
 }[] = [
     { type: 'Title', icon: Heading1, label: 'Title' },
     { type: 'Separator', icon: SeparatorHorizontal, label: 'Separator' },
+    { type: 'Container', icon: Layout, label: 'Container' },
     { type: 'Input', icon: CaseSensitive, label: 'Text Input' },
     { type: 'Textarea', icon: Pilcrow, label: 'Textarea' },
     { type: 'Select', icon: List, label: 'Select' },
@@ -63,6 +64,8 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
             }
         case "RichText":
             return { ...baseElement, label: "Rich Text Editor", content: "" };
+        case "Container":
+            return { ...baseElement, label: "Container", elements: [], direction: 'vertical' };
         default:
             throw new Error("Invalid element type");
     }

@@ -9,12 +9,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Edit, CheckSquare, List, MousePointerSquareDashed } from "lucide-react";
+import { Clock, Edit, CheckSquare, List, MousePointerSquareDashed, Layout } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { cn } from "@/lib/utils";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
-  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, columns, initialRows } = element;
+  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, columns, initialRows, elements, direction } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -165,6 +165,18 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                 Rich text content here...
             </div>
              {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+        </div>
+      )
+    case "Container":
+      return (
+        <div>
+            {renderLabel()}
+            <div className={cn("flex min-h-[100px] w-full items-center justify-center gap-2 rounded-md border border-dashed border-input p-4",
+              direction === 'horizontal' ? 'flex-row' : 'flex-col'
+            )}>
+              <Layout className="h-8 w-8 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Container ({elements?.length} elements)</p>
+            </div>
         </div>
       )
     default:

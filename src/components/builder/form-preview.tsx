@@ -8,9 +8,22 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FormElementInstance, Section } from "@/lib/types";
 import { cn } from "@/lib/utils";
+
+const getAllElements = (sections: Section[]): FormElementInstance[] => {
+    let allElements: FormElementInstance[] = [];
+    sections.forEach(section => {
+        section.elements.forEach(element => {
+            allElements.push(element);
+            if (element.type === 'Container' && element.elements) {
+                allElements = allElements.concat(element.elements);
+            }
+        });
+    });
+    return allElements;
+};
 
 export function FormPreview() {
   const { state } = useBuilder();
@@ -46,6 +59,30 @@ export function FormPreview() {
     }
   };
 
+  const renderElements = (elements: FormElementInstance[]) => {
+    return elements.map((element) => {
+      if (!isVisible(element)) return null;
+
+      if (element.type === 'Container') {
+          return (
+              <div key={element.id} className={cn('flex w-full gap-4', element.direction === 'horizontal' ? 'flex-row' : 'flex-col')}>
+                  {element.elements && renderElements(element.elements)}
+              </div>
+          )
+      }
+
+      return (
+          <FormElementRenderer
+              key={element.id}
+              element={element}
+              value={formState[element.id]}
+              onValueChange={handleValueChange}
+              formState={formState}
+          />
+      )
+    })
+  }
+
   return (
     <div className="p-4 space-y-8">
       {state.sections.map((section) => {
@@ -63,17 +100,7 @@ export function FormPreview() {
                   getGridColsClass(section)
                 )}
               >
-                {section.elements.map((element) =>
-                  isVisible(element) ? (
-                    <FormElementRenderer
-                        key={element.id}
-                        element={element}
-                        value={formState[element.id]}
-                        onValueChange={handleValueChange}
-                        formState={formState}
-                    />
-                  ) : null
-                )}
+                {renderElements(section.elements)}
               </div>
             </CardContent>
           </Card>

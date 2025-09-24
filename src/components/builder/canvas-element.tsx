@@ -67,6 +67,92 @@ export function CanvasElement({ element, sectionId, index }: Props) {
     }
   };
 
+  const [isOverContainer, setIsOverContainer] = useState(false);
+
+  const handleContainerDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOverContainer(false);
+    const { draggedElement } = state;
+    if (!draggedElement) return;
+
+    if ('type' in draggedElement) { // Dropping new element
+      dispatch({ type: 'ADD_ELEMENT', payload: { sectionId, type: draggedElement.type, parentId: element.id }})
+    } else if ('element' in draggedElement) { // Moving existing element
+      dispatch({ type: 'MOVE_ELEMENT', payload: {
+        from: { sectionId: draggedElement.sectionId, elementId: draggedElement.element.id },
+        to: { sectionId, parentId: element.id, index: element.elements?.length || 0 }
+      }})
+    }
+  }
+
+
+  if (element.type === 'Container') {
+    return (
+      <ConditionalWrapper logic={element.conditionalLogic}>
+        <div
+          onMouseEnter={() => setMouseIsOver(true)}
+          onMouseLeave={() => setMouseIsOver(false)}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
+          }}
+          className={cn(
+            "relative flex flex-col p-4 cursor-pointer bg-card transition-all",
+            (mouseIsOver || isSelected) && "shadow-[inset_0_0_0_1px_#084D8E]"
+          )}
+        >
+          {mouseIsOver && (
+            <div className="absolute top-2 right-2 flex gap-2 z-10">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-7 w-7"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatch({ type: "CLONE_ELEMENT", payload: { elementId: element.id, sectionId } });
+                }}
+              >
+                <Copy className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="destructive"
+                size="icon"
+                className="h-7 w-7"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dispatch({ type: "DELETE_ELEMENT", payload: { elementId: element.id, sectionId } });
+                }}
+              >
+                <Trash className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+           <ElementPreview element={element} />
+           <div 
+            onDragOver={(e) => {e.preventDefault(); e.stopPropagation(); setIsOverContainer(true)}}
+            onDragLeave={(e) => {e.preventDefault(); e.stopPropagation(); setIsOverContainer(false)}}
+            onDrop={handleContainerDrop}
+            className={cn("flex-1 mt-4 min-h-[100px] border-dashed border-2 p-4",
+              element.direction === 'horizontal' ? 'flex flex-row gap-2' : 'flex flex-col gap-4',
+              isOverContainer && "border-primary bg-accent/20"
+            )}
+           >
+            {element.elements && element.elements.length > 0 ? (
+                element.elements.map((childElement, idx) => (
+                    <CanvasElement key={childElement.id} element={childElement} sectionId={sectionId} index={idx} />
+                ))
+            ) : (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                    Drop elements here
+                </div>
+            )}
+           </div>
+        </div>
+      </ConditionalWrapper>
+    )
+  }
+
   return (
     <ConditionalWrapper logic={element.conditionalLogic}>
       <div

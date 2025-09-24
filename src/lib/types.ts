@@ -1,4 +1,4 @@
-export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "Table" | "RichText";
+export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "Table" | "RichText" | "Container";
 
 export type ConditionalLogic = {
     enabled: boolean;
@@ -60,6 +60,9 @@ export type FormElementInstance = {
     allowDelete?: boolean;
     // For RichText
     content?: string;
+    // For Container
+    elements?: FormElementInstance[];
+    direction?: 'horizontal' | 'vertical';
 };
 
 export type Section = {

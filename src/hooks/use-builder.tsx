@@ -14,7 +14,7 @@ type State = {
 
 type Action =
   | { type: "ADD_SECTION" }
-  | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number } }
+  | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number, parentId?: string } }
   | { type: "UPDATE_ELEMENT"; payload: { sectionId: string; element: FormElementInstance } }
   | { type: "UPDATE_SECTION"; payload: Section }
   | { type: "SELECT_ELEMENT"; payload: { elementId: string; sectionId: string } | null }
@@ -24,7 +24,7 @@ type Action =
   | { type: "CLONE_SECTION"; payload: { sectionId: string } }
   | { type: "SET_DRAGGED_ELEMENT"; payload: State['draggedElement'] }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number, toIndex: number } }
-  | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index: number } } }
+  | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index?: number, parentId?: string } } }
   | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[] } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
@@ -47,6 +47,67 @@ const cloneWithNewIds = <T extends { id: string }>(item: T): T => {
   return newItem;
 };
 
+// Recursive function to find and update/add/delete an element
+const findAndModifyElement = (elements: FormElementInstance[], action: Action): FormElementInstance[] => {
+    switch (action.type) {
+        case "ADD_ELEMENT": {
+             const { parentId, type, index } = action.payload;
+             if (parentId) { // Add to container
+                return elements.map(el => {
+                    if (el.id === parentId && el.type === 'Container') {
+                        const newElement = createNewElement(type);
+                        const newElements = [...(el.elements || [])];
+                        if (index !== undefined) {
+                            newElements.splice(index, 0, newElement);
+                        } else {
+                            newElements.push(newElement);
+                        }
+                        return { ...el, elements: newElements };
+                    }
+                    if (el.elements) { // Recurse
+                        return { ...el, elements: findAndModifyElement(el.elements, action) };
+                    }
+                    return el;
+                });
+             }
+             break; // Handled at section level if no parentId
+        }
+        case "UPDATE_ELEMENT": {
+            return elements.map(el => {
+                if (el.id === action.payload.element.id) return action.payload.element;
+                if (el.elements) return { ...el, elements: findAndModifyElement(el.elements, action) };
+                return el;
+            });
+        }
+        case "DELETE_ELEMENT": {
+            return elements.reduce((acc, el) => {
+                if (el.id === action.payload.elementId) return acc;
+                if (el.elements) {
+                    acc.push({ ...el, elements: findAndModifyElement(el.elements, action) });
+                } else {
+                    acc.push(el);
+                }
+                return acc;
+            }, [] as FormElementInstance[]);
+        }
+        case "CLONE_ELEMENT": {
+            const newElements: FormElementInstance[] = [];
+            for (const el of elements) {
+                newElements.push(el);
+                if (el.id === action.payload.elementId) {
+                    newElements.push(cloneWithNewIds(el));
+                } else if (el.elements) {
+                    const clonedSub = findAndModifyElement([el], action);
+                    newElements.pop();
+                    newElements.push(...clonedSub);
+                }
+            }
+            return newElements;
+        }
+    }
+    return elements;
+};
+
 const builderReducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_SECTION":
@@ -58,31 +119,36 @@ const builderReducer = (state: State, action: Action): State => {
         ],
       };
     case "ADD_ELEMENT": {
-      const { sectionId, type, index } = action.payload;
-      const newElement = createNewElement(type);
+      const { sectionId, type, index, parentId } = action.payload;
       return {
         ...state,
         sections: state.sections.map((section) => {
           if (section.id === sectionId) {
-            const newElements = [...section.elements];
-            if (index !== undefined) {
-              newElements.splice(index, 0, newElement);
-            } else {
-              newElements.push(newElement);
+            const newElement = createNewElement(type);
+            if (parentId) { // Add to container
+                const newElements = findAndModifyElement(section.elements, action);
+                return { ...section, elements: newElements };
+            } else { // Add to section
+                const newElements = [...section.elements];
+                if (index !== undefined) {
+                    newElements.splice(index, 0, newElement);
+                } else {
+                    newElements.push(newElement);
+                }
+                return { ...section, elements: newElements };
             }
-            return { ...section, elements: newElements };
           }
           return section;
         }),
       };
     }
     case "UPDATE_ELEMENT": {
-      const { sectionId, element } = action.payload;
+      const { sectionId } = action.payload;
       return {
         ...state,
         sections: state.sections.map((section) =>
           section.id === sectionId
-            ? { ...section, elements: section.elements.map(el => el.id === element.id ? element : el) }
+            ? { ...section, elements: findAndModifyElement(section.elements, action) }
             : section
         ),
       };
@@ -100,7 +166,7 @@ const builderReducer = (state: State, action: Action): State => {
             ...state,
             sections: state.sections.map((section) =>
               section.id === sectionId
-                ? { ...section, elements: section.elements.filter(el => el.id !== elementId) }
+                ? { ...section, elements: findAndModifyElement(section.elements, action) }
                 : section
             ),
             selectedElement: state.selectedElement?.elementId === elementId ? null : state.selectedElement,
@@ -119,19 +185,12 @@ const builderReducer = (state: State, action: Action): State => {
       const sectionIndex = newSections.findIndex(s => s.id === sectionId);
       if (sectionIndex === -1) return state;
 
-      const section = newSections[sectionIndex];
-      const elementIndex = section.elements.findIndex(e => e.id === elementId);
-      if (elementIndex === -1) return state;
-
-      const elementToClone = section.elements[elementIndex];
-      const clonedElement = cloneWithNewIds(elementToClone);
+      const newElements = findAndModifyElement(newSections[sectionIndex].elements, action);
+      newSections[sectionIndex] = { ...newSections[sectionIndex], elements: newElements };
       
-      section.elements.splice(elementIndex + 1, 0, clonedElement);
-
       return {
         ...state,
         sections: newSections,
-        selectedElement: { sectionId: sectionId, elementId: clonedElement.id }
       };
     }
     case "CLONE_SECTION": {
@@ -163,29 +222,66 @@ const builderReducer = (state: State, action: Action): State => {
     case "MOVE_ELEMENT": {
         const { from, to } = action.payload;
         let elementToMove: FormElementInstance | undefined;
-        const fromSection = state.sections.find(s => s.id === from.sectionId);
-        elementToMove = fromSection?.elements.find(el => el.id === from.elementId);
+        let currentSections = [...state.sections];
+
+        // Find and remove the element from its original location
+        const removeFromSource = (elements: FormElementInstance[]): FormElementInstance[] => {
+            const newElements: FormElementInstance[] = [];
+            for (const el of elements) {
+                if (el.id === from.elementId) {
+                    elementToMove = el;
+                    continue;
+                }
+                if (el.elements) {
+                    newElements.push({ ...el, elements: removeFromSource(el.elements) });
+                } else {
+                    newElements.push(el);
+                }
+            }
+            return newElements;
+        }
+
+        currentSections = currentSections.map(s => {
+            if (s.id === from.sectionId) {
+                return { ...s, elements: removeFromSource(s.elements) };
+            }
+            return s;
+        });
        
         if (!elementToMove) return state;
 
-        const newSections = state.sections.map(section => {
-            if (section.id === from.sectionId) {
-                return { ...section, elements: section.elements.filter(el => el.id !== from.elementId) };
+        // Add the element to its new location
+        const addToDestination = (elements: FormElementInstance[]): FormElementInstance[] => {
+            if (to.parentId) { // Dropping into a container
+                return elements.map(el => {
+                    if (el.id === to.parentId) {
+                        const newContainerElements = [...(el.elements || [])];
+                        newContainerElements.splice(to.index !== undefined ? to.index : newContainerElements.length, 0, elementToMove!);
+                        return { ...el, elements: newContainerElements };
+                    }
+                    if (el.elements) {
+                        return { ...el, elements: addToDestination(el.elements) };
+                    }
+                    return el;
+                });
             }
-            return section;
+            return elements; // Should be handled at section level
+        }
+
+        currentSections = currentSections.map(s => {
+            if (s.id === to.sectionId) {
+                if (to.parentId) { // Dropping in a container inside the target section
+                    return { ...s, elements: addToDestination(s.elements) };
+                } else { // Dropping directly into a section
+                    const newElements = [...s.elements];
+                    newElements.splice(to.index !== undefined ? to.index : newElements.length, 0, elementToMove!);
+                    return { ...s, elements: newElements };
+                }
+            }
+            return s;
         });
 
-        return {
-            ...state,
-            sections: newSections.map(section => {
-                if (section.id === to.sectionId) {
-                    const newElements = [...section.elements];
-                    newElements.splice(to.index, 0, elementToMove as FormElementInstance);
-                    return { ...section, elements: newElements };
-                }
-                return section;
-            })
-        };
+        return { ...state, sections: currentSections };
     }
     case "SAVE_VERSION": {
       const { name, description, type, sections } = action.payload;

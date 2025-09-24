@@ -34,8 +34,19 @@ export function PropertiesSidebar() {
     if (!selectedElement) return null;
     const section = state.sections.find(s => s.id === selectedElement.sectionId);
     if (!section) return null;
+
     if (selectedElement.elementId) {
-        return section.elements.find(e => e.id === selectedElement.elementId) || null;
+        const findElementRecursive = (elements: FormElementInstance[], elementId: string): FormElementInstance | null => {
+            for (const element of elements) {
+                if (element.id === elementId) return element;
+                if (element.type === 'Container' && element.elements) {
+                    const found = findElementRecursive(element.elements, elementId);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+        return findElementRecursive(section.elements, selectedElement.elementId);
     }
     return section;
   };
@@ -57,7 +68,7 @@ export function PropertiesSidebar() {
       </div>
       <Separator className="my-2" />
       {!selected && <p className="text-sm text-muted-foreground">Select an element to see its properties.</p>}
-      {selected && 'elements' in selected && <SectionProperties section={selected} />}
+      {selected && 'elements' in selected && !('type' in selected) && <SectionProperties section={selected} />}
       {selected && 'type' in selected && <ElementProperties element={selected} />}
     </div>
   );
@@ -72,13 +83,25 @@ function ConditionalLogicSettings({
 }) {
     const { state } = useBuilder();
     const logic = element.conditionalLogic || { enabled: false, triggerElementId: "", showWhenValue: "" };
+    
+    const allElements = state.sections.flatMap(s => {
+        const elements: FormElementInstance[] = [];
+        const findElementsRecursive = (els: FormElementInstance[]) => {
+            for (const el of els) {
+                elements.push(el);
+                if (el.elements) {
+                    findElementsRecursive(el.elements);
+                }
+            }
+        }
+        findElementsRecursive(s.elements);
+        return elements;
+    });
 
     const triggerElements = useMemo(() =>
-        state.sections.flatMap(s =>
-            s.elements.filter(e =>
-                (e.type === 'RadioGroup' || e.type === 'Select' || e.type === 'Checkbox') && e.id !== element.id
-            )
-        ), [state.sections, element.id]
+        allElements.filter(e =>
+            (e.type === 'RadioGroup' || e.type === 'Select' || e.type === 'Checkbox') && e.id !== element.id
+        ), [allElements, element.id]
     );
 
     const selectedTrigger = triggerElements.find(el => el.id === logic.triggerElementId);
@@ -366,10 +389,23 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   const { selectedElement } = state;
   const [props, setProps] = useState(element);
 
+  const allElements = state.sections.flatMap(s => {
+      const elements: FormElementInstance[] = [];
+      const findElementsRecursive = (els: FormElementInstance[]) => {
+          for (const el of els) {
+              elements.push(el);
+              if (el.elements) {
+                  findElementsRecursive(el.elements);
+              }
+          }
+      }
+      findElementsRecursive(s.elements);
+      return elements;
+  });
+
   const dynamicSelects = useMemo(() =>
-    state.sections.flatMap(s =>
-        s.elements.filter(e => e.type === 'Select' && e.dataSource === 'dynamic' && e.id !== element.id)
-    ), [state.sections, element.id]
+    allElements.filter(e => e.type === 'Select' && e.dataSource === 'dynamic' && e.id !== element.id)
+    , [allElements, element.id]
   );
 
   useEffect(() => {
@@ -379,19 +415,26 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   useEffect(() => {
     const handler = setTimeout(() => {
       if (!selectedElement) return;
-      const section = state.sections.find(
-        (s) => s.id === selectedElement.sectionId
-      );
-      const elementExists = section?.elements.some(
-        (e) => e.id === selectedElement.elementId
-      );
 
-      if (elementExists) {
-        dispatch({
-          type: "UPDATE_ELEMENT",
-          payload: { sectionId: selectedElement.sectionId, element: props },
-        });
+      const findAndDispatchUpdate = () => {
+          for (const section of state.sections) {
+              const findElementRecursive = (elements: FormElementInstance[], elementId: string): boolean => {
+                  for (let i = 0; i < elements.length; i++) {
+                      if (elements[i].id === elementId) {
+                          dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: section.id, element: props }});
+                          return true;
+                      }
+                      if (elements[i].type === 'Container' && elements[i].elements) {
+                          if (findElementRecursive(elements[i].elements!, elementId)) return true;
+                      }
+                  }
+                  return false;
+              }
+              if (findElementRecursive(section.elements, selectedElement.elementId)) return;
+          }
       }
+      findAndDispatchUpdate();
+
     }, 500);
     return () => clearTimeout(handler);
   }, [props, dispatch, selectedElement, state.sections]);
@@ -655,6 +698,30 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         case "Separator":
             fields = <p className="text-sm text-muted-foreground">No properties for this element.</p>;
             break;
+        case "Container":
+             fields = (
+                <>
+                    {commonFields}
+                    <div className="flex flex-col gap-2">
+                        <Label>Direction</Label>
+                        <RadioGroup
+                            value={element.direction}
+                            onValueChange={(value) => updateElement('direction', value as 'horizontal' | 'vertical')}
+                            className="flex gap-4"
+                        >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="vertical" id="dir-vertical" />
+                                <Label htmlFor="dir-vertical">Vertical</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="horizontal" id="dir-horizontal" />
+                                <Label htmlFor="dir-horizontal">Horizontal</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                </>
+             )
+             break;
         case "Display":
             const config = element.dataSourceConfig || { sourceElementId: "", displayKey: "" };
             fields = (
