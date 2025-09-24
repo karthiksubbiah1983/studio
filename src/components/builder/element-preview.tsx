@@ -170,8 +170,11 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
       )
     case "Container":
       return (
-        <div>
-            {renderLabel()}
+        <div className="flex justify-between items-center">
+            <Label className="text-base">
+                {label}
+                {required && <span className="text-destructive"> *</span>}
+            </Label>
         </div>
       )
     default:
