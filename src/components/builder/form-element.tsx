@@ -154,7 +154,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 ))}
             </div>
         )
-        return content; // Return directly as we don't want the wrapper div
+        break;
     }
     case "Input":
       content = (
@@ -504,6 +504,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
+    
 
     
 
