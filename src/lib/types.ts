@@ -83,3 +83,9 @@ export type FormVersion = {
   timestamp: string;
   sections: Section[];
 };
+
+export type Form = {
+    id: string;
+    title: string;
+    versions: FormVersion[];
+}

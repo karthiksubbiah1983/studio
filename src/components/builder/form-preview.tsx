@@ -26,7 +26,7 @@ const getAllElements = (sections: Section[]): FormElementInstance[] => {
 };
 
 export function FormPreview() {
-  const { state } = useBuilder();
+  const { sections } = useBuilder();
   const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
 
   const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
@@ -67,7 +67,7 @@ export function FormPreview() {
 
   return (
     <div className="p-4 space-y-8">
-      {state.sections.map((section) => {
+      {sections.map((section) => {
          if (!isVisible(section)) return null;
 
         return (
@@ -90,5 +90,3 @@ export function FormPreview() {
     </div>
   );
 }
-
-    

@@ -90,8 +90,8 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
 
   const isElementBeingDragged = state.draggedElement && ('type' in state.draggedElement || 'element' in state.draggedElement);
 
-  const findParent = (elementId: string) => {
-    for (const section of state.sections) {
+  const findParent = (elementId: string, sections: any[]) => {
+    for (const section of sections) {
       const find = (elements: FormElementInstance[]): FormElementInstance | null => {
         for (const el of elements) {
           if (el.elements?.some(child => child.id === elementId)) {
@@ -110,7 +110,7 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
     return null;
   };
   
-  const parent = findParent(element.id);
+  const parent = findParent(element.id, state.forms.find(f => f.id === state.activeFormId)?.versions[0]?.sections || []);
   const isHorizontalChild = parent?.direction === 'horizontal';
 
   if (element.type === 'Container') {

@@ -77,7 +77,7 @@ export function CanvasSection({ section }: { section: Section }) {
   const isElementBeingDragged = state.draggedElement && ('type' in state.draggedElement || 'element' in state.draggedElement);
 
   const content = (
-    <div className="flex flex-col gap-4 min-h-[100px] droppable px-4 pb-4"
+    <div className="flex flex-col gap-4 min-h-[100px] droppable"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -142,7 +142,9 @@ export function CanvasSection({ section }: { section: Section }) {
                            </div>
                       </CardHeader>
                       <AccordionContent>
+                        <CardContent className="p-4 pt-0">
                           {content}
+                        </CardContent>
                       </AccordionContent>
                   </AccordionItem>
               </Accordion>
@@ -187,7 +189,7 @@ export function CanvasSection({ section }: { section: Section }) {
             </Button>
            </div>
         </CardHeader>
-        <CardContent className="p-0">{content}</CardContent>
+        <CardContent className="p-4 pt-0">{content}</CardContent>
       </Card>
     );
   }

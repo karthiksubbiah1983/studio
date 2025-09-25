@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -12,13 +13,13 @@ type Props = {
 };
 
 export function ConditionalWrapper({ logic, children }: Props) {
-  const { state } = useBuilder();
+  const { sections } = useBuilder();
 
   if (!logic || !logic.enabled || !logic.triggerElementId || !logic.showWhenValue) {
     return <>{children}</>;
   }
   
-  const triggerElement = state.sections
+  const triggerElement = sections
     .flatMap(s => s.elements)
     .find(e => e.id === logic.triggerElementId);
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -14,14 +15,19 @@ import { format } from "date-fns";
 import { Download, Trash } from "lucide-react";
 
 export function HistorySidebar() {
-  const { state, dispatch } = useBuilder();
-  const { versions } = state;
+  const { activeForm, dispatch } = useBuilder();
+  const versions = activeForm?.versions || [];
 
   const handleLoadVersion = (versionId: string) => {
     dispatch({ type: "LOAD_VERSION", payload: { versionId } });
   };
 
   const handleDeleteVersion = (versionId: string) => {
+    // Prevent deleting the very last version
+    if (versions.length <= 1) {
+      alert("You cannot delete the only version of this form.");
+      return;
+    }
     dispatch({ type: "DELETE_VERSION", payload: { versionId } });
   };
 
@@ -52,7 +58,7 @@ export function HistorySidebar() {
               </CardHeader>
               <CardContent className="p-4 pt-0">
                 <p className="text-sm text-muted-foreground mb-4">
-                  {version.description}
+                  {version.description || "No description."}
                 </p>
                 <div className="flex gap-2">
                   <Button
@@ -67,6 +73,7 @@ export function HistorySidebar() {
                     size="sm"
                     variant="destructive"
                     onClick={() => handleDeleteVersion(version.id)}
+                    disabled={versions.length <= 1}
                   >
                     <Trash className="mr-2 h-4 w-4" />
                     Delete

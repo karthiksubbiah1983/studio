@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -23,7 +24,7 @@ type Props = {
 };
 
 export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
-  const { state, dispatch } = useBuilder();
+  const { sections, dispatch } = useBuilder();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -34,7 +35,7 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
         name,
         description,
         type: saveType,
-        sections: state.sections,
+        sections: sections,
       },
     });
     onOpenChange(false);

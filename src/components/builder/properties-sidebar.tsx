@@ -22,12 +22,12 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 export function PropertiesSidebar() {
-  const { state, dispatch } = useBuilder();
+  const { state, dispatch, sections } = useBuilder();
   const { selectedElement } = state;
 
   const getSelectedElementInstance = () => {
     if (!selectedElement) return null;
-    const section = state.sections.find(s => s.id === selectedElement.sectionId);
+    const section = sections.find(s => s.id === selectedElement.sectionId);
     if (!section) return null;
 
     if (selectedElement.elementId) {
@@ -76,10 +76,10 @@ function ConditionalLogicSettings({
     element: Section | FormElementInstance;
     onUpdate: (logic: ConditionalLogic) => void;
 }) {
-    const { state } = useBuilder();
+    const { sections } = useBuilder();
     const logic = element.conditionalLogic || { enabled: false, triggerElementId: "", showWhenValue: "" };
     
-    const allElements = state.sections.flatMap(s => {
+    const allElements = sections.flatMap(s => {
         const elements: FormElementInstance[] = [];
         const findElementsRecursive = (els: FormElementInstance[]) => {
             for (const el of els) {
@@ -309,11 +309,11 @@ function PopupSettings({
 }
 
 function ElementProperties({ element }: { element: FormElementInstance }) {
-  const { dispatch, state } = useBuilder();
+  const { dispatch, state, sections } = useBuilder();
   const { selectedElement } = state;
   const [props, setProps] = useState(element);
 
-  const allElements = state.sections.flatMap(s => {
+  const allElements = sections.flatMap(s => {
       const elements: FormElementInstance[] = [];
       const findElementsRecursive = (els: FormElementInstance[]) => {
           for (const el of els) {
@@ -341,7 +341,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
       if (!selectedElement) return;
 
       const findAndDispatchUpdate = () => {
-          for (const section of state.sections) {
+          for (const section of sections) {
               const findElementRecursive = (elements: FormElementInstance[], elementId: string): boolean => {
                   for (let i = 0; i < elements.length; i++) {
                       if (elements[i].id === elementId) {
@@ -361,7 +361,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
     }, 500);
     return () => clearTimeout(handler);
-  }, [props, dispatch, selectedElement, state.sections]);
+  }, [props, dispatch, selectedElement, sections]);
 
   const updateProperty = (key: keyof FormElementInstance, value: any) => {
     setProps(prev => ({...prev, [key]: value}));
@@ -761,7 +761,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                     if (val === 'static' && !newProps.options) {
                                         newProps.options = ['Option 1'];
                                     }
-                                    dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement!.sectionId, element: newProps } });
+                                    if (!selectedElement) return;
+                                    dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: newProps } });
                                     }}
                                     className="flex"
                                 >

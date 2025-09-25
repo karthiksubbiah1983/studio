@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,7 +9,7 @@ import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Canvas() {
-  const { state, dispatch } = useBuilder();
+  const { state, sections, dispatch } = useBuilder();
   const [isOver, setIsOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -30,14 +31,14 @@ export function Canvas() {
     if (!draggedElement) return;
 
     // Dropping a new section when the canvas is empty
-    if ('type' in draggedElement && state.sections.length === 0) {
+    if ('type' in draggedElement && sections.length === 0) {
       dispatch({ type: "ADD_SECTION" });
     }
     
     // Dropping an existing section
     if ('sectionId' in draggedElement && !('element' in draggedElement)) {
-        const fromIndex = state.sections.findIndex(s => s.id === draggedElement.sectionId);
-        const toIndex = isTopHalf ? 0 : state.sections.length;
+        const fromIndex = sections.findIndex(s => s.id === draggedElement.sectionId);
+        const toIndex = isTopHalf ? 0 : sections.length;
         if (fromIndex !== -1) {
             dispatch({ type: "MOVE_SECTION", payload: { fromIndex, toIndex } });
         }
@@ -51,8 +52,8 @@ export function Canvas() {
     const { draggedElement } = state;
     if (!draggedElement || !('sectionId' in draggedElement) || ('element' in draggedElement)) return;
 
-    const fromIndex = state.sections.findIndex(s => s.id === draggedElement.sectionId);
-    let toIndex = state.sections.findIndex(s => s.id === targetSectionId);
+    const fromIndex = sections.findIndex(s => s.id === draggedElement.sectionId);
+    let toIndex = sections.findIndex(s => s.id === targetSectionId);
 
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const isTopHalf = e.clientY - rect.top < rect.height / 2;
@@ -82,7 +83,7 @@ export function Canvas() {
         <div
             className="max-w-4xl mx-auto flex flex-col gap-8"
         >
-            {state.sections.map((section, index) => (
+            {sections.map((section, index) => (
                 <div 
                     key={section.id} 
                     className="relative"
