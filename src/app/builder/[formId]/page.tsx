@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Builder } from "@/components/builder/builder";
 import { Form } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 type Props = {
     params: {
@@ -14,12 +15,10 @@ type Props = {
 export default function BuilderPage({ params }: Props) {
     const { dispatch, activeForm } = useBuilder();
     const { formId } = params;
+    const router = useRouter();
 
     useEffect(() => {
         if (formId && activeForm?.id !== formId) {
-            // Clear any existing active form first
-            dispatch({ type: 'SET_ACTIVE_FORM', payload: { formId: null } });
-
             // Lazy load the form data from localStorage
             const storedForm = localStorage.getItem(`form-builder-form-${formId}`);
             if (storedForm) {
@@ -30,11 +29,12 @@ export default function BuilderPage({ params }: Props) {
                     console.error("Failed to parse form data from localStorage", e);
                 }
             } else {
+                // If form doesn't exist, maybe redirect to a 404 page or home
                 console.warn(`Form with id ${formId} not found in localStorage.`);
-                // Optionally, redirect to a 404 page or back to home
+                router.push('/');
             }
         }
-    }, [formId, dispatch, activeForm?.id]);
+    }, [formId, dispatch, activeForm?.id, router]);
 
     if (!activeForm || activeForm.id !== formId) {
         return (
@@ -50,5 +50,3 @@ export default function BuilderPage({ params }: Props) {
         </main>
     );
 }
-
-    

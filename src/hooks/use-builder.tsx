@@ -51,9 +51,12 @@ const initialState: State = {
 };
 
 // Helper function to deep clone and assign new IDs
-const cloneWithNewIds = <T extends { id: string }>(item: T): T => {
+const cloneWithNewIds = <T extends { id: string; key?: string }>(item: T): T => {
   const newItem = JSON.parse(JSON.stringify(item));
   newItem.id = crypto.randomUUID();
+  if (newItem.key) {
+      newItem.key = `${newItem.key}_${Math.random().toString(36).substring(2, 7)}`;
+  }
   if ('elements' in newItem && Array.isArray(newItem.elements)) {
     (newItem as any).elements = newItem.elements.map((el: any) => cloneWithNewIds(el));
   }
@@ -110,9 +113,13 @@ const findAndModifyElement = (elements: FormElementInstance[], action: Action): 
                 if (el.id === action.payload.elementId) {
                     newElements.push(cloneWithNewIds(el));
                 } else if (el.elements) {
-                    const clonedSub = findAndModifyElement([el], action);
-                    newElements.pop();
-                    newElements.push(...clonedSub);
+                    // This is tricky. We need to check if the clone needs to happen in a nested element.
+                    const newSubElements = findAndModifyElement(el.elements, action);
+                    // if the length changed, it means something was cloned inside.
+                    if (newSubElements.length > el.elements.length) {
+                       newElements.pop(); // remove the old parent
+                       newElements.push({ ...el, elements: newSubElements }); // push the parent with new children
+                    }
                 }
             }
             return newElements;
@@ -175,10 +182,15 @@ const builderReducer = (state: State, action: Action): State => {
         };
     }
     case "SET_ACTIVE_FORM":
-        return { ...state, activeForm: null, selectedElement: null };
+        if (action.payload.formId === null) {
+            return { ...state, activeForm: null, selectedElement: null };
+        }
+        // The actual loading is now done in the BuilderPage component. 
+        // This action can be a no-op or just clear the form.
+        return { ...state, activeForm: null };
 
     case "LOAD_FORM_DATA":
-        return { ...state, activeForm: action.payload.form };
+        return { ...state, activeForm: action.payload.form, selectedElement: null };
 
     // All actions below operate on the active form
     case "ADD_SECTION":
@@ -194,11 +206,11 @@ const builderReducer = (state: State, action: Action): State => {
       const { sectionId, type, index, parentId } = action.payload;
       const newSectionsWithElement = activeFormSections.map((section) => {
           if (section.id === sectionId) {
-            const newElement = createNewElement(type);
             if (parentId) { // Add to container
                 const newElements = findAndModifyElement(section.elements, action);
                 return { ...section, elements: newElements };
             } else { // Add to section
+                const newElement = createNewElement(type);
                 const newElements = [...section.elements];
                 if (index !== undefined) {
                     newElements.splice(index, 0, newElement);
@@ -516,5 +528,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-    
