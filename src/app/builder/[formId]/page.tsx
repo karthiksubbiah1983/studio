@@ -21,12 +21,16 @@ export default function BuilderPage({ params }: Props) {
         if (formId && state.activeFormId !== formId) {
             dispatch({ type: 'SET_ACTIVE_FORM', payload: { formId } });
         }
-        // Once the formId from the URL matches the activeFormId in the state,
-        // we can consider the component ready to render.
+    }, [formId, dispatch, state.activeFormId]);
+
+    useEffect(() => {
+        // This effect waits for the state to be ready before rendering the builder.
+        // This prevents rendering with stale or incorrect form data.
         if (state.activeFormId === formId) {
             setIsReady(true);
         }
-    }, [formId, dispatch, state.activeFormId]);
+    }, [state.activeFormId, formId]);
+
 
     const form = state.forms.find(f => f.id === formId);
 
