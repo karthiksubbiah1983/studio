@@ -514,9 +514,13 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatchAction(action);
   }
 
+  if (!isInitialized) {
+    return null; // Don't render children until the state is initialized from localStorage
+  }
+
   return (
     <BuilderContext.Provider value={{ state, dispatch, forms: state.formIndex, activeForm: state.activeForm, sections }}>
-      {isInitialized ? children : null}
+      {children}
     </BuilderContext.Provider>
   );
 };
