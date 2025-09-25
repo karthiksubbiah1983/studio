@@ -65,6 +65,8 @@ export type FormElementInstance = {
     // For Container
     elements?: FormElementInstance[];
     direction?: 'horizontal' | 'vertical';
+    justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
+    align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
 };
 
 export type Section = {

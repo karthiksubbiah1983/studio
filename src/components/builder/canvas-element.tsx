@@ -114,6 +114,23 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
   const isHorizontalChild = parent?.direction === 'horizontal';
 
   if (element.type === 'Container') {
+    const alignmentClasses = {
+        justify: {
+            start: 'justify-start',
+            center: 'justify-center',
+            end: 'justify-end',
+            between: 'justify-between',
+            around: 'justify-around',
+            evenly: 'justify-evenly',
+        },
+        align: {
+            start: 'items-start',
+            center: 'items-center',
+            end: 'items-end',
+            stretch: 'items-stretch',
+            baseline: 'items-baseline',
+        }
+    }
     return (
       <ConditionalWrapper logic={element.conditionalLogic}>
         <div
@@ -161,6 +178,8 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
             onDrop={handleContainerDrop}
             className={cn("flex-1 mt-4 min-h-[100px] border-dashed border-2 p-4",
               element.direction === 'horizontal' ? 'flex flex-row gap-2' : 'flex flex-col gap-4',
+              element.justify && alignmentClasses.justify[element.justify],
+              element.align && alignmentClasses.align[element.align],
               isOverContainer && isElementBeingDragged && "border-primary bg-accent/20"
             )}
            >

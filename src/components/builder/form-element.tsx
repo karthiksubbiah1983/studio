@@ -139,9 +139,30 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       break;
     }
     case "Container": {
-        const { elements, direction } = element;
+        const { elements, direction, justify, align } = element;
+        const alignmentClasses = {
+            justify: {
+                start: 'justify-start',
+                center: 'justify-center',
+                end: 'justify-end',
+                between: 'justify-between',
+                around: 'justify-around',
+                evenly: 'justify-evenly',
+            },
+            align: {
+                start: 'items-start',
+                center: 'items-center',
+                end: 'items-end',
+                stretch: 'items-stretch',
+                baseline: 'items-baseline',
+            }
+        }
         content = (
-            <div className={cn("flex gap-4", direction === 'horizontal' ? 'flex-row' : 'flex-col')}>
+            <div className={cn("flex gap-4",
+                direction === 'horizontal' ? 'flex-row' : 'flex-col',
+                justify && alignmentClasses.justify[justify],
+                align && alignmentClasses.align[align],
+            )}>
                 {elements?.map(el => (
                     <FormElementRenderer 
                         key={el.id} 
@@ -504,11 +525,3 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-    
-
-    
-
-    
-
-    

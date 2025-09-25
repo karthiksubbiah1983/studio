@@ -630,12 +630,17 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return <p className="text-sm text-muted-foreground">No properties for this element.</p>;
         case "Container":
              return (
-                <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "layout", "logic"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            <div className="flex flex-col gap-2">
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="layout">
+                        <AccordionTrigger>Layout</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           <div className="flex flex-col gap-2">
                                 <Label>Direction</Label>
                                 <RadioGroup
                                     value={element.direction}
@@ -651,6 +656,33 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                         <Label htmlFor="dir-horizontal">Horizontal</Label>
                                     </div>
                                 </RadioGroup>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label>Justify Content</Label>
+                                <Select value={element.justify} onValueChange={(value) => updateElement('justify', value)}>
+                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="start">Start</SelectItem>
+                                        <SelectItem value="center">Center</SelectItem>
+                                        <SelectItem value="end">End</SelectItem>
+                                        <SelectItem value="between">Between</SelectItem>
+                                        <SelectItem value="around">Around</SelectItem>
+                                        <SelectItem value="evenly">Evenly</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             <div className="flex flex-col gap-2">
+                                <Label>Align Items</Label>
+                                <Select value={element.align} onValueChange={(value) => updateElement('align', value)}>
+                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="start">Start</SelectItem>
+                                        <SelectItem value="center">Center</SelectItem>
+                                        <SelectItem value="end">End</SelectItem>
+                                        <SelectItem value="stretch">Stretch</SelectItem>
+                                        <SelectItem value="baseline">Baseline</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </AccordionContent>
                     </AccordionItem>

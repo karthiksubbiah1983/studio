@@ -66,7 +66,7 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
         case "RichText":
             return { ...baseElement, label: "Rich Text Editor", content: "" };
         case "Container":
-            return { ...baseElement, label: "Container", elements: [], direction: 'vertical' };
+            return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch' };
         default:
             throw new Error("Invalid element type");
     }
