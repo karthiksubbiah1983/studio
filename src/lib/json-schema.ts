@@ -1,5 +1,5 @@
 
-import { FormElementInstance, Section } from "./types";
+import { Form, FormElementInstance, Section } from "./types";
 
 const mapElementTypeToJsonSchemaType = (element: FormElementInstance) => {
     switch (element.type) {
@@ -70,20 +70,37 @@ const getElementsRecursive = (elements: FormElementInstance[]): FormElementInsta
 }
 
 
-export const generateJsonSchema = (sections: Section[]) => {
+export const generateJsonSchema = (form: Form) => {
+  const latestVersion = form.versions[0];
+  const sections = latestVersion?.sections || [];
+  
   const schema: {
     title: string;
     description: string;
     type: "object";
+    version?: string;
+    versionName?: string;
+    versionNumber?: number;
     properties: { [key: string]: any };
     required: string[];
   } = {
-    title: "Form Submission",
+    title: form.title,
     description: "JSON schema for the generated form",
     type: "object",
     properties: {},
     required: [],
   };
+
+  if (latestVersion) {
+    if (latestVersion.type === 'published') {
+        schema.versionName = latestVersion.name;
+        // Version number is the count of published versions
+        schema.versionNumber = form.versions.filter(v => v.type === 'published').length;
+    } else {
+        schema.version = 'draft';
+    }
+  }
+
 
   const allElements = sections.flatMap(s => s.elements);
 
