@@ -46,7 +46,7 @@ import { Label } from "@/components/ui/label";
 
 
 export default function Home() {
-  const { state, dispatch } = useBuilder();
+  const { forms, dispatch } = useBuilder();
   const router = useRouter();
   const [previewFormId, setPreviewFormId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -71,19 +71,11 @@ export default function Home() {
   };
   
   const handlePreview = (formId: string) => {
-    dispatch({ type: "SET_ACTIVE_FORM", payload: { formId } });
-    setPreviewFormId(formId);
-  }
-
-  const latestVersion = (versions: any[]) => {
-    if (versions.length === 0) return null;
-    return versions[0];
-  }
-
-  const getVersionSummary = (versions: any[]) => {
-    const publishedCount = versions.filter(v => v.type === 'published').length;
-    const draftCount = versions.filter(v => v.type === 'draft').length;
-    return `${publishedCount} published, ${draftCount} drafts`;
+    // This will need to be adjusted to lazy load the form for preview
+    // For now, it will only work if the form is already active
+    alert("Preview from this page is temporarily disabled due to performance optimizations.");
+    // dispatch({ type: "SET_ACTIVE_FORM", payload: { formId } });
+    // setPreviewFormId(formId);
   }
 
   return (
@@ -141,31 +133,15 @@ export default function Home() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
-                    <TableHead>Latest Version</TableHead>
-                    <TableHead>Version Summary</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {state.forms.length > 0 ? (
-                    state.forms.map((form) => {
-                      const latest = latestVersion(form.versions);
+                  {forms.length > 0 ? (
+                    forms.map((form) => {
                       return (
                         <TableRow key={form.id}>
                           <TableCell className="font-medium">{form.title}</TableCell>
-                          <TableCell>
-                            {latest ? (
-                              <div className="flex items-center gap-2">
-                                <Badge variant={latest.type === 'published' ? 'default' : 'secondary'}>
-                                  {latest.type}
-                                </Badge>
-                                <span className="text-muted-foreground text-xs">{new Date(latest.timestamp).toLocaleDateString()}</span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground">No versions yet</span>
-                            )}
-                          </TableCell>
-                          <TableCell>{getVersionSummary(form.versions)}</TableCell>
                           <TableCell className="text-right">
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -174,7 +150,7 @@ export default function Home() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                   <DropdownMenuItem onClick={() => handlePreview(form.id)}>
+                                   <DropdownMenuItem onClick={() => handlePreview(form.id)} disabled>
                                     <Eye className="mr-2 h-4 w-4" />
                                     Preview
                                   </DropdownMenuItem>
@@ -212,7 +188,7 @@ export default function Home() {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center h-24">
+                      <TableCell colSpan={2} className="text-center h-24">
                         No forms created yet.
                       </TableCell>
                     </TableRow>
@@ -237,3 +213,5 @@ export default function Home() {
     </>
   );
 }
+
+    
