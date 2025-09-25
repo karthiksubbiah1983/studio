@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, EyeOff, Eye } from "lucide-react";
+import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, AlignVerticalSpaceBetween, AlignVerticalSpaceAround, Pilcrow, CaseSensitive } from "lucide-react";
 import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -649,11 +649,11 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                 >
                                     <div className="flex items-center space-x-2">
                                         <RadioGroupItem value="vertical" id="dir-vertical" />
-                                        <Label htmlFor="dir-vertical">Vertical</Label>
+                                        <Label htmlFor="dir-vertical" className="flex items-center gap-2"><Pilcrow className="h-4 w-4" /> Vertical</Label>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <RadioGroupItem value="horizontal" id="dir-horizontal" />
-                                        <Label htmlFor="dir-horizontal">Horizontal</Label>
+                                        <Label htmlFor="dir-horizontal" className="flex items-center gap-2"><CaseSensitive className="h-4 w-4" /> Horizontal</Label>
                                     </div>
                                 </RadioGroup>
                             </div>
@@ -662,12 +662,11 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                 <Select value={element.justify} onValueChange={(value) => updateElement('justify', value)}>
                                     <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="start">Start</SelectItem>
-                                        <SelectItem value="center">Center</SelectItem>
-                                        <SelectItem value="end">End</SelectItem>
-                                        <SelectItem value="between">Between</SelectItem>
-                                        <SelectItem value="around">Around</SelectItem>
-                                        <SelectItem value="evenly">Evenly</SelectItem>
+                                        <SelectItem value="start"><div className="flex items-center gap-2"><AlignStartHorizontal className="h-4 w-4" /> Start</div></SelectItem>
+                                        <SelectItem value="center"><div className="flex items-center gap-2"><AlignCenterHorizontal className="h-4 w-4" /> Center</div></SelectItem>
+                                        <SelectItem value="end"><div className="flex items-center gap-2"><AlignEndHorizontal className="h-4 w-4" /> End</div></SelectItem>
+                                        <SelectItem value="between"><div className="flex items-center gap-2"><AlignHorizontalSpaceBetween className="h-4 w-4" /> Space Between</div></SelectItem>
+                                        <SelectItem value="around"><div className="flex items-center gap-2"><AlignHorizontalSpaceAround className="h-4 w-4" /> Space Around</div></SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -676,11 +675,11 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                 <Select value={element.align} onValueChange={(value) => updateElement('align', value)}>
                                     <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="start">Start</SelectItem>
-                                        <SelectItem value="center">Center</SelectItem>
-                                        <SelectItem value="end">End</SelectItem>
-                                        <SelectItem value="stretch">Stretch</SelectItem>
-                                        <SelectItem value="baseline">Baseline</SelectItem>
+                                        <SelectItem value="start"><div className="flex items-center gap-2"><AlignStartVertical className="h-4 w-4" /> Start</div></SelectItem>
+                                        <SelectItem value="center"><div className="flex items-center gap-2"><AlignCenterVertical className="h-4 w-4" /> Center</div></SelectItem>
+                                        <SelectItem value="end"><div className="flex items-center gap-2"><AlignEndVertical className="h-4 w-4" /> End</div></SelectItem>
+                                        <SelectItem value="stretch"><div className="flex items-center gap-2"><StretchVertical className="h-4 w-4" /> Stretch</div></SelectItem>
+                                        <SelectItem value="baseline"><div className="flex items-center gap-2"><Baseline className="h-4 w-4" /> Baseline</div></SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -954,3 +953,5 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
+
+    
