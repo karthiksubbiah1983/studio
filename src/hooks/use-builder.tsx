@@ -130,9 +130,13 @@ const builderReducer = (state: State, action: Action): State => {
               sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
             }]
         };
+        const newForms = [...state.forms, newForm];
+        
+        // This is a bit of a hack for the special dispatch, we return the ID via the state itself
         return {
             ...state,
-            forms: [...state.forms, newForm],
+            forms: newForms,
+            activeFormId: (action as any).RETURN_ID ? newForm.id : state.activeFormId,
         };
     }
     case "UPDATE_FORM_TITLE": {
@@ -472,28 +476,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   
   const dispatch = (action: Action) => {
     if (action.type === 'ADD_FORM') {
-      const newFormId = crypto.randomUUID();
-      const newAction = {
-        ...action,
-        payload: { ...action.payload, id: newFormId }
-      }
-      const newForm: Form = {
-            id: newFormId,
-            title: action.payload.title,
-            versions: [{
-              id: crypto.randomUUID(),
-              name: "Initial Draft",
-              description: "",
-              type: "draft",
-              timestamp: new Date().toISOString(),
-              sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
-            }]
-        };
-       dispatchAction({type: "SET_STATE", payload: {
-         ...state,
-         forms: [...state.forms, newForm]
-       }})
-       return newFormId;
+      // Special handling for ADD_FORM to return the new ID
+      const tempState = builderReducer(state, { ...action, RETURN_ID: true } as any);
+      dispatchAction({type: "SET_STATE", payload: tempState });
+      return tempState.activeFormId;
     }
     dispatchAction(action);
   }

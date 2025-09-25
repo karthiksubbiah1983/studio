@@ -36,12 +36,17 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
       dispatch({ type: 'UPDATE_FORM_TITLE', payload: { formId: activeForm.id, title: e.target.value } });
     }
   }
+  
+  const handleBack = () => {
+    dispatch({ type: 'SET_ACTIVE_FORM', payload: { formId: null } });
+    router.push('/');
+  }
 
   return (
     <>
       <header className="flex items-center justify-between p-2 bg-card shadow-sm">
         <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => router.push('/')}>
+            <Button variant="ghost" size="icon" onClick={handleBack}>
               <ArrowLeft className="h-5 w-5"/>
             </Button>
             {isMobile && (

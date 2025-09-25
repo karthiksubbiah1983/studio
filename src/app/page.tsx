@@ -40,17 +40,26 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useState } from "react";
 import { FormPreview } from "@/components/builder/form-preview";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 
 export default function Home() {
   const { state, dispatch } = useBuilder();
   const router = useRouter();
   const [previewFormId, setPreviewFormId] = useState<string | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newFormName, setNewFormName] = useState("");
 
   const handleCreateNew = () => {
-    const newFormId = dispatch({ type: "ADD_FORM", payload: { title: "New Form" } });
-    router.push(`/builder/${newFormId}`);
+    if (!newFormName.trim()) return;
+    const newFormId = dispatch({ type: "ADD_FORM", payload: { title: newFormName } });
+    if (newFormId) {
+        router.push(`/builder/${newFormId}`);
+    }
+    setNewFormName("");
+    setIsCreateDialogOpen(false);
   };
 
   const handleEdit = (formId: string) => {
@@ -86,10 +95,40 @@ export default function Home() {
               <h1 className="text-3xl font-bold text-primary">FormForge</h1>
               <p className="text-muted-foreground">Manage your form templates.</p>
             </div>
-            <Button onClick={handleCreateNew}>
-              <Plus className="mr-2 h-4 w-4" />
-              Create New Form
-            </Button>
+            <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create New Form
+                </Button>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Create New Form</DialogTitle>
+                        <DialogDescription>
+                            Enter a name for your new form template.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="name" className="text-right">
+                                Name
+                            </Label>
+                            <Input
+                                id="name"
+                                value={newFormName}
+                                onChange={(e) => setNewFormName(e.target.value)}
+                                className="col-span-3"
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="secondary" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                        <Button onClick={handleCreateNew} disabled={!newFormName.trim()}>
+                            Create
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
           </header>
 
           <Card>
