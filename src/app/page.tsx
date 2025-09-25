@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FormPreview } from "@/components/builder/form-preview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -51,11 +51,6 @@ export default function Home() {
   const [previewFormId, setPreviewFormId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newFormName, setNewFormName] = useState("");
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const handleCreateNew = () => {
     if (!newFormName.trim()) return;
@@ -76,15 +71,8 @@ export default function Home() {
   };
   
   const handlePreview = (formId: string) => {
-    // This will need to be adjusted to lazy load the form for preview
-    // For now, it will only work if the form is already active
-    alert("Preview from this page is temporarily disabled due to performance optimizations.");
-    // dispatch({ type: "SET_ACTIVE_FORM", payload: { formId } });
-    // setPreviewFormId(formId);
-  }
-  
-  if (!isClient) {
-    return null;
+    dispatch({ type: "SET_ACTIVE_FORM", payload: { formId } });
+    setPreviewFormId(formId);
   }
 
   return (
@@ -142,15 +130,30 @@ export default function Home() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Title</TableHead>
+                    <TableHead>Latest Version</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {forms.length > 0 ? (
                     forms.map((form) => {
+                      const latestVersion = form.versions[0];
                       return (
                         <TableRow key={form.id}>
                           <TableCell className="font-medium">{form.title}</TableCell>
+                          <TableCell>{latestVersion.name}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                latestVersion.type === "published"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {latestVersion.type}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="text-right">
                              <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -159,7 +162,7 @@ export default function Home() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                   <DropdownMenuItem onClick={() => handlePreview(form.id)} disabled>
+                                   <DropdownMenuItem onClick={() => handlePreview(form.id)}>
                                     <Eye className="mr-2 h-4 w-4" />
                                     Preview
                                   </DropdownMenuItem>
@@ -197,7 +200,7 @@ export default function Home() {
                     })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={2} className="text-center h-24">
+                      <TableCell colSpan={4} className="text-center h-24">
                         No forms created yet.
                       </TableCell>
                     </TableRow>
@@ -222,5 +225,3 @@ export default function Home() {
     </>
   );
 }
-
-    
