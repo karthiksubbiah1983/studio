@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Builder } from "@/components/builder/builder";
 import { Form } from "@/lib/types";
@@ -16,8 +16,15 @@ export default function BuilderPage({ params }: Props) {
     const { dispatch, activeForm } = useBuilder();
     const { formId } = params;
     const router = useRouter();
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isClient) return;
+
         if (formId && activeForm?.id !== formId) {
             // Lazy load the form data from localStorage
             const storedForm = localStorage.getItem(`form-builder-form-${formId}`);
@@ -34,7 +41,11 @@ export default function BuilderPage({ params }: Props) {
                 router.push('/');
             }
         }
-    }, [formId, dispatch, activeForm?.id, router]);
+    }, [formId, dispatch, activeForm?.id, router, isClient]);
+
+    if (!isClient) {
+        return null;
+    }
 
     if (!activeForm || activeForm.id !== formId) {
         return (
