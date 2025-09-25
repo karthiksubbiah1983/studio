@@ -7,13 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, Loader2, icons, EyeOff, Eye } from "lucide-react";
+import { X, Plus, icons, EyeOff, Eye } from "lucide-react";
 import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
-import { suggestElementsAction } from "@/actions/suggest-elements";
-import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -21,12 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
-
-const getNestedValue = (obj: any, path: string): any => {
-    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
-};
 
 export function PropertiesSidebar() {
   const { state, dispatch } = useBuilder();
@@ -173,53 +166,20 @@ function ConditionalLogicSettings({
 
 function SectionProperties({ section }: { section: Section }) {
     const { dispatch } = useBuilder();
-    const { toast } = useToast();
     const [title, setTitle] = useState(section.title);
-    const [suggestions, setSuggestions] = useState<string[]>([]);
-    const [isLoading, setIsLoading] = useState(false);
-
+    
     useEffect(() => {
         setTitle(section.title);
     }, [section.title]);
 
     useEffect(() => {
-        const handler = setTimeout(async () => {
+        const handler = setTimeout(() => {
           if (title === section.title || title.trim().length < 3) return;
-          
           dispatch({ type: "UPDATE_SECTION", payload: { ...section, title } });
-          
-          setIsLoading(true);
-          try {
-            const res = await suggestElementsAction({ sectionTitle: title });
-            setSuggestions(res.suggestedElements || []);
-          } catch (error) {
-            console.error("AI suggestion failed:", error);
-            toast({ title: "AI Suggestion Error", description: "Could not fetch suggestions.", variant: "destructive" });
-            setSuggestions([]);
-          } finally {
-            setIsLoading(false);
-          }
         }, 1000);
     
         return () => clearTimeout(handler);
-    }, [title, section, dispatch, toast]);
-
-    const addSuggestedElement = (elementType: string) => {
-        // A simple map to handle capitalization differences
-        const typeMap: { [key: string]: any } = {
-            'text': 'Input',
-            'email': 'Input',
-            'dropdown': 'Select',
-            'checkbox': 'Checkbox',
-            'date picker': 'DatePicker'
-        };
-        const mappedType = typeMap[elementType.toLowerCase()];
-        if(mappedType) {
-            dispatch({ type: "ADD_ELEMENT", payload: { sectionId: section.id, type: mappedType } });
-        } else {
-            toast({ title: "Unknown Element", description: `Element type "${elementType}" is not supported.`, variant: "destructive" });
-        }
-    }
+    }, [title, section, dispatch]);
     
     const handleConditionalLogicUpdate = (logic: ConditionalLogic) => {
         dispatch({ type: "UPDATE_SECTION", payload: { ...section, conditionalLogic: logic } });
@@ -241,7 +201,7 @@ function SectionProperties({ section }: { section: Section }) {
                     <X className="h-4 w-4" />
                 </Button>
             </div>
-            <Accordion type="multiple" defaultValue={["general", "ai", "logic"]} className="w-full">
+            <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                 <AccordionItem value="general">
                     <AccordionTrigger>General</AccordionTrigger>
                     <AccordionContent className="flex flex-col gap-4">
@@ -272,28 +232,6 @@ function SectionProperties({ section }: { section: Section }) {
                     <AccordionTrigger>Conditional Logic</AccordionTrigger>
                     <AccordionContent>
                         <ConditionalLogicSettings element={section} onUpdate={handleConditionalLogicUpdate} />
-                    </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="ai">
-                    <AccordionTrigger>AI Suggestions</AccordionTrigger>
-                    <AccordionContent>
-                        <div className="flex items-center gap-2 mb-2">
-                            <Label>AI Suggestions</Label>
-                            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                        </div>
-                        {suggestions.length > 0 ? (
-                            <div className="flex flex-wrap gap-2">
-                                {suggestions.map((s, i) => (
-                                    <Button key={i} variant="outline" size="sm" onClick={() => addSuggestedElement(s)}>
-                                        Add {s}
-                                    </Button>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-muted-foreground">
-                                {isLoading ? 'Generating...' : 'Type a descriptive section title to get suggestions.'}
-                            </p>
-                        )}
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
@@ -669,7 +607,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   );
   
   const content = () => {
-      let fields;
       switch(element.type) {
         case "Title":
             return (
@@ -980,3 +917,5 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
+
+    
