@@ -22,10 +22,11 @@ export default function BuilderPage({ params }: Props) {
 
     const form = state.forms.find(f => f.id === formId);
 
-    if (!form) {
+    // Only render the builder once the correct form is active and loaded.
+    if (!form || state.activeFormId !== formId) {
         return (
             <div className="flex justify-center items-center h-screen">
-                <p>Form not found.</p>
+                <p>Loading Form...</p>
             </div>
         )
     }
