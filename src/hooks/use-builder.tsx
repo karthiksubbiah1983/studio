@@ -1,7 +1,7 @@
 
 "use client";
 
-import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect } from "react";
+import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
@@ -459,29 +459,32 @@ const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 const LOCAL_STORAGE_KEY = "form-builder-state-v2";
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatchAction] = useReducer(builderReducer, initialState, (init) => {
-    if (typeof window === "undefined") {
-      return init;
-    }
-    try {
-      const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedState) {
-        const parsedState = JSON.parse(storedState);
-        // Ensure submissions array exists for backwards compatibility
-        if (!parsedState.submissions) {
-            parsedState.submissions = [];
-        }
-        return parsedState;
-      }
-    } catch (error) {
-      console.error("Failed to parse state from localStorage", error);
-    }
-    return init;
-  });
+  const [state, dispatchAction] = useReducer(builderReducer, initialState);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    if (typeof window !== "undefined") {
+      try {
+        const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (storedState) {
+          const parsedState = JSON.parse(storedState);
+          if (!parsedState.submissions) {
+              parsedState.submissions = [];
+          }
+          dispatchAction({ type: "SET_STATE", payload: parsedState });
+        }
+      } catch (error) {
+        console.error("Failed to parse state from localStorage", error);
+      }
+      setIsInitialized(true);
+    }
+  }, []);
+  
+  useEffect(() => {
+    if (isInitialized) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+    }
+  }, [state, isInitialized]);
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId);
   const sections = activeForm?.versions[0]?.sections || [];
@@ -498,7 +501,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <BuilderContext.Provider value={{ state, dispatch, activeForm, sections }}>
-      {children}
+      {isInitialized ? children : null}
     </BuilderContext.Provider>
   );
 };
