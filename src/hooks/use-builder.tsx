@@ -474,6 +474,8 @@ const getFormKey = (formId: string) => `form-builder-form-${formId}`;
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatchAction] = useReducer(builderReducer, initialState);
+  const [isInitialized, setIsInitialized] = useState(false);
+
 
   // Effect to initialize state from localStorage
   useEffect(() => {
@@ -488,13 +490,15 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
       } catch (error) {
         console.error("Failed to parse state from localStorage", error);
+      } finally {
+        setIsInitialized(true);
       }
     }
   }, []);
   
   // Effect to persist state changes to localStorage
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && isInitialized) {
         try {
             localStorage.setItem(FORM_INDEX_KEY, JSON.stringify(state.formIndex));
             localStorage.setItem(SUBMISSIONS_KEY, JSON.stringify(state.submissions));
@@ -505,7 +509,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             console.error("Failed to save state to localStorage", error);
         }
     }
-  }, [state]);
+  }, [state, isInitialized]);
 
   const sections = state.activeForm?.versions[0]?.sections || [];
   
@@ -516,6 +520,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
       return newState.activeForm!.id;
     }
     dispatchAction(action);
+  }
+
+  if (!isInitialized) {
+    return null; // Don't render until state is loaded from localStorage
   }
 
   return (
