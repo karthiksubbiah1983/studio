@@ -73,7 +73,11 @@ export function FormPreview() {
     
     toast({
         title: "Submission Saved!",
-        description: "Your form data has been saved to local storage."
+        description: (
+            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
+                <code className="text-white">{JSON.stringify(submissionData, null, 2)}</code>
+            </pre>
+        )
     });
 
     // Optionally clear the form after submission
