@@ -55,7 +55,7 @@ export function PropertiesSidebar() {
   const selected = getSelectedElementInstance();
 
   return (
-    <div className="w-full p-4 overflow-y-auto h-full">
+    <div className="w-full p-4 overflow-y-auto h-full text-sm">
       <div className="flex justify-between items-center">
         <p className="text-sm text-foreground/70">Properties</p>
         <Button
@@ -832,3 +832,5 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
+
+    
