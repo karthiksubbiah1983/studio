@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,7 +8,7 @@ import { History, Settings } from "lucide-react";
 
 export function RightSidebar() {
   return (
-    <aside className="w-96 bg-card flex flex-col">
+    <aside className="w-80 bg-card flex flex-col">
       <Tabs defaultValue="properties" className="w-full flex-grow flex flex-col">
         <TabsList className="w-full rounded-none">
           <TabsTrigger value="properties" className="flex-1 gap-2">
