@@ -326,26 +326,27 @@ function AlignmentRadioGroup({
     return (
         <div className="flex flex-col gap-2">
             <Label>{label}</Label>
-            <RadioGroup value={value} onValueChange={onValueChange} className="flex gap-2">
-                {options.map(({ value, label, icon: Icon }) => (
-                     <Tooltip key={value}>
+            <RadioGroup value={value} onValueChange={onValueChange} className="flex gap-1">
+                {options.map((opt) => (
+                     <Tooltip key={opt.value}>
                         <TooltipTrigger asChild>
-                           <RadioGroupItem value={value} id={`align-${label}`} className="sr-only" />
+                           <div>
+                             <RadioGroupItem value={opt.value} id={`align-${opt.label}`} className="peer sr-only" />
+                             <Label
+                                htmlFor={`align-${opt.label}`}
+                                className={cn(
+                                    "flex items-center justify-center p-2 border rounded-md cursor-pointer transition-colors",
+                                    "hover:bg-accent hover:text-accent-foreground",
+                                    "peer-data-[state=checked]:bg-primary peer-data-[state=checked]:text-primary-foreground peer-data-[state=checked]:border-primary"
+                                )}
+                            >
+                                <opt.icon className="h-4 w-4" />
+                            </Label>
+                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                           <p>{label}</p>
+                           <p>{opt.label}</p>
                         </TooltipContent>
-                        <Label
-                            htmlFor={`align-${label}`}
-                            className={cn(
-                                "flex items-center justify-center p-2 border rounded-md cursor-pointer",
-                                "hover:bg-accent hover:text-accent-foreground",
-                                "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary"
-                            )}
-                            data-state={value === label.toLowerCase() ? "checked" : "unchecked"}
-                        >
-                            <Icon className="h-4 w-4" />
-                        </Label>
                     </Tooltip>
                 ))}
             </RadioGroup>
@@ -996,6 +997,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
+
+    
 
     
 
