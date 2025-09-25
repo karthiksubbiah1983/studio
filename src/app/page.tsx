@@ -38,7 +38,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FormPreview } from "@/components/builder/form-preview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,11 @@ export default function Home() {
   const [previewFormId, setPreviewFormId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newFormName, setNewFormName] = useState("");
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleCreateNew = () => {
     if (!newFormName.trim()) return;
@@ -76,6 +81,10 @@ export default function Home() {
     alert("Preview from this page is temporarily disabled due to performance optimizations.");
     // dispatch({ type: "SET_ACTIVE_FORM", payload: { formId } });
     // setPreviewFormId(formId);
+  }
+  
+  if (!isClient) {
+    return null;
   }
 
   return (
