@@ -26,7 +26,6 @@ export default function BuilderPage({ params }: Props) {
         if (!isClient) return;
 
         if (formId && activeForm?.id !== formId) {
-            // Lazy load the form data from localStorage
             const storedForm = localStorage.getItem(`form-builder-form-${formId}`);
             if (storedForm) {
                 try {
@@ -36,7 +35,6 @@ export default function BuilderPage({ params }: Props) {
                     console.error("Failed to parse form data from localStorage", e);
                 }
             } else {
-                // If form doesn't exist, maybe redirect to a 404 page or home
                 console.warn(`Form with id ${formId} not found in localStorage.`);
                 router.push('/');
             }
@@ -61,3 +59,6 @@ export default function BuilderPage({ params }: Props) {
         </main>
     );
 }
+
+
+    

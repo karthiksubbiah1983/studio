@@ -490,9 +490,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
       } catch (error) {
         console.error("Failed to parse state from localStorage", error);
-      } finally {
-        setIsInitialized(true);
       }
+      setIsInitialized(true);
     }
   }, []);
   
@@ -522,8 +521,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatchAction(action);
   }
 
+  // Prevents hydration errors by not rendering children until the client-side state is initialized.
   if (!isInitialized) {
-    return null; // Don't render until state is loaded from localStorage
+    return null;
   }
 
   return (
@@ -540,5 +540,7 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
 
     
