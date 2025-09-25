@@ -676,16 +676,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return <p className="text-sm text-muted-foreground">No properties for this element.</p>;
         case "Container":
              return (
-                <Accordion type="multiple" defaultValue={["general", "layout", "logic"]} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger>General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="key">Field Key</Label>
-                                <Input id="key" value={element.key} onChange={(e) => updateElement('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
+                <Accordion type="multiple" defaultValue={["layout", "logic"]} className="w-full">
                     <AccordionItem value="layout">
                         <AccordionTrigger>Layout</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1000,9 +991,5 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
-
-    
-
-    
 
     
