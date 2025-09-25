@@ -8,7 +8,7 @@ import { BuilderProvider } from "@/hooks/use-builder";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "FormForge",
+  title: "CoPilot",
   description: "Build beautiful forms with a drag and drop interface.",
 };
 

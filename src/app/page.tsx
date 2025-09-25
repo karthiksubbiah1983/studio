@@ -92,7 +92,7 @@ export default function Home() {
         <div className="w-full max-w-6xl">
           <header className="flex items-center justify-between pb-8">
             <div>
-              <h1 className="text-3xl font-bold text-primary">FormForge</h1>
+              <h1 className="text-3xl font-bold text-primary">CoPilot</h1>
               <p className="text-muted-foreground">Manage your form templates.</p>
             </div>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
