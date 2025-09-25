@@ -403,8 +403,7 @@ const builderReducer = (state: State, action: Action): State => {
 };
 
 /**
- * Creates a new "draft" version at the head of the versions array 
- * with the updated sections.
+ * Updates the sections of the latest version of the active form.
  */
 const updateActiveFormSections = (state: State, sections: Section[]): State => {
     if (!state.activeFormId) return state;
@@ -414,24 +413,16 @@ const updateActiveFormSections = (state: State, sections: Section[]): State => {
         forms: state.forms.map(form => {
             if (form.id === state.activeFormId) {
                 const latestVersion = form.versions[0];
-                const newVersion: FormVersion = {
-                    ...(latestVersion || {}), // copy name/desc from previous latest if exists
-                    id: crypto.randomUUID(),
-                    type: "draft",
-                    timestamp: new Date().toISOString(),
-                    name: latestVersion?.name || "Draft",
-                    description: latestVersion?.description || "",
+                const updatedVersions = [...form.versions];
+                updatedVersions[0] = {
+                    ...latestVersion,
                     sections: sections,
+                    timestamp: new Date().toISOString(), // Update timestamp on change
                 };
-
-                // Keep other versions, but replace the latest draft
-                const otherVersions = latestVersion && latestVersion.type === 'draft' 
-                    ? form.versions.slice(1) 
-                    : form.versions;
-
+                
                 return {
                     ...form,
-                    versions: [newVersion, ...otherVersions]
+                    versions: updatedVersions,
                 };
             }
             return form;
@@ -498,3 +489,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
