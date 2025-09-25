@@ -520,11 +520,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatchAction(action);
   }
 
-  // Prevents hydration errors by not rendering children until the client-side state is initialized.
-  if (!isInitialized) {
-    return null;
-  }
-
   return (
     <BuilderContext.Provider value={{ state, dispatch, forms: state.formIndex, activeForm: state.activeForm, sections }}>
       {children}
