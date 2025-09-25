@@ -8,9 +8,11 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FormElementInstance, Section } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 const getAllElements = (sections: Section[]): FormElementInstance[] => {
     let allElements: FormElementInstance[] = [];
@@ -18,20 +20,65 @@ const getAllElements = (sections: Section[]): FormElementInstance[] => {
         section.elements.forEach(element => {
             allElements.push(element);
             if (element.type === 'Container' && element.elements) {
-                allElements = allElements.concat(element.elements);
+                // A recursive function to get nested elements
+                const getNestedElements = (els: FormElementInstance[]): FormElementInstance[] => {
+                    let nested: FormElementInstance[] = [];
+                    els.forEach(e => {
+                        nested.push(e);
+                        if (e.elements) {
+                            nested = nested.concat(getNestedElements(e.elements));
+                        }
+                    });
+                    return nested;
+                }
+                allElements = allElements.concat(getNestedElements(element.elements));
             }
         });
     });
     return allElements;
 };
 
+const generateSubmissionJson = (elements: FormElementInstance[], formState: { [key: string]: { value: any } }): Record<string, any> => {
+    const submission: Record<string, any> = {};
+    elements.forEach(element => {
+        if (element.key && formState[element.id]) {
+            submission[element.key] = formState[element.id].value;
+        }
+    });
+    return submission;
+};
+
 export function FormPreview() {
-  const { sections } = useBuilder();
+  const { state, activeForm, sections, dispatch } = useBuilder();
   const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
+  const { toast } = useToast();
 
   const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
     setFormState((prev) => ({ ...prev, [elementId]: { value, fullObject } }));
   };
+  
+  const handleSubmit = () => {
+    if (!activeForm) return;
+
+    const allElements = getAllElements(sections);
+    const submissionData = generateSubmissionJson(allElements, formState);
+    
+    dispatch({
+        type: 'ADD_SUBMISSION',
+        payload: {
+            formId: activeForm.id,
+            data: submissionData,
+        }
+    });
+    
+    toast({
+        title: "Submission Saved!",
+        description: "Your form data has been saved to local storage."
+    });
+
+    // Optionally clear the form after submission
+    setFormState({});
+  }
 
   const isVisible = (element: FormElementInstance | Section) => {
     const { conditionalLogic } = element;
@@ -87,6 +134,11 @@ export function FormPreview() {
           </Card>
         );
       })}
+       <div className="flex justify-end mt-8">
+            <Button onClick={handleSubmit}>
+                Submit Form
+            </Button>
+        </div>
     </div>
   );
 }

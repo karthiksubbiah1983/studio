@@ -2,11 +2,12 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
 type State = {
   forms: Form[];
+  submissions: Submission[];
   activeFormId: string | null;
   selectedElement: { elementId: string; sectionId: string } | null;
   draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType } | { sectionId: string } | null;
@@ -32,10 +33,12 @@ type Action =
   | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[] } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
+  | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any> } }
   | { type: "SET_STATE"; payload: State };
 
 const initialState: State = {
   forms: [],
+  submissions: [],
   activeFormId: null,
   selectedElement: null,
   draggedElement: null,
@@ -395,6 +398,19 @@ const builderReducer = (state: State, action: Action): State => {
       });
       return { ...state, forms: newForms };
     }
+    case "ADD_SUBMISSION": {
+        const { formId, data } = action.payload;
+        const newSubmission: Submission = {
+            id: crypto.randomUUID(),
+            formId,
+            timestamp: new Date().toISOString(),
+            data,
+        };
+        return {
+            ...state,
+            submissions: [newSubmission, ...(state.submissions || [])],
+        }
+    }
      case "SET_STATE":
       return { ...action.payload };
     default:
@@ -450,7 +466,12 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     try {
       const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedState) {
-        return JSON.parse(storedState);
+        const parsedState = JSON.parse(storedState);
+        // Ensure submissions array exists for backwards compatibility
+        if (!parsedState.submissions) {
+            parsedState.submissions = [];
+        }
+        return parsedState;
       }
     } catch (error) {
       console.error("Failed to parse state from localStorage", error);
@@ -489,5 +510,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-    

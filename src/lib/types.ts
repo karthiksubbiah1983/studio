@@ -1,3 +1,4 @@
+
 export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "Table" | "RichText" | "Container";
 
 export type ConditionalLogic = {
@@ -89,3 +90,10 @@ export type Form = {
     title: string;
     versions: FormVersion[];
 }
+
+export type Submission = {
+    id: string;
+    formId: string;
+    timestamp: string;
+    data: Record<string, any>;
+};
