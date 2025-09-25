@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, AlignVerticalSpaceBetween, AlignVerticalSpaceAround, Pilcrow, CaseSensitive } from "lucide-react";
+import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive } from "lucide-react";
 import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -20,6 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
+import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
 export function PropertiesSidebar() {
   const { state, dispatch, sections } = useBuilder();
@@ -62,9 +64,11 @@ export function PropertiesSidebar() {
         </Button>
       </div>
       <Separator className="my-2" />
-      {!selected && <p className="text-sm text-muted-foreground">Select an element to see its properties.</p>}
-      {selected && 'elements' in selected && !('type' in selected) && <SectionProperties section={selected} />}
-      {selected && 'type' in selected && <ElementProperties element={selected} />}
+      <TooltipProvider>
+        {!selected && <p className="text-sm text-muted-foreground">Select an element to see its properties.</p>}
+        {selected && 'elements' in selected && !('type' in selected) && <SectionProperties section={selected} />}
+        {selected && 'type' in selected && <ElementProperties element={selected} />}
+      </TooltipProvider>
     </div>
   );
 }
@@ -306,6 +310,47 @@ function PopupSettings({
             )}
         </div>
     );
+}
+
+function AlignmentRadioGroup({
+    label,
+    value,
+    onValueChange,
+    options
+}: {
+    label: string;
+    value?: string;
+    onValueChange: (value: string) => void;
+    options: { value: string; label: string; icon: React.ElementType }[];
+}) {
+    return (
+        <div className="flex flex-col gap-2">
+            <Label>{label}</Label>
+            <RadioGroup value={value} onValueChange={onValueChange} className="flex gap-2">
+                {options.map(({ value, label, icon: Icon }) => (
+                     <Tooltip key={value}>
+                        <TooltipTrigger asChild>
+                           <RadioGroupItem value={value} id={`align-${label}`} className="sr-only" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p>{label}</p>
+                        </TooltipContent>
+                        <Label
+                            htmlFor={`align-${label}`}
+                            className={cn(
+                                "flex items-center justify-center p-2 border rounded-md cursor-pointer",
+                                "hover:bg-accent hover:text-accent-foreground",
+                                "data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary"
+                            )}
+                            data-state={value === label.toLowerCase() ? "checked" : "unchecked"}
+                        >
+                            <Icon className="h-4 w-4" />
+                        </Label>
+                    </Tooltip>
+                ))}
+            </RadioGroup>
+        </div>
+    )
 }
 
 function ElementProperties({ element }: { element: FormElementInstance }) {
@@ -657,32 +702,30 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                     </div>
                                 </RadioGroup>
                             </div>
-                            <div className="flex flex-col gap-2">
-                                <Label>Justify Content</Label>
-                                <Select value={element.justify} onValueChange={(value) => updateElement('justify', value)}>
-                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="start"><div className="flex items-center gap-2"><AlignStartHorizontal className="h-4 w-4" /> Start</div></SelectItem>
-                                        <SelectItem value="center"><div className="flex items-center gap-2"><AlignCenterHorizontal className="h-4 w-4" /> Center</div></SelectItem>
-                                        <SelectItem value="end"><div className="flex items-center gap-2"><AlignEndHorizontal className="h-4 w-4" /> End</div></SelectItem>
-                                        <SelectItem value="between"><div className="flex items-center gap-2"><AlignHorizontalSpaceBetween className="h-4 w-4" /> Space Between</div></SelectItem>
-                                        <SelectItem value="around"><div className="flex items-center gap-2"><AlignHorizontalSpaceAround className="h-4 w-4" /> Space Around</div></SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                             <div className="flex flex-col gap-2">
-                                <Label>Align Items</Label>
-                                <Select value={element.align} onValueChange={(value) => updateElement('align', value)}>
-                                    <SelectTrigger><SelectValue placeholder="Select..." /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="start"><div className="flex items-center gap-2"><AlignStartVertical className="h-4 w-4" /> Start</div></SelectItem>
-                                        <SelectItem value="center"><div className="flex items-center gap-2"><AlignCenterVertical className="h-4 w-4" /> Center</div></SelectItem>
-                                        <SelectItem value="end"><div className="flex items-center gap-2"><AlignEndVertical className="h-4 w-4" /> End</div></SelectItem>
-                                        <SelectItem value="stretch"><div className="flex items-center gap-2"><StretchVertical className="h-4 w-4" /> Stretch</div></SelectItem>
-                                        <SelectItem value="baseline"><div className="flex items-center gap-2"><Baseline className="h-4 w-4" /> Baseline</div></SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <AlignmentRadioGroup 
+                                label="Justify Content"
+                                value={element.justify}
+                                onValueChange={(value) => updateElement('justify', value)}
+                                options={[
+                                    { value: 'start', label: 'Start', icon: AlignStartHorizontal },
+                                    { value: 'center', label: 'Center', icon: AlignCenterHorizontal },
+                                    { value: 'end', label: 'End', icon: AlignEndHorizontal },
+                                    { value: 'between', label: 'Space Between', icon: AlignHorizontalSpaceBetween },
+                                    { value: 'around', label: 'Space Around', icon: AlignHorizontalSpaceAround },
+                                ]}
+                            />
+                             <AlignmentRadioGroup 
+                                label="Align Items"
+                                value={element.align}
+                                onValueChange={(value) => updateElement('align', value)}
+                                options={[
+                                    { value: 'start', label: 'Start', icon: AlignStartVertical },
+                                    { value: 'center', label: 'Center', icon: AlignCenterVertical },
+                                    { value: 'end', label: 'End', icon: AlignEndVertical },
+                                    { value: 'stretch', label: 'Stretch', icon: StretchVertical },
+                                    { value: 'baseline', label: 'Baseline', icon: Baseline },
+                                ]}
+                            />
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
@@ -953,5 +996,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
+
+    
 
     
