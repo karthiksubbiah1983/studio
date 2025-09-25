@@ -476,7 +476,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatchAction] = useReducer(builderReducer, initialState);
   const [isInitialized, setIsInitialized] = useState(false);
 
-
   // Effect to initialize state from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {

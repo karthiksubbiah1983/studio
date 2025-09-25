@@ -16,15 +16,8 @@ export default function BuilderPage({ params }: Props) {
     const { dispatch, activeForm } = useBuilder();
     const { formId } = params;
     const router = useRouter();
-    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-        setIsClient(true);
-    }, []);
-
-    useEffect(() => {
-        if (!isClient) return;
-
         if (formId && activeForm?.id !== formId) {
             const storedForm = localStorage.getItem(`form-builder-form-${formId}`);
             if (storedForm) {
@@ -39,11 +32,7 @@ export default function BuilderPage({ params }: Props) {
                 router.push('/');
             }
         }
-    }, [formId, dispatch, activeForm?.id, router, isClient]);
-
-    if (!isClient) {
-        return null;
-    }
+    }, [formId, dispatch, activeForm?.id, router]);
 
     if (!activeForm || activeForm.id !== formId) {
         return (
