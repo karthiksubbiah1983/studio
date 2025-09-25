@@ -397,6 +397,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   const commonFields = (
     <>
       <div className="flex flex-col gap-2">
+        <Label htmlFor="key">Field Key</Label>
+        <Input id="key" value={element.key} onChange={(e) => updateElement('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+      </div>
+      <div className="flex flex-col gap-2">
         <Label htmlFor="label">Label</Label>
         <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
       </div>
@@ -917,5 +921,3 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
-
-    

@@ -34,6 +34,7 @@ export type TableColumn = {
 export type FormElementInstance = {
     id: string;
     type: ElementType;
+    key: string; // Unique key for JSON schema
     label: string;
     required: boolean;
     placeholder?: string;

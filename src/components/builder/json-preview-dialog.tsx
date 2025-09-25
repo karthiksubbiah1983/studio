@@ -9,6 +9,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useMemo } from "react";
+import { generateJsonSchema } from "@/lib/json-schema";
 
 type Props = {
   isOpen: boolean;
@@ -17,7 +19,15 @@ type Props = {
 
 export function JsonPreviewDialog({ isOpen, onOpenChange }: Props) {
   const { state } = useBuilder();
-  const jsonString = JSON.stringify(state.sections, null, 2);
+
+  const jsonSchema = useMemo(() => {
+    if (isOpen) {
+      return generateJsonSchema(state.sections);
+    }
+    return {};
+  }, [state.sections, isOpen]);
+
+  const jsonString = useMemo(() => JSON.stringify(jsonSchema, null, 2), [jsonSchema]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
