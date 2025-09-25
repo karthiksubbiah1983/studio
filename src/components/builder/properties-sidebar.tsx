@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 const getNestedValue = (obj: any, path: string): any => {
     return path.split('.').reduce((acc, part) => acc && acc[part], obj);
@@ -112,10 +113,8 @@ function ConditionalLogicSettings({
 
     return (
         <div className="flex flex-col gap-4">
-            <Separator />
-            <h4 className="font-medium">Conditional Logic</h4>
             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                <Label htmlFor="enable-logic">Enable</Label>
+                <Label htmlFor="enable-logic">Enable Conditional Logic</Label>
                 <Switch
                     id="enable-logic"
                     checked={logic.enabled}
@@ -242,48 +241,62 @@ function SectionProperties({ section }: { section: Section }) {
                     <X className="h-4 w-4" />
                 </Button>
             </div>
-            <div className="flex flex-col gap-2">
-                <Label htmlFor="section-title">Title</Label>
-                <Input id="section-title" value={title} onChange={(e) => setTitle(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-2">
-                <Label>Configuration</Label>
-                 <Select
-                    value={section.config}
-                    onValueChange={(value) =>
-                        dispatch({ type: "UPDATE_SECTION", payload: { ...section, config: value as 'expanded' | 'normal' } })
-                    }
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select section type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="expanded">Expanded</SelectItem>
-                        <SelectItem value="normal">Collapsible</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-            <ConditionalLogicSettings element={section} onUpdate={handleConditionalLogicUpdate} />
-            <Separator />
-            <div>
-                <div className="flex items-center gap-2 mb-2">
-                    <Label>AI Suggestions</Label>
-                    {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-                </div>
-                {suggestions.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                        {suggestions.map((s, i) => (
-                            <Button key={i} variant="outline" size="sm" onClick={() => addSuggestedElement(s)}>
-                                Add {s}
-                            </Button>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground">
-                        {isLoading ? 'Generating...' : 'Type a descriptive section title to get suggestions.'}
-                    </p>
-                )}
-            </div>
+            <Accordion type="multiple" defaultValue={["general", "ai", "logic"]} className="w-full">
+                <AccordionItem value="general">
+                    <AccordionTrigger>General</AccordionTrigger>
+                    <AccordionContent className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                            <Label htmlFor="section-title">Title</Label>
+                            <Input id="section-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <Label>Configuration</Label>
+                            <Select
+                                value={section.config}
+                                onValueChange={(value) =>
+                                    dispatch({ type: "UPDATE_SECTION", payload: { ...section, config: value as 'expanded' | 'normal' } })
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select section type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="expanded">Expanded</SelectItem>
+                                    <SelectItem value="normal">Collapsible</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="logic">
+                    <AccordionTrigger>Conditional Logic</AccordionTrigger>
+                    <AccordionContent>
+                        <ConditionalLogicSettings element={section} onUpdate={handleConditionalLogicUpdate} />
+                    </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="ai">
+                    <AccordionTrigger>AI Suggestions</AccordionTrigger>
+                    <AccordionContent>
+                        <div className="flex items-center gap-2 mb-2">
+                            <Label>AI Suggestions</Label>
+                            {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                        </div>
+                        {suggestions.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {suggestions.map((s, i) => (
+                                    <Button key={i} variant="outline" size="sm" onClick={() => addSuggestedElement(s)}>
+                                        Add {s}
+                                    </Button>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">
+                                {isLoading ? 'Generating...' : 'Type a descriptive section title to get suggestions.'}
+                            </p>
+                        )}
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
         </div>
     );
 }
@@ -300,10 +313,8 @@ function PopupSettings({
 
     return (
         <div className="flex flex-col gap-4">
-            <Separator />
-            <h4 className="font-medium">Info Popup</h4>
             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                <Label htmlFor="enable-popup">Enable</Label>
+                <Label htmlFor="enable-popup">Enable Info Popup</Label>
                 <Switch
                     id="enable-popup"
                     checked={popup.enabled}
@@ -505,8 +516,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   const dynamicDataSourceFields = (
     <div className="flex flex-col gap-4">
-        <Separator />
-        <p className="font-medium">Dynamic Data Source</p>
         <div className="flex flex-col gap-2">
             <Label htmlFor="apiUrl">API URL</Label>
             <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
@@ -663,152 +672,291 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
       let fields;
       switch(element.type) {
         case "Title":
-            fields = (
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="label">Title</Label>
-                    <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
-                </div>
+            return (
+                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger>General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="label">Title</Label>
+                                <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                 </Accordion>
             );
-            break;
         case "Separator":
-            fields = <p className="text-sm text-muted-foreground">No properties for this element.</p>;
-            break;
+            return <p className="text-sm text-muted-foreground">No properties for this element.</p>;
         case "Container":
-             fields = (
-                <>
-                    {commonFields}
-                    <div className="flex flex-col gap-2">
-                        <Label>Direction</Label>
-                        <RadioGroup
-                            value={element.direction}
-                            onValueChange={(value) => updateElement('direction', value as 'horizontal' | 'vertical')}
-                            className="flex gap-4"
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="vertical" id="dir-vertical" />
-                                <Label htmlFor="dir-vertical">Vertical</Label>
+             return (
+                <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger>General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                            <div className="flex flex-col gap-2">
+                                <Label>Direction</Label>
+                                <RadioGroup
+                                    value={element.direction}
+                                    onValueChange={(value) => updateElement('direction', value as 'horizontal' | 'vertical')}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="vertical" id="dir-vertical" />
+                                        <Label htmlFor="dir-vertical">Vertical</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="horizontal" id="dir-horizontal" />
+                                        <Label htmlFor="dir-horizontal">Horizontal</Label>
+                                    </div>
+                                </RadioGroup>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="horizontal" id="dir-horizontal" />
-                                <Label htmlFor="dir-horizontal">Horizontal</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
-                </>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="logic">
+                        <AccordionTrigger>Conditional Logic</AccordionTrigger>
+                        <AccordionContent>
+                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
              )
-             break;
         case "Display":
             const config = element.dataSourceConfig || { sourceElementId: "", displayKey: "" };
-            fields = (
-                <>
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="label">Label</Label>
-                        <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
-                    </div>
-                    {placeholderField}
-                    <Separator />
-                    <h4 className="font-medium">Data Source</h4>
-                    <div className="flex flex-col gap-2">
-                        <Label>Source Dropdown</Label>
-                        <Select
-                            value={config.sourceElementId}
-                            onValueChange={(value) => handleDisplayDataSourceUpdate({ ...config, sourceElementId: value })}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a dropdown..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {dynamicSelects.map(sel => (
-                                    <SelectItem key={sel.id} value={sel.id}>{sel.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor="display-key">Display Key</Label>
-                        <Input 
-                            id="display-key" 
-                            value={config.displayKey}
-                            onChange={(e) => handleDisplayDataSourceUpdate({ ...config, displayKey: e.target.value })}
-                            placeholder="e.g., 'email' or 'address.city'"
-                        />
-                    </div>
-                </>
+            return (
+                 <Accordion type="multiple" defaultValue={["general", "data", "logic"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger>General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="label">Label</Label>
+                                <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
+                            </div>
+                            {placeholderField}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger>Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label>Source Dropdown</Label>
+                                <Select
+                                    value={config.sourceElementId}
+                                    onValueChange={(value) => handleDisplayDataSourceUpdate({ ...config, sourceElementId: value })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a dropdown..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {dynamicSelects.map(sel => (
+                                            <SelectItem key={sel.id} value={sel.id}>{sel.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="display-key">Display Key</Label>
+                                <Input 
+                                    id="display-key" 
+                                    value={config.displayKey}
+                                    onChange={(e) => handleDisplayDataSourceUpdate({ ...config, displayKey: e.target.value })}
+                                    placeholder="e.g., 'email' or 'address.city'"
+                                />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="logic">
+                        <AccordionTrigger>Conditional Logic</AccordionTrigger>
+                        <AccordionContent>
+                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                 </Accordion>
             );
-            break;
         case "Input":
         case "Textarea":
-            fields = <>{commonFields}{placeholderField}{helperTextField}</>;
-            break;
         case "RichText":
-            fields = <>{commonFields}{helperTextField}</>;
-            break;
-        case "Select":
-            fields = (
-                <>
-                    {commonFields}
-                    {placeholderField}
-                    {helperTextField}
-                    <Separator />
-                     <div className="flex flex-col gap-2">
-                        <Label>Data Source</Label>
-                        <RadioGroup
-                            defaultValue={element.dataSource || 'static'}
-                            onValueChange={(val) => {
-                              const newProps = {...element, dataSource: val as 'static' | 'dynamic'};
-                              if (val === 'static' && !newProps.options) {
-                                newProps.options = ['Option 1'];
-                              }
-                              dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement!.sectionId, element: newProps } });
-                            }}
-                            className="flex"
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="static" id="source-static" />
-                                <Label htmlFor="source-static">Static</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="dynamic" id="source-dynamic" />
-                                <Label htmlFor="source-dynamic">Dynamic</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
-                    {element.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
-                </>
+             return (
+                 <Accordion type="multiple" defaultValue={["general", "display", "logic"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger>General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="display">
+                        <AccordionTrigger>Display</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           {element.type !== 'RichText' && placeholderField}
+                           {helperTextField}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="logic">
+                        <AccordionTrigger>Conditional Logic</AccordionTrigger>
+                        <AccordionContent>
+                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                 </Accordion>
             );
-            break;
+        case "Select":
+            return (
+                <Accordion type="multiple" defaultValue={["general", "data", "display", "logic"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger>General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger>Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label>Source Type</Label>
+                                <RadioGroup
+                                    defaultValue={element.dataSource || 'static'}
+                                    onValueChange={(val) => {
+                                    const newProps = {...element, dataSource: val as 'static' | 'dynamic'};
+                                    if (val === 'static' && !newProps.options) {
+                                        newProps.options = ['Option 1'];
+                                    }
+                                    dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement!.sectionId, element: newProps } });
+                                    }}
+                                    className="flex"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="static" id="source-static" />
+                                        <Label htmlFor="source-static">Static</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="dynamic" id="source-dynamic" />
+                                        <Label htmlFor="source-dynamic">Dynamic</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                            {element.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="display">
+                        <AccordionTrigger>Display</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {placeholderField}
+                            {helperTextField}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="logic">
+                        <AccordionTrigger>Conditional Logic</AccordionTrigger>
+                        <AccordionContent>
+                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
         case "RadioGroup":
-             fields = <>
-                {commonFields}
-                {placeholderField}
-                {helperTextField}
-                {optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
-                <PopupSettings element={element} onUpdate={handlePopupUpdate} />
-             </>;
-             break;
+             return (
+                 <Accordion type="multiple" defaultValue={["general", "data", "display", "logic"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger>General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="data">
+                        <AccordionTrigger>Options</AccordionTrigger>
+                        <AccordionContent>
+                            {optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="display">
+                        <AccordionTrigger>Display</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {placeholderField}
+                            {helperTextField}
+                            <PopupSettings element={element} onUpdate={handlePopupUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="logic">
+                        <AccordionTrigger>Conditional Logic</AccordionTrigger>
+                        <AccordionContent>
+                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+             );
         case "Checkbox":
-            fields = <>
-                {commonFields}
-                {helperTextField}
-                <PopupSettings element={element} onUpdate={handlePopupUpdate} />
-            </>;
-            break;
+            return (
+                 <Accordion type="multiple" defaultValue={["general", "display", "logic"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger>General</AccordionTrigger>
+                        <AccordionContent>
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="display">
+                        <AccordionTrigger>Display</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {helperTextField}
+                            <PopupSettings element={element} onUpdate={handlePopupUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="logic">
+                        <AccordionTrigger>Conditional Logic</AccordionTrigger>
+                        <AccordionContent>
+                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
         case "DatePicker":
-            fields = <>{commonFields}{helperTextField}</>;
-            break;
+            return (
+                 <Accordion type="multiple" defaultValue={["general", "display", "logic"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger>General</AccordionTrigger>
+                        <AccordionContent>
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="display">
+                        <AccordionTrigger>Display</AccordionTrigger>
+                        <AccordionContent>
+                            {helperTextField}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="logic">
+                        <AccordionTrigger>Conditional Logic</AccordionTrigger>
+                        <AccordionContent>
+                           <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
         case "Table":
-            fields = <>{commonFields}{tableFields}{helperTextField}</>
-            break;
+            return (
+                <Accordion type="multiple" defaultValue={["general", "columns", "actions", "logic"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger>General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                            {helperTextField}
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="columns">
+                        <AccordionTrigger>Columns</AccordionTrigger>
+                        <AccordionContent>
+                            {tableFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="logic">
+                        <AccordionTrigger>Conditional Logic</AccordionTrigger>
+                        <AccordionContent>
+                           <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            )
         default:
             return null;
       }
-
-      const showConditionalLogic = !['Title', 'Separator'].includes(element.type);
-
-      return <>
-        {fields}
-        {showConditionalLogic && <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />}
-      </>;
   }
 
   return (
@@ -832,5 +980,3 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
-
-    
