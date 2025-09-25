@@ -15,8 +15,10 @@ export default function BuilderPage({ params }: Props) {
     const { formId } = params;
 
     useEffect(() => {
-        dispatch({ type: 'SET_ACTIVE_FORM', payload: { formId } });
-    }, [formId, dispatch]);
+        if (formId && state.activeFormId !== formId) {
+            dispatch({ type: 'SET_ACTIVE_FORM', payload: { formId } });
+        }
+    }, [formId, dispatch, state.activeFormId]);
 
     const form = state.forms.find(f => f.id === formId);
 
