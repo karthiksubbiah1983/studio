@@ -169,14 +169,7 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         </div>
       )
     case "Container":
-      return (
-        <div className="flex justify-between items-center">
-            <Label className="text-base">
-                {label}
-                {required && <span className="text-destructive"> *</span>}
-            </Label>
-        </div>
-      )
+      return null;
     default:
       return <div>Unsupported element type</div>;
   }

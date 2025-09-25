@@ -680,7 +680,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="general">
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
-                            {commonFields}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="key">Field Key</Label>
+                                <Input id="key" value={element.key} onChange={(e) => updateElement('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="layout">

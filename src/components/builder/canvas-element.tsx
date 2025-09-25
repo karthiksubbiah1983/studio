@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Copy, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ConditionalWrapper } from "./conditional-wrapper";
+import { Badge } from "../ui/badge";
+import { Layout } from "lucide-react";
 
 type Props = {
   element: FormElementInstance;
@@ -141,10 +143,16 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
             dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
           }}
           className={cn(
-            "relative flex flex-col p-4 cursor-pointer bg-card transition-all",
+            "relative flex flex-col p-4 pt-8 cursor-pointer bg-card transition-all",
             (mouseIsOver || isSelected) && "shadow-[inset_0_0_0_1px_#084D8E]"
           )}
         >
+          <div className="absolute top-2 left-2 z-10">
+            <Badge variant="secondary" className="border-primary/50 border">
+              <Layout className="h-3 w-3 mr-1" />
+              Container
+            </Badge>
+          </div>
           {mouseIsOver && (
             <div className="absolute top-2 right-2 flex gap-2 z-10">
               <Button
@@ -176,7 +184,7 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
             onDragOver={(e) => {e.preventDefault(); e.stopPropagation(); if(isElementBeingDragged) setIsOverContainer(true)}}
             onDragLeave={(e) => {e.preventDefault(); e.stopPropagation(); setIsOverContainer(false)}}
             onDrop={handleContainerDrop}
-            className={cn("flex-1 mt-4 min-h-[100px] border-dashed border-2 p-4",
+            className={cn("flex-1 min-h-[100px] border-dashed border-2 p-4",
               element.direction === 'horizontal' ? 'flex flex-row gap-2' : 'flex flex-col gap-4',
               element.justify && alignmentClasses.justify[element.justify],
               element.align && alignmentClasses.align[element.align],
