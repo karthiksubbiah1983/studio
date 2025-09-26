@@ -16,7 +16,7 @@ import { Bell, PlusCircle } from "lucide-react";
 export function AppHeader() {
   return (
     <header
-      className="flex items-center justify-between px-6 bg-primary text-primary-foreground"
+      className="flex items-center justify-between px-6 bg-primary text-primary-foreground border-b border-primary/90"
       style={{ height: "64px" }}
     >
       <div className="flex items-center gap-4">
