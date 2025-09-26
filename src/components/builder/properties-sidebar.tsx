@@ -54,14 +54,6 @@ export function PropertiesSidebar() {
     <div className="w-full p-4 overflow-y-auto h-full text-sm">
       <div className="flex justify-between items-center">
         <p className="text-sm text-foreground/70">Properties</p>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => dispatch({ type: "SELECT_ELEMENT", payload: null })}
-        >
-          <X className="h-4 w-4" />
-        </Button>
       </div>
       <Separator className="my-2" />
       <TooltipProvider>
