@@ -65,7 +65,7 @@ export function PropertiesSidebar() {
   return (
     <div className="w-full p-4 overflow-y-auto h-full text-sm">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-foreground/70">
+        <p className="text-base font-bold text-foreground">
             {getSelectedElementName() || 'Properties'}
         </p>
       </div>
