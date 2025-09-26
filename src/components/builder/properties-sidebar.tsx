@@ -49,11 +49,21 @@ export function PropertiesSidebar() {
   };
 
   const selected = getSelectedElementInstance();
+  
+  const getSelectedElementName = () => {
+    if (!selected) return null;
+    if ('type' in selected) {
+        return selected.type;
+    }
+    return "Section";
+  }
 
   return (
     <div className="w-full p-4 overflow-y-auto h-full text-sm">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-foreground/70">Properties</p>
+        <p className="text-sm text-foreground/70">
+            Properties {selected ? `> ${getSelectedElementName()}` : ''}
+        </p>
       </div>
       <Separator className="my-2" />
       <TooltipProvider>
@@ -183,9 +193,6 @@ function SectionProperties({ section }: { section: Section }) {
 
     return (
         <div className="flex flex-col gap-4">
-             <div className="flex justify-between items-center">
-                <h3 className="font-medium">Section Properties</h3>
-            </div>
             <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                 <AccordionItem value="general">
                     <AccordionTrigger>General</AccordionTrigger>
@@ -927,9 +934,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-center">
-        <h3 className="font-medium">{element.type} Properties</h3>
-      </div>
       {content()}
     </div>
   );
