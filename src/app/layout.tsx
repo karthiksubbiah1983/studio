@@ -5,6 +5,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { BuilderProvider } from "@/hooks/use-builder";
+import { AppHeader } from "@/components/app-header";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -27,7 +28,10 @@ export default function RootLayout({
         )}
       >
         <BuilderProvider>
-          {children}
+          <div className="flex flex-col h-screen">
+            <AppHeader />
+            <main className="flex-1 overflow-auto">{children}</main>
+          </div>
         </BuilderProvider>
         <Toaster />
       </body>

@@ -21,8 +21,8 @@ export default function BuilderPage({ params: { formId } }: Props) {
     }, [formId, state.activeFormId, dispatch]);
 
     return (
-        <main className="flex flex-col h-screen w-full">
+        <div className="flex flex-col h-full w-full">
             <Builder />
-        </main>
+        </div>
     );
 }
