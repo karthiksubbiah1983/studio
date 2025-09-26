@@ -1,22 +1,24 @@
 
 import { FormElementInstance, ElementType } from "./types";
 import { CaseSensitive, CheckSquare, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table, FileText, Layout } from "lucide-react";
+import { faCheckSquare, faList, faParagraph, faSquare, faTable, faFont, faCalendarDays, faDotCircle, faFileAlt, faThLarge, faTextHeight } from "@fortawesome/free-solid-svg-icons";
+import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
 export const FormElements: {
   type: ElementType;
-  icon: React.ElementType;
+  icon: IconDefinition;
   label: string;
 }[] = [
-    { type: 'Container', icon: Layout, label: 'Container' },
-    { type: 'Input', icon: CaseSensitive, label: 'Text Input' },
-    { type: 'Textarea', icon: Pilcrow, label: 'Textarea' },
-    { type: 'Select', icon: List, label: 'Select' },
-    { type: 'Checkbox', icon: CheckSquare, label: 'Checkbox' },
-    { type: 'RadioGroup', icon: Radio, label: 'Radio Group' },
-    { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
-    { type: 'Display', icon: Type, label: 'Display Text' },
-    { type: 'Table', icon: Table, label: 'Table' },
-    { type: 'RichText', icon: FileText, label: 'Rich Text' },
+    { type: 'Container', icon: faThLarge, label: 'Container' },
+    { type: 'Input', icon: faFont, label: 'Text Input' },
+    { type: 'Textarea', icon: faParagraph, label: 'Textarea' },
+    { type: 'Select', icon: faList, label: 'Select' },
+    { type: 'Checkbox', icon: faCheckSquare, label: 'Checkbox' },
+    { type: 'RadioGroup', icon: faDotCircle, label: 'Radio Group' },
+    { type: 'DatePicker', icon: faCalendarDays, label: 'Date Picker' },
+    { type: 'Display', icon: faTextHeight, label: 'Display Text' },
+    { type: 'Table', icon: faTable, label: 'Table' },
+    { type: 'RichText', icon: faFileAlt, label: 'Rich Text' },
 ];
 
 export const createNewElement = (type: ElementType): FormElementInstance => {
