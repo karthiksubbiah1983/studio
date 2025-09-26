@@ -8,7 +8,7 @@ import { Canvas } from "./canvas";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { applyPolyfill } from "@/lib/dnd-polyfill";
+import "@/lib/dnd-touch-polyfill";
 import { HistorySidebar } from "./history-sidebar";
 import { RightSidebar } from "./right-sidebar";
 
@@ -21,7 +21,6 @@ export function Builder() {
   
   useEffect(() => {
     setIsClient(true);
-    applyPolyfill();
   }, []);
 
   const isMobile = isClient && isMobileView;
