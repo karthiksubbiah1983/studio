@@ -26,10 +26,10 @@ export function AppHeader() {
       <div className="flex items-center gap-2">
         <Button
           variant="ghost"
-          className="flex flex-col h-auto p-1 hover:bg-primary/90"
+          className="hover:bg-primary/90"
         >
-          <PlusCircle className="h-5 w-5" />
-          <span className="text-xs">Task</span>
+          <PlusCircle className="h-5 w-5 mr-1" />
+          <span className="text-sm">Task</span>
         </Button>
         <Button variant="ghost" size="icon" className="relative hover:bg-primary/90">
           <Bell className="h-5 w-5" />
