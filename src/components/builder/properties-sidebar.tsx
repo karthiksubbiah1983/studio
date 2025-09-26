@@ -24,7 +24,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { fetchFromApi } from "@/services/api";
-import { flattenObject } from "@/lib/utils";
+import { flattenObject, getNestedValue } from "@/lib/utils";
 
 
 export function PropertiesSidebar() {
@@ -449,11 +449,13 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     };
     setIsFetching(true);
     try {
-        const data = await fetchFromApi(element.apiUrl);
-        if (data) {
+        const rawData = await fetchFromApi(element.apiUrl);
+        if (rawData) {
+            const data = element.dataKey ? getNestedValue(rawData, element.dataKey) : rawData;
+            
             // We need a sample object to derive keys from.
-            // If the data is an array, use the first element. Otherwise, use the data itself.
             const sample = Array.isArray(data) ? data[0] : data;
+            
             if (typeof sample === 'object' && sample !== null) {
                 setFetchedKeys(Object.keys(flattenObject(sample)));
             } else {
@@ -1003,4 +1005,5 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     
 
     
+
 
