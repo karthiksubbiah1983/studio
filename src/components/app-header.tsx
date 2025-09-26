@@ -21,7 +21,7 @@ export function AppHeader() {
     >
       <div className="flex items-center gap-4">
         {/* You can add a logo or app title here */}
-        <h1 className="text-xl font-bold">My App</h1>
+        <h1 className="text-xl font-bold">CoPilot</h1>
       </div>
       <div className="flex items-center gap-4">
         <Button variant="ghost" className="hover:bg-primary/90">
