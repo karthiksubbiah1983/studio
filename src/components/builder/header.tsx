@@ -9,7 +9,6 @@ import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SaveVersionDialog } from "./save-version-dialog";
 import { JsonPreviewDialog } from "./json-preview-dialog";
-import { useRouter } from "next/navigation";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
@@ -24,7 +23,6 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [saveType, setSaveType] = useState<"draft" | "published">("draft");
   const isMobile = useIsMobile();
-  const router = useRouter();
 
   const handleSaveClick = (type: "draft" | "published") => {
     setSaveType(type);
@@ -36,19 +34,11 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
       dispatch({ type: 'UPDATE_FORM_TITLE', payload: { formId: activeForm.id, title: e.target.value } });
     }
   }
-  
-  const handleBack = () => {
-    dispatch({ type: 'SET_ACTIVE_FORM', payload: { formId: null } });
-    router.push('/');
-  }
 
   return (
     <>
       <header className="flex items-center justify-between p-2 bg-card shadow-sm">
         <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={handleBack}>
-              <ArrowLeft className="h-5 w-5"/>
-            </Button>
             {isMobile && (
                 <Button variant="ghost" size="icon" onClick={onLeftSidebarToggle}>
                     <PanelLeft className="h-5 w-5"/>

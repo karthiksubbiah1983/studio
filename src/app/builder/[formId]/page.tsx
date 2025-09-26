@@ -11,12 +11,24 @@ type Props = {
     }
 }
 export default function BuilderPage({ params }: Props) {
-    const { dispatch } = useBuilder();
+    const { state, dispatch } = useBuilder();
     const { formId } = params;
 
     useEffect(() => {
-        dispatch({ type: "SET_ACTIVE_FORM", payload: { formId } });
-    }, [formId, dispatch]);
+        // Set the active form based on the URL parameter
+        if (formId && state.activeFormId !== formId) {
+            dispatch({ type: "SET_ACTIVE_FORM", payload: { formId } });
+        }
+    }, [formId, state.activeFormId, dispatch]);
+    
+    // Show a loading state if the active form isn't ready yet.
+    if (state.activeFormId !== formId) {
+        return (
+             <div className="flex justify-center items-center h-screen">
+                <p>Loading Form...</p>
+            </div>
+        )
+    }
 
     return (
         <main className="flex flex-col h-screen w-full">

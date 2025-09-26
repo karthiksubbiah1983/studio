@@ -457,6 +457,22 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (storedState) {
           dispatchAction({ type: "SET_STATE", payload: JSON.parse(storedState) });
+        } else {
+            // If no state, create a default form
+            const defaultFormId = crypto.randomUUID();
+            const defaultForm: Form = {
+                id: defaultFormId,
+                title: "My First Form",
+                versions: [{
+                  id: crypto.randomUUID(),
+                  name: "Initial Draft",
+                  description: "",
+                  type: "draft",
+                  timestamp: new Date().toISOString(),
+                  sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
+                }]
+            };
+            dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], activeFormId: defaultFormId } });
         }
       } catch (error) {
         console.error("Failed to parse state from localStorage", error);
