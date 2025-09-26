@@ -8,7 +8,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export function ElementsSidebar() {
   return (
     <aside className="w-full md:w-56 p-2 bg-card overflow-y-auto h-full">
-      <p className="text-sm text-foreground/70 mb-4 px-2">Drag and drop elements</p>
       <Accordion type="multiple" defaultValue={['basic-components']} className="w-full">
         <AccordionItem value="basic-components">
           <AccordionTrigger className="px-2 hover:no-underline">Basic Components</AccordionTrigger>
