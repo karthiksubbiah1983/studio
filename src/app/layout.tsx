@@ -6,6 +6,10 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
 import { BuilderProvider } from "@/hooks/use-builder";
 import { AppHeader } from "@/components/app-header";
+import { config } from "@fortawesome/fontawesome-svg-core";
+import "@fortawesome/fontawesome-svg-core/styles.css";
+
+config.autoAddCss = false;
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
