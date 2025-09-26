@@ -779,18 +779,13 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         case "Textarea":
         case "RichText":
              return (
-                 <Accordion type="multiple" defaultValue={["general", "display", "logic"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="display">
-                        <AccordionTrigger>Display</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                           {element.type !== 'RichText' && placeholderField}
-                           {helperTextField}
+                            {element.type !== 'RichText' && placeholderField}
+                            {helperTextField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
@@ -803,11 +798,13 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             );
         case "Select":
             return (
-                <Accordion type="multiple" defaultValue={["general", "data", "display", "logic"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "data", "logic"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
+                            {placeholderField}
+                            {helperTextField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
@@ -840,13 +837,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             {element.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="display">
-                        <AccordionTrigger>Display</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            {placeholderField}
-                            {helperTextField}
-                        </AccordionContent>
-                    </AccordionItem>
                     <AccordionItem value="logic">
                         <AccordionTrigger>Conditional Logic</AccordionTrigger>
                         <AccordionContent>
@@ -857,25 +847,20 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             );
         case "RadioGroup":
              return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "display", "logic"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "logic"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
+                            {placeholderField}
+                            {helperTextField}
+                            <PopupSettings element={element} onUpdate={handlePopupUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="data">
                         <AccordionTrigger>Options</AccordionTrigger>
                         <AccordionContent>
                             {optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="display">
-                        <AccordionTrigger>Display</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            {placeholderField}
-                            {helperTextField}
-                            <PopupSettings element={element} onUpdate={handlePopupUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
@@ -888,16 +873,11 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
              );
         case "Checkbox":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "display", "logic"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent>
                             {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="display">
-                        <AccordionTrigger>Display</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
                             <PopupSettings element={element} onUpdate={handlePopupUpdate} />
                         </AccordionContent>
                     </AccordionItem>
@@ -911,16 +891,11 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             );
         case "DatePicker":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "display", "logic"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent>
                             {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="display">
-                        <AccordionTrigger>Display</AccordionTrigger>
-                        <AccordionContent>
                             {helperTextField}
                         </AccordionContent>
                     </AccordionItem>
@@ -982,3 +957,5 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
+
+    
