@@ -67,17 +67,17 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Button variant="outline" size="xs" onClick={() => setIsPreviewOpen(true)}>
-            <Eye className="mr-2 h-4 w-4" />
+            <Eye className="h-4 w-4" />
             Preview
           </Button>
           {!isMobile && (
             <>
               <Button variant="outline" size="xs" onClick={() => handleSaveClick("draft")}>
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="h-4 w-4" />
                 Save Draft
               </Button>
                <Button size="xs" onClick={() => handleSaveClick("published")}>
-                <Send className="mr-2 h-4 w-4" />
+                <Send className="h-4 w-4" />
                 Publish
               </Button>
             </>
