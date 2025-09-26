@@ -1,7 +1,7 @@
 
 import { FormElementInstance, ElementType } from "./types";
 import { CaseSensitive, CheckSquare, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table, FileText, Layout } from "lucide-react";
-import { faCheckSquare, faList, faParagraph, faSquare, faTable, faFont, faCalendarDays, faDotCircle, faFileAlt, faThLarge, faTextHeight } from "@fortawesome/free-solid-svg-icons";
+import { faCheckSquare, faList, faParagraph, faTable, faFont, faCalendarDays, faDotCircle, faFileAlt, faThLarge, faTextHeight } from "@fortawesome/free-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
 export const FormElements: {

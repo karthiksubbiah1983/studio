@@ -1,3 +1,4 @@
+
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
@@ -7,7 +8,6 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // This is the new configuration to allow cross-origin requests in dev mode.
   experimental: {
   },
   allowedDevOrigins: [
@@ -28,7 +28,7 @@ const nextConfig = {
         pathname: "/**",
       },
       {
-        protocol: "https" as const,
+        protocol: "https",
         hostname: "picsum.photos",
         port: "",
         pathname: "/**",
