@@ -185,17 +185,6 @@ function SectionProperties({ section }: { section: Section }) {
         <div className="flex flex-col gap-4">
              <div className="flex justify-between items-center">
                 <h3 className="font-medium">Section Properties</h3>
-                <Button
-                    variant="destructive"
-                    size="icon"
-                    className="h-7 w-7"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        dispatch({ type: 'DELETE_SECTION', payload: { sectionId: section.id } });
-                    }}
-                >
-                    <X className="h-4 w-4" />
-                </Button>
             </div>
             <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                 <AccordionItem value="general">
@@ -940,22 +929,11 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     <div className="flex flex-col gap-4">
       <div className="flex justify-between items-center">
         <h3 className="font-medium">{element.type} Properties</h3>
-        <Button
-            variant="destructive"
-            size="icon"
-            className="h-7 w-7"
-            onClick={(e) => {
-                e.stopPropagation();
-                if (!selectedElement) return;
-                dispatch({ type: 'DELETE_ELEMENT', payload: { sectionId: selectedElement.sectionId, elementId: element.id } })
-            }}
-        >
-            <X className="h-4 w-4" />
-        </Button>
       </div>
       {content()}
     </div>
   );
 }
 
+    
     
