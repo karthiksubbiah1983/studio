@@ -11,7 +11,7 @@ type Props = {
     }
 }
 export default function BuilderPage({ params: { formId } }: Props) {
-    const { state, dispatch } = useBuilder();
+    const { state, dispatch, sections } = useBuilder();
 
     useEffect(() => {
         // Set the active form based on the URL parameter
@@ -20,13 +20,17 @@ export default function BuilderPage({ params: { formId } }: Props) {
         }
     }, [formId, state.activeFormId, dispatch]);
     
-    // Show a loading state if the active form isn't ready yet.
-    if (state.activeFormId !== formId) {
-        return (
-             <div className="flex justify-center items-center h-screen">
-                <p>Loading Form...</p>
-            </div>
-        )
+    // Show a loading state if the active form isn't ready yet or sections are not loaded.
+    if (state.activeFormId !== formId || sections.length === 0) {
+        // Add a check to see if there are any forms at all, if not, it's probably the initial load.
+        const activeForm = state.forms.find(f => f.id === formId);
+        if (!activeForm || activeForm.versions[0].sections.length === 0) {
+             return (
+                 <div className="flex justify-center items-center h-screen">
+                    <p>Loading Form...</p>
+                </div>
+            )
+        }
     }
 
     return (

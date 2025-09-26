@@ -1,7 +1,7 @@
 
 "use client";
 
-import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect } from "react";
+import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
@@ -450,6 +450,7 @@ const LOCAL_STORAGE_KEY = "form-builder-state";
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatchAction] = useReducer(builderReducer, initialState);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -476,19 +477,21 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("Failed to parse state from localStorage", error);
+      } finally {
+        setIsLoading(false);
       }
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !isLoading) {
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
       } catch (error) {
         console.error("Failed to save state to localStorage", error);
       }
     }
-  }, [state]);
+  }, [state, isLoading]);
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
   const sections = activeForm?.versions[0]?.sections || [];
@@ -500,6 +503,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
       return newState.activeFormId;
     }
     dispatchAction(action);
+  }
+
+  if (isLoading) {
+    return null; // Don't render children until state is loaded
   }
 
   return (
