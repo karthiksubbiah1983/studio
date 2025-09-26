@@ -58,7 +58,7 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
                     <PanelLeft className="h-5 w-5"/>
                 </Button>
             )}
-            <div className="flex items-center flex-grow min-w-0 gap-2">
+            <div className="flex items-center flex-grow min-w-0">
                 {renderBadge()}
                 <input 
                   type="text"
