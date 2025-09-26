@@ -31,7 +31,7 @@ export function AppHeader() {
           <PlusCircle className="h-5 w-5 mr-1" />
           <span className="text-sm">Task</span>
         </Button>
-        <Button variant="ghost" size="icon" className="relative hover:bg-primary/90">
+        <Button variant="ghost" size="icon" className="relative hover:bg-primary/90 mr-[6px]">
           <Bell className="h-5 w-5" />
           {/* Optional: Add a badge for new notifications */}
           <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500"></span>
