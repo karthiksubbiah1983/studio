@@ -24,7 +24,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { fetchFromApi } from "@/services/api";
-import { flattenObject, getNestedValue } from "@/lib/utils";
+import { findFirstArray, flattenObject } from "@/lib/utils";
 
 
 export function PropertiesSidebar() {
@@ -176,20 +176,6 @@ function ConditionalLogicSettings({
 
 function SectionProperties({ section }: { section: Section }) {
     const { dispatch } = useBuilder();
-    const [title, setTitle] = useState(section.title);
-    
-    useEffect(() => {
-        setTitle(section.title);
-    }, [section.title]);
-
-    useEffect(() => {
-        const handler = setTimeout(() => {
-          if (title === section.title || title.trim().length < 3) return;
-          dispatch({ type: "UPDATE_SECTION", payload: { ...section, title } });
-        }, 1000);
-    
-        return () => clearTimeout(handler);
-    }, [title, section, dispatch]);
     
     const handleConditionalLogicUpdate = (logic: ConditionalLogic) => {
         dispatch({ type: "UPDATE_SECTION", payload: { ...section, conditionalLogic: logic } });
@@ -203,7 +189,7 @@ function SectionProperties({ section }: { section: Section }) {
                     <AccordionContent className="flex flex-col gap-4">
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="section-title">Title</Label>
-                            <Input id="section-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+                            <Input id="section-title" value={section.title} onChange={(e) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, title: e.target.value } })} />
                         </div>
                         <div className="flex flex-col gap-2">
                             <Label>Configuration</Label>
@@ -375,7 +361,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   useEffect(() => {
     setProps(element);
-    // When element changes, if it's a dynamic select with a URL, fetch the schema
     if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
         handleFetchSchema();
     } else {
@@ -451,15 +436,17 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     try {
         const rawData = await fetchFromApi(element.apiUrl);
         if (rawData) {
-            const data = element.dataKey ? getNestedValue(rawData, element.dataKey) : rawData;
+            const dataArray = findFirstArray(rawData);
             
-            // We need a sample object to derive keys from.
-            const sample = Array.isArray(data) ? data[0] : data;
-            
-            if (typeof sample === 'object' && sample !== null) {
-                setFetchedKeys(Object.keys(flattenObject(sample)));
+            if (dataArray && dataArray.length > 0) {
+                const sample = dataArray[0];
+                if (typeof sample === 'object' && sample !== null) {
+                    setFetchedKeys(Object.keys(flattenObject(sample)));
+                } else {
+                     setFetchedKeys([]);
+                }
             } else {
-                 setFetchedKeys([]);
+                setFetchedKeys([]);
             }
         }
     } catch (error) {
@@ -542,10 +529,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     {isFetching ? "Fetching..." : "Fetch Schema"}
                 </Button>
             </div>
-        </div>
-        <div className="flex flex-col gap-2">
-            <Label htmlFor="dataKey">Data Key (path to array)</Label>
-            <Input id="dataKey" value={props.dataKey || ''} onChange={(e) => updateProperty('dataKey', e.target.value)} placeholder="e.g., 'results' or 'data.users'"/>
         </div>
 
         {fetchedKeys.length > 0 && (
@@ -1005,5 +988,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     
 
     
+
 
 

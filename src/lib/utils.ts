@@ -23,3 +23,26 @@ export const getNestedValue = (obj: any, path: string): any => {
     if (!path) return obj;
     return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 };
+
+export const findFirstArray = (data: any): any[] | null => {
+    if (Array.isArray(data)) {
+        return data;
+    }
+    if (typeof data === 'object' && data !== null) {
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                const value = data[key];
+                if (Array.isArray(value)) {
+                    return value;
+                }
+                if (typeof value === 'object' && value !== null) {
+                    const nested = findFirstArray(value);
+                    if (nested) {
+                        return nested;
+                    }
+                }
+            }
+        }
+    }
+    return null;
+}
