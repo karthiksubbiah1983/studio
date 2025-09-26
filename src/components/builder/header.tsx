@@ -48,7 +48,7 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
               type="text"
               value={activeForm?.title || "Untitled Form"}
               onChange={handleTitleChange}
-              className="font-bold text-xl bg-transparent border-none focus:ring-0 focus:border-b focus:border-primary"
+              className="font-bold text-xl bg-gray-50 border-none focus:ring-0 focus:border-b focus:border-primary rounded-md px-2 py-1"
             />
         </div>
         <div className="flex items-center gap-2">
