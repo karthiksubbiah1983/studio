@@ -23,7 +23,7 @@ export function Canvas() {
     setIsOver(false);
   };
 
-  const handleDrop = (e: React.DragEvent, isTopHalf: boolean) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsOver(false);
     
@@ -38,7 +38,7 @@ export function Canvas() {
     // Dropping an existing section
     if ('sectionId' in draggedElement && !('element' in draggedElement)) {
         const fromIndex = sections.findIndex(s => s.id === draggedElement.sectionId);
-        const toIndex = isTopHalf ? 0 : sections.length;
+        const toIndex = sections.length;
         if (fromIndex !== -1) {
             dispatch({ type: "MOVE_SECTION", payload: { fromIndex, toIndex } });
         }
@@ -72,18 +72,9 @@ export function Canvas() {
   return (
     <>
         <div
-            className={cn(
-                "flex-grow h-12 w-full mx-auto transition-all",
-                isOver && isDraggingSection && "h-24",
-            )}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, true)}
-        />
-        <div
-            className="max-w-4xl mx-auto flex flex-col gap-8"
+            className="max-w-4xl mx-auto flex flex-col gap-8 pt-12 pb-24"
         >
-            {sections.map((section, index) => (
+            {sections.map((section) => (
                 <div 
                     key={section.id} 
                     className="relative"
@@ -107,16 +98,16 @@ export function Canvas() {
             <Plus className="mr-2 h-4 w-4" />
             Add Section
             </Button>
+            <div
+                className={cn(
+                    "flex-grow h-12 w-full mx-auto transition-all",
+                    isOver && isDraggingSection && "h-24",
+                )}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+            />
         </div>
-        <div
-            className={cn(
-                "flex-grow h-12 w-full mx-auto transition-all",
-                isOver && isDraggingSection && "h-24",
-            )}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, false)}
-        />
         <style jsx>{`
             .relative:hover .droppable-indicator-top {
                 opacity: 1;
