@@ -1,3 +1,4 @@
+
 import { FormElementInstance, ElementType } from "./types";
 import { CaseSensitive, CheckSquare, Heading1, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table, FileText, Layout } from "lucide-react";
 
@@ -6,8 +7,6 @@ export const FormElements: {
   icon: React.ElementType;
   label: string;
 }[] = [
-    { type: 'Title', icon: Heading1, label: 'Title' },
-    { type: 'Separator', icon: SeparatorHorizontal, label: 'Separator' },
     { type: 'Container', icon: Layout, label: 'Container' },
     { type: 'Input', icon: CaseSensitive, label: 'Text Input' },
     { type: 'Textarea', icon: Pilcrow, label: 'Textarea' },
