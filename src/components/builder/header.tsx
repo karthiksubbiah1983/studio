@@ -44,7 +44,7 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
     if (!latestVersion) return null;
 
     if (latestVersion.type === 'published') {
-        return <Badge className="bg-green-100 text-green-800 border-green-200">v{publishedVersionCount}</Badge>
+        return <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100/80">v{publishedVersionCount}</Badge>
     }
     return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">D</Badge>
   }

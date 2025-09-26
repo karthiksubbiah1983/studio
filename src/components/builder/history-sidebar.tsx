@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Download, Trash } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function HistorySidebar() {
   const { activeForm, dispatch } = useBuilder();
@@ -45,8 +46,13 @@ export function HistorySidebar() {
                 <CardTitle className="text-base flex justify-between items-center">
                   {version.name}
                   <Badge
+                    className={cn(
+                      version.type === "published"
+                        ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100/80"
+                        : ""
+                    )}
                     variant={
-                      version.type === "published" ? "default" : "secondary"
+                      version.type === "published" ? "outline" : "secondary"
                     }
                   >
                     {version.type}
