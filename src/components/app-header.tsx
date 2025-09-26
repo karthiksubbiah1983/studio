@@ -23,7 +23,7 @@ export function AppHeader() {
         {/* You can add a logo or app title here */}
         <h1 className="text-xl font-bold">CoPilot</h1>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2">
         <Button
           variant="ghost"
           className="flex flex-col h-auto p-1 hover:bg-primary/90"
