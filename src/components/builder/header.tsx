@@ -51,7 +51,7 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
 
   return (
     <>
-      <header className="flex items-center justify-between p-2 bg-gray-50 shadow-sm">
+      <header className="relative z-10 flex items-center justify-between p-2 bg-gray-50 shadow">
         <div className="flex items-center gap-2 flex-grow min-w-0">
             {isMobile && (
                 <Button variant="ghost" size="icon" onClick={onLeftSidebarToggle}>
