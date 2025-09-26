@@ -10,6 +10,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SaveVersionDialog } from "./save-version-dialog";
 import { JsonPreviewDialog } from "./json-preview-dialog";
 import { Badge } from "../ui/badge";
+import { cn } from "@/lib/utils";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
@@ -45,7 +46,7 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
     if (latestVersion.type === 'published') {
         return <Badge variant="default">Published v{publishedVersionCount}</Badge>
     }
-    return <Badge variant="secondary">Draft</Badge>
+    return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">Draft</Badge>
   }
 
   return (
@@ -63,7 +64,9 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
               onChange={handleTitleChange}
               className="font-bold text-xl bg-transparent border-none focus:ring-0 focus:border-b focus:border-primary rounded-md px-2 py-1"
             />
-            {renderBadge()}
+            <div className="ml-2">
+                {renderBadge()}
+            </div>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
