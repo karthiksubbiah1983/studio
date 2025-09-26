@@ -3,12 +3,13 @@
 
 import { Button } from "@/components/ui/button";
 import { useBuilder } from "@/hooks/use-builder";
-import { Eye, PanelLeft, Settings, History, Save, Send, Code, ArrowLeft } from "lucide-react";
+import { Eye, PanelLeft, Settings, History, Save, Send } from "lucide-react";
 import { PreviewDialog } from "./preview-dialog";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SaveVersionDialog } from "./save-version-dialog";
 import { JsonPreviewDialog } from "./json-preview-dialog";
+import { Badge } from "../ui/badge";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
@@ -34,6 +35,18 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
       dispatch({ type: 'UPDATE_FORM_TITLE', payload: { formId: activeForm.id, title: e.target.value } });
     }
   }
+  
+  const latestVersion = activeForm?.versions[0];
+  const publishedVersionCount = activeForm?.versions.filter(v => v.type === 'published').length || 0;
+
+  const renderBadge = () => {
+    if (!latestVersion) return null;
+
+    if (latestVersion.type === 'published') {
+        return <Badge variant="default">Published v{publishedVersionCount}</Badge>
+    }
+    return <Badge variant="secondary">Draft</Badge>
+  }
 
   return (
     <>
@@ -50,6 +63,7 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
               onChange={handleTitleChange}
               className="font-bold text-xl bg-transparent border-none focus:ring-0 focus:border-b focus:border-primary rounded-md px-2 py-1"
             />
+            {renderBadge()}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
