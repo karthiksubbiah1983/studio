@@ -63,9 +63,9 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
                   type="text"
                   value={activeForm?.title || "Untitled Form"}
                   onChange={handleTitleChange}
-                  className="font-bold text-xl bg-transparent border-none focus:ring-0 focus:border-b focus:border-primary rounded-md px-2 py-1 w-full min-w-0"
+                  className="font-bold text-xl bg-transparent border-none focus:ring-0 focus:border-b focus:border-primary rounded-md px-2 w-full min-w-0"
                 />
-                <div className="ml-2 mt-1">
+                <div className="ml-2">
                     {renderBadge()}
                 </div>
             </div>
