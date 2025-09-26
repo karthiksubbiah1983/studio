@@ -52,23 +52,25 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
   return (
     <>
       <header className="flex items-center justify-between p-2 bg-gray-50 shadow-sm">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-grow min-w-0">
             {isMobile && (
                 <Button variant="ghost" size="icon" onClick={onLeftSidebarToggle}>
                     <PanelLeft className="h-5 w-5"/>
                 </Button>
             )}
-             <input 
-              type="text"
-              value={activeForm?.title || "Untitled Form"}
-              onChange={handleTitleChange}
-              className="font-bold text-xl bg-transparent border-none focus:ring-0 focus:border-b focus:border-primary rounded-md px-2 py-1"
-            />
-            <div className="ml-2">
+            <div className="flex items-center min-w-0">
+                <input 
+                  type="text"
+                  value={activeForm?.title || "Untitled Form"}
+                  onChange={handleTitleChange}
+                  className="font-bold text-xl bg-transparent border-none focus:ring-0 focus:border-b focus:border-primary rounded-md px-2 py-1 w-full min-w-0"
+                />
+            </div>
+            <div className="ml-2 flex-shrink-0">
                 {renderBadge()}
             </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
             <Eye className="mr-2 h-4 w-4" />
             Preview
