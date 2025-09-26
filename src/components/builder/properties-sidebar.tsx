@@ -66,7 +66,7 @@ export function PropertiesSidebar() {
     <div className="w-full p-4 overflow-y-auto h-full text-sm">
       <div className="flex justify-between items-center">
         <p className="text-sm text-foreground/70">
-            Properties {selected ? `> ${getSelectedElementName()}` : ''}
+            {getSelectedElementName() || 'Properties'}
         </p>
       </div>
       <Separator className="my-2" />
@@ -991,3 +991,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
 
 
+
+
+    
