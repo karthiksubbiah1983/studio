@@ -24,9 +24,12 @@ export function AppHeader() {
         <h1 className="text-xl font-bold">CoPilot</h1>
       </div>
       <div className="flex items-center gap-4">
-        <Button variant="ghost" className="hover:bg-primary/90">
-          <PlusCircle className="mr-2 h-5 w-5" />
-          Create New Task
+        <Button
+          variant="ghost"
+          className="flex flex-col h-auto p-1 hover:bg-primary/90"
+        >
+          <PlusCircle className="h-5 w-5" />
+          <span className="text-xs">Task</span>
         </Button>
         <Button variant="ghost" size="icon" className="relative hover:bg-primary/90">
           <Bell className="h-5 w-5" />
