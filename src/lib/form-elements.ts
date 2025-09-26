@@ -1,6 +1,6 @@
 
 import { FormElementInstance, ElementType } from "./types";
-import { faCheckSquare, faList, faParagraph, faTable, faFont, faCalendarDays, faDotCircle, faFileAlt, faThLarge, faTextHeight } from "@fortawesome/free-solid-svg-icons";
+import { faCheckSquare, faList, faParagraph, faTable, faFont, faCalendarDays, faDotCircle, faFileAlt, faLayerGroup, faTextHeight } from "@fortawesome/free-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
 export const FormElements: {
@@ -8,7 +8,7 @@ export const FormElements: {
   icon: IconDefinition;
   label: string;
 }[] = [
-    { type: 'Container', icon: faThLarge, label: 'Container' },
+    { type: 'Container', icon: faLayerGroup, label: 'Container' },
     { type: 'Input', icon: faFont, label: 'Text Input' },
     { type: 'Textarea', icon: faParagraph, label: 'Textarea' },
     { type: 'Select', icon: faList, label: 'Select' },
