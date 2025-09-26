@@ -17,7 +17,7 @@ export function AppHeader() {
   return (
     <header
       className="flex items-center justify-between px-6 bg-primary text-primary-foreground"
-      style={{ height: "74px" }}
+      style={{ height: "64px" }}
     >
       <div className="flex items-center gap-4">
         {/* You can add a logo or app title here */}
