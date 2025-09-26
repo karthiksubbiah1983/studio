@@ -113,7 +113,7 @@ export function CanvasSection({ section }: { section: Section }) {
               <Accordion type="single" collapsible defaultValue="item-1">
                   <AccordionItem value="item-1" className="border-b-0">
                       <CardHeader className="p-4 py-2 flex flex-row items-center justify-between">
-                          <AccordionTrigger className="flex-1 hover:no-underline font-medium">
+                          <AccordionTrigger className="flex-1 hover:no-underline font-medium text-base">
                              {section.title}
                           </AccordionTrigger>
                            <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
@@ -163,7 +163,7 @@ export function CanvasSection({ section }: { section: Section }) {
             <GripVertical className="h-6 w-6 text-muted-foreground" />
         </div>
         <CardHeader className="flex flex-row items-center justify-between p-4 py-2">
-          <h3 className="text-lg font-medium">{section.title}</h3>
+          <h3 className="text-base font-medium">{section.title}</h3>
            <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
             <Button
                 variant="ghost"
