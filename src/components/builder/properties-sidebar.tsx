@@ -23,6 +23,9 @@ import {
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { fetchFromApi } from "@/services/api";
+import { flattenObject } from "@/lib/utils";
+
 
 export function PropertiesSidebar() {
   const { state, dispatch, sections } = useBuilder();
@@ -347,6 +350,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   const { dispatch, state, sections } = useBuilder();
   const { selectedElement } = state;
   const [props, setProps] = useState(element);
+  const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
+  const [isFetching, setIsFetching] = useState(false);
+
 
   const allElements = sections.flatMap(s => {
       const elements: FormElementInstance[] = [];
@@ -369,6 +375,13 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   useEffect(() => {
     setProps(element);
+    // When element changes, if it's a dynamic select with a URL, fetch the schema
+    if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
+        handleFetchSchema();
+    } else {
+        setFetchedKeys([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [element]);
 
   useEffect(() => {
@@ -427,6 +440,32 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   const handlePopupUpdate = (popup: PopupConfig) => {
     updateElement('popup', popup);
+  }
+
+  const handleFetchSchema = async () => {
+    if (!element.apiUrl) {
+        setFetchedKeys([]);
+        return;
+    };
+    setIsFetching(true);
+    try {
+        const data = await fetchFromApi(element.apiUrl);
+        if (data) {
+            // We need a sample object to derive keys from.
+            // If the data is an array, use the first element. Otherwise, use the data itself.
+            const sample = Array.isArray(data) ? data[0] : data;
+            if (typeof sample === 'object' && sample !== null) {
+                setFetchedKeys(Object.keys(flattenObject(sample)));
+            } else {
+                 setFetchedKeys([]);
+            }
+        }
+    } catch (error) {
+        console.error("Failed to fetch API schema:", error);
+        setFetchedKeys([]);
+    } finally {
+        setIsFetching(false);
+    }
   }
 
   const commonFields = (
@@ -495,20 +534,40 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
             <Label htmlFor="apiUrl">API URL</Label>
-            <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+            <div className="flex gap-2">
+                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                <Button onClick={handleFetchSchema} disabled={isFetching} size="sm">
+                    {isFetching ? "Fetching..." : "Fetch Schema"}
+                </Button>
+            </div>
         </div>
         <div className="flex flex-col gap-2">
-            <Label htmlFor="dataKey">Data Key</Label>
+            <Label htmlFor="dataKey">Data Key (path to array)</Label>
             <Input id="dataKey" value={props.dataKey || ''} onChange={(e) => updateProperty('dataKey', e.target.value)} placeholder="e.g., 'results' or 'data.users'"/>
         </div>
-        <div className="flex flex-col gap-2">
-            <Label htmlFor="valueKey">Option Value Key</Label>
-            <Input id="valueKey" value={props.valueKey || ''} onChange={(e) => updateProperty('valueKey', e.target.value)} placeholder="e.g., 'id' or 'address.zipcode'"/>
-        </div>
-        <div className="flex flex-col gap-2">
-            <Label htmlFor="labelKey">Option Label Key</Label>
-            <Input id="labelKey" value={props.labelKey || ''} onChange={(e) => updateProperty('labelKey', e.target.value)} placeholder="e.g., 'name' or 'address.city'"/>
-        </div>
+
+        {fetchedKeys.length > 0 && (
+             <>
+                <div className="flex flex-col gap-2">
+                    <Label htmlFor="valueKey">Option Value Key</Label>
+                    <Select value={props.valueKey} onValueChange={(v) => updateProperty('valueKey', v)}>
+                        <SelectTrigger><SelectValue placeholder="Select value key..."/></SelectTrigger>
+                        <SelectContent>
+                            {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                    <Label htmlFor="labelKey">Option Label Key</Label>
+                     <Select value={props.labelKey} onValueChange={(v) => updateProperty('labelKey', v)}>
+                        <SelectTrigger><SelectValue placeholder="Select label key..."/></SelectTrigger>
+                        <SelectContent>
+                            {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            </>
+        )}
     </div>
   );
 
@@ -944,3 +1003,4 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     
 
     
+
