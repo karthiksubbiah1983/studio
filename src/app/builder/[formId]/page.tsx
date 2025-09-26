@@ -10,9 +10,8 @@ type Props = {
         formId: string;
     }
 }
-export default function BuilderPage({ params }: Props) {
+export default function BuilderPage({ params: { formId } }: Props) {
     const { state, dispatch } = useBuilder();
-    const { formId } = params;
 
     useEffect(() => {
         // Set the active form based on the URL parameter
