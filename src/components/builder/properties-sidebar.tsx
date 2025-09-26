@@ -479,13 +479,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
       <Input id="placeholder" value={element.placeholder || ''} onChange={(e) => updateElement('placeholder', e.target.value)} />
     </div>
   );
-
-  const helperTextField = (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor="helperText">Helper Text</Label>
-      <Textarea id="helperText" value={element.helperText || ''} onChange={(e) => updateElement('helperText', e.target.value)} />
-    </div>
-  );
   
   const optionsField = (options: string[] | undefined, onUpdate: (options: string[]) => void) => (
     <div className="flex flex-col gap-2">
@@ -682,8 +675,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             <Switch id="allowEdit" checked={element.allowEdit} onCheckedChange={(checked) => updateElement('allowEdit', checked)} />
         </div>
         <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-            <Label htmlFor="allowDelete">Allow Delete</Label>
-            <Switch id="allowDelete" checked={element.allowDelete} onCheckedChange={(checked) => updateElement('allowDelete', checked)} />
+            <Label htmlFor="allowDelete">Allow Delete</Label>            <Switch id="allowDelete" checked={element.allowDelete} onCheckedChange={(checked) => updateElement('allowDelete', checked)} />
         </div>
     </>
   );
@@ -824,8 +816,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {element.type !== 'RichText' && placeholderField}
-                            {helperTextField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
@@ -843,8 +833,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {placeholderField}
-                            {helperTextField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
@@ -892,8 +880,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {placeholderField}
-                            {helperTextField}
                             <PopupSettings element={element} onUpdate={handlePopupUpdate} />
                         </AccordionContent>
                     </AccordionItem>
@@ -936,7 +922,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent>
                             {commonFields}
-                            {helperTextField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
@@ -954,7 +939,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionTrigger>General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {helperTextField}
                         </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="columns">
@@ -982,16 +966,3 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
-
-    
-    
-
-    
-
-
-
-
-
-    
-
-    
