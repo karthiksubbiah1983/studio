@@ -120,24 +120,24 @@ export function CanvasSection({ section }: { section: Section }) {
                              <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-6 w-6"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
                                 }}
                               >
-                                <Copy className="h-5 w-5" />
+                                <Copy className="h-4 w-4" />
                             </Button>
                              <Button
-                                variant="ghost"
+                                variant="destructive"
                                 size="icon"
-                                className="h-8 w-8"
+                                className="h-6 w-6"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
                                 }}
                               >
-                                <Trash className="h-5 w-5 text-destructive" />
+                                <Trash className="h-4 w-4" />
                             </Button>
                            </div>
                       </CardHeader>
@@ -168,24 +168,24 @@ export function CanvasSection({ section }: { section: Section }) {
             <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-6 w-6"
                 onClick={(e) => {
                     e.stopPropagation();
                     dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
                 }}
               >
-                <Copy className="h-5 w-5" />
+                <Copy className="h-4 w-4" />
             </Button>
             <Button
-                variant="ghost"
+                variant="destructive"
                 size="icon"
-                className="h-8 w-8"
+                className="h-6 w-6"
                 onClick={(e) => {
                     e.stopPropagation();
                     dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
                 }}
               >
-                <Trash className="h-5 w-5 text-destructive" />
+                <Trash className="h-4 w-4" />
             </Button>
            </div>
         </CardHeader>
