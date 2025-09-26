@@ -98,15 +98,6 @@ export function Canvas() {
             <Plus className="mr-2 h-4 w-4" />
             Add Section
             </Button>
-            <div
-                className={cn(
-                    "flex-grow h-12 w-full mx-auto transition-all",
-                    isOver && isDraggingSection && "h-24",
-                )}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-            />
         </div>
         <style jsx>{`
             .relative:hover .droppable-indicator-top {
