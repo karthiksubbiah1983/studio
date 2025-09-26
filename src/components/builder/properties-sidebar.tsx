@@ -64,12 +64,11 @@ export function PropertiesSidebar() {
 
   return (
     <div className="w-full p-4 overflow-y-auto h-full text-sm">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-2">
         <p className="text-base font-bold text-foreground">
             {getSelectedElementName() || 'Properties'}
         </p>
       </div>
-      <Separator className="my-2" />
       <TooltipProvider>
         {!selected && <p className="text-sm text-muted-foreground">Select an element to see its properties.</p>}
         {selected && 'elements' in selected && !('type' in selected) && <SectionProperties section={selected} />}
@@ -992,5 +991,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
 
 
+
+    
 
     
