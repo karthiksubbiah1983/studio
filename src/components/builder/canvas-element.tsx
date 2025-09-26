@@ -158,24 +158,24 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-7 w-7"
+                className="h-6 w-6"
                 onClick={(e) => {
                   e.stopPropagation();
                   dispatch({ type: "CLONE_ELEMENT", payload: { elementId: element.id, sectionId } });
                 }}
               >
-                <Copy className="h-4 w-4" />
+                <Copy className="h-3 w-3" />
               </Button>
               <Button
                 variant="destructive"
                 size="icon"
-                className="h-7 w-7"
+                className="h-6 w-6"
                 onClick={(e) => {
                   e.stopPropagation();
                   dispatch({ type: "DELETE_ELEMENT", payload: { elementId: element.id, sectionId } });
                 }}
               >
-                <Trash className="h-4 w-4" />
+                <Trash className="h-3 w-3" />
               </Button>
             </div>
           )}
@@ -234,24 +234,24 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
             <Button
               variant="outline"
               size="icon"
-              className="h-7 w-7"
+              className="h-6 w-6"
               onClick={(e) => {
                 e.stopPropagation();
                 dispatch({ type: "CLONE_ELEMENT", payload: { elementId: element.id, sectionId } });
               }}
             >
-              <Copy className="h-4 w-4" />
+              <Copy className="h-3 w-3" />
             </Button>
             <Button
               variant="destructive"
               size="icon"
-              className="h-7 w-7"
+              className="h-6 w-6"
               onClick={(e) => {
                 e.stopPropagation();
                 dispatch({ type: "DELETE_ELEMENT", payload: { elementId: element.id, sectionId } });
               }}
             >
-              <Trash className="h-4 w-4" />
+              <Trash className="h-3 w-3" />
             </Button>
           </div>
         )}
