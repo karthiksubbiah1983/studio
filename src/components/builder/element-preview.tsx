@@ -93,7 +93,6 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
           <Checkbox id={element.id} />
           <div className="grid gap-1.5 leading-none">
             <Label htmlFor={element.id}>{label}</Label>
-            {helperText && <p className="text-sm text-muted-foreground">{helperText}</p>}
           </div>
         </div>
       );

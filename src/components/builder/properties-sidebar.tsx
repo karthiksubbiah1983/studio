@@ -906,7 +906,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="display">
                         <AccordionTrigger>Display</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
-                            {helperTextField}
                             <PopupSettings element={element} onUpdate={handlePopupUpdate} />
                         </AccordionContent>
                     </AccordionItem>
@@ -991,5 +990,3 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     </div>
   );
 }
-
-    

@@ -1,6 +1,6 @@
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, Heading1, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table, FileText, Layout } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Pilcrow, Radio, SeparatorHorizontal, Type, CalendarDays, Table, FileText, Layout } from "lucide-react";
 
 export const FormElements: {
   type: ElementType;
@@ -42,7 +42,7 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
                 placeholder: "Select an option"
             };
         case "Checkbox":
-            return { ...baseElement, label: "Checkbox Field", helperText: "This is a helper text" };
+            return { ...baseElement, label: "Checkbox Field" };
         case "RadioGroup":
              return { ...baseElement, label: "Radio Group", options: ["Option 1", "Option 2"] };
         case "DatePicker":

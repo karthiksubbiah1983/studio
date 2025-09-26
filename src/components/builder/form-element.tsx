@@ -83,7 +83,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const LucideIcon = popup?.icon ? (icons as any)[popup.icon] : null;
 
   const renderLabelWithPopup = () => (
-    <div className="flex items-center gap-2 mb-2">
+    <div className="flex items-center gap-2">
        <Label className="text-base">
         {label}
         {required && <span className="text-destructive"> *</span>}
@@ -265,7 +265,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 />
                 <div className="grid gap-1.5 leading-none">
                     {renderLabelWithPopup()}
-                    {helperText && <p className="text-sm text-muted-foreground">{helperText}</p>}
                 </div>
             </div>
         );
