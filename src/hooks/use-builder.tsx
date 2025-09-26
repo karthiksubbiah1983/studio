@@ -506,7 +506,14 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   if (isLoading) {
-    return null; // Don't render children until state is loaded
+    return (
+        <main className="flex flex-col items-center justify-center w-full min-h-screen bg-background p-4 md:p-8">
+            <div className="text-center">
+                <h1 className="text-3xl font-bold text-primary">CoPilot</h1>
+                <p className="text-muted-foreground mt-2">Loading your form builder...</p>
+            </div>
+        </main>
+    );
   }
 
   return (
