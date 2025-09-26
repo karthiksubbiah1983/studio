@@ -8,7 +8,6 @@ import { Canvas } from "./canvas";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import "@/lib/dnd-touch-polyfill";
 import { HistorySidebar } from "./history-sidebar";
 import { RightSidebar } from "./right-sidebar";
 
@@ -21,6 +20,8 @@ export function Builder() {
   
   useEffect(() => {
     setIsClient(true);
+    // Dynamically import the polyfill only on the client side.
+    import("@/lib/dnd-touch-polyfill");
   }, []);
 
   const isMobile = isClient && isMobileView;

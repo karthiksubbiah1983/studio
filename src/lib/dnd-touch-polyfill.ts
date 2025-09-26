@@ -102,7 +102,7 @@ export class DataTransfer {
    *
    * @param type Type of data to retrieve.
    */
-_getData(type: string): any {
+  _getData(type: string): any {
     return this._data[type] || '';
   }
 
@@ -115,7 +115,7 @@ _getData(type: string): any {
    * @param type Type of data to add.
    * @param value Data to add.
    */
-_setData(type: string, value: any): void {
+  _setData(type: string, value: any): void {
     this._data[type] = value;
   }
 
@@ -126,7 +126,7 @@ _setData(type: string, value: any): void {
    * @param x The horizontal offset within the image.
    * @param y The vertical offset within the image.
    */
-_setDragImage(img: Element, x: number, y: number): void {
+  _setDragImage(img: Element, x: number, y: number): void {
     const ddt = _getDdt();
     ddt._imgCustom = img;
     ddt._imgOffset = { x: x, y: y };
@@ -141,7 +141,7 @@ function _getDdt(): Ddt {
   if (!_ddt) {
     _ddt = new Ddt();
   }
-re_tur_n _ddt;
+  return _ddt;
 }
 
 class Ddt {
@@ -285,7 +285,7 @@ class Ddt {
     return el as HTMLElement | null;
   }
 
-t_createImage(e: TouchEvent) {
+  _createImage(e: TouchEvent) {
     //
     // if we have a custom image, use that
     //
@@ -327,7 +327,7 @@ t_createImage(e: TouchEvent) {
     this._imgCustom = null;
   }
 
--moveImage(e: TouchEvent) {
+  _moveImage(e: TouchEvent) {
     if (this._img) {
       requestAnimationFrame(() => {
         let pt = _getPoint(e, true);
@@ -359,7 +359,7 @@ t_createImage(e: TouchEvent) {
       let changedTouches = this._lastTouch ? this._lastTouch.changedTouches : [];
       evt.touches = touches;
       evt.targetTouches = targetTouches;
-evt.changedTouches = changedTouches;
+      evt.changedTouches = changedTouches;
       let pt = _getPoint(e);
       evt.screenX = pt.x;
       evt.screenY = pt.y;
