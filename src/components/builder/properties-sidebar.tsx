@@ -902,8 +902,19 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                  <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
-                        <AccordionContent>
-                            {commonFields}
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="key">Field Key</Label>
+                                <Input id="key" value={element.key} onChange={(e) => updateElement('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                            </div>
+                            <div className="flex flex-col gap-2 mt-[6px]">
+                                <Label htmlFor="label">Label</Label>
+                                <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="required">Required</Label>
+                                <Switch id="required" checked={element.required} onCheckedChange={(checked) => updateElement('required', checked)} />
+                            </div>
                             <PopupSettings element={element} onUpdate={handlePopupUpdate} />
                         </AccordionContent>
                     </AccordionItem>
