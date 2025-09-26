@@ -7,13 +7,12 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    // This is the new configuration to allow cross-origin requests in dev mode.
-  },
   // This is the new configuration to allow cross-origin requests in dev mode.
-  allowedDevOrigins: [
-    "https://9000-firebase-studio-1758224949257.cluster-ikslh4rdsnbqsvu5nw3v4dqjj2.cloudworkstations.dev",
-  ],
+  experimental: {
+     allowedDevOrigins: [
+        "https://9000-firebase-studio-1758224949257.cluster-ikslh4rdsnbqsvu5nw3v4dqjj2.cloudworkstations.dev",
+     ],
+  },
   images: {
     remotePatterns: [
       {
