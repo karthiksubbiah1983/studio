@@ -58,16 +58,16 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
                     <PanelLeft className="h-5 w-5"/>
                 </Button>
             )}
-            <div className="flex items-center min-w-0">
+            <div className="flex flex-col flex-grow min-w-0">
                 <input 
                   type="text"
                   value={activeForm?.title || "Untitled Form"}
                   onChange={handleTitleChange}
                   className="font-bold text-xl bg-transparent border-none focus:ring-0 focus:border-b focus:border-primary rounded-md px-2 py-1 w-full min-w-0"
                 />
-            </div>
-            <div className="ml-2 flex-shrink-0">
-                {renderBadge()}
+                <div className="ml-2 mt-1">
+                    {renderBadge()}
+                </div>
             </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
