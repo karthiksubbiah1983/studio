@@ -21,13 +21,8 @@ export function Builder() {
   
   useEffect(() => {
     setIsClient(true);
+    applyPolyfill();
   }, []);
-
-  useEffect(() => {
-    if (isMobileView) {
-      applyPolyfill();
-    }
-  }, [isMobileView]);
 
   const isMobile = isClient && isMobileView;
 
