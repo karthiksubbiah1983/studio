@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -806,7 +807,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="data">
                         <AccordionTrigger>Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
-                             <div className="flex flex-col gap-2">
+                             <div className="flex flex-col gap-2 mb-1.5">
                                 <Label>Source Type</Label>
                                 <RadioGroup
                                     defaultValue={element.dataSource || 'static'}
