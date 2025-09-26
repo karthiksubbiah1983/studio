@@ -59,7 +59,7 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
                 </Button>
             )}
             <div className="flex items-center flex-grow min-w-0 gap-2">
-                <span className="font-bold text-xl px-2 truncate">
+                <span className="font-bold text-xl truncate">
                   {activeForm?.title || "Untitled Form"}
                 </span>
                 {renderBadge()}
