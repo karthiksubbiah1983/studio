@@ -52,10 +52,6 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
             />
         </div>
         <div className="flex items-center gap-2">
-           <Button variant="outline" size="sm" onClick={() => setIsJsonPreviewOpen(true)}>
-            <Code className="mr-2 h-4 w-4" />
-            JSON
-          </Button>
           <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
             <Eye className="mr-2 h-4 w-4" />
             Preview
