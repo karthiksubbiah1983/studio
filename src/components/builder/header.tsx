@@ -44,9 +44,9 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
     if (!latestVersion) return null;
 
     if (latestVersion.type === 'published') {
-        return <Badge variant="default">Published v{publishedVersionCount}</Badge>
+        return <Badge className="bg-green-100 text-green-800 border-green-200">v{publishedVersionCount}</Badge>
     }
-    return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">Draft</Badge>
+    return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">D</Badge>
   }
 
   return (
@@ -58,16 +58,14 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
                     <PanelLeft className="h-5 w-5"/>
                 </Button>
             )}
-            <div className="flex flex-col flex-grow min-w-0">
+            <div className="flex items-center flex-grow min-w-0 gap-2">
+                {renderBadge()}
                 <input 
                   type="text"
                   value={activeForm?.title || "Untitled Form"}
                   onChange={handleTitleChange}
                   className="font-bold text-xl bg-transparent border-none focus:ring-0 focus:border-b focus:border-primary rounded-md px-2 w-full min-w-0"
                 />
-                <div className="ml-2">
-                    {renderBadge()}
-                </div>
             </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
