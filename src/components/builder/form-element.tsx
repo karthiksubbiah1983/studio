@@ -84,7 +84,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   const renderLabelWithPopup = () => (
     <div className="flex items-center gap-2">
-       <Label className="text-base">
+       <Label className="text-[0.9rem]">
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
@@ -108,7 +108,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
-      <Label className="text-base">
+      <Label className="text-[0.9rem]">
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
@@ -132,7 +132,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       
       content = (
         <div>
-          <Label className="text-base">{label}</Label>
+          <Label className="text-[0.9rem]">{label}</Label>
           <p className="text-muted-foreground text-sm mt-1">{displayValue}</p>
         </div>
       );

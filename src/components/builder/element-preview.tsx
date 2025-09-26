@@ -19,7 +19,7 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
-      <Label className="text-base">
+      <Label className="text-[0.9rem]">
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
@@ -45,7 +45,7 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
     case "Display":
         return (
             <div>
-                <Label className="text-base">{label}</Label>
+                <Label className="text-[0.9rem]">{label}</Label>
                 <p className="text-muted-foreground text-sm mt-1">
                     {placeholder || `(Value from ${dataSourceConfig?.displayKey || '...'})`}
                 </p>
