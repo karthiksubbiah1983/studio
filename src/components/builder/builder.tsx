@@ -68,15 +68,15 @@ export function Builder() {
               {renderBadge()}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-            <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
+            <Button variant="outline" size="xs" onClick={() => setIsPreviewOpen(true)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Preview
             </Button>
-              <Button variant="outline" size="sm" onClick={() => handleSaveClick("draft")}>
+              <Button variant="outline" size="xs" onClick={() => handleSaveClick("draft")}>
                 <Save className="mr-2 h-4 w-4" />
                 Save Draft
             </Button>
-            <Button size="sm" onClick={() => handleSaveClick("published")}>
+            <Button size="xs" onClick={() => handleSaveClick("published")} className="bg-green-600 hover:bg-green-700">
                 <Send className="mr-2 h-4 w-4" />
                 Publish
             </Button>
