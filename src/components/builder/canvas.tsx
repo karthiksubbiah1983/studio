@@ -5,59 +5,10 @@ import { useState } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { CanvasSection } from "./canvas-section";
-import { Eye, LayoutTemplate, Plus, Save, Send, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Input } from "../ui/input";
-import { Badge } from "../ui/badge";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { PreviewDialog } from "./preview-dialog";
-import { SaveVersionDialog } from "./save-version-dialog";
+import { Plus } from "lucide-react";
 
 export function Canvas() {
-  const { state, sections, dispatch, activeForm } = useBuilder();
-  const [isOver, setIsOver] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
-  const [isSaveOpen, setIsSaveOpen] = useState(false);
-  const [saveType, setSaveType] = useState<"draft" | "published">("draft");
-  const isMobile = useIsMobile();
-
-  const handleSaveClick = (type: "draft" | "published") => {
-    setSaveType(type);
-    setIsSaveOpen(true);
-  }
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (state.draggedElement) {
-      setIsOver(true);
-    }
-  };
-
-  const handleDragLeave = () => {
-    setIsOver(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsOver(false);
-    
-    const { draggedElement } = state;
-    if (!draggedElement) return;
-
-    // Dropping a new section when the canvas is empty
-    if ('type' in draggedElement && sections.length === 0) {
-      dispatch({ type: "ADD_SECTION" });
-    }
-    
-    // Dropping an existing section
-    if ('sectionId' in draggedElement && !('element' in draggedElement)) {
-        const fromIndex = sections.findIndex(s => s.id === draggedElement.sectionId);
-        const toIndex = sections.length;
-        if (fromIndex !== -1) {
-            dispatch({ type: "MOVE_SECTION", payload: { fromIndex, toIndex } });
-        }
-    }
-  };
+  const { state, sections, dispatch } = useBuilder();
 
   const handleSectionDrop = (e: React.DragEvent, targetSectionId: string) => {
     e.preventDefault();
@@ -83,48 +34,8 @@ export function Canvas() {
 
   const isDraggingSection = state.draggedElement && 'sectionId' in state.draggedElement && !('element' in state.draggedElement);
 
-  const latestVersion = activeForm?.versions[0];
-  const isPublished = latestVersion?.type === 'published';
-
-  const renderBadge = () => {
-    if (!latestVersion) return null;
-    return (
-      <Badge className={cn(
-        "text-xs",
-        isPublished
-            ? "bg-green-100 text-green-800 border-green-200"
-            : "bg-yellow-100 text-yellow-800 border-yellow-200"
-      )}>
-        {isPublished ? `Published` : 'Draft'}
-      </Badge>
-    );
-  };
-
   return (
     <>
-        <header className="sticky top-0 z-10 flex items-center justify-between py-1.5 px-4 bg-[#A2C0DC] border-b shadow-sm">
-            <div className="flex items-center gap-2 flex-grow min-w-0">
-                <h1 className="text-lg font-semibold">
-                    {activeForm?.title || ""}
-                </h1>
-                 {renderBadge()}
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-                <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
-                    <Eye className="mr-2 h-4 w-4" />
-                    Preview
-                </Button>
-                 <Button variant="outline" size="sm" onClick={() => handleSaveClick("draft")}>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Draft
-                </Button>
-                <Button size="sm" onClick={() => handleSaveClick("published")}>
-                    <Send className="mr-2 h-4 w-4" />
-                    Publish
-                </Button>
-            </div>
-        </header>
-
         <div
             className="max-w-4xl mx-auto flex flex-col gap-4 pt-8 pb-24 px-4"
         >
@@ -153,13 +64,6 @@ export function Canvas() {
             Add Section
             </Button>
         </div>
-
-        <PreviewDialog isOpen={isPreviewOpen} onOpenChange={setIsPreviewOpen} />
-        <SaveVersionDialog 
-            isOpen={isSaveOpen}
-            onOpenChange={setIsSaveOpen}
-            saveType={saveType}
-        />
 
         <style jsx>{`
             .relative:hover .droppable-indicator-top {
