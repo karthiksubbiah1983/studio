@@ -101,18 +101,6 @@ export function CanvasSection({ section }: { section: Section }) {
     
     return (
         <div className="relative">
-            {latestVersion && (
-                <div className="absolute -top-3 left-4 z-10">
-                    <Badge className={cn(
-                        "text-xs",
-                        isPublished
-                            ? "bg-green-100 text-green-800 border-green-200"
-                            : "bg-yellow-100 text-yellow-800 border-yellow-200"
-                    )}>
-                    {isPublished ? `Published v${publishedVersionsCount}` : 'Draft'}
-                    </Badge>
-                </div>
-            )}
             <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "overflow-visible group/section relative")} onClick={handleSectionClick}>
                 <div 
                   draggable 

@@ -38,6 +38,23 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
     }
   }
 
+  const latestVersion = activeForm?.versions[0];
+  const isPublished = latestVersion?.type === 'published';
+
+  const renderBadge = () => {
+    if (!latestVersion) return null;
+    return (
+      <Badge className={cn(
+        "text-xs",
+        isPublished
+            ? "bg-green-100 text-green-800 border-green-200"
+            : "bg-yellow-100 text-yellow-800 border-yellow-200"
+      )}>
+        {isPublished ? `Published` : 'Draft'}
+      </Badge>
+    );
+  };
+
   return (
     <>
       <header className="relative z-10 flex items-center justify-between py-1.5 px-2 bg-gray-50 shadow">
@@ -48,11 +65,10 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
                 </Button>
             )}
             <div className="flex items-center flex-grow min-w-0 gap-2">
-                <Input 
-                  value={activeForm?.title || "Untitled Form"}
-                  onChange={handleTitleChange}
-                  className="font-semibold text-lg h-9 border-none focus-visible:ring-1 focus-visible:ring-ring"
-                />
+                <span className="font-semibold text-lg truncate">
+                    {activeForm?.title || "Untitled Form"}
+                </span>
+                {renderBadge()}
             </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
