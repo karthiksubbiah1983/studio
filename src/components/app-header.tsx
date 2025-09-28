@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Bell, PlusCircle, Home } from "lucide-react";
+import { Bell, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { SidebarTrigger } from "./ui/sidebar";
 
