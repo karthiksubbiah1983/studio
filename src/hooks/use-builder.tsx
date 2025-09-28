@@ -420,7 +420,16 @@ const builderReducer = (state: State, action: Action): State => {
       
       const newForms = state.forms.map(form => {
         if (form.id === state.activeFormId) {
-          return { ...form, versions: [newVersion, ...form.versions] }
+          // If the latest version is an empty draft, replace it. Otherwise, add the new one.
+          const currentVersions = [...form.versions];
+          const latestIsReplaceable = currentVersions[0].type === 'draft' && JSON.stringify(currentVersions[0].sections) === JSON.stringify([{ id: expect.any(String), title: "New Section", config: "expanded", elements: [] }]);
+          
+          if (latestIsReplaceable) {
+            currentVersions[0] = newVersion;
+            return { ...form, versions: currentVersions };
+          } else {
+            return { ...form, versions: [newVersion, ...form.versions] };
+          }
         }
         return form;
       });
@@ -430,29 +439,23 @@ const builderReducer = (state: State, action: Action): State => {
       if (!activeForm) return state;
       const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
       if (versionToLoad) {
-        // Create a new draft version based on the one being loaded
-        const newDraft: FormVersion = {
-            ...cloneWithNewIds(versionToLoad),
-            id: crypto.randomUUID(),
-            name: `Draft from ${versionToLoad.name}`,
-            description: `Loaded from version: ${versionToLoad.name}`,
-            type: 'draft',
-            timestamp: new Date().toISOString()
-        };
-
-        const newForms = state.forms.map(form => {
-            if (form.id === state.activeFormId) {
-                // Place the new draft at the top, making it the active one
-                return { ...form, versions: [newDraft, ...form.versions] };
-            }
-            return form;
-        });
-
-        return {
-          ...state,
-          forms: newForms,
-          selectedElement: null,
-        };
+          const newForms = state.forms.map(form => {
+              if (form.id === state.activeFormId) {
+                  const updatedVersions = [...form.versions];
+                  // The active version is always at index 0. We update its sections.
+                  updatedVersions[0] = {
+                      ...updatedVersions[0],
+                      sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy
+                  };
+                  return { ...form, versions: updatedVersions };
+              }
+              return form;
+          });
+          return {
+              ...state,
+              forms: newForms,
+              selectedElement: null,
+          };
       }
       return state;
     }
@@ -553,7 +556,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         }
       } catch (error) {
         console.error("Failed to load state from localStorage, initializing with default.", error);
-        // Fallback to default if loading/parsing fails
+        // Fallback to loading/parsing fails
          const defaultFormId = crypto.randomUUID();
          const defaultForm: Form = {
             id: defaultFormId,
@@ -621,6 +624,8 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
 
     
 
