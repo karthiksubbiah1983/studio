@@ -17,6 +17,7 @@ type Action =
   | { type: "ADD_FORM"; payload: { title: string, description?: string } }
   | { type: "UPDATE_FORM_TITLE"; payload: { formId: string, title: string } }
   | { type: "DELETE_FORM"; payload: { formId: string } }
+  | { type: "CLONE_FORM", payload: { formId: string } }
   | { type: "SET_ACTIVE_FORM"; payload: { formId: string | null } }
   | { type: "ADD_SECTION" }
   | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number, parentId?: string } }
@@ -45,16 +46,55 @@ const initialState: State = {
 };
 
 // Helper function to deep clone and assign new IDs
-const cloneWithNewIds = <T extends { id: string; key?: string }>(item: T): T => {
-  const newItem = JSON.parse(JSON.stringify(item));
-  newItem.id = crypto.randomUUID();
-  if (newItem.key) {
-      newItem.key = `${newItem.key}_${Math.random().toString(36).substring(2, 7)}`;
+const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[], sections?: any[], versions?: any[] }>(item: T): T => {
+  const itemClone = JSON.parse(JSON.stringify(item));
+  
+  const reIdRecursive = (obj: any) => {
+    if (obj.id) obj.id = crypto.randomUUID();
+    
+    // Check for conditional logic triggers and update them if they exist in the map
+    if (obj.conditionalLogic && obj.conditionalLogic.triggerElementId && idMap[obj.conditionalLogic.triggerElementId]) {
+      obj.conditionalLogic.triggerElementId = idMap[obj.conditionalLogic.triggerElementId];
+    }
+
+    if (obj.elements && Array.isArray(obj.elements)) {
+      obj.elements.forEach(reIdRecursive);
+    }
+  };
+
+  const idMap: { [oldId: string]: string } = {};
+
+  // First pass: collect all old IDs and create new ones
+  const collectIds = (obj: any) => {
+    if (obj.id) {
+        const newId = crypto.randomUUID();
+        idMap[obj.id] = newId;
+    }
+    if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(collectIds);
+    if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(collectIds);
+    if (obj.versions && Array.isArray(obj.versions)) obj.versions.forEach(collectIds);
   }
-  if ('elements' in newItem && Array.isArray(newItem.elements)) {
-    (newItem as any).elements = newItem.elements.map((el: any) => cloneWithNewIds(el));
+  collectIds(itemClone);
+
+  // Second pass: update all IDs
+  const updateIds = (obj: any) => {
+     if (obj.id && idMap[obj.id]) obj.id = idMap[obj.id];
+
+     if (obj.key) obj.key = `${obj.key}_${Math.random().toString(36).substring(2, 7)}`;
+
+     // Update conditional logic triggers
+     if (obj.conditionalLogic && obj.conditionalLogic.triggerElementId && idMap[obj.conditionalLogic.triggerElementId]) {
+        obj.conditionalLogic.triggerElementId = idMap[obj.conditionalLogic.triggerElementId];
+     }
+     
+     if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(updateIds);
+     if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(updateIds);
+     if (obj.versions && Array.isArray(obj.versions)) obj.versions.forEach(updateIds);
   }
-  return newItem;
+  updateIds(itemClone);
+
+
+  return itemClone;
 };
 
 // Recursive function to find and update/add/delete an element
@@ -162,6 +202,23 @@ const builderReducer = (state: State, action: Action): State => {
             ...state,
             forms: state.forms.filter(f => f.id !== action.payload.formId),
             activeFormId: state.activeFormId === action.payload.formId ? null : state.activeFormId,
+        };
+    }
+    case "CLONE_FORM": {
+        const { formId } = action.payload;
+        const formToClone = state.forms.find(f => f.id === formId);
+        if (!formToClone) return state;
+
+        const clonedForm = cloneWithNewIds(formToClone);
+        clonedForm.title = `Copy of ${formToClone.title}`;
+
+        const formIndex = state.forms.findIndex(f => f.id === formId);
+        const newForms = [...state.forms];
+        newForms.splice(formIndex + 1, 0, clonedForm);
+
+        return {
+            ...state,
+            forms: newForms,
         };
     }
     case "SET_ACTIVE_FORM":

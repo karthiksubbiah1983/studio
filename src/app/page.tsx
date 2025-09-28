@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Edit, PlusCircle, Trash, Search } from "lucide-react";
+import { Edit, PlusCircle, Trash, Search, Copy } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -71,6 +71,10 @@ export default function Home() {
 
   const handleDelete = (formId: string) => {
     dispatch({ type: "DELETE_FORM", payload: { formId } });
+  };
+  
+  const handleClone = (formId: string) => {
+    dispatch({ type: "CLONE_FORM", payload: { formId } });
   };
 
   return (
@@ -177,6 +181,9 @@ export default function Home() {
                         <TableCell>{format(new Date(latestVersion.timestamp), "PPP p")}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleClone(form.id)}>
+                              <Copy className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(form.id)}>
                               <Edit className="h-4 w-4" />
                             </Button>
