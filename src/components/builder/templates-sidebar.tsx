@@ -19,6 +19,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 export function TemplatesSidebar() {
   const { activeForm, dispatch } = useBuilder();
   const versions = activeForm?.versions || [];
+  
+  const publishedVersions = versions.filter(v => v.type === 'published');
+  const totalPublishedCount = publishedVersions.length;
 
   const handleLoadVersion = (e: React.MouseEvent, versionId: string) => {
     e.stopPropagation();
@@ -43,61 +46,73 @@ export function TemplatesSidebar() {
         </p>
       ) : (
         <Accordion type="multiple" className="space-y-2">
-          {versions.map((version) => (
-            <AccordionItem value={version.id} key={version.id} className="border-b-0">
-                <Card>
-                    <AccordionTrigger className="p-2 w-full hover:no-underline">
-                        <div className="flex justify-between items-center w-full">
-                            <div className="flex-1 flex items-center gap-2 text-left">
-                                <CardTitle className="text-sm font-medium leading-tight">{version.name}</CardTitle>
-                                <Badge
-                                    className={cn(
-                                    "text-xs",
-                                    version.type === "published"
-                                        ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100/80"
-                                        : ""
-                                    )}
-                                    variant={
-                                    version.type === "published" ? "outline" : "secondary"
-                                    }
-                                >
-                                    {version.type}
-                                </Badge>
-                            </div>
-                            <div className="flex gap-1 ml-2">
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-7 w-7"
-                                    onClick={(e) => handleLoadVersion(e, version.id)}
-                                >
-                                    <Download className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-7 w-7 hover:bg-destructive/10"
-                                    onClick={(e) => handleDeleteVersion(e, version.id)}
-                                    disabled={versions.length <= 1}
-                                >
-                                    <Trash className="h-4 w-4 text-destructive" />
-                                </Button>
-                            </div>
-                        </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-2 pb-2">
-                         <CardDescription className="text-xs mb-2">
-                            {format(new Date(version.timestamp), "PPP p")}
-                        </CardDescription>
-                        <p className="text-xs text-muted-foreground">
-                            {version.description || "No description."}
-                        </p>
-                    </AccordionContent>
-                </Card>
-            </AccordionItem>
-          ))}
+          {versions.map((version) => {
+            const isPublished = version.type === 'published';
+            let versionNumberText = '';
+            if (isPublished) {
+              const publishedIndex = publishedVersions.findIndex(v => v.id === version.id);
+              const versionNumber = totalPublishedCount - publishedIndex;
+              versionNumberText = `v${versionNumber}`;
+            }
+
+            return (
+              <AccordionItem value={version.id} key={version.id} className="border-b-0">
+                  <Card>
+                      <AccordionTrigger className="p-2 w-full hover:no-underline">
+                          <div className="flex justify-between items-center w-full">
+                              <div className="flex-1 flex items-center gap-2 text-left">
+                                  <CardTitle className="text-sm font-medium leading-tight">{version.name}</CardTitle>
+                                  {isPublished && <span className="text-xs text-muted-foreground">{versionNumberText}</span>}
+                                  <Badge
+                                      className={cn(
+                                      "text-xs",
+                                      isPublished
+                                          ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100/80"
+                                          : ""
+                                      )}
+                                      variant={
+                                      isPublished ? "outline" : "secondary"
+                                      }
+                                  >
+                                      {version.type}
+                                  </Badge>
+                              </div>
+                              <div className="flex gap-1 ml-2">
+                                  <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7"
+                                      onClick={(e) => handleLoadVersion(e, version.id)}
+                                  >
+                                      <Download className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7 hover:bg-destructive/10"
+                                      onClick={(e) => handleDeleteVersion(e, version.id)}
+                                      disabled={versions.length <= 1}
+                                  >
+                                      <Trash className="h-4 w-4 text-destructive" />
+                                  </Button>
+                              </div>
+                          </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-2 pb-2">
+                           <CardDescription className="text-xs mb-2">
+                              {format(new Date(version.timestamp), "PPP p")}
+                          </CardDescription>
+                          <p className="text-xs text-muted-foreground">
+                              {version.description || "No description."}
+                          </p>
+                      </AccordionContent>
+                  </Card>
+              </AccordionItem>
+            )
+          })}
         </Accordion>
       )}
     </div>
   );
 }
+
