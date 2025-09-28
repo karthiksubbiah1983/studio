@@ -5,7 +5,8 @@ import { FormElements } from "@/lib/form-elements";
 import { SidebarElement } from "./sidebar-element";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCircleArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
 export function ElementsSidebar() {
   return (
@@ -15,7 +16,7 @@ export function ElementsSidebar() {
           href="/"
           className="flex items-center gap-2 p-2 rounded-md text-primary hover:bg-accent transition-colors"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <FontAwesomeIcon icon={faCircleArrowLeft} className="h-4 w-4" />
           <span className="font-medium">Back To Home</span>
         </Link>
       </div>
