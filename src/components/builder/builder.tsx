@@ -30,7 +30,11 @@ export function Builder() {
     // Render a consistent, non-interactive structure on the server
     return (
        <div className="flex flex-col w-full h-full">
-        <Header />
+        <Header 
+            onLeftSidebarToggle={() => {}}
+            onRightSidebarToggle={() => {}}
+            onTemplatesSidebarToggle={() => {}}
+        />
         <div className="flex flex-grow h-full overflow-hidden gap-2.5">
           <ElementsSidebar />
           <div className="flex-grow h-full overflow-y-auto bg-background">

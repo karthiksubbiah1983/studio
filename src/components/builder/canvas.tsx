@@ -5,14 +5,26 @@ import { useState } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { CanvasSection } from "./canvas-section";
-import { Plus } from "lucide-react";
+import { Eye, LayoutTemplate, Plus, Save, Send, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "../ui/input";
 import { Badge } from "../ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { PreviewDialog } from "./preview-dialog";
+import { SaveVersionDialog } from "./save-version-dialog";
 
 export function Canvas() {
   const { state, sections, dispatch, activeForm } = useBuilder();
   const [isOver, setIsOver] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isSaveOpen, setIsSaveOpen] = useState(false);
+  const [saveType, setSaveType] = useState<"draft" | "published">("draft");
+  const isMobile = useIsMobile();
+
+  const handleSaveClick = (type: "draft" | "published") => {
+    setSaveType(type);
+    setIsSaveOpen(true);
+  }
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -96,17 +108,34 @@ export function Canvas() {
 
   return (
     <>
-        <div
-            className="max-w-4xl mx-auto flex flex-col gap-4 pt-8 pb-24 px-4"
-        >
-            <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-10 flex items-center justify-between py-1.5 px-4 bg-background border-b shadow-sm">
+            <div className="flex items-center gap-2 flex-grow min-w-0">
                 <Input 
-                    className="text-base font-semibold h-auto p-0 border-none focus-visible:ring-0"
+                    className="text-lg font-semibold h-auto p-0 border-none focus-visible:ring-0 w-auto"
                     value={activeForm?.title || ""}
                     onChange={handleTitleChange}
                 />
-                {renderBadge()}
+                 {renderBadge()}
             </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+                <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Preview
+                </Button>
+                 <Button variant="outline" size="sm" onClick={() => handleSaveClick("draft")}>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Draft
+                </Button>
+                <Button size="sm" onClick={() => handleSaveClick("published")}>
+                    <Send className="mr-2 h-4 w-4" />
+                    Publish
+                </Button>
+            </div>
+        </header>
+
+        <div
+            className="max-w-4xl mx-auto flex flex-col gap-4 pt-8 pb-24 px-4"
+        >
             {sections.map((section) => (
                 <div 
                     key={section.id} 
@@ -132,6 +161,14 @@ export function Canvas() {
             Add Section
             </Button>
         </div>
+
+        <PreviewDialog isOpen={isPreviewOpen} onOpenChange={setIsPreviewOpen} />
+        <SaveVersionDialog 
+            isOpen={isSaveOpen}
+            onOpenChange={setIsSaveOpen}
+            saveType={saveType}
+        />
+
         <style jsx>{`
             .relative:hover .droppable-indicator-top {
                 opacity: 1;
