@@ -273,7 +273,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       content = (
         <div>
           {renderLabelWithPopup()}
-          <RadioGroup value={value?.value} onValueChange={(val) => onValueChange(element.id, val)}>
+          <RadioGroup value={value?.value} onValueChange={(val) => onValueChange(element.id, val)} className="mt-2">
             {options?.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <RadioGroupItem
