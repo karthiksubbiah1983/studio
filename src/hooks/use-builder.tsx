@@ -443,26 +443,26 @@ const builderReducer = (state: State, action: Action): State => {
       if (!versionToLoad) return state;
 
       const newForms = state.forms.map(form => {
-          if (form.id === state.activeFormId) {
-              const otherVersions = form.versions.filter(v => v.id !== action.payload.versionId);
-              const newActiveDraft: FormVersion = {
-                  ...JSON.parse(JSON.stringify(versionToLoad)), // Deep copy
-                  id: crypto.randomUUID(),
-                  type: 'draft',
-                  name: `Draft from ${versionToLoad.name}`,
-                  timestamp: new Date().toISOString(),
-              };
-              const updatedVersions = [newActiveDraft, versionToLoad, ...otherVersions.filter(v => v.id !== versionToLoad.id)];
-              
-              return { ...form, versions: updatedVersions };
-          }
-          return form;
+        if (form.id === state.activeFormId) {
+          const activeDraft = form.versions[0];
+          const updatedDraft = {
+            ...activeDraft,
+            name: `Draft from ${versionToLoad.name}`,
+            sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy sections
+            timestamp: new Date().toISOString(),
+          };
+          
+          const updatedVersions = [updatedDraft, ...form.versions.slice(1)];
+          
+          return { ...form, versions: updatedVersions };
+        }
+        return form;
       });
 
       return {
-          ...state,
-          forms: newForms,
-          selectedElement: null,
+        ...state,
+        forms: newForms,
+        selectedElement: null,
       };
     }
     case "DELETE_VERSION": {
@@ -635,17 +635,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
