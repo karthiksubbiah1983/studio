@@ -10,11 +10,15 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ConditionalWrapper } from "./conditional-wrapper";
 import { Copy, GripVertical, Trash } from "lucide-react";
+import { Badge } from "../ui/badge";
 
 
 export function CanvasSection({ section }: { section: Section }) {
-  const { state, dispatch } = useBuilder();
+  const { state, dispatch, activeForm } = useBuilder();
   const [isOver, setIsOver] = useState(false);
+
+  const latestVersion = activeForm?.versions[0];
+  const publishedVersionsCount = activeForm?.versions.filter(v => v.type === 'published').length || 0;
   
   const handleDragStart = (e: React.DragEvent) => {
     e.stopPropagation();
@@ -103,7 +107,8 @@ export function CanvasSection({ section }: { section: Section }) {
             >
                 <GripVertical className="h-6 w-6 text-muted-foreground" />
             </div>
-            <CardHeader className="p-4 flex flex-row items-center justify-between">
+            <CardHeader className="p-2 flex-col items-start">
+              <div className="flex flex-row items-center justify-between w-full">
                 <CardTitle className="text-base font-medium">
                     {section.title}
                 </CardTitle>
@@ -131,6 +136,12 @@ export function CanvasSection({ section }: { section: Section }) {
                         <Trash className="h-4 w-4" />
                     </Button>
                 </div>
+              </div>
+              {latestVersion && (
+                <Badge variant={latestVersion.type === 'published' ? 'default' : 'secondary'}>
+                  {latestVersion.type === 'published' ? `Published v${publishedVersionsCount}` : 'Draft'}
+                </Badge>
+              )}
             </CardHeader>
             <CardContent className="p-4 pt-0">
               {content}

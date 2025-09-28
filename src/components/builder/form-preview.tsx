@@ -14,6 +14,7 @@ import { FormElementInstance, Section } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "../ui/badge";
 
 type Props = {
     showSubmitButton?: boolean;
@@ -54,9 +55,12 @@ const generateSubmissionJson = (elements: FormElementInstance[], formState: { [k
 };
 
 export function FormPreview({ showSubmitButton = true }: Props) {
-  const { state, activeForm, sections, dispatch } = useBuilder();
+  const { activeForm, sections, dispatch } = useBuilder();
   const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
   const { toast } = useToast();
+  
+  const latestVersion = activeForm?.versions[0];
+  const publishedVersionsCount = activeForm?.versions.filter(v => v.type === 'published').length || 0;
 
   const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
     setFormState((prev) => ({ ...prev, [elementId]: { value, fullObject } }));
@@ -128,10 +132,15 @@ export function FormPreview({ showSubmitButton = true }: Props) {
 
         return (
           <Card key={section.id}>
-            <CardHeader>
-                <CardTitle className="text-base font-medium">
+            <CardHeader className="p-2 flex-col items-start">
+                <CardTitle className="text-base font-medium px-2">
                     {section.title}
                 </CardTitle>
+                 {latestVersion && (
+                <Badge variant={latestVersion.type === 'published' ? 'default' : 'secondary'} className="mx-2">
+                  {latestVersion.type === 'published' ? `Published v${publishedVersionsCount}` : 'Draft'}
+                </Badge>
+              )}
             </CardHeader>
             <CardContent>
               <div
