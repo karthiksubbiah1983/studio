@@ -184,7 +184,7 @@ function SectionProperties({ section }: { section: Section }) {
         <div className="flex flex-col gap-4">
             <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                 <AccordionItem value="general">
-                    <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
+                    <AccordionTrigger className="py-2">General</AccordionTrigger>
                     <AccordionContent className="flex flex-col gap-4">
                         <div className="flex flex-col gap-2">
                             <Label htmlFor="section-title">Title</Label>
@@ -193,7 +193,7 @@ function SectionProperties({ section }: { section: Section }) {
                     </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="logic">
-                    <AccordionTrigger className="pb-[18px]">Conditional Logic</AccordionTrigger>
+                    <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                     <AccordionContent>
                         <ConditionalLogicSettings element={section} onUpdate={handleConditionalLogicUpdate} />
                     </AccordionContent>
@@ -669,7 +669,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return (
                  <Accordion type="multiple" defaultValue={["general"]} className="w-full">
                     <AccordionItem value="general">
-                        <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Title</Label>
@@ -685,7 +685,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
              return (
                 <Accordion type="multiple" defaultValue={["layout", "logic"]} className="w-full">
                     <AccordionItem value="layout">
-                        <AccordionTrigger className="pb-[18px]">Layout</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                            <div className="flex flex-col gap-2">
                                 <Label>Direction</Label>
@@ -731,7 +731,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
-                        <AccordionTrigger className="pb-[18px]">Conditional Logic</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                         <AccordionContent>
                             <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
                         </AccordionContent>
@@ -743,7 +743,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return (
                  <Accordion type="multiple" defaultValue={["general", "data", "logic"]} className="w-full">
                     <AccordionItem value="general">
-                        <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Label</Label>
@@ -753,7 +753,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
-                        <AccordionTrigger className="pb-[18px]">Data Source</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label>Source Dropdown</Label>
@@ -783,7 +783,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="logic">
-                        <AccordionTrigger className="pb-[18px]">Conditional Logic</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                         <AccordionContent>
                             <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
                         </AccordionContent>
@@ -796,13 +796,13 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
              return (
                  <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                     <AccordionItem value="general">
-                        <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
-                        <AccordionTrigger className="pb-[18px]">Conditional Logic</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                         <AccordionContent>
                             <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
                         </AccordionContent>
@@ -813,13 +813,13 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return (
                 <Accordion type="multiple" defaultValue={["general", "data", "logic"]} className="w-full">
                     <AccordionItem value="general">
-                        <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
-                        <AccordionTrigger className="pb-[18px]">Data Source</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2 mb-1.5">
                                 <Label>Source Type</Label>
@@ -849,7 +849,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
-                        <AccordionTrigger className="pb-[18px]">Conditional Logic</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                         <AccordionContent>
                             <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
                         </AccordionContent>
@@ -860,20 +860,20 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
              return (
                  <Accordion type="multiple" defaultValue={["general", "data", "logic"]} className="w-full">
                     <AccordionItem value="general">
-                        <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                             <PopupSettings element={element} onUpdate={handlePopupUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="data">
-                        <AccordionTrigger className="pb-[18px]">Options</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Options</AccordionTrigger>
                         <AccordionContent>
                             {optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
-                        <AccordionTrigger className="pb-[18px]">Conditional Logic</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                         <AccordionContent>
                             <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
                         </AccordionContent>
@@ -884,7 +884,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return (
                  <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                     <AccordionItem value="general">
-                        <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="key">Field Key</Label>
@@ -902,7 +902,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
-                        <AccordionTrigger className="pb-[18px]">Conditional Logic</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                         <AccordionContent>
                             <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
                         </AccordionContent>
@@ -913,13 +913,13 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return (
                  <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
                     <AccordionItem value="general">
-                        <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent>
                             {commonFields}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
-                        <AccordionTrigger className="pb-[18px]">Conditional Logic</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                         <AccordionContent>
                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
                         </AccordionContent>
@@ -930,19 +930,19 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return (
                 <Accordion type="multiple" defaultValue={["general", "columns", "actions", "logic"]} className="w-full">
                     <AccordionItem value="general">
-                        <AccordionTrigger className="pb-[18px]">General</AccordionTrigger>
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                         </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="columns">
-                        <AccordionTrigger className="pb-[18px]">Columns</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                         <AccordionContent>
                             {tableFields}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="logic">
-                        <AccordionTrigger className="pb-[18px]">Conditional Logic</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                         <AccordionContent>
                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
                         </AccordionContent>
