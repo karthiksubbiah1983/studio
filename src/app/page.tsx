@@ -44,6 +44,11 @@ export default function Home() {
   const [newTemplateName, setNewTemplateName] = useState("");
   const [newTemplateDescription, setNewTemplateDescription] = useState("");
   
+  const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
+  const [cloningFormId, setCloningFormId] = useState<string | null>(null);
+  const [newCloneName, setNewCloneName] = useState("");
+
+
   const filteredForms = forms.filter(form => 
     form.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -73,9 +78,28 @@ export default function Home() {
     dispatch({ type: "DELETE_FORM", payload: { formId } });
   };
   
-  const handleClone = (formId: string) => {
-    dispatch({ type: "CLONE_FORM", payload: { formId } });
+  const handleOpenCloneDialog = (formId: string) => {
+    const formToClone = forms.find(f => f.id === formId);
+    if (!formToClone) return;
+    setCloningFormId(formId);
+    setNewCloneName(`Copy of ${formToClone.title}`);
+    setIsCloneDialogOpen(true);
   };
+
+  const handleClone = () => {
+    if (!cloningFormId || !newCloneName.trim()) return;
+    dispatch({ 
+        type: "CLONE_FORM", 
+        payload: { 
+            formId: cloningFormId,
+            newName: newCloneName,
+        } 
+    });
+    setIsCloneDialogOpen(false);
+    setCloningFormId(null);
+    setNewCloneName("");
+  };
+
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -181,7 +205,7 @@ export default function Home() {
                         <TableCell>{format(new Date(latestVersion.timestamp), "PPP p")}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleClone(form.id)}>
+                             <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>
                               <Copy className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleEdit(form.id)}>
@@ -226,6 +250,36 @@ export default function Home() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isCloneDialogOpen} onOpenChange={setIsCloneDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clone Template</DialogTitle>
+            <DialogDescription>
+              Enter a new name for the cloned template.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="clone-name" className="text-right">
+                New Name
+              </Label>
+              <Input
+                id="clone-name"
+                value={newCloneName}
+                onChange={(e) => setNewCloneName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsCloneDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleClone} disabled={!newCloneName.trim()}>Clone</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
+    

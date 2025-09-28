@@ -17,7 +17,7 @@ type Action =
   | { type: "ADD_FORM"; payload: { title: string, description?: string } }
   | { type: "UPDATE_FORM_TITLE"; payload: { formId: string, title: string } }
   | { type: "DELETE_FORM"; payload: { formId: string } }
-  | { type: "CLONE_FORM", payload: { formId: string } }
+  | { type: "CLONE_FORM", payload: { formId: string, newName: string } }
   | { type: "SET_ACTIVE_FORM"; payload: { formId: string | null } }
   | { type: "ADD_SECTION" }
   | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number, parentId?: string } }
@@ -205,12 +205,14 @@ const builderReducer = (state: State, action: Action): State => {
         };
     }
     case "CLONE_FORM": {
-        const { formId } = action.payload;
+        const { formId, newName } = action.payload;
         const formToClone = state.forms.find(f => f.id === formId);
         if (!formToClone) return state;
 
         const clonedForm = cloneWithNewIds(formToClone);
-        clonedForm.title = `Copy of ${formToClone.title}`;
+        clonedForm.title = newName;
+        // Set all versions to draft
+        clonedForm.versions.forEach(v => v.type = 'draft');
 
         const formIndex = state.forms.findIndex(f => f.id === formId);
         const newForms = [...state.forms];
@@ -609,3 +611,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
