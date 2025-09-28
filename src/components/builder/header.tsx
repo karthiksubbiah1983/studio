@@ -3,7 +3,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useBuilder } from "@/hooks/use-builder";
-import { Eye, PanelLeft, Settings, History, Save, Send } from "lucide-react";
+import { Eye, PanelLeft, Settings, Save, Send, LayoutTemplate } from "lucide-react";
 import { PreviewDialog } from "./preview-dialog";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -15,10 +15,10 @@ import { cn } from "@/lib/utils";
 type Props = {
   onLeftSidebarToggle?: () => void;
   onRightSidebarToggle?: () => void;
-  onHistorySidebarToggle?: () => void;
+  onTemplatesSidebarToggle?: () => void;
 }
 
-export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySidebarToggle }: Props) {
+export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesSidebarToggle }: Props) {
   const { activeForm, dispatch } = useBuilder();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isJsonPreviewOpen, setIsJsonPreviewOpen] = useState(false);
@@ -83,8 +83,8 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onHistorySid
             </>
           )}
            {isMobile && (
-             <Button variant="ghost" size="icon" onClick={onHistorySidebarToggle}>
-                  <History className="h-5 w-5"/>
+             <Button variant="ghost" size="icon" onClick={onTemplatesSidebarToggle}>
+                  <LayoutTemplate className="h-5 w-5"/>
               </Button>
            )}
            {isMobile && (

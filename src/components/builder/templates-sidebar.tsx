@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { Download, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export function HistorySidebar() {
+export function TemplatesSidebar() {
   const { activeForm, dispatch } = useBuilder();
   const versions = activeForm?.versions || [];
 
@@ -36,7 +36,7 @@ export function HistorySidebar() {
     <div className="w-full p-4 h-full overflow-y-auto">
       {versions.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No versions saved yet. Click 'Save Draft' or 'Publish' to create one.
+          No templates saved yet. Click 'Save Draft' or 'Publish' to create one.
         </p>
       ) : (
         <div className="space-y-4">

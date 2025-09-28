@@ -8,7 +8,7 @@ import { Canvas } from "./canvas";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { HistorySidebar } from "./history-sidebar";
+import { TemplatesSidebar } from "./templates-sidebar";
 import { RightSidebar } from "./right-sidebar";
 
 export function Builder() {
@@ -16,7 +16,7 @@ export function Builder() {
   const [isClient, setIsClient] = useState(false);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
-  const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
+  const [isTemplatesSidebarOpen, setIsTemplatesSidebarOpen] = useState(false);
   
   useEffect(() => {
     setIsClient(true);
@@ -47,7 +47,7 @@ export function Builder() {
       <Header 
         onLeftSidebarToggle={() => setIsLeftSidebarOpen(prev => !prev)}
         onRightSidebarToggle={() => setIsRightSidebarOpen(prev => !prev)}
-        onHistorySidebarToggle={() => setIsHistorySidebarOpen(prev => !prev)}
+        onTemplatesSidebarToggle={() => setIsTemplatesSidebarOpen(prev => !prev)}
       />
       <div className="flex flex-grow h-full overflow-hidden gap-2.5">
         {isMobile ? (
@@ -71,9 +71,9 @@ export function Builder() {
                     <PropertiesSidebar />
                 </SheetContent>
             </Sheet>
-            <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
+            <Sheet open={isTemplatesSidebarOpen} onOpenChange={setIsTemplatesSidebarOpen}>
                 <SheetContent side="right" className="p-0 w-full max-w-md">
-                    <HistorySidebar />
+                    <TemplatesSidebar />
                 </SheetContent>
             </Sheet>
           </>

@@ -3,8 +3,8 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PropertiesSidebar } from "./properties-sidebar";
-import { HistorySidebar } from "./history-sidebar";
-import { History, Settings } from "lucide-react";
+import { TemplatesSidebar } from "./templates-sidebar";
+import { LayoutTemplate, Settings } from "lucide-react";
 
 export function RightSidebar() {
   return (
@@ -15,16 +15,16 @@ export function RightSidebar() {
             <Settings className="h-4 w-4" />
             Properties
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex-1 gap-2">
-            <History className="h-4 w-4" />
-            History
+          <TabsTrigger value="templates" className="flex-1 gap-2">
+            <LayoutTemplate className="h-4 w-4" />
+            Templates
           </TabsTrigger>
         </TabsList>
         <TabsContent value="properties" className="flex-grow h-0">
           <PropertiesSidebar />
         </TabsContent>
-        <TabsContent value="history" className="flex-grow h-0">
-          <HistorySidebar />
+        <TabsContent value="templates" className="flex-grow h-0">
+          <TemplatesSidebar />
         </TabsContent>
       </Tabs>
     </aside>
