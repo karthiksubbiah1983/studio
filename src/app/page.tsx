@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { cn } from "@/lib/utils";
 
 export default function Home() {
   const { state, dispatch } = useBuilder();
@@ -147,7 +148,7 @@ export default function Home() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Template Name</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Version</TableHead>
                   <TableHead>Last Modified</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -157,15 +158,21 @@ export default function Home() {
                   filteredForms.map((form) => {
                     const latestVersion = form.versions[0];
                     const publishedVersion = form.versions.find(v => v.type === 'published');
-                    const status = publishedVersion ? 'Published' : 'Draft';
+                    const displayVersion = publishedVersion || latestVersion;
+                    const status = displayVersion.type === 'published' ? 'Published' : 'Draft';
 
                     return (
                       <TableRow key={form.id}>
                         <TableCell className="font-medium">{form.title}</TableCell>
                         <TableCell>
-                          <Badge variant={status === 'Published' ? 'default' : 'secondary'}>
-                            {status}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">{displayVersion.name}</span>
+                            <Badge className={cn(
+                              status === 'Published' && "bg-green-100 text-green-800 border-green-200"
+                            )} variant={status === 'Published' ? 'outline' : 'secondary'}>
+                              {status}
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell>{format(new Date(latestVersion.timestamp), "PPP p")}</TableCell>
                         <TableCell className="text-right">
