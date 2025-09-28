@@ -2,7 +2,7 @@
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,17 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Edit, PlusCircle, Trash, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,17 +39,29 @@ export default function Home() {
   const { forms } = state;
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isNewTemplateDialogOpen, setIsNewTemplateDialogOpen] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [newTemplateDescription, setNewTemplateDescription] = useState("");
   
   const filteredForms = forms.filter(form => 
     form.title.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleCreateNew = () => {
-    // The dispatch for ADD_FORM now returns the new form's ID
-    const newFormId = dispatch({ type: "ADD_FORM", payload: { title: "Untitled Form" } });
+    if (!newTemplateName.trim()) return;
+    const newFormId = dispatch({ 
+      type: "ADD_FORM", 
+      payload: { 
+        title: newTemplateName,
+        description: newTemplateDescription,
+      } 
+    });
     if (newFormId) {
       router.push(`/builder/${newFormId}`);
     }
+    setNewTemplateName("");
+    setNewTemplateDescription("");
+    setIsNewTemplateDialogOpen(false);
   };
 
   const handleEdit = (formId: string) => {
@@ -69,10 +92,52 @@ export default function Home() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button onClick={handleCreateNew}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create New
-              </Button>
+              <Dialog open={isNewTemplateDialogOpen} onOpenChange={setIsNewTemplateDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Create New
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Create New Template</DialogTitle>
+                    <DialogDescription>
+                      Give your new template a name and an optional description.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="template-name" className="text-right">
+                        Name
+                      </Label>
+                      <Input
+                        id="template-name"
+                        value={newTemplateName}
+                        onChange={(e) => setNewTemplateName(e.target.value)}
+                        className="col-span-3"
+                        placeholder="e.g., 'Customer Inquiry Form'"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="template-description" className="text-right">
+                        Description
+                      </Label>
+                       <Textarea
+                        id="template-description"
+                        value={newTemplateDescription}
+                        onChange={(e) => setNewTemplateDescription(e.target.value)}
+                        className="col-span-3"
+                        placeholder="Optional: A brief summary of this template's purpose."
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="secondary" onClick={() => setIsNewTemplateDialogOpen(false)}>Cancel</Button>
+                    <Button onClick={handleCreateNew} disabled={!newTemplateName.trim()}>Create Template</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </CardHeader>

@@ -14,7 +14,7 @@ type State = {
 };
 
 type Action =
-  | { type: "ADD_FORM"; payload: { title: string } }
+  | { type: "ADD_FORM"; payload: { title: string, description?: string } }
   | { type: "UPDATE_FORM_TITLE"; payload: { formId: string, title: string } }
   | { type: "DELETE_FORM"; payload: { formId: string } }
   | { type: "SET_ACTIVE_FORM"; payload: { formId: string | null } }
@@ -128,14 +128,15 @@ const builderReducer = (state: State, action: Action): State => {
 
   switch (action.type) {
     case "ADD_FORM": {
+        const { title, description } = action.payload;
         const newFormId = crypto.randomUUID();
         const newForm: Form = {
             id: newFormId,
-            title: action.payload.title,
+            title: title,
             versions: [{
               id: crypto.randomUUID(),
-              name: "Initial Draft",
-              description: "",
+              name: "Version 1",
+              description: description || "Initial version",
               type: "draft",
               timestamp: new Date().toISOString(),
               sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
@@ -496,7 +497,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
   const sections = activeForm?.versions[0]?.sections || [];
   
-  const dispatch = (action: Action) => {
+  const dispatch = (action: Action): string | void => {
     if (action.type === 'ADD_FORM') {
       const newState = builderReducer(state, action);
       dispatchAction({type: "SET_STATE", payload: newState });
