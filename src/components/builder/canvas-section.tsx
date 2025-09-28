@@ -97,56 +97,65 @@ export function CanvasSection({ section }: { section: Section }) {
   );
 
   const sectionContent = () => {
+    const isPublished = latestVersion?.type === 'published';
+    
     return (
-        <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "overflow-visible group/section relative")} onClick={handleSectionClick}>
-            <div 
-              draggable 
-              onDragStart={handleDragStart}
-              onDragEnd={handleDragEnd}
-              className="absolute top-1/2 -translate-y-1/2 -left-8 h-full flex items-center cursor-grab opacity-0 group-hover/section:opacity-100 transition-opacity"
-            >
-                <GripVertical className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <CardHeader className="p-2 flex-col items-start">
-              <div className="flex flex-row items-center justify-between w-full">
-                <CardTitle className="text-base font-medium">
-                    {section.title}
-                </CardTitle>
-                <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
-                        }}
-                    >
-                        <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        variant="destructive"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
-                        }}
-                    >
-                        <Trash className="h-4 w-4" />
-                    </Button>
+        <div className="relative">
+            {latestVersion && (
+                <div className="absolute -top-3 left-4 z-10">
+                    <Badge className={cn(
+                        "text-xs",
+                        isPublished
+                            ? "bg-green-100 text-green-800 border-green-200"
+                            : "bg-yellow-100 text-yellow-800 border-yellow-200"
+                    )}>
+                    {isPublished ? `Published v${publishedVersionsCount}` : 'Draft'}
+                    </Badge>
                 </div>
-              </div>
-              {latestVersion && (
-                <Badge variant={latestVersion.type === 'published' ? 'default' : 'secondary'}>
-                  {latestVersion.type === 'published' ? `Published v${publishedVersionsCount}` : 'Draft'}
-                </Badge>
-              )}
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              {content}
-            </CardContent>
-        </Card>
+            )}
+            <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "overflow-visible group/section relative")} onClick={handleSectionClick}>
+                <div 
+                  draggable 
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  className="absolute top-1/2 -translate-y-1/2 -left-8 h-full flex items-center cursor-grab opacity-0 group-hover/section:opacity-100 transition-opacity"
+                >
+                    <GripVertical className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <CardHeader className="p-4 flex-row items-center justify-between">
+                    <CardTitle className="text-base font-medium">
+                        {section.title}
+                    </CardTitle>
+                    <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
+                            }}
+                        >
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
+                            }}
+                        >
+                            <Trash className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  {content}
+                </CardContent>
+            </Card>
+        </div>
     );
   }
 
