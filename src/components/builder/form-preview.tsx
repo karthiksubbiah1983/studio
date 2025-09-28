@@ -122,7 +122,7 @@ export function FormPreview({ showSubmitButton = true }: Props) {
   }
 
   return (
-    <div className="p-4 space-y-8">
+    <div className="p-4 space-y-4">
       {sections.map((section) => {
          if (!isVisible(section)) return null;
 
