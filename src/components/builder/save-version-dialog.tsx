@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import {
   Dialog,
@@ -29,6 +29,17 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+
+  useEffect(() => {
+    if (isOpen && saveType === 'published' && activeForm) {
+      const publishedCount = activeForm.versions.filter(v => v.type === 'published').length;
+      setName(`Version ${publishedCount + 1}`);
+    } else {
+      setName("");
+    }
+    setDescription("");
+  }, [isOpen, saveType, activeForm]);
+
 
   const handleSave = () => {
     dispatch({

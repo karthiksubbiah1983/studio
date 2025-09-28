@@ -185,16 +185,19 @@ export default function Home() {
                 {filteredForms.length > 0 ? (
                   filteredForms.map((form) => {
                     const latestVersion = form.versions[0];
-                    const publishedVersion = form.versions.find(v => v.type === 'published');
-                    const displayVersion = publishedVersion || latestVersion;
-                    const status = displayVersion.type === 'published' ? 'Published' : 'Draft';
+                    const publishedVersions = form.versions.filter(v => v.type === 'published');
+                    const latestPublishedVersion = publishedVersions[0];
+                    
+                    const versionNumber = latestPublishedVersion ? publishedVersions.length : 0;
+                    const status = latestVersion.type === 'published' ? 'Published' : 'Draft';
+                    const displayVersionText = status === 'Published' ? `v${versionNumber}` : 'Draft';
 
                     return (
                       <TableRow key={form.id}>
                         <TableCell className="font-medium">{form.title}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">{displayVersion.name}</span>
+                            <span className="text-sm text-muted-foreground">{displayVersionText}</span>
                             <Badge className={cn(
                               status === 'Published' && "bg-green-100 text-green-800 border-green-200"
                             )} variant={status === 'Published' ? 'outline' : 'secondary'}>
@@ -281,9 +284,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
-
-    
