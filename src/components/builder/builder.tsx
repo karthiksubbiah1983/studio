@@ -93,17 +93,19 @@ export function Builder() {
             onRightSidebarToggle={() => {}}
             onTemplatesSidebarToggle={() => {}}
         />
-         <div className="flex-1 flex flex-col overflow-hidden">
-          {titleBar}
-          <div className="flex flex-grow h-full overflow-hidden gap-2.5">
+         <div className="flex-1 flex flex-row overflow-hidden">
             <ElementsSidebar />
-            <div className="flex-grow h-full overflow-y-auto bg-background">
-              <Canvas />
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {titleBar}
+                <div className="flex flex-grow h-full overflow-hidden">
+                    <div className="flex-grow h-full overflow-y-auto bg-background">
+                        <Canvas />
+                    </div>
+                    <RightSidebar />
+                </div>
             </div>
-            <RightSidebar />
           </div>
         </div>
-      </div>
     );
   }
 
@@ -115,40 +117,41 @@ export function Builder() {
           onRightSidebarToggle={() => setIsRightSidebarOpen(prev => !prev)}
           onTemplatesSidebarToggle={() => setIsTemplatesSidebarOpen(prev => !prev)}
         />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {titleBar}
-          <div className="flex flex-grow h-[calc(100%-53px)] overflow-hidden gap-2.5">
+        <div className="flex-1 flex flex-row overflow-hidden">
             {isMobile ? (
-              <Sheet open={isLeftSidebarOpen} onOpenChange={setIsLeftSidebarOpen}>
-                <SheetContent side="left" className="p-0">
-                    <ElementsSidebar />
-                </SheetContent>
-              </Sheet>
+                <Sheet open={isLeftSidebarOpen} onOpenChange={setIsLeftSidebarOpen}>
+                    <SheetContent side="left" className="p-0">
+                        <ElementsSidebar />
+                    </SheetContent>
+                </Sheet>
             ) : (
-              <ElementsSidebar />
+                <ElementsSidebar />
             )}
-            
-            <div className="flex-grow h-full overflow-y-auto bg-background">
-              <Canvas />
+
+            <div className="flex-1 flex flex-col overflow-hidden">
+                {titleBar}
+                <div className="flex flex-grow h-[calc(100%-53px)] overflow-hidden">
+                    <div className="flex-grow h-full overflow-y-auto bg-background">
+                        <Canvas />
+                    </div>
+                    {isMobile ? (
+                        <>
+                            <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
+                                <SheetContent side="right" className="p-0">
+                                    <PropertiesSidebar />
+                                </SheetContent>
+                            </Sheet>
+                            <Sheet open={isTemplatesSidebarOpen} onOpenChange={setIsTemplatesSidebarOpen}>
+                                <SheetContent side="right" className="p-0 w-full max-w-md">
+                                    <TemplatesSidebar />
+                                </SheetContent>
+                            </Sheet>
+                        </>
+                    ) : (
+                        <RightSidebar />
+                    )}
+                </div>
             </div>
-            
-            {isMobile ? (
-              <>
-                <Sheet open={isRightSidebarOpen} onOpenChange={setIsRightSidebarOpen}>
-                    <SheetContent side="right" className="p-0">
-                        <PropertiesSidebar />
-                    </SheetContent>
-                </Sheet>
-                <Sheet open={isTemplatesSidebarOpen} onOpenChange={setIsTemplatesSidebarOpen}>
-                    <SheetContent side="right" className="p-0 w-full max-w-md">
-                        <TemplatesSidebar />
-                    </SheetContent>
-                </Sheet>
-              </>
-            ) : (
-              <RightSidebar />
-            )}
-          </div>
         </div>
       </div>
       <PreviewDialog isOpen={isPreviewOpen} onOpenChange={setIsPreviewOpen} />
