@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 
 type Props = {
   isOpen: boolean;
@@ -24,7 +25,8 @@ type Props = {
 };
 
 export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
-  const { sections, dispatch } = useBuilder();
+  const { activeForm, sections, dispatch } = useBuilder();
+  const { toast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
@@ -38,6 +40,12 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
         sections: sections,
       },
     });
+
+    toast({
+      title: "Save Successful!",
+      description: `Saved "${activeForm?.title}" as version "${name}".`,
+    });
+
     onOpenChange(false);
     setName("");
     setDescription("");
@@ -64,6 +72,7 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="col-span-3"
+              placeholder="e.g., 'Q3 Marketing Update'"
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
@@ -75,6 +84,7 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="col-span-3"
+              placeholder="Optional: A brief summary of the changes in this version."
             />
           </div>
         </div>
@@ -84,7 +94,7 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
               Cancel
             </Button>
           </DialogClose>
-          <Button type="button" onClick={handleSave} disabled={!name}>
+          <Button type="button" onClick={handleSave} disabled={!name.trim()}>
             Save
           </Button>
         </DialogFooter>
