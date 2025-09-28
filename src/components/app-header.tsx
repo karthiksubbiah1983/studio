@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Bell, PlusCircle, Home } from "lucide-react";
 import Link from "next/link";
+import { SidebarTrigger } from "./ui/sidebar";
 
 export function AppHeader() {
   return (
@@ -21,8 +22,8 @@ export function AppHeader() {
       style={{ height: "64px" }}
     >
       <div className="flex items-center gap-4">
+        <SidebarTrigger className="h-8 w-8 text-primary-foreground hover:text-primary-foreground/90 hover:bg-primary/90" />
         <Link href="/" className="flex items-center gap-2 text-primary-foreground hover:text-primary-foreground/90 transition-colors">
-          <Home className="h-6 w-6" />
           <h1 className="text-xl font-bold">CoPilot</h1>
         </Link>
       </div>

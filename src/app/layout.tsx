@@ -8,6 +8,12 @@ import { BuilderProvider } from "@/hooks/use-builder";
 import { AppHeader } from "@/components/app-header";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarInset,
+} from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 config.autoAddCss = false;
 
@@ -32,10 +38,19 @@ export default function RootLayout({
         )}
       >
         <BuilderProvider>
-          <div className="flex flex-col h-screen">
-            <AppHeader />
-            <main className="flex-1 overflow-auto">{children}</main>
-          </div>
+          <SidebarProvider>
+            <div className="flex flex-col h-screen">
+              <AppHeader />
+              <div className="flex flex-1 overflow-hidden">
+                <Sidebar>
+                  <AppSidebar />
+                </Sidebar>
+                <SidebarInset>
+                  <main className="flex-1 overflow-auto">{children}</main>
+                </SidebarInset>
+              </div>
+            </div>
+          </SidebarProvider>
         </BuilderProvider>
         <Toaster />
       </body>
