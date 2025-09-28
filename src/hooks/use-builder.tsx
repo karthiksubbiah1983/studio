@@ -409,6 +409,7 @@ const builderReducer = (state: State, action: Action): State => {
     case "SAVE_VERSION": {
       if (!activeForm) return state;
       const { name, description, type, sections } = action.payload;
+      
       const newVersion: FormVersion = {
         id: crypto.randomUUID(),
         name,
@@ -421,7 +422,8 @@ const builderReducer = (state: State, action: Action): State => {
       const newForms = state.forms.map(form => {
         if (form.id === state.activeFormId) {
           const newVersions = [...form.versions];
-          newVersions.unshift(newVersion); // Add new version to the top
+          // Always add the new version to the top, making it the active one.
+          newVersions.unshift(newVersion); 
           return { ...form, versions: newVersions };
         }
         return form;
@@ -430,6 +432,7 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "LOAD_VERSION": {
       if (!activeForm) return state;
+      
       const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
       if (!versionToLoad) return state;
 
@@ -439,15 +442,14 @@ const builderReducer = (state: State, action: Action): State => {
         description: `Loaded from version: ${versionToLoad.name}`,
         type: 'draft',
         timestamp: new Date().toISOString(),
-        sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy
+        sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy to prevent mutation
       };
 
       const newForms = state.forms.map(form => {
         if (form.id === state.activeFormId) {
-            return {
-                ...form,
-                versions: [newDraftFromLoad, ...form.versions],
-            };
+          // Create a new versions array with the new draft at the top
+          const updatedVersions = [newDraftFromLoad, ...form.versions];
+          return { ...form, versions: updatedVersions };
         }
         return form;
       });
@@ -623,6 +625,8 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
 
     
 
