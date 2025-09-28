@@ -88,7 +88,7 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
      }
      
      if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(updateIds);
-     if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(updateIds);
+     if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(collectIds);
      if (obj.versions && Array.isArray(obj.versions)) obj.versions.forEach(updateIds);
   }
   updateIds(itemClone);
@@ -420,7 +420,9 @@ const builderReducer = (state: State, action: Action): State => {
       
       const newForms = state.forms.map(form => {
         if (form.id === state.activeFormId) {
-          return { ...form, versions: [newVersion, ...form.versions] };
+          const newVersions = [...form.versions];
+          newVersions.unshift(newVersion); // Add new version to the top
+          return { ...form, versions: newVersions };
         }
         return form;
       });
@@ -431,17 +433,21 @@ const builderReducer = (state: State, action: Action): State => {
       const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
       if (!versionToLoad) return state;
 
+      const newDraftFromLoad: FormVersion = {
+        id: crypto.randomUUID(),
+        name: `Draft from ${versionToLoad.name}`,
+        description: `Loaded from version: ${versionToLoad.name}`,
+        type: 'draft',
+        timestamp: new Date().toISOString(),
+        sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy
+      };
+
       const newForms = state.forms.map(form => {
         if (form.id === state.activeFormId) {
-            const newVersions = [...form.versions];
-            const activeDraft = { ...newVersions[0] };
-
-            // Replace active draft's content with the loaded version's content
-            activeDraft.sections = JSON.parse(JSON.stringify(versionToLoad.sections)); // Deep copy
-            
-            newVersions[0] = activeDraft;
-
-            return { ...form, versions: newVersions };
+            return {
+                ...form,
+                versions: [newDraftFromLoad, ...form.versions],
+            };
         }
         return form;
       });
@@ -617,6 +623,8 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
 
     
 
