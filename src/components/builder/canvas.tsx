@@ -108,10 +108,10 @@ export function Canvas() {
 
   return (
     <>
-        <header className="sticky top-0 z-10 flex items-center justify-between py-1.5 px-4 bg-background border-b shadow-sm">
+        <header className="sticky top-0 z-10 flex items-center justify-between py-1.5 px-4 bg-[#A2C0DC] border-b shadow-sm">
             <div className="flex items-center gap-2 flex-grow min-w-0">
                 <Input 
-                    className="text-lg font-semibold h-auto p-0 border-none focus-visible:ring-0 w-auto"
+                    className="text-lg font-semibold h-auto p-0 border-none focus-visible:ring-0 w-auto bg-transparent"
                     value={activeForm?.title || ""}
                     onChange={handleTitleChange}
                 />
