@@ -100,21 +100,13 @@ export function Canvas() {
     );
   };
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (activeForm) {
-      dispatch({ type: "UPDATE_FORM_TITLE", payload: { formId: activeForm.id, title: e.target.value } });
-    }
-  };
-
   return (
     <>
         <header className="sticky top-0 z-10 flex items-center justify-between py-1.5 px-4 bg-[#A2C0DC] border-b shadow-sm">
             <div className="flex items-center gap-2 flex-grow min-w-0">
-                <Input 
-                    className="text-lg font-semibold h-auto p-0 border-none focus-visible:ring-0 w-auto bg-transparent"
-                    value={activeForm?.title || ""}
-                    onChange={handleTitleChange}
-                />
+                <h1 className="text-lg font-semibold">
+                    {activeForm?.title || ""}
+                </h1>
                  {renderBadge()}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
