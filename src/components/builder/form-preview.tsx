@@ -14,6 +14,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+type Props = {
+    showSubmitButton?: boolean;
+}
+
 const getAllElements = (sections: Section[]): FormElementInstance[] => {
     let allElements: FormElementInstance[] = [];
     sections.forEach(section => {
@@ -48,7 +52,7 @@ const generateSubmissionJson = (elements: FormElementInstance[], formState: { [k
     return submission;
 };
 
-export function FormPreview() {
+export function FormPreview({ showSubmitButton = true }: Props) {
   const { state, activeForm, sections, dispatch } = useBuilder();
   const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
   const { toast } = useToast();
@@ -138,11 +142,11 @@ export function FormPreview() {
           </Card>
         );
       })}
-       <div className="flex justify-end mt-8">
+       {showSubmitButton && <div className="flex justify-end mt-8">
             <Button onClick={handleSubmit}>
                 Submit Form
             </Button>
-        </div>
+        </div>}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -23,7 +24,7 @@ export function PreviewDialog({ isOpen, onOpenChange }: Props) {
           <DialogTitle>Form Preview</DialogTitle>
         </DialogHeader>
         <div className="flex-grow overflow-y-auto">
-          <FormPreview />
+          <FormPreview showSubmitButton={false} />
         </div>
       </DialogContent>
     </Dialog>
