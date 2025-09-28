@@ -37,18 +37,6 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
       dispatch({ type: 'UPDATE_FORM_TITLE', payload: { formId: activeForm.id, title: e.target.value } });
     }
   }
-  
-  const latestVersion = activeForm?.versions[0];
-  const publishedVersionCount = activeForm?.versions.filter(v => v.type === 'published').length || 0;
-
-  const renderBadge = () => {
-    if (!latestVersion) return null;
-
-    if (latestVersion.type === 'published') {
-        return <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100/80">v{publishedVersionCount}</Badge>
-    }
-    return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">D</Badge>
-  }
 
   return (
     <>
@@ -65,7 +53,6 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
                   onChange={handleTitleChange}
                   className="font-semibold text-lg h-9 border-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
-                {renderBadge()}
             </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
