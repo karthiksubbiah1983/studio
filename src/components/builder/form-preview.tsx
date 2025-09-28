@@ -130,8 +130,8 @@ export function FormPreview({ showSubmitButton = true }: Props) {
           <Card key={section.id}>
             <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
                 <AccordionItem value="item-1" className="border-b-0">
-                    <CardHeader className="p-4">
-                        <AccordionTrigger className="flex-1 hover:no-underline font-medium text-base">
+                    <CardHeader className="p-2">
+                        <AccordionTrigger className="flex-1 hover:no-underline font-medium text-base p-2">
                            {section.title}
                         </AccordionTrigger>
                     </CardHeader>

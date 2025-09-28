@@ -111,8 +111,8 @@ export function CanvasSection({ section }: { section: Section }) {
             </div>
             <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
                 <AccordionItem value="item-1" className="border-b-0">
-                    <CardHeader className="p-4 flex flex-row items-center justify-between">
-                        <AccordionTrigger className="flex-1 hover:no-underline font-medium text-base">
+                    <CardHeader className="p-2 flex flex-row items-center justify-between">
+                        <AccordionTrigger className="flex-1 hover:no-underline font-medium text-base p-2">
                            {section.title}
                         </AccordionTrigger>
                          <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
