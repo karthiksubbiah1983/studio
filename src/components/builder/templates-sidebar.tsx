@@ -5,10 +5,7 @@ import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardContent,
   CardDescription,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -61,7 +58,7 @@ export function TemplatesSidebar() {
                       <AccordionTrigger className="p-2 w-full hover:no-underline">
                           <div className="flex justify-between items-center w-full">
                               <div className="flex-1 flex items-center gap-2 text-left">
-                                  <CardTitle className="text-sm font-medium leading-tight">{version.name}</CardTitle>
+                                  <span className="text-sm font-medium leading-tight">{version.name}</span>
                                   {isPublished && <span className="text-xs text-muted-foreground">{versionNumberText}</span>}
                                   <Badge
                                       className={cn(
@@ -115,4 +112,5 @@ export function TemplatesSidebar() {
     </div>
   );
 }
+
 
