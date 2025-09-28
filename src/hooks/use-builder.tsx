@@ -209,16 +209,32 @@ const builderReducer = (state: State, action: Action): State => {
     case "CLONE_FORM": {
         const { formId, newName } = action.payload;
         const formToClone = state.forms.find(f => f.id === formId);
-        if (!formToClone) return state;
+        if (!formToClone || formToClone.versions.length === 0) return state;
 
-        const clonedForm = cloneWithNewIds(formToClone);
-        clonedForm.title = newName;
-        // Set all versions to draft
-        clonedForm.versions.forEach(v => v.type = 'draft');
+        // Take the content of the latest version of the form to clone
+        const latestVersionContent = formToClone.versions[0];
+        
+        // Deep clone the sections and assign new IDs to everything
+        const newSections = cloneWithNewIds({ sections: latestVersionContent.sections }).sections;
+
+        const newForm: Form = {
+            id: crypto.randomUUID(),
+            title: newName,
+            versions: [
+                {
+                    id: crypto.randomUUID(),
+                    name: "Initial Draft",
+                    description: `Cloned from "${formToClone.title}"`,
+                    type: "draft",
+                    timestamp: new Date().toISOString(),
+                    sections: newSections,
+                }
+            ]
+        };
 
         const formIndex = state.forms.findIndex(f => f.id === formId);
         const newForms = [...state.forms];
-        newForms.splice(formIndex + 1, 0, clonedForm);
+        newForms.splice(formIndex + 1, 0, newForm);
 
         return {
             ...state,
@@ -231,10 +247,19 @@ const builderReducer = (state: State, action: Action): State => {
     // All actions below operate on the active form
     case "SET_SECTIONS": {
       if (!activeForm) return state;
-      return {
-        ...state,
-        forms: updateActiveForm(state.forms, state.activeFormId!, { sections: action.payload.sections }),
-      };
+      const newForms = state.forms.map(form => {
+        if (form.id === state.activeFormId) {
+            const newVersions = [...form.versions];
+            newVersions[0] = {
+                ...newVersions[0],
+                sections: action.payload.sections,
+                timestamp: new Date().toISOString(),
+            };
+            return { ...form, versions: newVersions };
+        }
+        return form;
+      });
+      return { ...state, forms: newForms };
     }
     case "ADD_SECTION":
        if (!activeForm) return state;
@@ -441,42 +466,26 @@ const builderReducer = (state: State, action: Action): State => {
       if (!activeForm) return state;
       const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
       if (!versionToLoad) return state;
-
+      
       const newForms = state.forms.map(form => {
-        if (form.id === state.activeFormId) {
-          const updatedVersions = [...form.versions];
-          const newDraft: FormVersion = {
-            ...versionToLoad, // Copy metadata from the loaded version
-            id: crypto.randomUUID(), // Give it a new ID to make it unique
-            type: 'draft',
-            name: `Draft from ${versionToLoad.name}`,
-            timestamp: new Date().toISOString(),
-            sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy sections
-          };
-
-          // Find index of the old active draft (if any) to replace it, or just add to the top
-          const oldDraftIndex = updatedVersions.findIndex(v => v.id === activeForm.versions[0].id);
-
-          if (oldDraftIndex !== -1) {
-            updatedVersions.splice(oldDraftIndex, 1, newDraft);
-            const versionIndexToMove = updatedVersions.findIndex(v => v.id === newDraft.id);
-            if (versionIndexToMove > 0) {
-              const [version] = updatedVersions.splice(versionIndexToMove, 1);
-              updatedVersions.unshift(version);
-            }
-          } else {
-             updatedVersions.unshift(newDraft);
+          if (form.id === state.activeFormId) {
+              const newVersions = [...form.versions];
+              // Replace the current draft's content with the loaded version's content
+              newVersions[0] = {
+                  ...newVersions[0], // Keep current draft's ID, type etc.
+                  name: `Draft from ${versionToLoad.name}`,
+                  sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy sections
+                  timestamp: new Date().toISOString(),
+              };
+              return { ...form, versions: newVersions };
           }
-          
-          return { ...form, versions: updatedVersions };
-        }
-        return form;
+          return form;
       });
 
       return {
-        ...state,
-        forms: newForms,
-        selectedElement: null,
+          ...state,
+          forms: newForms,
+          selectedElement: null,
       };
     }
     case "DELETE_VERSION": {
