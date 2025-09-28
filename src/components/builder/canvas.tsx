@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 import { CanvasSection } from "./canvas-section";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "../ui/input";
+import { Badge } from "../ui/badge";
 
 export function Canvas() {
-  const { state, sections, dispatch } = useBuilder();
+  const { state, sections, dispatch, activeForm } = useBuilder();
   const [isOver, setIsOver] = useState(false);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -69,11 +71,42 @@ export function Canvas() {
 
   const isDraggingSection = state.draggedElement && 'sectionId' in state.draggedElement && !('element' in state.draggedElement);
 
+  const latestVersion = activeForm?.versions[0];
+  const isPublished = latestVersion?.type === 'published';
+
+  const renderBadge = () => {
+    if (!latestVersion) return null;
+    return (
+      <Badge className={cn(
+        "text-xs",
+        isPublished
+            ? "bg-green-100 text-green-800 border-green-200"
+            : "bg-yellow-100 text-yellow-800 border-yellow-200"
+      )}>
+        {isPublished ? `Published` : 'Draft'}
+      </Badge>
+    );
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (activeForm) {
+      dispatch({ type: "UPDATE_FORM_TITLE", payload: { formId: activeForm.id, title: e.target.value } });
+    }
+  };
+
   return (
     <>
         <div
-            className="max-w-4xl mx-auto flex flex-col gap-4 pt-4 pb-24"
+            className="max-w-4xl mx-auto flex flex-col gap-4 pt-8 pb-24 px-4"
         >
+            <div className="flex items-center gap-4">
+                <Input 
+                    className="text-base font-semibold h-auto p-0 border-none focus-visible:ring-0"
+                    value={activeForm?.title || ""}
+                    onChange={handleTitleChange}
+                />
+                {renderBadge()}
+            </div>
             {sections.map((section) => (
                 <div 
                     key={section.id} 

@@ -9,8 +9,6 @@ import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SaveVersionDialog } from "./save-version-dialog";
 import { JsonPreviewDialog } from "./json-preview-dialog";
-import { Badge } from "../ui/badge";
-import { cn } from "@/lib/utils";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
@@ -19,7 +17,6 @@ type Props = {
 }
 
 export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesSidebarToggle }: Props) {
-  const { activeForm, dispatch } = useBuilder();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isJsonPreviewOpen, setIsJsonPreviewOpen] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
@@ -31,23 +28,6 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
     setIsSaveOpen(true);
   }
 
-  const latestVersion = activeForm?.versions[0];
-  const isPublished = latestVersion?.type === 'published';
-
-  const renderBadge = () => {
-    if (!latestVersion) return null;
-    return (
-      <Badge className={cn(
-        "text-xs",
-        isPublished
-            ? "bg-green-100 text-green-800 border-green-200"
-            : "bg-yellow-100 text-yellow-800 border-yellow-200"
-      )}>
-        {isPublished ? `Published` : 'Draft'}
-      </Badge>
-    );
-  };
-
   return (
     <>
       <header className="relative z-10 flex items-center justify-between py-1.5 px-2 bg-gray-50 shadow">
@@ -57,12 +37,6 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
                     <PanelLeft className="h-5 w-5"/>
                 </Button>
             )}
-            <div className="flex items-center flex-grow min-w-0 gap-2">
-                <h1 className="font-semibold text-base truncate">
-                    {activeForm?.title || "Untitled Form"}
-                </h1>
-                {renderBadge()}
-            </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <Button variant="outline" size="xs" onClick={() => setIsPreviewOpen(true)}>
