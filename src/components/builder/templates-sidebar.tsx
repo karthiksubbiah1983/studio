@@ -14,16 +14,19 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Download, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 export function TemplatesSidebar() {
   const { activeForm, dispatch } = useBuilder();
   const versions = activeForm?.versions || [];
 
-  const handleLoadVersion = (versionId: string) => {
+  const handleLoadVersion = (e: React.MouseEvent, versionId: string) => {
+    e.stopPropagation();
     dispatch({ type: "LOAD_VERSION", payload: { versionId } });
   };
 
-  const handleDeleteVersion = (versionId: string) => {
+  const handleDeleteVersion = (e: React.MouseEvent, versionId: string) => {
+    e.stopPropagation();
     // Prevent deleting the very last version
     if (versions.length <= 1) {
       alert("You cannot delete the only version of this form.");
@@ -39,56 +42,61 @@ export function TemplatesSidebar() {
           No templates saved yet. Click 'Save Draft' or 'Publish' to create one.
         </p>
       ) : (
-        <div className="space-y-2">
+        <Accordion type="multiple" className="space-y-2">
           {versions.map((version) => (
-            <Card key={version.id}>
-              <CardHeader className="p-2">
-                <CardTitle className="text-sm flex justify-between items-center">
-                  {version.name}
-                  <Badge
-                    className={cn(
-                      version.type === "published"
-                        ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100/80"
-                        : ""
-                    )}
-                    variant={
-                      version.type === "published" ? "outline" : "secondary"
-                    }
-                  >
-                    {version.type}
-                  </Badge>
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  {format(new Date(version.timestamp), "PPP p")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-2 pt-0">
-                <p className="text-xs text-muted-foreground mb-2">
-                  {version.description || "No description."}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    size="xs"
-                    variant="outline"
-                    onClick={() => handleLoadVersion(version.id)}
-                  >
-                    <Download className="mr-1 h-3 w-3" />
-                    Load
-                  </Button>
-                   <Button
-                    size="xs"
-                    variant="destructive"
-                    onClick={() => handleDeleteVersion(version.id)}
-                    disabled={versions.length <= 1}
-                  >
-                    <Trash className="mr-1 h-3 w-3" />
-                    Delete
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <AccordionItem value={version.id} key={version.id} className="border-b-0">
+                <Card>
+                    <AccordionTrigger className="p-2 w-full hover:no-underline">
+                        <div className="flex justify-between items-center w-full">
+                            <div className="flex-1 flex items-center gap-2 text-left">
+                                <CardTitle className="text-sm font-medium leading-tight">{version.name}</CardTitle>
+                                <Badge
+                                    className={cn(
+                                    "text-xs",
+                                    version.type === "published"
+                                        ? "bg-green-100 text-green-800 border-green-200 hover:bg-green-100/80"
+                                        : ""
+                                    )}
+                                    variant={
+                                    version.type === "published" ? "outline" : "secondary"
+                                    }
+                                >
+                                    {version.type}
+                                </Badge>
+                            </div>
+                            <div className="flex gap-1 ml-2">
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7"
+                                    onClick={(e) => handleLoadVersion(e, version.id)}
+                                >
+                                    <Download className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 hover:bg-destructive/10"
+                                    onClick={(e) => handleDeleteVersion(e, version.id)}
+                                    disabled={versions.length <= 1}
+                                >
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
+                        </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-2 pb-2">
+                         <CardDescription className="text-xs mb-2">
+                            {format(new Date(version.timestamp), "PPP p")}
+                        </CardDescription>
+                        <p className="text-xs text-muted-foreground">
+                            {version.description || "No description."}
+                        </p>
+                    </AccordionContent>
+                </Card>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       )}
     </div>
   );
