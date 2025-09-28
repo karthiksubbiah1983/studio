@@ -88,6 +88,30 @@ export default function Home() {
 
   const handleClone = () => {
     if (!cloningFormId || !newCloneName.trim()) return;
+    const formToClone = forms.find(f => f.id === cloningFormId);
+    if (!formToClone) return;
+
+    // Take the content of the latest version of the form to clone
+    const latestVersionContent = formToClone.versions[0];
+    
+    // Deep clone the sections and assign new IDs to everything
+    const newSections = JSON.parse(JSON.stringify(latestVersionContent.sections));
+
+    const newForm: Form = {
+        id: crypto.randomUUID(),
+        title: newCloneName,
+        versions: [
+            {
+                id: crypto.randomUUID(),
+                name: "Initial Draft",
+                description: `Cloned from "${formToClone.title}"`,
+                type: "draft",
+                timestamp: new Date().toISOString(),
+                sections: newSections,
+            }
+        ]
+    };
+    
     dispatch({ 
         type: "CLONE_FORM", 
         payload: { 
@@ -102,7 +126,7 @@ export default function Home() {
 
 
   return (
-    <div className="container mx-auto p-4 md:p-8">
+    <div className="w-full p-4 md:p-8">
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -281,3 +305,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
