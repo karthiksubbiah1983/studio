@@ -439,23 +439,28 @@ const builderReducer = (state: State, action: Action): State => {
       if (!activeForm) return state;
       const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
       if (versionToLoad) {
-          const newForms = state.forms.map(form => {
-              if (form.id === state.activeFormId) {
-                  const updatedVersions = [...form.versions];
-                  // The active version is always at index 0. We update its sections.
-                  updatedVersions[0] = {
-                      ...updatedVersions[0],
-                      sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy
-                  };
-                  return { ...form, versions: updatedVersions };
-              }
-              return form;
-          });
-          return {
-              ...state,
-              forms: newForms,
-              selectedElement: null,
-          };
+        const newForms = state.forms.map(form => {
+          if (form.id === state.activeFormId) {
+            // Deep copy the version to load
+            const newActiveVersion = JSON.parse(JSON.stringify(versionToLoad));
+            newActiveVersion.id = crypto.randomUUID(); // Give it a new ID to signify it's a working copy
+            newActiveVersion.type = 'draft'; // The loaded version is always a draft
+            newActiveVersion.name = `Draft from ${versionToLoad.name}`;
+            newActiveVersion.timestamp = new Date().toISOString();
+
+            // Place this new draft at the top of the versions array
+            const otherVersions = form.versions;
+            const updatedVersions = [newActiveVersion, ...otherVersions];
+
+            return { ...form, versions: updatedVersions };
+          }
+          return form;
+        });
+        return {
+          ...state,
+          forms: newForms,
+          selectedElement: null,
+        };
       }
       return state;
     }
@@ -624,6 +629,8 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
 
     
 
