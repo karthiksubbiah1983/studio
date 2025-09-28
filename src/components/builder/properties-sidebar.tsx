@@ -190,23 +190,6 @@ function SectionProperties({ section }: { section: Section }) {
                             <Label htmlFor="section-title">Title</Label>
                             <Input id="section-title" value={section.title} onChange={(e) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, title: e.target.value } })} />
                         </div>
-                        <div className="flex flex-col gap-2">
-                            <Label>Configuration</Label>
-                            <Select
-                                value={section.config}
-                                onValueChange={(value) =>
-                                    dispatch({ type: "UPDATE_SECTION", payload: { ...section, config: value as 'expanded' | 'normal' } })
-                                }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select section type" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="expanded">Expanded</SelectItem>
-                                    <SelectItem value="normal">Collapsible</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
                     </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="logic">

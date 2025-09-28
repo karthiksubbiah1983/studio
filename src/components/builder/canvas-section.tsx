@@ -99,98 +99,55 @@ export function CanvasSection({ section }: { section: Section }) {
   );
 
   const sectionContent = () => {
-    if (section.config === 'normal') {
-      return (
-          <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "overflow-visible group/section relative")} onClick={handleSectionClick}>
-              <div 
-                draggable 
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                className="absolute top-1/2 -translate-y-1/2 -left-8 h-full flex items-center cursor-grab opacity-0 group-hover/section:opacity-100 transition-opacity"
-              >
-                  <GripVertical className="h-6 w-6 text-muted-foreground" />
-              </div>
-              <Accordion type="single" collapsible defaultValue="item-1">
-                  <AccordionItem value="item-1" className="border-b-0">
-                      <CardHeader className="p-4 py-2 flex flex-row items-center justify-between">
-                          <AccordionTrigger className="flex-1 hover:no-underline font-medium text-base">
-                             {section.title}
-                          </AccordionTrigger>
-                           <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
-                             <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
-                                }}
-                              >
-                                <Copy className="h-4 w-4" />
-                            </Button>
-                             <Button
-                                variant="destructive"
-                                size="icon"
-                                className="h-6 w-6"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
-                                }}
-                              >
-                                <Trash className="h-4 w-4" />
-                            </Button>
-                           </div>
-                      </CardHeader>
-                      <AccordionContent>
-                        <CardContent className="p-4 pt-0">
-                          {content}
-                        </CardContent>
-                      </AccordionContent>
-                  </AccordionItem>
-              </Accordion>
-          </Card>
-      );
-    }
-  
     return (
-      <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "group/section relative")} onClick={handleSectionClick}>
-        <div 
-            draggable
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            className="absolute top-1/2 -translate-y-1/2 -left-8 h-full flex items-center cursor-grab opacity-0 group-hover/section:opacity-100 transition-opacity"
-        >
-            <GripVertical className="h-6 w-6 text-muted-foreground" />
-        </div>
-        <CardHeader className="flex flex-row items-center justify-between p-4 py-2">
-          <h3 className="text-base font-medium">{section.title}</h3>
-           <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
-            <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
-                }}
-              >
-                <Copy className="h-4 w-4" />
-            </Button>
-            <Button
-                variant="destructive"
-                size="icon"
-                className="h-6 w-6"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
-                }}
-              >
-                <Trash className="h-4 w-4" />
-            </Button>
-           </div>
-        </CardHeader>
-        <CardContent className="p-4 pt-0">{content}</CardContent>
-      </Card>
+        <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "overflow-visible group/section relative")} onClick={handleSectionClick}>
+            <div 
+              draggable 
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              className="absolute top-1/2 -translate-y-1/2 -left-8 h-full flex items-center cursor-grab opacity-0 group-hover/section:opacity-100 transition-opacity"
+            >
+                <GripVertical className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
+                <AccordionItem value="item-1" className="border-b-0">
+                    <CardHeader className="p-4 py-2 flex flex-row items-center justify-between">
+                        <AccordionTrigger className="flex-1 hover:no-underline font-medium text-base">
+                           {section.title}
+                        </AccordionTrigger>
+                         <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                           <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
+                              }}
+                            >
+                              <Copy className="h-4 w-4" />
+                          </Button>
+                           <Button
+                              variant="destructive"
+                              size="icon"
+                              className="h-6 w-6"
+                              onClick={(e) => {
+                                  e.stopPropagation();
+                                  dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
+                              }}
+                            >
+                              <Trash className="h-4 w-4" />
+                          </Button>
+                         </div>
+                    </CardHeader>
+                    <AccordionContent>
+                      <CardContent className="p-4 pt-0">
+                        {content}
+                      </CardContent>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
+        </Card>
     );
   }
 
