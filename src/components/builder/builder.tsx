@@ -25,7 +25,7 @@ export function Builder() {
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [isTemplatesSidebarOpen, setIsTemplatesSidebarOpen] = useState(false);
   
-  const { activeForm, sections, setSections } = useBuilder();
+  const { activeForm, setSections } = useBuilder();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [saveType, setSaveType] = useState<"draft" | "published">("draft");

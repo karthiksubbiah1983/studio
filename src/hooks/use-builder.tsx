@@ -444,15 +444,29 @@ const builderReducer = (state: State, action: Action): State => {
 
       const newForms = state.forms.map(form => {
         if (form.id === state.activeFormId) {
-          const activeDraft = form.versions[0];
-          const updatedDraft = {
-            ...activeDraft,
+          const updatedVersions = [...form.versions];
+          const newDraft: FormVersion = {
+            ...versionToLoad, // Copy metadata from the loaded version
+            id: crypto.randomUUID(), // Give it a new ID to make it unique
+            type: 'draft',
             name: `Draft from ${versionToLoad.name}`,
-            sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy sections
             timestamp: new Date().toISOString(),
+            sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy sections
           };
-          
-          const updatedVersions = [updatedDraft, ...form.versions.slice(1)];
+
+          // Find index of the old active draft (if any) to replace it, or just add to the top
+          const oldDraftIndex = updatedVersions.findIndex(v => v.id === activeForm.versions[0].id);
+
+          if (oldDraftIndex !== -1) {
+            updatedVersions.splice(oldDraftIndex, 1, newDraft);
+            const versionIndexToMove = updatedVersions.findIndex(v => v.id === newDraft.id);
+            if (versionIndexToMove > 0) {
+              const [version] = updatedVersions.splice(versionIndexToMove, 1);
+              updatedVersions.unshift(version);
+            }
+          } else {
+             updatedVersions.unshift(newDraft);
+          }
           
           return { ...form, versions: updatedVersions };
         }
