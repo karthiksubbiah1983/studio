@@ -25,13 +25,25 @@ export function Builder() {
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [isTemplatesSidebarOpen, setIsTemplatesSidebarOpen] = useState(false);
   
-  const { activeForm } = useBuilder();
+  const { activeForm, sections, setSections } = useBuilder();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [saveType, setSaveType] = useState<"draft" | "published">("draft");
+  
+  const [activeVersionId, setActiveVersionId] = useState<string | undefined>(activeForm?.versions[0]?.id);
 
   const latestVersion = activeForm?.versions[0];
   const isPublished = latestVersion?.type === 'published';
+
+  useEffect(() => {
+    // This effect synchronizes the local sections state with the global active version
+    const currentActiveVersion = activeForm?.versions[0];
+    if (currentActiveVersion && currentActiveVersion.id !== activeVersionId) {
+      setSections(currentActiveVersion.sections);
+      setActiveVersionId(currentActiveVersion.id);
+    }
+  }, [activeForm?.versions, activeVersionId, setSections]);
+
 
   const handleSaveClick = (type: "draft" | "published") => {
     setSaveType(type);

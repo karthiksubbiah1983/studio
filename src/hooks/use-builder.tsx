@@ -35,7 +35,9 @@ type Action =
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any> } }
-  | { type: "SET_STATE"; payload: Partial<State> };
+  | { type: "SET_STATE"; payload: Partial<State> }
+  | { type: "SET_SECTIONS"; payload: { sections: Section[] } };
+
 
 const initialState: State = {
   forms: [],
@@ -227,6 +229,13 @@ const builderReducer = (state: State, action: Action): State => {
       return { ...state, activeFormId: action.payload.formId, selectedElement: null };
 
     // All actions below operate on the active form
+    case "SET_SECTIONS": {
+      if (!activeForm) return state;
+      return {
+        ...state,
+        forms: updateActiveForm(state.forms, state.activeFormId!, { sections: action.payload.sections }),
+      };
+    }
     case "ADD_SECTION":
        if (!activeForm) return state;
       const newSectionsAfterAdd = [
@@ -421,9 +430,7 @@ const builderReducer = (state: State, action: Action): State => {
       
       const newForms = state.forms.map(form => {
         if (form.id === state.activeFormId) {
-          const newVersions = [...form.versions];
-          // Always add the new version to the top, making it the active one.
-          newVersions.unshift(newVersion); 
+          const newVersions = [newVersion, ...form.versions];
           return { ...form, versions: newVersions };
         }
         return form;
@@ -432,32 +439,30 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "LOAD_VERSION": {
       if (!activeForm) return state;
-      
       const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
       if (!versionToLoad) return state;
 
-      const newDraftFromLoad: FormVersion = {
-        id: crypto.randomUUID(),
-        name: `Draft from ${versionToLoad.name}`,
-        description: `Loaded from version: ${versionToLoad.name}`,
-        type: 'draft',
-        timestamp: new Date().toISOString(),
-        sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy to prevent mutation
-      };
-
       const newForms = state.forms.map(form => {
-        if (form.id === state.activeFormId) {
-          // Create a new versions array with the new draft at the top
-          const updatedVersions = [newDraftFromLoad, ...form.versions];
-          return { ...form, versions: updatedVersions };
-        }
-        return form;
+          if (form.id === state.activeFormId) {
+              const otherVersions = form.versions.filter(v => v.id !== action.payload.versionId);
+              const newActiveDraft: FormVersion = {
+                  ...JSON.parse(JSON.stringify(versionToLoad)), // Deep copy
+                  id: crypto.randomUUID(),
+                  type: 'draft',
+                  name: `Draft from ${versionToLoad.name}`,
+                  timestamp: new Date().toISOString(),
+              };
+              const updatedVersions = [newActiveDraft, versionToLoad, ...otherVersions.filter(v => v.id !== versionToLoad.id)];
+              
+              return { ...form, versions: updatedVersions };
+          }
+          return form;
       });
 
       return {
-        ...state,
-        forms: newForms,
-        selectedElement: null, // Deselect any selected element
+          ...state,
+          forms: newForms,
+          selectedElement: null,
       };
     }
     case "DELETE_VERSION": {
@@ -516,6 +521,7 @@ type BuilderContextType = {
   forms: Form[];
   activeForm: Form | null;
   sections: Section[];
+  setSections: (sections: Section[]) => void;
 };
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
@@ -599,6 +605,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     }
     dispatchAction(action);
   }
+  
+  const setSections = (newSections: Section[]) => {
+    dispatchAction({ type: 'SET_SECTIONS', payload: { sections: newSections }})
+  }
 
   if (isLoading) {
     return (
@@ -612,7 +622,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, activeForm, sections }}>
+    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, activeForm, sections, setSections }}>
       {children}
     </BuilderContext.Provider>
   );
