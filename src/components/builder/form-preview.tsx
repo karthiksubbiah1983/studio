@@ -13,6 +13,7 @@ import { FormElementInstance, Section } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 type Props = {
     showSubmitButton?: boolean;
@@ -127,18 +128,26 @@ export function FormPreview({ showSubmitButton = true }: Props) {
 
         return (
           <Card key={section.id}>
-            <CardHeader>
-              <h3 className="text-lg font-medium">{section.title}</h3>
-            </CardHeader>
-            <CardContent>
-              <div
-                className={cn(
-                  "grid gap-4 grid-cols-1"
-                )}
-              >
-                {renderElements(section.elements)}
-              </div>
-            </CardContent>
+            <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
+                <AccordionItem value="item-1" className="border-b-0">
+                    <CardHeader className="p-4 py-2">
+                        <AccordionTrigger className="flex-1 hover:no-underline font-medium text-base">
+                           {section.title}
+                        </AccordionTrigger>
+                    </CardHeader>
+                    <AccordionContent>
+                      <CardContent className="p-4 pt-0">
+                        <div
+                            className={cn(
+                            "grid gap-4 grid-cols-1"
+                            )}
+                        >
+                            {renderElements(section.elements)}
+                        </div>
+                      </CardContent>
+                    </AccordionContent>
+                </AccordionItem>
+            </Accordion>
           </Card>
         );
       })}
