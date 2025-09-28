@@ -420,16 +420,7 @@ const builderReducer = (state: State, action: Action): State => {
       
       const newForms = state.forms.map(form => {
         if (form.id === state.activeFormId) {
-          // If the latest version is an empty draft, replace it. Otherwise, add the new one.
-          const currentVersions = [...form.versions];
-          const latestIsReplaceable = currentVersions[0].type === 'draft' && JSON.stringify(currentVersions[0].sections) === JSON.stringify([{ id: expect.any(String), title: "New Section", config: "expanded", elements: [] }]);
-          
-          if (latestIsReplaceable) {
-            currentVersions[0] = newVersion;
-            return { ...form, versions: currentVersions };
-          } else {
-            return { ...form, versions: [newVersion, ...form.versions] };
-          }
+          return { ...form, versions: [newVersion, ...form.versions] };
         }
         return form;
       });
@@ -447,8 +438,6 @@ const builderReducer = (state: State, action: Action): State => {
 
             // Replace active draft's content with the loaded version's content
             activeDraft.sections = JSON.parse(JSON.stringify(versionToLoad.sections)); // Deep copy
-            activeDraft.name = `Draft from ${versionToLoad.name}`;
-            activeDraft.timestamp = new Date().toISOString();
             
             newVersions[0] = activeDraft;
 
