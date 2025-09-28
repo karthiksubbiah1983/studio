@@ -438,31 +438,30 @@ const builderReducer = (state: State, action: Action): State => {
     case "LOAD_VERSION": {
       if (!activeForm) return state;
       const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
-      if (versionToLoad) {
-        const newForms = state.forms.map(form => {
-          if (form.id === state.activeFormId) {
-            // Deep copy the version to load
-            const newActiveVersion = JSON.parse(JSON.stringify(versionToLoad));
-            newActiveVersion.id = crypto.randomUUID(); // Give it a new ID to signify it's a working copy
-            newActiveVersion.type = 'draft'; // The loaded version is always a draft
-            newActiveVersion.name = `Draft from ${versionToLoad.name}`;
-            newActiveVersion.timestamp = new Date().toISOString();
+      if (!versionToLoad) return state;
 
-            // Place this new draft at the top of the versions array
-            const otherVersions = form.versions;
-            const updatedVersions = [newActiveVersion, ...otherVersions];
+      const newForms = state.forms.map(form => {
+        if (form.id === state.activeFormId) {
+            const newVersions = [...form.versions];
+            const activeDraft = { ...newVersions[0] };
 
-            return { ...form, versions: updatedVersions };
-          }
-          return form;
-        });
-        return {
-          ...state,
-          forms: newForms,
-          selectedElement: null,
-        };
-      }
-      return state;
+            // Replace active draft's content with the loaded version's content
+            activeDraft.sections = JSON.parse(JSON.stringify(versionToLoad.sections)); // Deep copy
+            activeDraft.name = `Draft from ${versionToLoad.name}`;
+            activeDraft.timestamp = new Date().toISOString();
+            
+            newVersions[0] = activeDraft;
+
+            return { ...form, versions: newVersions };
+        }
+        return form;
+      });
+
+      return {
+        ...state,
+        forms: newForms,
+        selectedElement: null, // Deselect any selected element
+      };
     }
     case "DELETE_VERSION": {
       if (!activeForm) return state;
