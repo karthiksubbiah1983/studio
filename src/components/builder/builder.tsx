@@ -69,15 +69,15 @@ export function Builder() {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
             <Button variant="outline" size="xs" onClick={() => setIsPreviewOpen(true)}>
-                <Eye className="mr-2 h-4 w-4" />
+                <Eye className="mr-1 h-4 w-4" />
                 Preview
             </Button>
               <Button variant="outline" size="xs" onClick={() => handleSaveClick("draft")}>
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="mr-1 h-4 w-4" />
                 Save Draft
             </Button>
             <Button size="xs" onClick={() => handleSaveClick("published")} className="bg-green-600 hover:bg-green-700">
-                <Send className="mr-2 h-4 w-4" />
+                <Send className="mr-1 h-4 w-4" />
                 Publish
             </Button>
         </div>
