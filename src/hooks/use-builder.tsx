@@ -458,7 +458,13 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
       try {
         const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (storedState) {
-          dispatchAction({ type: "SET_STATE", payload: JSON.parse(storedState) });
+          const parsedState = JSON.parse(storedState);
+          // Simple validation to check if the stored state is somewhat valid
+          if (parsedState && Array.isArray(parsedState.forms)) {
+            dispatchAction({ type: "SET_STATE", payload: parsedState });
+          } else {
+             throw new Error("Invalid state format");
+          }
         } else {
             // If no state, create a default form
             const defaultFormId = crypto.randomUUID();
@@ -474,10 +480,25 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                   sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
                 }]
             };
-            dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], activeFormId: defaultFormId } });
+            dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], activeFormId: defaultFormId, submissions: [] } });
         }
       } catch (error) {
-        console.error("Failed to parse state from localStorage", error);
+        console.error("Failed to load state from localStorage, initializing with default.", error);
+        // Fallback to default if loading/parsing fails
+         const defaultFormId = crypto.randomUUID();
+         const defaultForm: Form = {
+            id: defaultFormId,
+            title: "My First Form",
+            versions: [{
+              id: crypto.randomUUID(),
+              name: "Initial Draft",
+              description: "",
+              type: "draft",
+              timestamp: new Date().toISOString(),
+              sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
+            }]
+         };
+         dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], activeFormId: defaultFormId, submissions: [] } });
       } finally {
         setIsLoading(false);
       }
