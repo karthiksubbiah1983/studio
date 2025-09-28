@@ -132,15 +132,10 @@ export function FormPreview({ showSubmitButton = true }: Props) {
 
         return (
           <Card key={section.id}>
-            <CardHeader className="p-2 flex-col items-start">
-                <CardTitle className="text-base font-medium px-2">
+            <CardHeader>
+                <CardTitle className="text-base font-medium">
                     {section.title}
                 </CardTitle>
-                 {latestVersion && (
-                <Badge variant={latestVersion.type === 'published' ? 'default' : 'secondary'} className="mx-2">
-                  {latestVersion.type === 'published' ? `Published v${publishedVersionsCount}` : 'Draft'}
-                </Badge>
-              )}
             </CardHeader>
             <CardContent>
               <div
