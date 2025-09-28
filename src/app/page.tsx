@@ -174,11 +174,11 @@ export default function Home() {
           <div className="border rounded-lg">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Template Name</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Last Modified</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                <TableRow className="bg-blue-50 hover:bg-blue-50">
+                  <TableHead className="text-gray-700">Template Name</TableHead>
+                  <TableHead className="text-gray-700">Version</TableHead>
+                  <TableHead className="text-gray-700">Last Modified</TableHead>
+                  <TableHead className="text-right text-gray-700">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -281,6 +281,8 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
 
