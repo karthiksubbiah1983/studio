@@ -72,7 +72,7 @@ export function Canvas() {
   return (
     <>
         <div
-            className="max-w-4xl mx-auto flex flex-col gap-8 pt-4 pb-24"
+            className="max-w-4xl mx-auto flex flex-col gap-4 pt-4 pb-24"
         >
             {sections.map((section) => (
                 <div 
