@@ -88,29 +88,6 @@ export default function Home() {
 
   const handleClone = () => {
     if (!cloningFormId || !newCloneName.trim()) return;
-    const formToClone = forms.find(f => f.id === cloningFormId);
-    if (!formToClone) return;
-
-    // Take the content of the latest version of the form to clone
-    const latestVersionContent = formToClone.versions[0];
-    
-    // Deep clone the sections and assign new IDs to everything
-    const newSections = JSON.parse(JSON.stringify(latestVersionContent.sections));
-
-    const newForm: Form = {
-        id: crypto.randomUUID(),
-        title: newCloneName,
-        versions: [
-            {
-                id: crypto.randomUUID(),
-                name: "Initial Draft",
-                description: `Cloned from "${formToClone.title}"`,
-                type: "draft",
-                timestamp: new Date().toISOString(),
-                sections: newSections,
-            }
-        ]
-    };
     
     dispatch({ 
         type: "CLONE_FORM", 
@@ -131,8 +108,7 @@ export default function Home() {
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <CardTitle>Your Templates</CardTitle>
-              <CardDescription>Manage your existing form templates or create a new one.</CardDescription>
+              <CardTitle>Templates</CardTitle>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
               <div className="relative flex-grow">
@@ -305,5 +281,7 @@ export default function Home() {
     </div>
   );
 }
+
+    
 
     
