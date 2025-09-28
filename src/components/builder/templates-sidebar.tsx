@@ -56,9 +56,10 @@ export function TemplatesSidebar() {
               <AccordionItem value={version.id} key={version.id} className="border-b-0">
                   <Card>
                       <AccordionTrigger className="p-2 w-full hover:no-underline">
-                          <div className="flex justify-between items-center w-full">
-                              <div className="flex-1 flex items-center gap-2 text-left">
-                                  <span className="text-sm font-medium leading-tight">{version.name}</span>
+                          <div className="flex justify-between items-start w-full">
+                              <div className="flex-1 flex flex-col items-start text-left">
+                                <span className="text-sm font-medium leading-tight">{version.name}</span>
+                                <div className="flex items-center gap-2 mt-1">
                                   {isPublished && <span className="text-xs text-muted-foreground">{versionNumberText}</span>}
                                   <Badge
                                       className={cn(
@@ -73,6 +74,7 @@ export function TemplatesSidebar() {
                                   >
                                       {version.type}
                                   </Badge>
+                                </div>
                               </div>
                               <div className="flex gap-1 ml-2">
                                   <Button
@@ -112,5 +114,3 @@ export function TemplatesSidebar() {
     </div>
   );
 }
-
-
