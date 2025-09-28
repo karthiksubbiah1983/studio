@@ -11,6 +11,7 @@ import { SaveVersionDialog } from "./save-version-dialog";
 import { JsonPreviewDialog } from "./json-preview-dialog";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
+import { Input } from "../ui/input";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
@@ -59,9 +60,11 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
                 </Button>
             )}
             <div className="flex items-center flex-grow min-w-0 gap-2">
-                <span className="font-semibold text-lg truncate">
-                  {activeForm?.title || "Untitled Form"}
-                </span>
+                <Input 
+                  value={activeForm?.title || "Untitled Form"}
+                  onChange={handleTitleChange}
+                  className="font-semibold text-lg h-9 border-none focus-visible:ring-1 focus-visible:ring-ring"
+                />
                 {renderBadge()}
             </div>
         </div>
