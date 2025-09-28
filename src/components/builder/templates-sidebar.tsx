@@ -39,11 +39,11 @@ export function TemplatesSidebar() {
           No templates saved yet. Click 'Save Draft' or 'Publish' to create one.
         </p>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-2">
           {versions.map((version) => (
             <Card key={version.id}>
-              <CardHeader className="p-4">
-                <CardTitle className="text-base flex justify-between items-center">
+              <CardHeader className="p-2">
+                <CardTitle className="text-sm flex justify-between items-center">
                   {version.name}
                   <Badge
                     className={cn(
@@ -62,26 +62,26 @@ export function TemplatesSidebar() {
                   {format(new Date(version.timestamp), "PPP p")}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <p className="text-sm text-muted-foreground mb-4">
+              <CardContent className="p-2 pt-0">
+                <p className="text-xs text-muted-foreground mb-2">
                   {version.description || "No description."}
                 </p>
                 <div className="flex gap-2">
                   <Button
-                    size="sm"
+                    size="xs"
                     variant="outline"
                     onClick={() => handleLoadVersion(version.id)}
                   >
-                    <Download className="mr-2 h-4 w-4" />
+                    <Download className="mr-1 h-3 w-3" />
                     Load
                   </Button>
                    <Button
-                    size="sm"
+                    size="xs"
                     variant="destructive"
                     onClick={() => handleDeleteVersion(version.id)}
                     disabled={versions.length <= 1}
                   >
-                    <Trash className="mr-2 h-4 w-4" />
+                    <Trash className="mr-1 h-3 w-3" />
                     Delete
                   </Button>
                 </div>
