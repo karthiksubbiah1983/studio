@@ -31,7 +31,7 @@ export function AppSidebar() {
   ];
 
   return (
-    <SidebarContent>
+    <SidebarContent className="bg-card p-5">
       <SidebarMenu>
         {menuItems.map((item) => (
           <SidebarMenuItem key={item.label}>
@@ -50,3 +50,5 @@ export function AppSidebar() {
     </SidebarContent>
   );
 }
+
+    
