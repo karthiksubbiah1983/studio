@@ -4,13 +4,7 @@
 import { useState } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Section } from "@/lib/types";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CanvasElement } from "./canvas-element";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
@@ -109,44 +103,38 @@ export function CanvasSection({ section }: { section: Section }) {
             >
                 <GripVertical className="h-6 w-6 text-muted-foreground" />
             </div>
-            <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
-                <AccordionItem value="item-1" className="border-b-0">
-                    <CardHeader className="p-2 flex flex-row items-center justify-between">
-                        <AccordionTrigger className="flex-1 hover:no-underline font-medium text-base p-2">
-                           {section.title}
-                        </AccordionTrigger>
-                         <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
-                           <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
-                              }}
-                            >
-                              <Copy className="h-4 w-4" />
-                          </Button>
-                           <Button
-                              variant="destructive"
-                              size="icon"
-                              className="h-6 w-6"
-                              onClick={(e) => {
-                                  e.stopPropagation();
-                                  dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
-                              }}
-                            >
-                              <Trash className="h-4 w-4" />
-                          </Button>
-                         </div>
-                    </CardHeader>
-                    <AccordionContent>
-                      <CardContent className="p-4 pt-0">
-                        {content}
-                      </CardContent>
-                    </AccordionContent>
-                </AccordionItem>
-            </Accordion>
+            <CardHeader className="p-4 flex flex-row items-center justify-between">
+                <CardTitle className="text-base font-medium">
+                    {section.title}
+                </CardTitle>
+                <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
+                        }}
+                    >
+                        <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
+                        }}
+                    >
+                        <Trash className="h-4 w-4" />
+                    </Button>
+                </div>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              {content}
+            </CardContent>
         </Card>
     );
   }
