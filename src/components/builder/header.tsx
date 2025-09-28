@@ -11,7 +11,6 @@ import { SaveVersionDialog } from "./save-version-dialog";
 import { JsonPreviewDialog } from "./json-preview-dialog";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
-import { Input } from "../ui/input";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
@@ -30,12 +29,6 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
   const handleSaveClick = (type: "draft" | "published") => {
     setSaveType(type);
     setIsSaveOpen(true);
-  }
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (activeForm) {
-      dispatch({ type: 'UPDATE_FORM_TITLE', payload: { formId: activeForm.id, title: e.target.value } });
-    }
   }
 
   const latestVersion = activeForm?.versions[0];
@@ -65,9 +58,9 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
                 </Button>
             )}
             <div className="flex items-center flex-grow min-w-0 gap-2">
-                <span className="font-semibold text-lg truncate">
+                <h1 className="font-semibold text-base truncate">
                     {activeForm?.title || "Untitled Form"}
-                </span>
+                </h1>
                 {renderBadge()}
             </div>
         </div>
