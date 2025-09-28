@@ -13,7 +13,7 @@ export function ElementsSidebar() {
        <div className="p-2">
         <Link
           href="/"
-          className="flex items-center justify-center gap-2 p-2 rounded-md text-primary hover:bg-accent transition-colors"
+          className="flex items-center gap-2 p-2 rounded-md text-primary hover:bg-accent transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
           <span className="font-medium">Back To Home</span>
