@@ -58,7 +58,7 @@ export function TemplatesSidebar() {
                     {version.type}
                   </Badge>
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   {format(new Date(version.timestamp), "PPP p")}
                 </CardDescription>
               </CardHeader>
