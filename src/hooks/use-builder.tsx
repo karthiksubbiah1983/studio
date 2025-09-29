@@ -466,17 +466,20 @@ const builderReducer = (state: State, action: Action): State => {
       if (!activeForm) return state;
       const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
       if (!versionToLoad) return state;
+
+      const newDraftVersion: FormVersion = {
+        id: crypto.randomUUID(),
+        name: `Draft from ${versionToLoad.name}`,
+        description: `Based on version: ${versionToLoad.name}`,
+        type: 'draft',
+        timestamp: new Date().toISOString(),
+        sections: JSON.parse(JSON.stringify(versionToLoad.sections)) // Deep copy
+      };
       
       const newForms = state.forms.map(form => {
           if (form.id === state.activeFormId) {
-              const newVersions = [...form.versions];
-              // Replace the current draft's content with the loaded version's content
-              newVersions[0] = {
-                  ...newVersions[0], // Keep current draft's ID, type etc.
-                  name: `Draft from ${versionToLoad.name}`,
-                  sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy sections
-                  timestamp: new Date().toISOString(),
-              };
+              const otherVersions = form.versions.filter(v => v.id !== versionToLoad.id);
+              const newVersions = [newDraftVersion, versionToLoad, ...otherVersions];
               return { ...form, versions: newVersions };
           }
           return form;
