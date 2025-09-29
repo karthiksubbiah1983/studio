@@ -34,13 +34,14 @@ export function AppSidebar() {
   ];
 
   return (
-    <SidebarContent className="bg-card p-2">
+    <SidebarContent className="bg-card">
       <SidebarMenu>
         {menuItems.map((item) => (
           <SidebarMenuItem key={item.label}>
             <Link href={item.href} legacyBehavior passHref>
               <SidebarMenuButton
                 className={cn(
+                  "py-3",
                   pathname === item.href &&
                     item.href === "/" &&
                     "sidebar-active-link"
