@@ -18,16 +18,25 @@ import { SidebarTrigger } from "./ui/sidebar";
 export function AppHeader() {
   return (
     <header
-      className="flex items-center justify-between px-6 bg-primary text-primary-foreground border-b border-primary/90"
+      className="flex items-center justify-between bg-primary text-primary-foreground border-b border-primary/90"
       style={{ height: "64px" }}
     >
-      <div className="flex items-center gap-4">
-        <SidebarTrigger className="h-8 w-8 text-primary-foreground hover:text-primary-foreground/90 hover:bg-primary/90" />
-        <Link href="/" className="flex items-center gap-2 text-primary-foreground hover:text-primary-foreground/90 transition-colors">
-          <h1 className="text-xl font-bold">CoPilot</h1>
-        </Link>
+      <div className="flex items-stretch h-full">
+        <div
+          className="flex items-center justify-center gap-4 px-6 bg-card text-primary"
+          style={{ width: "var(--sidebar-width)" }}
+        >
+          <SidebarTrigger className="h-8 w-8 text-primary hover:text-primary/90 hover:bg-accent" />
+          <Link href="/" className="flex items-center gap-2 text-primary hover:text-primary/90 transition-colors">
+            <h1 className="text-xl font-bold">CoPilot</h1>
+          </Link>
+        </div>
+        <div className="flex items-center px-6">
+            {/* You can add other header elements here if needed */}
+        </div>
       </div>
-      <div className="flex items-center gap-2">
+
+      <div className="flex items-center gap-2 px-6">
         <Button
           variant="ghost"
           className="hover:bg-primary/90"
