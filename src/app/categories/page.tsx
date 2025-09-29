@@ -8,30 +8,61 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Category, SubCategory } from "@/lib/types";
-import { Plus, Trash, X, GripVertical } from "lucide-react";
+import { Plus, Trash, X, GripVertical, Save } from "lucide-react";
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CategoriesPage() {
   const { state, dispatch } = useBuilder();
   const { categories } = state;
+  const { toast } = useToast();
   
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSubCategoryNames, setNewSubCategoryNames] = useState<Record<string, string>>({});
+  const [editingCategoryNames, setEditingCategoryNames] = useState<Record<string, string>>({});
+
+  // Initialize editing state
+  useState(() => {
+    const initialEditingNames: Record<string, string> = {};
+    categories.forEach(cat => {
+      initialEditingNames[cat.id] = cat.name;
+    });
+    setEditingCategoryNames(initialEditingNames);
+  });
 
   // Category Management Handlers
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) return;
     dispatch({ type: "ADD_CATEGORY", payload: { name: newCategoryName } });
+    toast({
+        title: "Category Added",
+        description: `"${newCategoryName}" has been successfully added.`
+    });
     setNewCategoryName("");
+    setEditingCategoryNames(prev => ({...prev, [newCategoryName]: newCategoryName}))
   };
 
-  const handleUpdateCategory = (category: Category) => {
-    dispatch({ type: "UPDATE_CATEGORY", payload: { category } });
+  const handleUpdateCategory = (categoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    const newName = editingCategoryNames[categoryId];
+    if (!category || !newName || !newName.trim()) return;
+    
+    dispatch({ type: "UPDATE_CATEGORY", payload: { category: { ...category, name: newName } } });
+    toast({
+        title: "Category Saved",
+        description: `Category has been updated to "${newName}".`
+    });
   };
 
   const handleDeleteCategory = (categoryId: string) => {
+    const categoryName = categories.find(c => c.id === categoryId)?.name;
     dispatch({ type: "DELETE_CATEGORY", payload: { categoryId } });
+     toast({
+        title: "Category Deleted",
+        description: `"${categoryName}" has been deleted.`,
+        variant: 'destructive'
+    });
   };
 
   // Sub-category Handlers
@@ -39,15 +70,26 @@ export default function CategoriesPage() {
     const subCategoryName = newSubCategoryNames[categoryId]?.trim();
     if (!subCategoryName) return;
     dispatch({ type: "ADD_SUBCATEGORY", payload: { categoryId, name: subCategoryName } });
+     toast({
+        title: "Sub-category Added",
+        description: `"${subCategoryName}" has been added.`
+    });
     setNewSubCategoryNames(prev => ({ ...prev, [categoryId]: "" }));
   };
 
   const handleDeleteSubCategory = (categoryId: string, subCategoryId: string) => {
+    const category = categories.find(c => c.id === categoryId);
+    const subCategoryName = category?.subCategories.find(sc => sc.id === subCategoryId)?.name;
     dispatch({ type: "DELETE_SUBCATEGORY", payload: { categoryId, subCategoryId } });
+     toast({
+        title: "Sub-category Deleted",
+        description: `"${subCategoryName}" has been deleted.`,
+        variant: 'destructive'
+    });
   };
 
   return (
-    <div className="w-full p-4 md:p-8">
+    <div className="w-full p-4">
       <Card>
         <CardHeader>
           <CardTitle>Manage Categories</CardTitle>
@@ -74,7 +116,7 @@ export default function CategoriesPage() {
                   <TableHead className="w-[50px]"></TableHead>
                   <TableHead>Category Name</TableHead>
                   <TableHead>Sub-categories</TableHead>
-                  <TableHead className="text-right w-[100px]">Actions</TableHead>
+                  <TableHead className="text-right w-[150px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -86,8 +128,8 @@ export default function CategoriesPage() {
                       </TableCell>
                       <TableCell>
                         <Input
-                          value={cat.name}
-                          onChange={e => handleUpdateCategory({ ...cat, name: e.target.value })}
+                          value={editingCategoryNames[cat.id] || cat.name}
+                          onChange={e => setEditingCategoryNames(prev => ({ ...prev, [cat.id]: e.target.value }))}
                           className="font-medium"
                         />
                       </TableCell>
@@ -116,9 +158,14 @@ export default function CategoriesPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteCategory(cat.id)}>
-                          <Trash className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleUpdateCategory(cat.id)}>
+                                <Save className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteCategory(cat.id)}>
+                                <Trash className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
