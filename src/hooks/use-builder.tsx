@@ -20,6 +20,7 @@ type Action =
   | { type: "DELETE_FORM"; payload: { formId: string } }
   | { type: "CLONE_FORM", payload: { formId: string, newName: string } }
   | { type: "SET_ACTIVE_FORM"; payload: { formId: string | null } }
+  | { type: "UPDATE_FORM_METADATA", payload: { categoryId: string | undefined, subCategoryId: string | null | undefined } }
   | { type: "ADD_SECTION" }
   | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number, parentId?: string } }
   | { type: "UPDATE_ELEMENT"; payload: { sectionId: string; element: FormElementInstance } }
@@ -255,6 +256,22 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SET_ACTIVE_FORM":
       return { ...state, activeFormId: action.payload.formId, selectedElement: null };
+
+    case "UPDATE_FORM_METADATA": {
+      if (!activeForm) return state;
+      const { categoryId, subCategoryId } = action.payload;
+      const newForms = state.forms.map(form => {
+        if (form.id === state.activeFormId) {
+          return {
+            ...form,
+            categoryId,
+            subCategoryId,
+          };
+        }
+        return form;
+      });
+      return { ...state, forms: newForms };
+    }
 
     // All actions below operate on the active form
     case "SET_SECTIONS": {

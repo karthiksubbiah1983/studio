@@ -6,6 +6,7 @@ import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { CanvasSection } from "./canvas-section";
 import { Plus } from "lucide-react";
+import { FormMetadataEditor } from "./form-metadata-editor";
 
 export function Canvas() {
   const { state, sections, dispatch } = useBuilder();
@@ -39,6 +40,7 @@ export function Canvas() {
         <div
             className="max-w-4xl mx-auto flex flex-col gap-4 pt-8 pb-24 px-4"
         >
+            <FormMetadataEditor />
             {sections.map((section) => (
                 <div 
                     key={section.id} 
