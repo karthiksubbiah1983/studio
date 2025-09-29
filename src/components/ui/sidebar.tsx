@@ -217,7 +217,7 @@ const Sidebar = React.forwardRef<
       <div
         ref={ref}
         className={cn(
-          "group peer hidden md:block text-sidebar-foreground",
+          "group peer hidden md:block bg-card text-sidebar-foreground",
           "h-full w-[--sidebar-width] transition-[width] ease-linear",
           "group-data-[collapsible=offcanvas]:w-0",
           variant === "floating" || variant === "inset"
@@ -502,7 +502,7 @@ const sidebarMenuButtonVariants = cva(
       variant: {
         default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
         outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
+          "shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]",
       },
       size: {
         default: "text-sm",
@@ -745,5 +745,3 @@ export {
   SidebarTrigger,
   useSidebar,
 }
-
-    
