@@ -10,7 +10,7 @@ import { faCircleArrowLeft } from "@fortawesome/free-solid-svg-icons";
 
 export function ElementsSidebar() {
   return (
-    <aside className="w-full md:w-56 bg-card overflow-y-auto h-full flex flex-col">
+    <aside className="w-full md:w-[14rem] bg-card overflow-y-auto h-full flex flex-col">
        <div className="p-2">
         <Link
           href="/"
