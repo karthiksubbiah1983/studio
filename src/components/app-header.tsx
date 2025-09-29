@@ -18,7 +18,7 @@ import { SidebarTrigger } from "./ui/sidebar";
 export function AppHeader() {
   return (
     <header
-      className="flex items-center justify-between bg-primary text-primary-foreground border-b border-primary/90"
+      className="flex items-center justify-between bg-primary text-primary-foreground"
       style={{ height: "64px" }}
     >
       <div className="flex items-stretch h-full">
