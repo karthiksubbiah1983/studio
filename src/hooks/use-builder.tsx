@@ -2,11 +2,12 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
 type State = {
   forms: Form[];
+  categories: Category[];
   submissions: Submission[];
   activeFormId: string | null;
   selectedElement: { elementId: string; sectionId: string } | null;
@@ -14,7 +15,7 @@ type State = {
 };
 
 type Action =
-  | { type: "ADD_FORM"; payload: { title: string, description?: string } }
+  | { type: "ADD_FORM"; payload: { title: string, description?: string, categoryId: string, subCategoryId: string | null } }
   | { type: "UPDATE_FORM_TITLE"; payload: { formId: string, title: string } }
   | { type: "DELETE_FORM"; payload: { formId: string } }
   | { type: "CLONE_FORM", payload: { formId: string, newName: string } }
@@ -36,11 +37,18 @@ type Action =
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any> } }
   | { type: "SET_STATE"; payload: Partial<State> }
-  | { type: "SET_SECTIONS"; payload: { sections: Section[] } };
+  | { type: "SET_SECTIONS"; payload: { sections: Section[] } }
+  | { type: "ADD_CATEGORY", payload: { name: string } }
+  | { type: "UPDATE_CATEGORY", payload: { category: Category } }
+  | { type: "DELETE_CATEGORY", payload: { categoryId: string } }
+  | { type: "ADD_SUBCATEGORY", payload: { categoryId: string, name: string } }
+  | { type: "UPDATE_SUBCATEGORY", payload: { categoryId: string, subCategory: SubCategory } }
+  | { type: "DELETE_SUBCATEGORY", payload: { categoryId: string, subCategoryId: string } };
 
 
 const initialState: State = {
   forms: [],
+  categories: [],
   submissions: [],
   activeFormId: null,
   selectedElement: null,
@@ -170,11 +178,13 @@ const builderReducer = (state: State, action: Action): State => {
 
   switch (action.type) {
     case "ADD_FORM": {
-        const { title, description } = action.payload;
+        const { title, description, categoryId, subCategoryId } = action.payload;
         const newFormId = crypto.randomUUID();
         const newForm: Form = {
             id: newFormId,
             title: title,
+            categoryId,
+            subCategoryId,
             versions: [{
               id: crypto.randomUUID(),
               name: "Version 1",
@@ -220,6 +230,8 @@ const builderReducer = (state: State, action: Action): State => {
         const newForm: Form = {
             id: crypto.randomUUID(),
             title: newName,
+            categoryId: formToClone.categoryId,
+            subCategoryId: formToClone.subCategoryId,
             versions: [
                 {
                     id: crypto.randomUUID(),
@@ -514,6 +526,52 @@ const builderReducer = (state: State, action: Action): State => {
             submissions: [newSubmission, ...(state.submissions || [])],
         }
     }
+    case "ADD_CATEGORY": {
+        const newCategory: Category = {
+            id: crypto.randomUUID(),
+            name: action.payload.name,
+            subCategories: [],
+        };
+        return { ...state, categories: [...state.categories, newCategory] };
+    }
+    case "UPDATE_CATEGORY": {
+        return {
+            ...state,
+            categories: state.categories.map(c => c.id === action.payload.category.id ? action.payload.category : c),
+        };
+    }
+    case "DELETE_CATEGORY": {
+        return {
+            ...state,
+            categories: state.categories.filter(c => c.id !== action.payload.categoryId),
+            // Optionally, un-categorize forms that used this category
+            forms: state.forms.map(f => f.categoryId === action.payload.categoryId ? {...f, categoryId: undefined, subCategoryId: undefined} : f)
+        };
+    }
+    case "ADD_SUBCATEGORY": {
+        const newSubCategory: SubCategory = {
+            id: crypto.randomUUID(),
+            name: action.payload.name,
+        };
+        return {
+            ...state,
+            categories: state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: [...c.subCategories, newSubCategory] } : c),
+        };
+    }
+    case "UPDATE_SUBCATEGORY": {
+        return {
+            ...state,
+            categories: state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: c.subCategories.map(sc => sc.id === action.payload.subCategory.id ? action.payload.subCategory : sc) } : c),
+        };
+    }
+    case "DELETE_SUBCATEGORY": {
+        return {
+            ...state,
+            categories: state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: c.subCategories.filter(sc => sc.id !== action.payload.subCategoryId) } : c),
+            // Optionally, un-categorize forms that used this sub-category
+            forms: state.forms.map(f => f.subCategoryId === action.payload.subCategoryId ? {...f, subCategoryId: undefined} : f)
+        };
+    }
      case "SET_STATE":
       return { ...state, ...action.payload };
     default:
@@ -545,6 +603,7 @@ type BuilderContextType = {
   state: State;
   dispatch: (action: Action) => string | void;
   forms: Form[];
+  categories: Category[];
   activeForm: Form | null;
   sections: Section[];
   setSections: (sections: Section[]) => void;
@@ -573,9 +632,11 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         } else {
             // If no state, create a default form
             const defaultFormId = crypto.randomUUID();
+            const defaultCategoryId = crypto.randomUUID();
             const defaultForm: Form = {
                 id: defaultFormId,
                 title: "My First Form",
+                categoryId: defaultCategoryId,
                 versions: [{
                   id: crypto.randomUUID(),
                   name: "Initial Draft",
@@ -585,15 +646,22 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                   sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
                 }]
             };
-            dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], activeFormId: defaultFormId, submissions: [] } });
+            const defaultCategory: Category = {
+                id: defaultCategoryId,
+                name: 'General',
+                subCategories: []
+            }
+            dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], categories: [defaultCategory], activeFormId: defaultFormId, submissions: [] } });
         }
       } catch (error) {
         console.error("Failed to load state from localStorage, initializing with default.", error);
         // Fallback to loading/parsing fails
          const defaultFormId = crypto.randomUUID();
+         const defaultCategoryId = crypto.randomUUID();
          const defaultForm: Form = {
             id: defaultFormId,
             title: "My First Form",
+            categoryId: defaultCategoryId,
             versions: [{
               id: crypto.randomUUID(),
               name: "Initial Draft",
@@ -603,7 +671,12 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
               sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
             }]
          };
-         dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], activeFormId: defaultFormId, submissions: [] } });
+         const defaultCategory: Category = {
+            id: defaultCategoryId,
+            name: 'General',
+            subCategories: []
+         }
+         dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], categories: [defaultCategory], activeFormId: defaultFormId, submissions: [] } });
       } finally {
         setIsLoading(false);
       }
@@ -648,7 +721,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, activeForm, sections, setSections }}>
+    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, activeForm, sections, setSections }}>
       {children}
     </BuilderContext.Provider>
   );
@@ -661,3 +734,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    

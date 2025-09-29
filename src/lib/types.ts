@@ -87,9 +87,22 @@ export type FormVersion = {
   sections: Section[];
 };
 
+export type SubCategory = {
+    id: string;
+    name: string;
+};
+
+export type Category = {
+    id: string;
+    name: string;
+    subCategories: SubCategory[];
+};
+
 export type Form = {
     id: string;
     title: string;
+    categoryId?: string;
+    subCategoryId?: string;
     versions: FormVersion[];
 }
 
@@ -99,5 +112,7 @@ export type Submission = {
     timestamp: string;
     data: Record<string, any>;
 };
+
+    
 
     
