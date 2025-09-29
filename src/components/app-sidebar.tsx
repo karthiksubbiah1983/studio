@@ -41,10 +41,8 @@ export function AppSidebar() {
             <Link href={item.href} legacyBehavior passHref>
               <SidebarMenuButton
                 className={cn(
-                  "px-5 py-3",
-                  pathname === item.href &&
-                    item.href === "/" &&
-                    "sidebar-active-link"
+                  "py-3 px-5",
+                  pathname === item.href && "sidebar-active-link"
                 )}
                 isActive={pathname === item.href && item.href !== "/"}
                 tooltip={item.label}
