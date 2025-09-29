@@ -491,6 +491,7 @@ const builderReducer = (state: State, action: Action): State => {
       const newForms = state.forms.map(form => {
           if (form.id === state.activeFormId) {
               const otherVersions = form.versions.filter(v => v.id !== versionToLoad.id);
+              // Place the new draft at the top, followed by the version it was loaded from.
               const newVersions = [newDraftVersion, versionToLoad, ...otherVersions];
               return { ...form, versions: newVersions };
           }
@@ -544,7 +545,7 @@ const builderReducer = (state: State, action: Action): State => {
         return {
             ...state,
             categories: state.categories.filter(c => c.id !== action.payload.categoryId),
-            // Optionally, un-categorize forms that used this category
+            // Un-categorize forms that used this category
             forms: state.forms.map(f => f.categoryId === action.payload.categoryId ? {...f, categoryId: undefined, subCategoryId: undefined} : f)
         };
     }
@@ -568,7 +569,7 @@ const builderReducer = (state: State, action: Action): State => {
         return {
             ...state,
             categories: state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: c.subCategories.filter(sc => sc.id !== action.payload.subCategoryId) } : c),
-            // Optionally, un-categorize forms that used this sub-category
+            // Un-categorize forms that used this sub-category
             forms: state.forms.map(f => f.subCategoryId === action.payload.subCategoryId ? {...f, subCategoryId: undefined} : f)
         };
     }
@@ -734,5 +735,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-    
