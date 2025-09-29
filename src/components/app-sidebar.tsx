@@ -41,7 +41,7 @@ export function AppSidebar() {
             <Link href={item.href} legacyBehavior passHref>
               <SidebarMenuButton
                 className={cn(
-                  "px-5 py-4",
+                  "px-5 py-2",
                   pathname === item.href &&
                     item.href === "/" &&
                     "sidebar-active-link"
