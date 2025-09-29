@@ -59,6 +59,13 @@
   }
 }
 
+@layer components {
+    .sidebar-active-link {
+        @apply bg-blue-50;
+        border-right: 3px solid hsl(var(--primary));
+    }
+}
+
 .droppable {
   @apply transition-colors duration-200;
 }

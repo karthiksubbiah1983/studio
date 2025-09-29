@@ -18,12 +18,13 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
   const pathname = usePathname();
 
   const menuItems = [
-    { href: "/", label: "Home", icon: Home },
+    { href: "/", label: "Manage Templates", icon: Home },
     { href: "/categories", label: "Categories", icon: Tags },
     { href: "#", label: "Tasks", icon: ListTodo },
     { href: "#", label: "Forward View", icon: History },
@@ -39,7 +40,12 @@ export function AppSidebar() {
           <SidebarMenuItem key={item.label}>
             <Link href={item.href} legacyBehavior passHref>
               <SidebarMenuButton
-                isActive={pathname === item.href}
+                className={cn(
+                  pathname === item.href &&
+                    item.href === "/" &&
+                    "sidebar-active-link"
+                )}
+                isActive={pathname === item.href && item.href !== "/"}
                 tooltip={item.label}
               >
                 <item.icon />
@@ -52,5 +58,3 @@ export function AppSidebar() {
     </SidebarContent>
   );
 }
-
-    
