@@ -249,7 +249,7 @@ export default function Home() {
                         </TableCell>
                         <TableCell>{format(new Date(latestVersion.timestamp), "PPP p")}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-0.5">
                              <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>
                               <Copy className="h-4 w-4" />
                             </Button>
