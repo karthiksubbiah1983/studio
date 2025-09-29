@@ -128,7 +128,7 @@ export default function Home() {
   const selectedCategoryForNewTemplate = categories.find(c => c.id === selectedCategoryId);
 
   return (
-    <div className="w-full p-4 md:p-8">
+    <div className="w-full p-4">
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -326,3 +326,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
