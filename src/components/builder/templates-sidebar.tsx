@@ -7,7 +7,6 @@ import {
   Card,
   CardDescription,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Download, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
