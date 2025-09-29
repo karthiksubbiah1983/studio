@@ -14,6 +14,7 @@ import {
   CalendarCheck,
   FileWarning,
   Users,
+  Tags,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,6 +24,7 @@ export function AppSidebar() {
 
   const menuItems = [
     { href: "/", label: "Home", icon: Home },
+    { href: "/categories", label: "Categories", icon: Tags },
     { href: "#", label: "Tasks", icon: ListTodo },
     { href: "#", label: "Forward View", icon: History },
     { href: "#", label: "Task Scheduler", icon: CalendarCheck },
