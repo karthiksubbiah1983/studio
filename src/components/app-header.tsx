@@ -23,7 +23,7 @@ export function AppHeader() {
     >
       <div className="flex items-stretch h-full">
         <div
-          className="flex items-center justify-center gap-4 px-6 bg-card text-primary"
+          className="flex items-center justify-start gap-2 px-6 bg-card text-primary"
           style={{ width: "var(--sidebar-width)" }}
         >
           <SidebarTrigger className="h-8 w-8 text-primary hover:text-primary/90 hover:bg-accent" />
