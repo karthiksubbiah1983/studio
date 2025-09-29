@@ -64,6 +64,14 @@ export default function Home() {
     return categories.find(c => c.id === categoryId)?.name || "Uncategorized";
   }
 
+  const getSubCategoryName = (categoryId: string | undefined, subCategoryId: string | undefined) => {
+    if (!categoryId || !subCategoryId) return "—";
+    const category = categories.find(c => c.id === categoryId);
+    if (!category) return "—";
+    const subCategory = category.subCategories.find(sc => sc.id === subCategoryId);
+    return subCategory?.name || "—";
+  }
+
   const handleCreateNew = () => {
     if (!newTemplateName.trim() || !selectedCategoryId) return;
     const newFormId = dispatch({ 
@@ -207,6 +215,7 @@ export default function Home() {
                 <TableRow className="bg-blue-50 hover:bg-blue-50">
                   <TableHead className="text-gray-700">Template Name</TableHead>
                   <TableHead className="text-gray-700">Category</TableHead>
+                  <TableHead className="text-gray-700">Sub Category</TableHead>
                   <TableHead className="text-gray-700">Version</TableHead>
                   <TableHead className="text-gray-700">Last Modified</TableHead>
                   <TableHead className="text-right text-gray-700">Actions</TableHead>
@@ -227,6 +236,7 @@ export default function Home() {
                       <TableRow key={form.id}>
                         <TableCell className="font-medium">{form.title}</TableCell>
                         <TableCell>{getCategoryName(form.categoryId)}</TableCell>
+                        <TableCell>{getSubCategoryName(form.categoryId, form.subCategoryId)}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-muted-foreground">{displayVersionText}</span>
@@ -275,7 +285,7 @@ export default function Home() {
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                       No templates found.
                     </TableCell>
                   </TableRow>
@@ -316,5 +326,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
