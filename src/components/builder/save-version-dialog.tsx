@@ -31,17 +31,14 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
   const [description, setDescription] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      if (saveType === 'published' && activeForm) {
-        const publishedCount = activeForm.versions.filter(v => v.type === 'published').length;
-        setName(`Version ${publishedCount + 1}`);
-      } else {
-        // Only reset name if it's a new dialog instance, not on every render for drafts
-        setName("");
-      }
-      setDescription("");
+    if (saveType === 'published' && activeForm) {
+      const publishedCount = activeForm.versions.filter(v => v.type === 'published').length;
+      setName(`Version ${publishedCount + 1}`);
+    } else {
+      setName("");
     }
-  }, [isOpen, saveType, activeForm]);
+    setDescription("");
+  }, [saveType, activeForm]);
 
 
   const handleSave = () => {
