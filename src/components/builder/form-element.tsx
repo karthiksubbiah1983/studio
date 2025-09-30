@@ -46,13 +46,17 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   
   const [tableRows, setTableRows] = useState<any[][]>([]);
 
-  const initialColumnVisibility = element.columns?.reduce((acc, col) => {
-    acc[col.id] = col.visible;
-    return acc;
-  }, {} as Record<string, boolean>) || {};
+  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
 
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>(initialColumnVisibility);
-
+  useEffect(() => {
+    if (element.type === 'Table') {
+        const initialVisibility = element.columns?.reduce((acc, col) => {
+            acc[col.id] = col.visible;
+            return acc;
+        }, {} as Record<string, boolean>) || {};
+        setColumnVisibility(initialVisibility);
+    }
+  }, [element.columns, element.type]);
 
   useEffect(() => {
     if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
@@ -71,12 +75,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             setTableRows(initial);
             onValueChange(element.id, initial);
         }
-        setColumnVisibility(element.columns?.reduce((acc, col) => {
-            acc[col.id] = col.visible;
-            return acc;
-        }, {} as Record<string, boolean>) || {});
     }
-  }, [element, value]);
+  }, [element, value, onValueChange]);
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
 
@@ -523,4 +523,5 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
-}
+
+    
