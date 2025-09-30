@@ -16,9 +16,9 @@ export default function BuilderPage({ params: { formId } }: Props) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
 
-    const formExists = state.forms.some(f => f.id === formId);
-
     useEffect(() => {
+        const formExists = state.forms.some(f => f.id === formId);
+
         if (!formExists) {
             // Redirect to home if the form doesn't exist
             router.replace('/');
@@ -32,10 +32,10 @@ export default function BuilderPage({ params: { formId } }: Props) {
 
         setIsLoading(false);
 
-    }, [formId, state.activeFormId, dispatch, formExists, router]);
+    }, [formId, state.forms, state.activeFormId, dispatch, router]);
 
     // Don't render the builder if we're about to redirect or still loading
-    if (isLoading || !formExists) {
+    if (isLoading) {
         return null;
     }
 
