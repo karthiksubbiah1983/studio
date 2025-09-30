@@ -8,13 +8,13 @@ import { AppSidebar } from "@/components/app-sidebar";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const showSidebar = pathname === "/" || pathname === "/categories";
+  const isBuilderPage = pathname.startsWith('/builder');
 
   return (
     <div className="flex flex-col h-screen">
       <AppHeader />
       <div className="flex flex-1 overflow-hidden">
-        {showSidebar && (
+        {!isBuilderPage && (
           <Sidebar>
             <AppSidebar />
           </Sidebar>

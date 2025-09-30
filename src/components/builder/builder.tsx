@@ -66,7 +66,6 @@ export function Builder() {
 
   useEffect(() => {
     setIsClient(true);
-    import("@/lib/dnd-touch-polyfill");
   }, []);
 
   const isMobile = isClient && isMobileView;
