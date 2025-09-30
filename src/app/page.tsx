@@ -18,7 +18,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -249,7 +248,7 @@ export default function Home() {
                         </TableCell>
                         <TableCell>{format(new Date(latestVersion.timestamp), "PPP p")}</TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-0.5">
+                          <div className="flex justify-end gap-0">
                              <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>
                               <Copy className="h-4 w-4" />
                             </Button>
