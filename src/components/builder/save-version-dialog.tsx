@@ -31,14 +31,16 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
   const [description, setDescription] = useState("");
 
   useEffect(() => {
-    if (saveType === 'published' && activeForm) {
-      const publishedCount = activeForm.versions.filter(v => v.type === 'published').length;
-      setName(`Version ${publishedCount + 1}`);
-    } else {
-      setName("");
+    if (isOpen) {
+        if (saveType === 'published' && activeForm) {
+            const publishedCount = activeForm.versions.filter(v => v.type === 'published').length;
+            setName(`Version ${publishedCount + 1}`);
+        } else {
+            setName("");
+        }
+        setDescription("");
     }
-    setDescription("");
-  }, [saveType, activeForm]);
+  }, [isOpen, saveType, activeForm]);
 
 
   const handleSave = () => {
