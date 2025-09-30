@@ -4,6 +4,7 @@
 import { Button } from "@/components/ui/button";
 import { PanelLeft, Settings, LayoutTemplate } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useEffect, useState } from "react";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
@@ -12,9 +13,14 @@ type Props = {
 }
 
 export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesSidebarToggle }: Props) {
-  const isMobile = useIsMobile();
+  const isMobileView = useIsMobile();
+  const [isClient, setIsClient] = useState(false);
 
-  if (!isMobile) {
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient || !isMobileView) {
     return null;
   }
 
