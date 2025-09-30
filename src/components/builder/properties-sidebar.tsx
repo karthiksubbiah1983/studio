@@ -343,12 +343,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   useEffect(() => {
     setProps(element);
-    if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
-        handleFetchSchema();
-    } else {
-        setFetchedKeys([]);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [element]);
 
   useEffect(() => {
