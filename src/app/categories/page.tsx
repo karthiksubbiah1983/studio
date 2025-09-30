@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -23,13 +23,13 @@ export default function CategoriesPage() {
   const [editingCategoryNames, setEditingCategoryNames] = useState<Record<string, string>>({});
 
   // Initialize editing state
-  useState(() => {
+  useEffect(() => {
     const initialEditingNames: Record<string, string> = {};
     categories.forEach(cat => {
       initialEditingNames[cat.id] = cat.name;
     });
     setEditingCategoryNames(initialEditingNames);
-  });
+  }, [categories]);
 
   // Category Management Handlers
   const handleAddCategory = () => {
