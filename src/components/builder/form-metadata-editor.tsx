@@ -16,26 +16,15 @@ import { useEffect, useState } from "react";
 export function FormMetadataEditor() {
   const { activeForm, categories, dispatch } = useBuilder();
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState(activeForm?.categoryId);
-  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState(activeForm?.subCategoryId);
-
-  useEffect(() => {
-    setSelectedCategoryId(activeForm?.categoryId);
-    setSelectedSubCategoryId(activeForm?.subCategoryId);
-  }, [activeForm]);
-
   const handleCategoryChange = (categoryId: string) => {
-    setSelectedCategoryId(categoryId);
-    setSelectedSubCategoryId(null); // Reset sub-category when category changes
     dispatch({ type: "UPDATE_FORM_METADATA", payload: { categoryId, subCategoryId: null } });
   };
   
   const handleSubCategoryChange = (subCategoryId: string) => {
-    setSelectedSubCategoryId(subCategoryId);
-    dispatch({ type: "UPDATE_FORM_METADATA", payload: { categoryId: selectedCategoryId, subCategoryId } });
+    dispatch({ type: "UPDATE_FORM_METADATA", payload: { categoryId: activeForm?.categoryId, subCategoryId } });
   }
 
-  const selectedCategory = categories.find(c => c.id === selectedCategoryId);
+  const selectedCategory = categories.find(c => c.id === activeForm?.categoryId);
 
   return (
     <Card>
@@ -43,7 +32,7 @@ export function FormMetadataEditor() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="template-category">Category</Label>
-                    <Select value={selectedCategoryId || ""} onValueChange={handleCategoryChange}>
+                    <Select value={activeForm?.categoryId || ""} onValueChange={handleCategoryChange}>
                         <SelectTrigger id="template-category">
                             <SelectValue placeholder="Select a category" />
                         </SelectTrigger>
@@ -57,7 +46,7 @@ export function FormMetadataEditor() {
                  {selectedCategory && selectedCategory.subCategories.length > 0 && (
                     <div className="flex flex-col gap-2">
                         <Label htmlFor="template-subcategory">Sub-category</Label>
-                         <Select value={selectedSubCategoryId || ""} onValueChange={handleSubCategoryChange}>
+                         <Select value={activeForm?.subCategoryId || ""} onValueChange={handleSubCategoryChange}>
                             <SelectTrigger id="template-subcategory">
                                 <SelectValue placeholder="Select a sub-category" />
                             </SelectTrigger>
