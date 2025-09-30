@@ -633,7 +633,7 @@ const LOCAL_STORAGE_KEY = "form-builder-state";
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatchAction] = useReducer(builderReducer, initialState);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -696,20 +696,20 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
          }
          dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], categories: [defaultCategory], activeFormId: defaultFormId, submissions: [] } });
       } finally {
-        setIsLoading(false);
+        setIsLoaded(true);
       }
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && !isLoading) {
+    if (typeof window !== "undefined" && isLoaded) {
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
       } catch (error) {
         console.error("Failed to save state to localStorage", error);
       }
     }
-  }, [state, isLoading]);
+  }, [state, isLoaded]);
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
   const sections = activeForm?.versions[0]?.sections || [];
@@ -727,7 +727,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatchAction({ type: 'SET_SECTIONS', payload: { sections: newSections }})
   }
 
-  if (isLoading) {
+  if (!isLoaded) {
     return (
         <main className="flex flex-col items-center justify-center w-full min-h-screen bg-background p-4 md:p-8">
             <div className="text-center">
