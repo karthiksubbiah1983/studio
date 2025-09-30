@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Builder } from "@/components/builder/builder";
 import { useRouter } from "next/navigation";
@@ -14,9 +14,11 @@ type Props = {
 export default function BuilderPage({ params: { formId } }: Props) {
     const { state, dispatch } = useBuilder();
     const router = useRouter();
+    const [isLoading, setIsLoading] = useState(true);
+
+    const formExists = state.forms.some(f => f.id === formId);
 
     useEffect(() => {
-        const formExists = state.forms.some(f => f.id === formId);
         if (!formExists) {
             // Redirect to home if the form doesn't exist
             router.replace('/');
@@ -27,10 +29,13 @@ export default function BuilderPage({ params: { formId } }: Props) {
         if (formId && state.activeFormId !== formId) {
             dispatch({ type: "SET_ACTIVE_FORM", payload: { formId } });
         }
-    }, [formId, state.activeFormId, dispatch, state.forms, router]);
 
-    // Don't render the builder if we're about to redirect
-    if (!state.forms.some(f => f.id === formId)) {
+        setIsLoading(false);
+
+    }, [formId, state.activeFormId, dispatch, formExists, router]);
+
+    // Don't render the builder if we're about to redirect or still loading
+    if (isLoading || !formExists) {
         return null;
     }
 
