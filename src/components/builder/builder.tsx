@@ -30,7 +30,12 @@ export function Builder() {
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [saveType, setSaveType] = useState<"draft" | "published">("draft");
   
-  const [activeVersionId, setActiveVersionId] = useState<string | undefined>(activeForm?.versions[0]?.id);
+  const [activeVersionId, setActiveVersionId] = useState<string | undefined>();
+
+  useEffect(() => {
+    setActiveVersionId(activeForm?.versions[0]?.id);
+  }, [activeForm]);
+
 
   const latestVersion = activeForm?.versions[0];
   const isPublished = latestVersion?.type === 'published';
