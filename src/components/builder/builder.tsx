@@ -33,7 +33,9 @@ export function Builder() {
   const [activeVersionId, setActiveVersionId] = useState<string | undefined>();
 
   useEffect(() => {
-    setActiveVersionId(activeForm?.versions[0]?.id);
+    if (activeForm) {
+      setActiveVersionId(activeForm.versions[0]?.id);
+    }
   }, [activeForm]);
 
 
