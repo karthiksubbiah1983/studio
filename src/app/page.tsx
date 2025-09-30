@@ -2,7 +2,7 @@
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +35,18 @@ import {
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
+import type { Form } from "@/lib/types";
+
+function FormattedDate({ timestamp }: { timestamp: string }) {
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        setFormattedDate(format(new Date(timestamp), "PPP p"));
+    }, [timestamp]);
+
+    return <>{formattedDate}</>;
+}
+
 
 export default function Home() {
   const { state, dispatch } = useBuilder();
@@ -246,7 +258,7 @@ export default function Home() {
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell>{format(new Date(latestVersion.timestamp), "PPP p")}</TableCell>
+                        <TableCell><FormattedDate timestamp={latestVersion.timestamp} /></TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-0">
                              <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>

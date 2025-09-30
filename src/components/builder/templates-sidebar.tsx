@@ -11,6 +11,19 @@ import { format } from "date-fns";
 import { Download, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
+import { useEffect, useState } from "react";
+
+
+function FormattedDate({ timestamp }: { timestamp: string }) {
+    const [formattedDate, setFormattedDate] = useState('');
+
+    useEffect(() => {
+        setFormattedDate(format(new Date(timestamp), "PPP p"));
+    }, [timestamp]);
+
+    return <>{formattedDate}</>;
+}
+
 
 export function TemplatesSidebar() {
   const { activeForm, dispatch } = useBuilder();
@@ -91,7 +104,7 @@ export function TemplatesSidebar() {
                       </AccordionTrigger>
                       <AccordionContent className="px-2 pb-2">
                            <CardDescription className="text-xs mb-2">
-                              {format(new Date(version.timestamp), "PPP p")}
+                              <FormattedDate timestamp={version.timestamp} />
                           </CardDescription>
                           <p className="text-xs text-muted-foreground">
                               {version.description || "No description."}
@@ -106,3 +119,5 @@ export function TemplatesSidebar() {
     </div>
   );
 }
+
+    
