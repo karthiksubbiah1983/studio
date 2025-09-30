@@ -631,6 +631,38 @@ const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
 const LOCAL_STORAGE_KEY = "form-builder-state";
 
+// Static default state to prevent hydration mismatch
+const defaultFormId = "default-form-id-12345";
+const defaultCategoryId = "default-category-id-12345";
+const defaultVersionId = "default-version-id-12345";
+const defaultSectionId = "default-section-id-12345";
+
+const defaultState: State = {
+    forms: [{
+        id: defaultFormId,
+        title: "My First Form",
+        categoryId: defaultCategoryId,
+        versions: [{
+            id: defaultVersionId,
+            name: "Initial Draft",
+            description: "",
+            type: "draft",
+            timestamp: "2023-01-01T00:00:00.000Z",
+            sections: [{ id: defaultSectionId, title: "New Section", config: "expanded", elements: [] }]
+        }]
+    }],
+    categories: [{
+        id: defaultCategoryId,
+        name: 'General',
+        subCategories: []
+    }],
+    submissions: [],
+    activeFormId: defaultFormId,
+    selectedElement: null,
+    draggedElement: null,
+};
+
+
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatchAction] = useReducer(builderReducer, initialState);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -641,60 +673,17 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (storedState) {
           const parsedState = JSON.parse(storedState);
-          // Simple validation to check if the stored state is somewhat valid
           if (parsedState && Array.isArray(parsedState.forms)) {
             dispatchAction({ type: "SET_STATE", payload: parsedState });
           } else {
-             throw new Error("Invalid state format");
+             dispatchAction({ type: "SET_STATE", payload: defaultState });
           }
         } else {
-            // If no state, create a default form
-            const defaultFormId = crypto.randomUUID();
-            const defaultCategoryId = crypto.randomUUID();
-            const defaultForm: Form = {
-                id: defaultFormId,
-                title: "My First Form",
-                categoryId: defaultCategoryId,
-                versions: [{
-                  id: crypto.randomUUID(),
-                  name: "Initial Draft",
-                  description: "",
-                  type: "draft",
-                  timestamp: new Date().toISOString(),
-                  sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
-                }]
-            };
-            const defaultCategory: Category = {
-                id: defaultCategoryId,
-                name: 'General',
-                subCategories: []
-            }
-            dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], categories: [defaultCategory], activeFormId: defaultFormId, submissions: [] } });
+            dispatchAction({ type: "SET_STATE", payload: defaultState });
         }
       } catch (error) {
         console.error("Failed to load state from localStorage, initializing with default.", error);
-        // Fallback to loading/parsing fails
-         const defaultFormId = crypto.randomUUID();
-         const defaultCategoryId = crypto.randomUUID();
-         const defaultForm: Form = {
-            id: defaultFormId,
-            title: "My First Form",
-            categoryId: defaultCategoryId,
-            versions: [{
-              id: crypto.randomUUID(),
-              name: "Initial Draft",
-              description: "",
-              type: "draft",
-              timestamp: new Date().toISOString(),
-              sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
-            }]
-         };
-         const defaultCategory: Category = {
-            id: defaultCategoryId,
-            name: 'General',
-            subCategories: []
-         }
-         dispatchAction({ type: "SET_STATE", payload: { forms: [defaultForm], categories: [defaultCategory], activeFormId: defaultFormId, submissions: [] } });
+        dispatchAction({ type: "SET_STATE", payload: defaultState });
       } finally {
         setIsLoaded(true);
       }
@@ -702,7 +691,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && isLoaded) {
+    if (typeof window !== "undefined" && isLoaded && state !== initialState) {
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
       } catch (error) {
@@ -752,3 +741,6 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+
+    
