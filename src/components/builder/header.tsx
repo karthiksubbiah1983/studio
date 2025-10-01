@@ -20,7 +20,9 @@ export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesS
     setIsClient(true);
   }, []);
 
-  if (!isClient || !isMobileView) {
+  const isMobile = isClient && isMobileView;
+
+  if (!isMobile) {
     return null;
   }
 
