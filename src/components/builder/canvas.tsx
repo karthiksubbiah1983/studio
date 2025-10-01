@@ -38,7 +38,7 @@ export function Canvas() {
   return (
     <>
         <div
-            className="max-w-4xl mx-auto flex flex-col gap-4 pt-8 pb-24 px-4"
+            className="max-w-4xl mx-auto flex flex-col gap-4 pb-24 px-4"
         >
             <FormMetadataEditor />
             {sections.map((section) => (

@@ -17,6 +17,7 @@ import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { PreviewDialog } from "./preview-dialog";
 import { SaveVersionDialog } from "./save-version-dialog";
+import { PageHeader } from "../page-header";
 
 export function Builder() {
   const isMobileView = useIsMobile();
@@ -33,10 +34,14 @@ export function Builder() {
   const [activeVersionId, setActiveVersionId] = useState<string | undefined>();
 
   useEffect(() => {
-    if (activeForm) {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (activeForm && isClient) {
       setActiveVersionId(activeForm.versions[0]?.id);
     }
-  }, [activeForm]);
+  }, [activeForm, isClient]);
 
 
   const latestVersion = activeForm?.versions[0];
@@ -44,12 +49,14 @@ export function Builder() {
 
   useEffect(() => {
     // This effect synchronizes the local sections state with the global active version
-    const currentActiveVersion = activeForm?.versions[0];
-    if (currentActiveVersion && currentActiveVersion.id !== activeVersionId) {
-      setSections(currentActiveVersion.sections);
-      setActiveVersionId(currentActiveVersion.id);
+    if (isClient) {
+      const currentActiveVersion = activeForm?.versions[0];
+      if (currentActiveVersion && currentActiveVersion.id !== activeVersionId) {
+        setSections(currentActiveVersion.sections);
+        setActiveVersionId(currentActiveVersion.id);
+      }
     }
-  }, [activeForm?.versions, activeVersionId, setSections]);
+  }, [activeForm?.versions, activeVersionId, setSections, isClient]);
 
 
   const handleSaveClick = (type: "draft" | "published") => {
@@ -57,49 +64,39 @@ export function Builder() {
     setIsSaveOpen(true);
   }
 
-  const renderBadge = () => {
-    if (!latestVersion) return null;
-    return (
-      <Badge className={cn(
-        "text-xs",
-        isPublished
-            ? "bg-green-100 text-green-800 border-green-200"
-            : "bg-yellow-100 text-yellow-800 border-yellow-200"
-      )}>
-        {isPublished ? `Published` : 'Draft'}
-      </Badge>
-    );
-  };
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   const isMobile = isClient && isMobileView;
 
   const titleBar = (
-     <header className="sticky top-0 z-10 flex items-center justify-between py-1.5 px-4 bg-[#A2C0DC] border-b shadow-sm">
-        <div className="flex items-center gap-2 flex-grow min-w-0">
-            <h1 className="text-lg font-semibold">
-                {activeForm?.title || ""}
-            </h1>
-              {renderBadge()}
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-            <Button variant="outline" size="xs" onClick={() => setIsPreviewOpen(true)}>
-                <Eye className="mr-1 h-4 w-4" />
-                Preview
-            </Button>
-              <Button variant="outline" size="xs" onClick={() => handleSaveClick("draft")}>
-                <Save className="mr-1 h-4 w-4" />
-                Save Draft
-            </Button>
-            <Button size="xs" onClick={() => handleSaveClick("published")} className="bg-green-600 hover:bg-green-700">
-                <Send className="mr-1 h-4 w-4" />
-                Publish
-            </Button>
-        </div>
-    </header>
+    <div className="sticky top-0 z-10 flex items-center justify-between py-1.5 px-4 bg-background border-b shadow-sm">
+      <div className="flex items-center gap-4 flex-grow min-w-0">
+        <PageHeader
+          title={activeForm?.title || 'Form Builder'}
+          description="Design and configure your form using the drag-and-drop interface."
+        />
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Badge className={cn(
+          "text-xs",
+          isPublished
+              ? "bg-green-100 text-green-800 border-green-200"
+              : "bg-yellow-100 text-yellow-800 border-yellow-200"
+        )}>
+          {isPublished ? `Published` : 'Draft'}
+        </Badge>
+        <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
+          <Eye className="mr-1 h-4 w-4" />
+          Preview
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => handleSaveClick("draft")}>
+          <Save className="mr-1 h-4 w-4" />
+          Save Draft
+        </Button>
+        <Button size="sm" onClick={() => handleSaveClick("published")} className="bg-green-600 hover:bg-green-700">
+          <Send className="mr-1 h-4 w-4" />
+          Publish
+        </Button>
+      </div>
+    </div>
   );
 
   if (!isClient) {
@@ -114,13 +111,10 @@ export function Builder() {
          <div className="flex-1 flex flex-row overflow-hidden">
             <ElementsSidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
-                {titleBar}
-                <div className="flex flex-grow h-full overflow-hidden">
-                    <div className="flex-grow h-full overflow-y-auto bg-background">
-                        <Canvas />
-                    </div>
-                    <RightSidebar />
+                <div className="flex-grow h-full overflow-y-auto bg-background">
+                    <Canvas />
                 </div>
+                <RightSidebar />
             </div>
           </div>
         </div>
@@ -148,7 +142,7 @@ export function Builder() {
 
             <div className="flex-1 flex flex-col overflow-hidden">
                 {titleBar}
-                <div className="flex flex-grow h-[calc(100%-53px)] overflow-hidden">
+                <div className="flex flex-grow h-[calc(100%-100px)] overflow-hidden">
                     <div className="flex-grow h-full overflow-y-auto bg-background">
                         <Canvas />
                     </div>

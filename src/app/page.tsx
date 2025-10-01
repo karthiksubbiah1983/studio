@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
 import type { Form } from "@/lib/types";
+import { PageHeader } from "@/components/page-header";
 
 function FormattedDate({ timestamp }: { timestamp: string }) {
     const [formattedDate, setFormattedDate] = useState('');
@@ -140,97 +141,95 @@ export default function Home() {
   const selectedCategoryForNewTemplate = categories.find(c => c.id === selectedCategoryId);
 
   return (
-    <div className="w-full p-4">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <CardTitle>Templates</CardTitle>
-            </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              <div className="relative flex-grow">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="Search templates..."
-                  className="pl-8 w-full"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              
-              <Link href="/categories" passHref>
+    <div className="w-full p-4 md:p-6">
+       <PageHeader 
+        title="Template Management"
+        description="Create, edit, and manage all your form templates from one place. You can organize them by categories and sub-categories."
+      />
+      <div className="flex justify-between items-center mb-4">
+        <div className="relative flex-grow max-w-sm">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+            type="search"
+            placeholder="Search templates..."
+            className="pl-8 w-full"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            />
+        </div>
+        <div className="flex gap-2">
+            <Link href="/categories" passHref>
                 <Button variant="outline">Manage Categories</Button>
-              </Link>
+            </Link>
 
-              <Dialog open={isNewTemplateDialogOpen} onOpenChange={setIsNewTemplateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Create New
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Template</DialogTitle>
-                    <DialogDescription>
-                      Give your new template a name and assign it to a category.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
+            <Dialog open={isNewTemplateDialogOpen} onOpenChange={setIsNewTemplateDialogOpen}>
+            <DialogTrigger asChild>
+                <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create New
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>Create New Template</DialogTitle>
+                <DialogDescription>
+                    Give your new template a name and assign it to a category.
+                </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="template-name" className="text-right">Name</Label>
+                    <Input id="template-name" value={newTemplateName} onChange={(e) => setNewTemplateName(e.target.value)} className="col-span-3" placeholder="e.g., 'Customer Inquiry Form'" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="template-category" className="text-right">Category</Label>
+                    <Select value={selectedCategoryId || ""} onValueChange={setSelectedCategoryId}>
+                        <SelectTrigger className="col-span-3">
+                            <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+                    {selectedCategoryForNewTemplate && selectedCategoryForNewTemplate.subCategories.length > 0 && (
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="template-name" className="text-right">Name</Label>
-                        <Input id="template-name" value={newTemplateName} onChange={(e) => setNewTemplateName(e.target.value)} className="col-span-3" placeholder="e.g., 'Customer Inquiry Form'" />
-                    </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="template-category" className="text-right">Category</Label>
-                        <Select value={selectedCategoryId || ""} onValueChange={setSelectedCategoryId}>
+                        <Label htmlFor="template-subcategory" className="text-right">Sub-category</Label>
+                            <Select value={selectedSubCategoryId || ""} onValueChange={setSelectedSubCategoryId}>
                             <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Select a category" />
+                                <SelectValue placeholder="Select a sub-category" />
                             </SelectTrigger>
                             <SelectContent>
-                                {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
+                                {selectedCategoryForNewTemplate.subCategories.map(sub => <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
-                     {selectedCategoryForNewTemplate && selectedCategoryForNewTemplate.subCategories.length > 0 && (
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="template-subcategory" className="text-right">Sub-category</Label>
-                             <Select value={selectedSubCategoryId || ""} onValueChange={setSelectedSubCategoryId}>
-                                <SelectTrigger className="col-span-3">
-                                    <SelectValue placeholder="Select a sub-category" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {selectedCategoryForNewTemplate.subCategories.map(sub => <SelectItem key={sub.id} value={sub.id}>{sub.name}</SelectItem>)}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                     )}
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="template-description" className="text-right">Description</Label>
-                       <Textarea id="template-description" value={newTemplateDescription} onChange={(e) => setNewTemplateDescription(e.target.value)} className="col-span-3" placeholder="Optional: A brief summary of this template's purpose."/>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="secondary" onClick={() => setIsNewTemplateDialogOpen(false)}>Cancel</Button>
-                    <Button onClick={handleCreateNew} disabled={!newTemplateName.trim() || !selectedCategoryId}>Create Template</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="border rounded-lg">
+                    )}
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="template-description" className="text-right">Description</Label>
+                    <Textarea id="template-description" value={newTemplateDescription} onChange={(e) => setNewTemplateDescription(e.target.value)} className="col-span-3" placeholder="Optional: A brief summary of this template's purpose."/>
+                </div>
+                </div>
+                <DialogFooter>
+                <Button variant="secondary" onClick={() => setIsNewTemplateDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleCreateNew} disabled={!newTemplateName.trim() || !selectedCategoryId}>Create Template</Button>
+                </DialogFooter>
+            </DialogContent>
+            </Dialog>
+        </div>
+      </div>
+      <Card>
+        <CardContent className="p-0">
+          <div className="border-t">
             <Table>
               <TableHeader>
-                <TableRow className="bg-blue-50 hover:bg-blue-50">
-                  <TableHead className="text-gray-700">Template Name</TableHead>
-                  <TableHead className="text-gray-700">Category</TableHead>
-                  <TableHead className="text-gray-700">Sub Category</TableHead>
-                  <TableHead className="text-gray-700">Version</TableHead>
-                  <TableHead className="text-gray-700">Last Modified</TableHead>
-                  <TableHead className="text-right text-gray-700">Actions</TableHead>
+                <TableRow>
+                  <TableHead>Template Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Sub Category</TableHead>
+                  <TableHead>Version</TableHead>
+                  <TableHead>Last Modified</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

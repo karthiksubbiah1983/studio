@@ -12,6 +12,7 @@ import { Plus, Trash, X, GripVertical, Save } from "lucide-react";
 import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader } from "@/components/page-header";
 
 export default function CategoriesPage() {
   const { state, dispatch } = useBuilder();
@@ -89,15 +90,13 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="w-full p-4">
+    <div className="w-full p-4 md:p-6">
+      <PageHeader
+        title="Manage Categories"
+        description="Add, edit, or delete categories and their sub-categories to organize your form templates."
+      />
       <Card>
-        <CardHeader>
-          <CardTitle>Manage Categories</CardTitle>
-          <CardDescription>
-            Add, edit, or delete categories and their sub-categories.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="flex items-center gap-2 mb-6">
             <Input
               placeholder="New category name..."
