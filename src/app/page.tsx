@@ -265,9 +265,11 @@ export default function Home() {
                              <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>
                               <Copy className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleEdit(form.id)}>
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <Link href={`/builder/${form.id}`} passHref>
+                                <Button variant="ghost" size="icon">
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                            </Link>
                              <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="ghost" size="icon">
