@@ -6,7 +6,7 @@ import { ElementsSidebar } from "./elements-sidebar";
 import { PropertiesSidebar } from "./properties-sidebar";
 import { Canvas } from "./canvas";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { TemplatesSidebar } from "./templates-sidebar";
 import { RightSidebar } from "./right-sidebar";
@@ -17,15 +17,13 @@ import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { PreviewDialog } from "./preview-dialog";
 import { SaveVersionDialog } from "./save-version-dialog";
-import { PageHeader } from "../page-header";
 import { useRouter } from "next/navigation";
 
 type Props = {
-    params: Promise<{ formId: string }>;
+    formId: string;
 }
 
-export function Builder({ params }: Props) {
-  const { formId } = use(params);
+export function Builder({ formId }: Props) {
   const { state, dispatch, setSections } = useBuilder();
   const router = useRouter();
   
@@ -45,6 +43,9 @@ export function Builder({ params }: Props) {
 
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  useEffect(() => {
     const formExists = state.forms.some(f => f.id === formId);
 
     if (!formExists) {
