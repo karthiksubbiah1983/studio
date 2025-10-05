@@ -64,6 +64,16 @@
         @apply bg-blue-50;
         border-left: 3px solid hsl(var(--primary));
     }
+
+    .level-1-active {
+        @apply bg-primary text-primary-foreground;
+    }
+    .level-2-bg, .level-3-bg {
+        @apply bg-blue-50 text-gray-800;
+    }
+    .level-2-active, .level-3-active {
+        @apply text-primary;
+    }
 }
 
 .droppable {
