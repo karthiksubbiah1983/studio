@@ -20,11 +20,10 @@ import { SaveVersionDialog } from "./save-version-dialog";
 import { useRouter } from "next/navigation";
 
 type Props = {
-    params: Promise<{ formId: string }>;
+    formId: string;
 }
 
-export function Builder({ params }: Props) {
-  const { formId } = use(params);
+export function Builder({ formId }: Props) {
   const { state, dispatch, setSections } = useBuilder();
   const router = useRouter();
   
