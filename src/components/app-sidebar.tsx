@@ -58,8 +58,8 @@ const menuItems: MenuItem[] = [
 const SidebarMenuEntry = ({ item, level = 1 }: { item: MenuItem, level?: number }) => {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
-  const isActive = pathname === item.href;
   const hasChildren = item.children && item.children.length > 0;
+  const isActive = (pathname === item.href && item.href !== '#') || (hasChildren && isOpen && level === 1);
 
   const handleToggle = (e: React.MouseEvent) => {
     if (hasChildren) {
