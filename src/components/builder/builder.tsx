@@ -6,7 +6,7 @@ import { ElementsSidebar } from "./elements-sidebar";
 import { PropertiesSidebar } from "./properties-sidebar";
 import { Canvas } from "./canvas";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { TemplatesSidebar } from "./templates-sidebar";
 import { RightSidebar } from "./right-sidebar";
@@ -20,10 +20,11 @@ import { SaveVersionDialog } from "./save-version-dialog";
 import { useRouter } from "next/navigation";
 
 type Props = {
-    formId: string;
+    params: Promise<{ formId: string }>;
 }
 
-export function Builder({ formId }: Props) {
+export function Builder({ params }: Props) {
+  const { formId } = use(params);
   const { state, dispatch, setSections } = useBuilder();
   const router = useRouter();
   
@@ -91,7 +92,7 @@ export function Builder({ formId }: Props) {
   const isMobile = isClient && isMobileView;
 
   const titleBar = (
-    <div className="sticky top-0 z-10 flex items-center justify-end py-1.5 px-4 bg-background border-b shadow-sm">
+    <div className="sticky top-0 z-10 flex items-center justify-end py-1.5 px-4 bg-blue-50 border-b shadow-sm">
       <div className="flex items-center gap-2 flex-shrink-0">
         <Badge className={cn(
           "text-xs",
