@@ -32,15 +32,15 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
 
   useEffect(() => {
     if (isOpen) {
-        if (saveType === 'published' && activeForm) {
-            const publishedCount = activeForm.versions.filter(v => v.type === 'published').length;
-            setName(`Version ${publishedCount + 1}`);
-        } else {
-            setName("");
-        }
-        setDescription("");
+      if (saveType === 'published' && activeForm) {
+        const publishedCount = activeForm.versions.filter(v => v.type === 'published').length;
+        setName(`Version ${publishedCount + 1}`);
+      } else {
+        setName("");
+      }
+      setDescription("");
     }
-  }, [isOpen, saveType, activeForm]);
+  }, [isOpen, saveType]);
 
 
   const handleSave = () => {
@@ -115,3 +115,4 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
     </Dialog>
   );
 }
+
