@@ -6,7 +6,7 @@ import { ElementsSidebar } from "./elements-sidebar";
 import { PropertiesSidebar } from "./properties-sidebar";
 import { Canvas } from "./canvas";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { TemplatesSidebar } from "./templates-sidebar";
 import { RightSidebar } from "./right-sidebar";
@@ -18,24 +18,47 @@ import { cn } from "@/lib/utils";
 import { PreviewDialog } from "./preview-dialog";
 import { SaveVersionDialog } from "./save-version-dialog";
 import { PageHeader } from "../page-header";
+import { useRouter } from "next/navigation";
 
-export function Builder() {
-  const isMobileView = useIsMobile();
+type Props = {
+    params: Promise<{ formId: string }>;
+}
+
+export function Builder({ params }: Props) {
+  const { formId } = use(params);
+  const { state, dispatch, setSections } = useBuilder();
+  const router = useRouter();
+  
   const [isClient, setIsClient] = useState(false);
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [isTemplatesSidebarOpen, setIsTemplatesSidebarOpen] = useState(false);
   
-  const { activeForm, setSections } = useBuilder();
+  const { activeForm } = useBuilder();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
   const [saveType, setSaveType] = useState<"draft" | "published">("draft");
   
   const [activeVersionId, setActiveVersionId] = useState<string | undefined>();
+  const isMobileView = useIsMobile();
+
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    const formExists = state.forms.some(f => f.id === formId);
+
+    if (!formExists) {
+        // Redirect to home if the form doesn't exist
+        router.replace('/');
+        return;
+    }
+    
+    // Set the active form based on the URL parameter
+    if (formId && state.activeFormId !== formId) {
+        dispatch({ type: "SET_ACTIVE_FORM", payload: { formId } });
+    }
+
+  }, [formId, state.forms, state.activeFormId, dispatch, router]);
 
   useEffect(() => {
     if (activeForm && isClient) {
@@ -67,13 +90,7 @@ export function Builder() {
   const isMobile = isClient && isMobileView;
 
   const titleBar = (
-    <div className="sticky top-0 z-10 flex items-center justify-between py-1.5 px-4 bg-background border-b shadow-sm">
-      <div className="flex items-center gap-4 flex-grow min-w-0">
-        <PageHeader
-          title={activeForm?.title || 'Form Builder'}
-          description="Design and configure your form using the drag-and-drop interface."
-        />
-      </div>
+    <div className="sticky top-0 z-10 flex items-center justify-end py-1.5 px-4 bg-background border-b shadow-sm">
       <div className="flex items-center gap-2 flex-shrink-0">
         <Badge className={cn(
           "text-xs",
@@ -112,7 +129,9 @@ export function Builder() {
             <ElementsSidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-grow h-full overflow-y-auto bg-background">
-                    <Canvas />
+                    <div className="max-w-4xl mx-auto flex flex-col gap-4 pb-24 px-4">
+                        <p>Loading...</p>
+                    </div>
                 </div>
                 <RightSidebar />
             </div>

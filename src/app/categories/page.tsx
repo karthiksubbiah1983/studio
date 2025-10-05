@@ -23,7 +23,6 @@ export default function CategoriesPage() {
   const [newSubCategoryNames, setNewSubCategoryNames] = useState<Record<string, string>>({});
   const [editingCategoryNames, setEditingCategoryNames] = useState<Record<string, string>>({});
 
-  // Initialize editing state
   useEffect(() => {
     const initialEditingNames: Record<string, string> = {};
     categories.forEach(cat => {
@@ -35,13 +34,15 @@ export default function CategoriesPage() {
   // Category Management Handlers
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) return;
-    dispatch({ type: "ADD_CATEGORY", payload: { name: newCategoryName } });
-    toast({
-        title: "Category Added",
-        description: `"${newCategoryName}" has been successfully added.`
-    });
-    setNewCategoryName("");
-    setEditingCategoryNames(prev => ({...prev, [newCategoryName]: newCategoryName}))
+    const newCategoryId = dispatch({ type: "ADD_CATEGORY", payload: { name: newCategoryName } });
+    if (newCategoryId) {
+      toast({
+          title: "Category Added",
+          description: `"${newCategoryName}" has been successfully added.`
+      });
+      setNewCategoryName("");
+      setEditingCategoryNames(prev => ({...prev, [newCategoryId as string]: newCategoryName}))
+    }
   };
 
   const handleUpdateCategory = (categoryId: string) => {
@@ -91,10 +92,6 @@ export default function CategoriesPage() {
 
   return (
     <div className="w-full p-4 md:p-6">
-      <PageHeader
-        title="Manage Categories"
-        description="Add, edit, or delete categories and their sub-categories to organize your form templates."
-      />
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center gap-2 mb-6">

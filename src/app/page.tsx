@@ -142,10 +142,6 @@ export default function Home() {
 
   return (
     <div className="w-full p-4 md:p-6">
-       <PageHeader 
-        title="Template Management"
-        description="Create, edit, and manage all your form templates from one place. You can organize them by categories and sub-categories."
-      />
       <div className="flex justify-between items-center mb-4">
         <div className="relative flex-grow max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -158,7 +154,7 @@ export default function Home() {
             />
         </div>
         <div className="flex gap-2">
-            <Link href="/categories" passHref>
+            <Link href="/categories">
                 <Button variant="outline">Manage Categories</Button>
             </Link>
 
@@ -264,7 +260,7 @@ export default function Home() {
                              <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>
                               <Copy className="h-4 w-4" />
                             </Button>
-                            <Link href={`/builder/${form.id}`} passHref>
+                            <Link href={`/builder/${form.id}`}>
                                 <Button variant="ghost" size="icon">
                                     <Edit className="h-4 w-4" />
                                 </Button>
@@ -339,5 +335,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

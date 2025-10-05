@@ -15,7 +15,12 @@ import { Bell, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { SidebarTrigger } from "./ui/sidebar";
 
-export function AppHeader() {
+type AppHeaderProps = {
+  title?: string;
+  description?: string;
+};
+
+export function AppHeader({ title, description }: AppHeaderProps) {
   return (
     <header
       className="flex items-center justify-between bg-primary text-primary-foreground"
@@ -32,7 +37,16 @@ export function AppHeader() {
           </Link>
         </div>
         <div className="flex items-center px-6">
-            {/* You can add other header elements here if needed */}
+          {title && (
+            <div>
+              <h2 className="text-lg font-semibold text-primary-foreground">{title}</h2>
+              {description && (
+                <p className="text-xs text-primary-foreground/80 max-w-2xl">
+                  {description}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
