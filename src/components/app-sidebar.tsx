@@ -15,6 +15,8 @@ import {
   Users,
   Tags,
   ChevronDown,
+  LayoutGrid,
+  Folder,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -30,8 +32,15 @@ type MenuItem = {
 };
 
 const menuItems: MenuItem[] = [
-  { href: "/", label: "Manage Templates", icon: Home },
-  { href: "/categories", label: "Categories", icon: Tags },
+  {
+    href: "#",
+    label: "Form Builder",
+    icon: LayoutGrid,
+    children: [
+        { href: "/", label: "Manage Templates", icon: Folder },
+        { href: "/categories", label: "Categories", icon: Tags },
+    ],
+  },
   {
     href: "#",
     label: "Tasks",
