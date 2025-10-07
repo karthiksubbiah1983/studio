@@ -61,7 +61,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   useEffect(() => {
     if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
       setIsLoading(true);
-      fetchFromApi(element.apiUrl, element.dataKey)
+      fetchFromApi(element.apiUrl)
         .then(data => setDynamicOptions(data || []))
         .finally(() => setIsLoading(false));
     }
@@ -523,5 +523,4 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
-
-    
+}
