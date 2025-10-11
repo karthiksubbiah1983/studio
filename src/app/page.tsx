@@ -220,9 +220,9 @@ export default function Home() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Topic</TableHead>
-                  <TableHead>Semester</TableHead>
-                  <TableHead>Subject</TableHead>
+                  <TableHead>Template Name</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Sub Category</TableHead>
                   <TableHead>Version</TableHead>
                   <TableHead>Last Modified</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
