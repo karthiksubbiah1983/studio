@@ -34,8 +34,8 @@ type MenuItem = {
 const menuItems: MenuItem[] = [
   {
     href: "#",
-    label: "Form Builder",
-    icon: LayoutGrid,
+    label: "Administration",
+    icon: Users,
     children: [
         { href: "/", label: "Manage Templates", icon: Folder },
         { href: "/categories", label: "Categories", icon: Tags },
