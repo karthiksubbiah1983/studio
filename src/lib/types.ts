@@ -7,8 +7,17 @@ export type ConditionalLogic = {
     showWhenValue: string;    // Value of the option that triggers visibility
 };
 
+export type DynamicStyleRule = {
+    id: string;
+    sourceElementId: string;
+    condition: 'equals' | 'not_equals' | 'contains';
+    value: string;
+    targetProperty: 'color'; // For now, only color is supported
+    color: string;
+};
+
 export type DisplayDataSourceConfig = {
-    sourceElementId: string; // ID of the Select element
+    sourceElementId:string; // ID of the Select element
     displayKey: string;      // Key of the property to display from the selected object
 };
 
@@ -50,6 +59,7 @@ export type FormElementInstance = {
     labelKey?: string; // Key in each object for option label
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
+    dynamicStyles?: DynamicStyleRule[];
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
     // Conditional Visibility

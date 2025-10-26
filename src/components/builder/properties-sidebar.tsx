@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive } from "lucide-react";
-import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType } from "@/lib/types";
+import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette } from "lucide-react";
+import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType, DynamicStyleRule } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -314,6 +314,132 @@ function AlignmentRadioGroup({
     )
 }
 
+function DynamicStylesSettings({
+  element,
+  onUpdate,
+}: {
+  element: FormElementInstance;
+  onUpdate: (rules: DynamicStyleRule[]) => void;
+}) {
+  const { sections } = useBuilder();
+  const rules = element.dynamicStyles || [];
+
+  const allElements = useMemo(() => sections.flatMap(s => {
+    const elements: FormElementInstance[] = [];
+    const findElementsRecursive = (els: FormElementInstance[]) => {
+      for (const el of els) {
+        elements.push(el);
+        if (el.elements) findElementsRecursive(el.elements);
+      }
+    };
+    findElementsRecursive(s.elements);
+    return elements;
+  }).filter(e => e.id !== element.id), [sections, element.id]);
+
+
+  const handleAddRule = () => {
+    const newRule: DynamicStyleRule = {
+      id: crypto.randomUUID(),
+      sourceElementId: "",
+      condition: 'equals',
+      value: "",
+      targetProperty: 'color',
+      color: '#ff0000',
+    };
+    onUpdate([...rules, newRule]);
+  };
+
+  const handleUpdateRule = (index: number, updatedRule: DynamicStyleRule) => {
+    const newRules = [...rules];
+    newRules[index] = updatedRule;
+    onUpdate(newRules);
+  };
+
+  const handleDeleteRule = (index: number) => {
+    const newRules = rules.filter((_, i) => i !== index);
+    onUpdate(newRules);
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      {rules.map((rule, index) => (
+        <div key={rule.id} className="border p-3 rounded-lg space-y-3 relative">
+            <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => handleDeleteRule(index)}>
+                <X className="h-4 w-4 text-destructive" />
+            </Button>
+            <div className="flex flex-col gap-2">
+                <Label>When field...</Label>
+                <Select
+                    value={rule.sourceElementId}
+                    onValueChange={(value) => handleUpdateRule(index, { ...rule, sourceElementId: value })}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder="Select a source field..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {allElements.map(el => (
+                            <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+            <div className="flex items-center gap-2">
+                <div className="flex-1">
+                    <Label>...value</Label>
+                    <Select
+                        value={rule.condition}
+                         onValueChange={(value) => handleUpdateRule(index, { ...rule, condition: value as DynamicStyleRule['condition'] })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="equals">Equals</SelectItem>
+                            <SelectItem value="not_equals">Not Equals</SelectItem>
+                            <SelectItem value="contains">Contains</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex-1">
+                    <Label>&nbsp;</Label>
+                    <Input 
+                        placeholder="Value"
+                        value={rule.value}
+                        onChange={(e) => handleUpdateRule(index, { ...rule, value: e.target.value })}
+                    />
+                </div>
+            </div>
+             <div className="flex items-center gap-2">
+                <div className="flex-1">
+                    <Label>Then change</Label>
+                    <Select value={rule.targetProperty} disabled>
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="color">Text Color</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="flex-1">
+                     <Label>To</Label>
+                     <Input
+                        type="color"
+                        value={rule.color}
+                        onChange={(e) => handleUpdateRule(index, { ...rule, color: e.target.value })}
+                        className="p-1 h-10"
+                    />
+                </div>
+             </div>
+        </div>
+      ))}
+       <Button variant="outline" size="sm" onClick={handleAddRule}>
+        <Plus className="mr-2 h-4 w-4" /> Add Style Rule
+      </Button>
+    </div>
+  )
+}
+
 function ElementProperties({ element }: { element: FormElementInstance }) {
   const { dispatch, state, sections } = useBuilder();
   const { selectedElement } = state;
@@ -401,6 +527,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   const handlePopupUpdate = (popup: PopupConfig) => {
     updateElement('popup', popup);
+  }
+
+  const handleDynamicStylesUpdate = (rules: DynamicStyleRule[]) => {
+      updateElement('dynamicStyles', rules);
   }
 
   const handleFetchSchema = async () => {
@@ -782,6 +912,12 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
                         </AccordionContent>
                     </AccordionItem>
+                    <AccordionItem value="styles">
+                        <AccordionTrigger className="py-2">Dynamic Styles</AccordionTrigger>
+                        <AccordionContent>
+                            <DynamicStylesSettings element={element} onUpdate={handleDynamicStylesUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
                  </Accordion>
             );
         case "Input":
@@ -799,6 +935,12 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
                         <AccordionContent>
                             <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="styles">
+                        <AccordionTrigger className="py-2">Dynamic Styles</AccordionTrigger>
+                        <AccordionContent>
+                            <DynamicStylesSettings element={element} onUpdate={handleDynamicStylesUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>

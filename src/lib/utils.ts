@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import type { FormElementInstance, Section } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -43,6 +44,24 @@ export const findFirstArray = (data: any): any[] | null => {
                 }
             }
         }
+    }
+    return null;
+}
+
+export const findElementRecursive = (sections: Section[], elementId: string): FormElementInstance | null => {
+    for (const section of sections) {
+        const find = (elements: FormElementInstance[]): FormElementInstance | null => {
+            for (const el of elements) {
+                if (el.id === elementId) return el;
+                if (el.elements) {
+                    const found = find(el.elements);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+        const found = find(section.elements);
+        if (found) return found;
     }
     return null;
 }

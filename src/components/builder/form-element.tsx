@@ -16,7 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "../ui/popup";
 import { Button } from "../ui/button";
@@ -26,6 +26,8 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { LexicalEditor } from "../lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
 import { cn } from "@/lib/utils";
+import { useBuilder } from "@/hooks/use-builder";
+import { findElementRecursive } from "@/lib/utils";
 
 type Props = {
   element: FormElementInstance;
@@ -40,6 +42,7 @@ const getNestedValue = (obj: any, path: string): any => {
 };
 
 export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal }: Props) {
+  const { sections } = useBuilder();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -47,6 +50,35 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const [tableRows, setTableRows] = useState<any[][]>([]);
 
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
+
+  const dynamicStyle = useMemo(() => {
+    const style: React.CSSProperties = {};
+    if (element.dynamicStyles && formState) {
+        for (const rule of element.dynamicStyles) {
+            const sourceElement = findElementRecursive(sections, rule.sourceElementId);
+            if (!sourceElement) continue;
+
+            const sourceValue = formState[sourceElement.id]?.value;
+            let conditionMet = false;
+            switch(rule.condition) {
+                case 'equals':
+                    conditionMet = String(sourceValue) === rule.value;
+                    break;
+                case 'not_equals':
+                    conditionMet = String(sourceValue) !== rule.value;
+                    break;
+                case 'contains':
+                    conditionMet = String(sourceValue).includes(rule.value);
+                    break;
+            }
+
+            if (conditionMet) {
+                style[rule.targetProperty] = rule.color;
+            }
+        }
+    }
+    return style;
+  }, [element.dynamicStyles, formState, sections]);
 
   useEffect(() => {
     if (element.type === 'Table') {
@@ -84,7 +116,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   const renderLabelWithPopup = () => (
     <div className="flex items-center gap-2">
-       <Label className="text-[0.9rem]">
+       <Label className="text-[0.9rem]" style={dynamicStyle}>
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
@@ -108,7 +140,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
-      <Label className="text-[0.9rem]">
+      <Label className="text-[0.9rem]" style={dynamicStyle}>
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
@@ -119,7 +151,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   switch (type) {
     case "Title":
-      content = <h2 className="text-2xl font-bold">{label}</h2>;
+      content = <h2 className="text-2xl font-bold" style={dynamicStyle}>{label}</h2>;
       break;
     case "Separator":
       content = <Separator />;
@@ -133,7 +165,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       content = (
         <div>
           <Label className="text-[0.9rem]">{label}</Label>
-          <p className="text-muted-foreground text-sm mt-1">{displayValue}</p>
+          <p className="text-muted-foreground text-sm mt-1" style={dynamicStyle}>{displayValue}</p>
         </div>
       );
       break;
@@ -185,6 +217,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             placeholder={placeholder}
             value={value?.value || ""}
             onChange={(e) => onValueChange(element.id, e.target.value)}
+            style={dynamicStyle}
           />
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
@@ -200,6 +233,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             placeholder={placeholder}
             value={value?.value || ""}
             onChange={(e) => onValueChange(element.id, e.target.value)}
+            style={dynamicStyle}
           />
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
@@ -230,7 +264,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         <div>
           {renderLabel()}
           <Select value={value?.value} onValueChange={handleSelectChange}>
-            <SelectTrigger>
+            <SelectTrigger style={dynamicStyle}>
               <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
             </SelectTrigger>
             <SelectContent>
@@ -280,7 +314,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                   value={option}
                   id={`${element.id}-${index}`}
                 />
-                <Label htmlFor={`${element.id}-${index}`}>{option}</Label>
+                <Label htmlFor={`${element.id}-${index}`} style={dynamicStyle}>{option}</Label>
               </div>
             ))}
           </RadioGroup>
