@@ -18,19 +18,16 @@ import { Separator } from "../ui/separator";
 type Props = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  element: Section | FormElementInstance;
-  onUpdate: (rules: Rule[]) => void;
 };
 
-export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) {
-  const { sections } = useBuilder();
+export function RulesDialog({ isOpen, onOpenChange }: Props) {
+  const { sections, rules, updateRules } = useBuilder();
   const [localRules, setLocalRules] = useState<Rule[]>([]);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only reset local state when the dialog is opened.
     if (isOpen) {
-        const initialRules = JSON.parse(JSON.stringify(element.rules || []));
+        const initialRules = JSON.parse(JSON.stringify(rules || []));
         setLocalRules(initialRules);
         if (initialRules.length > 0) {
             setSelectedRuleId(initialRules[0].id);
@@ -41,10 +38,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
   }, [isOpen]);
 
   const allElements = useMemo(() => getAllElements(sections, true), [sections]);
-  const allTargettableElements = useMemo(() => {
-    const elementsAndSections = [...getAllElements(sections, true), ...sections];
-    return elementsAndSections.filter(item => item.id !== element.id);
-  }, [sections, element.id]);
+  const allTargettableElements = useMemo(() => [...getAllElements(sections, true), ...sections], [sections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
@@ -62,7 +56,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
       logicType: 'and',
       behavior: {
         type: 'show',
-        targetElementId: element.id
+        targetElementId: ""
       }
     };
     const newRules = [...localRules, newRule];
@@ -88,7 +82,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
   };
 
   const handleSaveChanges = () => {
-    onUpdate(localRules);
+    updateRules(localRules);
     onOpenChange(false);
   }
 
@@ -338,10 +332,9 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                         onValueChange={(value) => handleUpdateBehavior({ targetElementId: value })}
                     >
                         <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="(This Field)" />
+                            <SelectValue placeholder="Select target field..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value={element.id}>(This Field)</SelectItem>
                             {allTargettableElements.map(el => (
                                 <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
                             ))}

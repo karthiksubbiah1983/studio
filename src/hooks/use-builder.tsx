@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
 type State = {
@@ -34,12 +34,13 @@ type Action =
   | { type: "SET_DRAGGED_ELEMENT"; payload: State['draggedElement'] }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number, toIndex: number } }
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index?: number, parentId?: string } } }
-  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[] } }
+  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[], rules: Rule[] } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any> } }
   | { type: "SET_STATE"; payload: Partial<State> }
   | { type: "SET_SECTIONS"; payload: { sections: Section[] } }
+  | { type: "UPDATE_RULES"; payload: { rules: Rule[] } }
   | { type: "ADD_CATEGORY", payload: { name: string } }
   | { type: "UPDATE_CATEGORY", payload: { category: Category } }
   | { type: "DELETE_CATEGORY", payload: { categoryId: string } }
@@ -72,7 +73,22 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
     if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(collectIds);
     if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(collectIds);
     if (obj.versions && Array.isArray(obj.versions)) obj.versions.forEach(collectIds);
-    if (obj.rules && Array.isArray(obj.rules)) obj.rules.forEach(collectIds);
+    if (obj.rules && Array.isArray(obj.rules)) {
+        obj.rules.forEach((rule: any) => {
+             if (rule.id) {
+                const newId = crypto.randomUUID();
+                idMap[rule.id] = newId;
+            }
+             if (rule.conditions && Array.isArray(rule.conditions)) {
+                rule.conditions.forEach((cond: any) => {
+                    if (cond.id) {
+                        const newId = crypto.randomUUID();
+                        idMap[cond.id] = newId;
+                    }
+                });
+             }
+        })
+    }
   }
   collectIds(itemClone);
 
@@ -82,11 +98,25 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
 
      if (obj.key) obj.key = `${obj.key}_${Math.random().toString(36).substring(2, 7)}`;
 
-     // Update rule triggers
+     // Update rule triggers and targets
      if (obj.rules && Array.isArray(obj.rules)) {
         obj.rules.forEach((rule: any) => {
-            if (rule.condition && rule.condition.sourceElementId && idMap[rule.condition.sourceElementId]) {
-                rule.condition.sourceElementId = idMap[rule.condition.sourceElementId];
+            if (rule.id && idMap[rule.id]) rule.id = idMap[rule.id];
+            
+            if (rule.conditions && Array.isArray(rule.conditions)) {
+                rule.conditions.forEach((cond: any) => {
+                    if (cond.id && idMap[cond.id]) cond.id = idMap[cond.id];
+                    if (cond.sourceElementId && idMap[cond.sourceElementId]) {
+                        cond.sourceElementId = idMap[cond.sourceElementId];
+                    }
+                    if (cond.comparisonElementId && idMap[cond.comparisonElementId]) {
+                        cond.comparisonElementId = idMap[cond.comparisonElementId];
+                    }
+                });
+            }
+
+            if (rule.behavior && rule.behavior.targetElementId && idMap[rule.behavior.targetElementId]) {
+                rule.behavior.targetElementId = idMap[rule.behavior.targetElementId];
             }
         });
      }
@@ -185,7 +215,8 @@ const builderReducer = (state: State, action: Action): State => {
               description: description || "Initial version",
               type: "draft",
               timestamp: new Date().toISOString(),
-              sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }]
+              sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }],
+              rules: [],
             }]
         };
         // This is a bit of a hack for the special dispatch, we return the ID via the state itself
@@ -218,8 +249,8 @@ const builderReducer = (state: State, action: Action): State => {
         // Take the content of the latest version of the form to clone
         const latestVersionContent = formToClone.versions[0];
         
-        // Deep clone the sections and assign new IDs to everything
-        const newSections = cloneWithNewIds({ sections: latestVersionContent.sections }).sections;
+        // Deep clone and assign new IDs to everything inside the version
+        const newVersionContent = cloneWithNewIds(latestVersionContent);
 
         const newForm: Form = {
             id: crypto.randomUUID(),
@@ -228,12 +259,12 @@ const builderReducer = (state: State, action: Action): State => {
             subCategoryId: formToClone.subCategoryId,
             versions: [
                 {
+                    ...newVersionContent,
                     id: crypto.randomUUID(),
                     name: "Initial Draft",
                     description: `Cloned from "${formToClone.title}"`,
                     type: "draft",
                     timestamp: new Date().toISOString(),
-                    sections: newSections,
                 }
             ]
         };
@@ -278,6 +309,23 @@ const builderReducer = (state: State, action: Action): State => {
                 timestamp: new Date().toISOString(),
             };
             return { ...form, versions: newVersions };
+        }
+        return form;
+      });
+      return { ...state, forms: newForms };
+    }
+     case "UPDATE_RULES": {
+      if (!activeForm) return state;
+      const { rules } = action.payload;
+      const newForms = state.forms.map(form => {
+        if (form.id === state.activeFormId) {
+          const newVersions = [...form.versions];
+          newVersions[0] = {
+            ...newVersions[0],
+            rules: rules,
+            timestamp: new Date().toISOString(),
+          };
+          return { ...form, versions: newVersions };
         }
         return form;
       });
@@ -464,7 +512,7 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SAVE_VERSION": {
       if (!activeForm) return state;
-      const { name, description, type, sections } = action.payload;
+      const { name, description, type, sections, rules } = action.payload;
       
       const newVersion: FormVersion = {
         id: crypto.randomUUID(),
@@ -473,6 +521,7 @@ const builderReducer = (state: State, action: Action): State => {
         type,
         timestamp: new Date().toISOString(),
         sections,
+        rules,
       };
       
       const newForms = state.forms.map(form => {
@@ -495,7 +544,8 @@ const builderReducer = (state: State, action: Action): State => {
         description: `Based on version: ${versionToLoad.name}`,
         type: 'draft',
         timestamp: new Date().toISOString(),
-        sections: JSON.parse(JSON.stringify(versionToLoad.sections)) // Deep copy
+        sections: JSON.parse(JSON.stringify(versionToLoad.sections)), // Deep copy
+        rules: JSON.parse(JSON.stringify(versionToLoad.rules || [])), // Deep copy
       };
       
       const newForms = state.forms.map(form => {
@@ -618,6 +668,8 @@ type BuilderContextType = {
   activeForm: Form | null;
   sections: Section[];
   setSections: (sections: Section[]) => void;
+  rules: Rule[];
+  updateRules: (rules: Rule[]) => void;
 };
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
@@ -641,7 +693,8 @@ const defaultState: State = {
             description: "",
             type: "draft",
             timestamp: "2023-01-01T00:00:00.000Z",
-            sections: [{ id: defaultSectionId, title: "New Section", config: "expanded", elements: [] }]
+            sections: [{ id: defaultSectionId, title: "New Section", config: "expanded", elements: [] }],
+            rules: [],
         }]
     }],
     categories: [{
@@ -695,6 +748,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
   const sections = activeForm?.versions[0]?.sections || [];
+  const rules = activeForm?.versions[0]?.rules || [];
   
   const dispatch = (action: Action): string | void => {
     if (action.type === 'ADD_FORM') {
@@ -709,6 +763,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatchAction({ type: 'SET_SECTIONS', payload: { sections: newSections }})
   }
 
+  const updateRules = (newRules: Rule[]) => {
+    dispatchAction({ type: 'UPDATE_RULES', payload: { rules: newRules }});
+  }
+
   if (!isLoaded) {
     return (
         <main className="flex flex-col items-center justify-center w-full min-h-screen bg-background p-4 md:p-8">
@@ -721,7 +779,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, activeForm, sections, setSections }}>
+    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, activeForm, sections, setSections, rules, updateRules }}>
       {children}
     </BuilderContext.Provider>
   );

@@ -23,6 +23,7 @@ export type Condition = {
 
 export type Rule = {
     id: string;
+    name: string;
     conditions: Condition[];
     logicType: 'and' | 'or'; // How to evaluate multiple conditions
     behavior: {
@@ -79,7 +80,6 @@ export type FormElementInstance = {
     labelKey?: string; // Key in each object for option label
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
-    rules?: Rule[];
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
     // For Table
@@ -102,7 +102,6 @@ export type Section = {
     title: string;
     config: 'expanded' | 'normal'; // normal is collapsible
     elements: FormElementInstance[];
-    rules?: Rule[];
 };
 
 export type FormVersion = {
@@ -112,6 +111,7 @@ export type FormVersion = {
   type: "draft" | "published";
   timestamp: string;
   sections: Section[];
+  rules?: Rule[];
 };
 
 export type SubCategory = {

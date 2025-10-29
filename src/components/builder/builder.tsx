@@ -12,12 +12,13 @@ import { TemplatesSidebar } from "./templates-sidebar";
 import { RightSidebar } from "./right-sidebar";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "../ui/button";
-import { Eye, Save, Send } from "lucide-react";
+import { Eye, Save, Send, Settings2 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { PreviewDialog } from "./preview-dialog";
 import { SaveVersionDialog } from "./save-version-dialog";
 import { useRouter } from "next/navigation";
+import { RulesDialog } from "./rules-dialog";
 
 type Props = {
     formId: string;
@@ -35,6 +36,7 @@ export function Builder({ formId }: Props) {
   const { activeForm } = useBuilder();
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isSaveOpen, setIsSaveOpen] = useState(false);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [saveType, setSaveType] = useState<"draft" | "published">("draft");
   
   const [activeVersionId, setActiveVersionId] = useState<string | undefined>();
@@ -101,6 +103,10 @@ export function Builder({ formId }: Props) {
         )}>
           {isPublished ? `Published` : 'Draft'}
         </Badge>
+        <Button variant="outline" size="sm" onClick={() => setIsRulesOpen(true)}>
+            <Settings2 className="mr-1 h-4 w-4" />
+            Manage Rules
+        </Button>
         <Button variant="outline" size="sm" onClick={() => setIsPreviewOpen(true)}>
           <Eye className="mr-1 h-4 w-4" />
           Preview
@@ -192,6 +198,10 @@ export function Builder({ formId }: Props) {
           onOpenChange={setIsSaveOpen}
           saveType={saveType}
       />
+       <RulesDialog 
+            isOpen={isRulesOpen}
+            onOpenChange={setIsRulesOpen}
+        />
     </>
   );
 }

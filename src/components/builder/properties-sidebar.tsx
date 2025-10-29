@@ -25,7 +25,6 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { fetchFromApi } from "@/services/api";
 import { findFirstArray, flattenObject, getAllElements } from "@/lib/utils";
-import { RulesDialog } from "./rules-dialog";
 
 
 export function PropertiesSidebar() {
@@ -81,12 +80,7 @@ export function PropertiesSidebar() {
 
 function SectionProperties({ section }: { section: Section }) {
     const { dispatch } = useBuilder();
-    const [isRulesOpen, setIsRulesOpen] = useState(false);
     
-    const handleRulesUpdate = (rules: Rule[]) => {
-        dispatch({ type: "UPDATE_SECTION", payload: { ...section, rules: rules } });
-    }
-
     return (
         <div className="flex flex-col gap-4">
             <Accordion type="multiple" defaultValue={["general"]} className="w-full">
@@ -99,21 +93,7 @@ function SectionProperties({ section }: { section: Section }) {
                         </div>
                     </AccordionContent>
                 </AccordionItem>
-                 <AccordionItem value="rules">
-                    <AccordionTrigger className="py-2">Rules</AccordionTrigger>
-                    <AccordionContent>
-                         <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
-                            <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
-                        </Button>
-                    </AccordionContent>
-                </AccordionItem>
             </Accordion>
-             <RulesDialog 
-                isOpen={isRulesOpen}
-                onOpenChange={setIsRulesOpen}
-                element={section}
-                onUpdate={handleRulesUpdate}
-            />
         </div>
     );
 }
@@ -235,7 +215,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   const [props, setProps] = useState(element);
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
-  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
 
   const allElements = getAllElements(sections);
@@ -532,7 +511,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return <p className="text-sm text-muted-foreground">No properties for this element.</p>;
         case "Container":
              return (
-                <Accordion type="multiple" defaultValue={["layout", "rules"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["layout"]} className="w-full">
                     <AccordionItem value="layout">
                         <AccordionTrigger className="py-2">Layout</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -579,20 +558,12 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             />
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="rules">
-                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
-                        <AccordionContent>
-                            <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
-                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
-                            </Button>
-                        </AccordionContent>
-                    </AccordionItem>
                 </Accordion>
              )
         case "Display":
             const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "" };
             return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "rules"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -633,40 +604,24 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             </div>
                         </AccordionContent>
                     </AccordionItem>
-                     <AccordionItem value="rules">
-                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
-                        <AccordionContent>
-                            <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
-                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
-                            </Button>
-                        </AccordionContent>
-                    </AccordionItem>
                  </Accordion>
             );
         case "Input":
         case "Textarea":
         case "RichText":
              return (
-                 <Accordion type="multiple" defaultValue={["general", "rules"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="rules">
-                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
-                        <AccordionContent>
-                           <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
-                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
-                            </Button>
-                        </AccordionContent>
-                    </AccordionItem>
                  </Accordion>
             );
         case "Select":
             return (
-                <Accordion type="multiple" defaultValue={["general", "data", "rules"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "data"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -703,19 +658,11 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             {props.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="rules">
-                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
-                        <AccordionContent>
-                            <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
-                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
-                            </Button>
-                        </AccordionContent>
-                    </AccordionItem>
                 </Accordion>
             );
         case "RadioGroup":
              return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "rules"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -729,19 +676,11 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             {optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="rules">
-                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
-                        <AccordionContent>
-                           <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
-                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
-                            </Button>
-                        </AccordionContent>
-                    </AccordionItem>
                 </Accordion>
              );
         case "Checkbox":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "rules"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -760,38 +699,22 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             <PopupSettings element={props} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="rules">
-                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
-                        <AccordionContent>
-                            <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
-                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
-                            </Button>
-                        </AccordionContent>
-                    </AccordionItem>
                 </Accordion>
             );
         case "DatePicker":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "rules"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent>
                             {commonFields}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="rules">
-                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
-                        <AccordionContent>
-                           <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
-                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
-                            </Button>
-                        </AccordionContent>
-                    </AccordionItem>
                 </Accordion>
             );
         case "Table":
             return (
-                <Accordion type="multiple" defaultValue={["general", "columns", "actions", "rules"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "columns", "actions"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -804,14 +727,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             {tableFields}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="rules">
-                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
-                        <AccordionContent>
-                           <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
-                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
-                            </Button>
-                        </AccordionContent>
-                    </AccordionItem>
                 </Accordion>
             )
         default:
@@ -822,12 +737,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   return (
     <div className="flex flex-col gap-4">
       {content()}
-       <RulesDialog 
-            isOpen={isRulesOpen}
-            onOpenChange={setIsRulesOpen}
-            element={element}
-            onUpdate={(rules) => updateProperty('rules', rules)}
-        />
     </div>
   );
 }

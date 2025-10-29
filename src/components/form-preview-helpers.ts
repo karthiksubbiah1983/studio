@@ -1,7 +1,7 @@
 import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
 
-export const getAllElements = (sections: Section[], includeTableColumns = false): FormElementInstance[] => {
-    let allElements: FormElementInstance[] = [];
+export const getAllElements = (sections: Section[], includeTableColumns = false): (FormElementInstance | Section)[] => {
+    let allElements: (FormElementInstance | Section)[] = [];
     sections.forEach(section => {
         const findElementsRecursive = (els: FormElementInstance[]): void => {
             els.forEach(element => {
@@ -17,7 +17,7 @@ export const getAllElements = (sections: Section[], includeTableColumns = false)
                             key: `${element.key}.${col.key}`, // Unique key for the column
                             type: col.cellType || 'text', // Or map to a more specific pseudo-type
                             label: `${element.label} > ${col.title}`,
-                            required: false, // Individual table cells might not be "required" in the same way
+                            options: col.options,
                         } as FormElementInstance);
                     });
                 }
@@ -65,6 +65,7 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
 }
 
 export const evaluateRule = (rule: Rule, state: { [key: string]: { value: any } }): boolean => {
+    if (rule.conditions.length === 0) return false;
     const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state));
 
     if (rule.logicType === 'and') {
