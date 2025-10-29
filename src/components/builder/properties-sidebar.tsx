@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2 } from "lucide-react";
+import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2 } from "lucide-react";
 import { FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType, DisplayDataSourceConfig, Rule, Condition, RuleBehaviorType } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { fetchFromApi } from "@/services/api";
 import { findFirstArray, flattenObject, getAllElements } from "@/lib/utils";
+import { RulesDialog } from "./rules-dialog";
 
 
 export function PropertiesSidebar() {
@@ -78,287 +79,9 @@ export function PropertiesSidebar() {
   );
 }
 
-function RulesSettings({
-    element,
-    onUpdate
-}: {
-    element: Section | FormElementInstance;
-    onUpdate: (rules: Rule[]) => void;
-}) {
-    const { sections } = useBuilder();
-    const rules = element.rules || [];
-
-    const allElements = useMemo(() => getAllElements(sections, true), [sections]);
-    const allTargettableElements = useMemo(() => getAllElements(sections), [sections]);
-
-    const handleAddRule = () => {
-        const newRule: Rule = {
-            id: crypto.randomUUID(),
-            conditions: [{
-                id: crypto.randomUUID(),
-                sourceElementId: "",
-                operator: 'equals',
-                comparisonType: 'static_value',
-                value: ""
-            }],
-            logicType: 'and',
-            behavior: {
-                type: 'show',
-                targetElementId: element.id // Default target to self
-            }
-        };
-        onUpdate([...rules, newRule]);
-    };
-    
-    const handleUpdateRule = (ruleIndex: number, updatedRule: Rule) => {
-        const newRules = [...rules];
-        newRules[ruleIndex] = updatedRule;
-        onUpdate(newRules);
-    };
-
-    const handleDeleteRule = (ruleIndex: number) => {
-        const newRules = rules.filter((_, i) => i !== ruleIndex);
-        onUpdate(newRules);
-    };
-
-    const handleAddCondition = (ruleIndex: number) => {
-        const newCondition: Condition = {
-            id: crypto.randomUUID(),
-            sourceElementId: "",
-            operator: 'equals',
-            comparisonType: 'static_value',
-            value: ""
-        };
-        const ruleToUpdate = { ...rules[ruleIndex] };
-        ruleToUpdate.conditions.push(newCondition);
-        handleUpdateRule(ruleIndex, ruleToUpdate);
-    };
-
-    const handleUpdateCondition = (ruleIndex: number, condIndex: number, updatedCondition: Condition) => {
-        const ruleToUpdate = { ...rules[ruleIndex] };
-        ruleToUpdate.conditions[condIndex] = updatedCondition;
-        handleUpdateRule(ruleIndex, ruleToUpdate);
-    };
-
-    const handleDeleteCondition = (ruleIndex: number, condIndex: number) => {
-        const ruleToUpdate = { ...rules[ruleIndex] };
-        ruleToUpdate.conditions = ruleToUpdate.conditions.filter((_, i) => i !== condIndex);
-        handleUpdateRule(ruleIndex, ruleToUpdate);
-    };
-
-
-    return (
-        <div className="flex flex-col gap-4">
-            {rules.map((rule, ruleIndex) => (
-                <div key={rule.id} className="border p-3 rounded-lg space-y-4 relative bg-accent/20">
-                    <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => handleDeleteRule(ruleIndex)}>
-                        <X className="h-4 w-4 text-destructive" />
-                    </Button>
-                    
-                    <h4 className="font-medium text-xs text-muted-foreground flex items-center">
-                        IF 
-                        <RadioGroup
-                            value={rule.logicType}
-                            onValueChange={(value) => handleUpdateRule(ruleIndex, {...rule, logicType: value as 'and' | 'or'})}
-                            className="flex ml-2"
-                        >
-                            <div className="flex items-center space-x-1">
-                                <RadioGroupItem value="and" id={`and-${rule.id}`} className="h-3.5 w-3.5" />
-                                <Label htmlFor={`and-${rule.id}`} className="text-xs">All (AND)</Label>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                                <RadioGroupItem value="or" id={`or-${rule.id}`} className="h-3.5 w-3.5" />
-                                <Label htmlFor={`or-${rule.id}`} className="text-xs">Any (OR)</Label>
-                            </div>
-                        </RadioGroup>
-                        OF THE FOLLOWING ARE MET
-                    </h4>
-
-                    {rule.conditions.map((cond, condIndex) => (
-                        <div key={cond.id} className="border bg-background/50 p-2 rounded-md space-y-2 relative">
-                             {rule.conditions.length > 1 && (
-                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-5 w-5" onClick={() => handleDeleteCondition(ruleIndex, condIndex)}>
-                                    <X className="h-3 w-3 text-destructive/70" />
-                                </Button>
-                             )}
-                            <div className="space-y-1">
-                                <Label className="text-xs">Source Field</Label>
-                                <Select
-                                    value={cond.sourceElementId}
-                                    onValueChange={(value) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, sourceElementId: value })}
-                                >
-                                    <SelectTrigger className="h-8 text-xs">
-                                        <SelectValue placeholder="Select a source field..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {allElements.map(el => (
-                                            <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <div className="flex-1 space-y-1">
-                                    <Label className="text-xs">Operator</Label>
-                                    <Select
-                                        value={cond.operator}
-                                        onValueChange={(value) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, operator: value as Rule['conditions'][0]['operator'] })}
-                                    >
-                                        <SelectTrigger className="h-8 text-xs">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="equals">Equals</SelectItem>
-                                            <SelectItem value="not_equals">Not Equals</SelectItem>
-                                            <SelectItem value="is_greater_than">Is Greater Than</SelectItem>
-                                            <SelectItem value="is_less_than">Is Less Than</SelectItem>
-                                            <SelectItem value="contains">Contains</SelectItem>
-                                            <SelectItem value="not_contains">Does Not Contain</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="pt-5">
-                                    <GitCommitHorizontal className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                <div className="flex-1 space-y-1">
-                                    <div className="flex items-center justify-between">
-                                        <Label className="text-xs">Compare To</Label>
-                                         <RadioGroup
-                                            value={cond.comparisonType}
-                                            onValueChange={(value) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, comparisonType: value as 'static_value' | 'another_field' })}
-                                            className="flex"
-                                        >
-                                            <div className="flex items-center space-x-1">
-                                                <RadioGroupItem value="static_value" id={`static-${cond.id}`} className="h-3 w-3" />
-                                                <Label htmlFor={`static-${cond.id}`} className="text-xs">Value</Label>
-                                            </div>
-                                            <div className="flex items-center space-x-1">
-                                                <RadioGroupItem value="another_field" id={`field-${cond.id}`} className="h-3 w-3" />
-                                                <Label htmlFor={`field-${cond.id}`} className="text-xs">Field</Label>
-                                            </div>
-                                        </RadioGroup>
-                                    </div>
-                                    {cond.comparisonType === 'static_value' ? (
-                                        <Input
-                                            placeholder="Value"
-                                            value={cond.value}
-                                            onChange={(e) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, value: e.target.value })}
-                                            className="h-8 text-xs"
-                                        />
-                                    ) : (
-                                        <Select
-                                            value={cond.comparisonElementId}
-                                            onValueChange={(value) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, comparisonElementId: value })}
-                                        >
-                                            <SelectTrigger className="h-8 text-xs">
-                                                <SelectValue placeholder="Select a field..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {allElements.map(el => (
-                                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
-                    
-                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleAddCondition(ruleIndex)}>
-                       <Plus className="mr-1 h-3 w-3"/> Add Condition
-                    </Button>
-                    
-
-                    <Separator />
-                    <h4 className="font-medium text-xs text-muted-foreground">THEN DO</h4>
-                    <div className="space-y-2">
-                        <Label className="text-xs">Target Field</Label>
-                        <Select
-                            value={rule.behavior.targetElementId || element.id}
-                            onValueChange={(value) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, targetElementId: value } })}
-                        >
-                            <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value={element.id}>(This Field)</SelectItem>
-                                {allTargettableElements.map(el => (
-                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                    <div className="space-y-2">
-                         <Label className="text-xs">Behavior</Label>
-                         <Select
-                            value={rule.behavior.type}
-                            onValueChange={(value) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, type: value as RuleBehaviorType } })}
-                        >
-                            <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="show">Show</SelectItem>
-                                <SelectItem value="hide">Hide</SelectItem>
-                                <SelectItem value="change_color">Change Color</SelectItem>
-                                <SelectItem value="set_error">Set Error</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {rule.behavior.type === 'change_color' && (
-                        <div className="flex items-end gap-2">
-                            <div className="flex-1">
-                                <Label className="text-xs">Property</Label>
-                                <Select 
-                                    value={rule.behavior.targetProperty}
-                                    onValueChange={(value) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, targetProperty: value as 'color' | 'backgroundColor' } })}
-                                >
-                                    <SelectTrigger className="h-8 text-xs">
-                                        <SelectValue placeholder="Target" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="color">Text Color</SelectItem>
-                                        <SelectItem value="backgroundColor">Background Color</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="flex-1">
-                                <Label className="text-xs">Color</Label>
-                                <Input
-                                    type="color"
-                                    value={rule.behavior.color}
-                                    onChange={(e) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, color: e.target.value } })}
-                                    className="p-1 h-8"
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                     {rule.behavior.type === 'set_error' && (
-                        <div className="space-y-2">
-                             <Label className="text-xs">Error Message</Label>
-                             <Input
-                                placeholder="e.g. Value must be greater than 10"
-                                value={rule.behavior.message}
-                                onChange={(e) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, message: e.target.value } })}
-                                className="h-8 text-xs"
-                            />
-                        </div>
-                     )}
-                </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={handleAddRule}>
-                <Plus className="mr-2 h-4 w-4" /> Add Rule
-            </Button>
-        </div>
-    )
-}
-
 function SectionProperties({ section }: { section: Section }) {
     const { dispatch } = useBuilder();
+    const [isRulesOpen, setIsRulesOpen] = useState(false);
     
     const handleRulesUpdate = (rules: Rule[]) => {
         dispatch({ type: "UPDATE_SECTION", payload: { ...section, rules: rules } });
@@ -366,7 +89,7 @@ function SectionProperties({ section }: { section: Section }) {
 
     return (
         <div className="flex flex-col gap-4">
-            <Accordion type="multiple" defaultValue={["general", "rules"]} className="w-full">
+            <Accordion type="multiple" defaultValue={["general"]} className="w-full">
                 <AccordionItem value="general">
                     <AccordionTrigger className="py-2">General</AccordionTrigger>
                     <AccordionContent className="flex flex-col gap-4">
@@ -376,13 +99,21 @@ function SectionProperties({ section }: { section: Section }) {
                         </div>
                     </AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="rules">
+                 <AccordionItem value="rules">
                     <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                     <AccordionContent>
-                        <RulesSettings element={section} onUpdate={handleRulesUpdate} />
+                         <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
+                            <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
+                        </Button>
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
+             <RulesDialog 
+                isOpen={isRulesOpen}
+                onOpenChange={setIsRulesOpen}
+                element={section}
+                onUpdate={handleRulesUpdate}
+            />
         </div>
     );
 }
@@ -504,6 +235,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   const [props, setProps] = useState(element);
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
 
 
   const allElements = getAllElements(sections);
@@ -896,7 +628,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="rules">
                         <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
+                            <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
+                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
+                            </Button>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -948,7 +682,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                      <AccordionItem value="rules">
                         <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
+                            <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
+                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
+                            </Button>
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>
@@ -967,7 +703,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="rules">
                         <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
+                           <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
+                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
+                            </Button>
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>
@@ -1014,7 +752,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="rules">
                         <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
+                            <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
+                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
+                            </Button>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1038,7 +778,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="rules">
                         <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                           <RulesSettings element={element} onUpdate={handleRulesUpdate} />
+                           <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
+                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
+                            </Button>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1067,7 +809,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="rules">
                         <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
+                            <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
+                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
+                            </Button>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1084,7 +828,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="rules">
                         <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                           <RulesSettings element={element} onUpdate={handleRulesUpdate} />
+                           <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
+                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
+                            </Button>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1107,7 +853,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     <AccordionItem value="rules">
                         <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                           <RulesSettings element={element} onUpdate={handleRulesUpdate} />
+                           <Button variant="outline" className="w-full" onClick={() => setIsRulesOpen(true)}>
+                                <Settings2 className="mr-2 h-4 w-4" /> Manage Rules
+                            </Button>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1120,6 +868,12 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   return (
     <div className="flex flex-col gap-4">
       {content()}
+       <RulesDialog 
+            isOpen={isRulesOpen}
+            onOpenChange={setIsRulesOpen}
+            element={element}
+            onUpdate={handleRulesUpdate}
+        />
     </div>
   );
 }

@@ -1,0 +1,432 @@
+
+"use client";
+
+import { useMemo, useState } from "react";
+import { useBuilder } from "@/hooks/use-builder";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType } from "@/lib/types";
+import { Plus, Trash, X, Settings2, GitCommitHorizontal } from "lucide-react";
+import { ScrollArea } from "../ui/scroll-area";
+import { cn, findElementRecursive, getAllElements } from "@/lib/utils";
+import { Label } from "../ui/label";
+import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Input } from "../ui/input";
+import { Separator } from "../ui/separator";
+
+type Props = {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  element: Section | FormElementInstance;
+  onUpdate: (rules: Rule[]) => void;
+};
+
+export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) {
+  const { sections } = useBuilder();
+  const [localRules, setLocalRules] = useState(element.rules || []);
+  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+
+  const allElements = useMemo(() => getAllElements(sections, true), [sections]);
+  const allTargettableElements = useMemo(() => getAllElements(sections), [sections]);
+  
+  const selectedRule = localRules.find(r => r.id === selectedRuleId);
+
+  const handleAddRule = () => {
+    const newRule: Rule = {
+      id: crypto.randomUUID(),
+      name: `Rule ${localRules.length + 1}`,
+      conditions: [{
+        id: crypto.randomUUID(),
+        sourceElementId: "",
+        operator: 'equals',
+        comparisonType: 'static_value',
+        value: ""
+      }],
+      logicType: 'and',
+      behavior: {
+        type: 'show',
+        targetElementId: element.id
+      }
+    };
+    const newRules = [...localRules, newRule];
+    setLocalRules(newRules);
+    setSelectedRuleId(newRule.id);
+    onUpdate(newRules);
+  };
+
+  const handleSelectRule = (ruleId: string) => {
+    setSelectedRuleId(ruleId);
+  }
+
+  const handleUpdateRule = (updatedRule: Rule) => {
+    const newRules = localRules.map(r => r.id === updatedRule.id ? updatedRule : r);
+    setLocalRules(newRules);
+    onUpdate(newRules);
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    const newRules = localRules.filter(r => r.id !== ruleId);
+    setLocalRules(newRules);
+    onUpdate(newRules);
+    if (selectedRuleId === ruleId) {
+      setSelectedRuleId(null);
+    }
+  };
+
+  const ConditionEditor = ({ condition, rule }: { condition: Condition, rule: Rule }) => {
+    const [sourceElement, setSourceElement] = useState<FormElementInstance | null>(null);
+    
+    useEffect(() => {
+        if (condition.sourceElementId) {
+            setSourceElement(findElementRecursive(sections, condition.sourceElementId));
+        } else {
+            setSourceElement(null);
+        }
+    }, [condition.sourceElementId, sections]);
+
+
+    const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
+        const updatedRule = {
+            ...rule,
+            conditions: rule.conditions.map(c => c.id === condition.id ? { ...c, ...updatedCondition } : c)
+        };
+        handleUpdateRule(updatedRule);
+    }
+
+    const handleDeleteCondition = () => {
+        const updatedRule = {
+            ...rule,
+            conditions: rule.conditions.filter(c => c.id !== condition.id)
+        };
+        handleUpdateRule(updatedRule);
+    }
+    
+    const sourceElementIsSelectOrRadio = sourceElement?.type === 'Select' || sourceElement?.type === 'RadioGroup';
+
+    const sourceElementIsTableColumnWithoptions = () => {
+        if (!sourceElement || !sourceElement.id.includes('.')) return false;
+        const [tableId, colKey] = sourceElement.id.split('.');
+        const table = findElementRecursive(sections, tableId);
+        if (!table || table.type !== 'Table' || !table.columns) return false;
+        const column = table.columns.find(c => c.key === colKey);
+        return (column?.cellType === 'select' || column?.cellType === 'radio') && !!column.options;
+    }
+
+    const getSourceElementOptions = () => {
+        if (sourceElementIsSelectOrRadio && sourceElement.options) {
+            return sourceElement.options;
+        }
+        if (sourceElementIsTableColumnWithoptions()) {
+            const [tableId, colKey] = sourceElement!.id.split('.');
+            const table = findElementRecursive(sections, tableId)!;
+            return table.columns!.find(c => c.key === colKey)!.options!;
+        }
+        return [];
+    }
+
+    const showOptionsDropdown = (sourceElementIsSelectOrRadio || sourceElementIsTableColumnWithoptions()) && condition.comparisonType === 'static_value';
+
+    return (
+        <div className="border bg-background/50 p-3 rounded-md space-y-3 relative">
+            {rule.conditions.length > 1 && (
+            <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-5 w-5" onClick={handleDeleteCondition}>
+                <X className="h-3 w-3 text-destructive/70" />
+            </Button>
+            )}
+            <div className="space-y-1">
+                <Label className="text-xs">Source Field</Label>
+                <Select
+                    value={condition.sourceElementId}
+                    onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}
+                >
+                    <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select a source field..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {allElements.map(el => (
+                            <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+                <div className="flex-1 space-y-1">
+                    <Label className="text-xs">Operator</Label>
+                    <Select
+                        value={condition.operator}
+                        onValueChange={(value) => handleUpdateCondition({ operator: value as Rule['conditions'][0]['operator'] })}
+                    >
+                        <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="equals">Equals</SelectItem>
+                            <SelectItem value="not_equals">Not Equals</SelectItem>
+                            <SelectItem value="is_greater_than">Is Greater Than</SelectItem>
+                            <SelectItem value="is_less_than">Is Less Than</SelectItem>
+                            <SelectItem value="contains">Contains</SelectItem>
+                            <SelectItem value="not_contains">Does Not Contain</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                <div className="pt-5">
+                    <GitCommitHorizontal className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between">
+                        <Label className="text-xs">Compare To</Label>
+                            <RadioGroup
+                            value={condition.comparisonType}
+                            onValueChange={(value) => handleUpdateCondition({ comparisonType: value as 'static_value' | 'another_field' })}
+                            className="flex"
+                        >
+                            <div className="flex items-center space-x-1">
+                                <RadioGroupItem value="static_value" id={`static-${condition.id}`} className="h-3 w-3" />
+                                <Label htmlFor={`static-${condition.id}`} className="text-xs">Value</Label>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                                <RadioGroupItem value="another_field" id={`field-${condition.id}`} className="h-3 w-3" />
+                                <Label htmlFor={`field-${condition.id}`} className="text-xs">Field</Label>
+                            </div>
+                        </RadioGroup>
+                    </div>
+                    {condition.comparisonType === 'static_value' ? (
+                       showOptionsDropdown ? (
+                            <Select
+                                value={condition.value}
+                                onValueChange={(value) => handleUpdateCondition({ value: value })}
+                            >
+                                <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Select an option..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {getSourceElementOptions().map(opt => (
+                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                       ) : (
+                         <Input
+                            placeholder="Value"
+                            value={condition.value}
+                            onChange={(e) => handleUpdateCondition({ value: e.target.value })}
+                            className="h-8 text-xs"
+                        />
+                       )
+                    ) : (
+                        <Select
+                            value={condition.comparisonElementId}
+                            onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}
+                        >
+                            <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Select a field..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {allElements.map(el => (
+                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+  }
+
+  const RuleEditor = ({ rule }: { rule: Rule }) => {
+    
+    const handleUpdateRuleName = (name: string) => {
+        handleUpdateRule({ ...rule, name });
+    }
+
+    const handleUpdateLogicType = (logicType: 'and' | 'or') => {
+        handleUpdateRule({ ...rule, logicType });
+    }
+    
+    const handleAddCondition = () => {
+        const newCondition: Condition = {
+            id: crypto.randomUUID(),
+            sourceElementId: "",
+            operator: 'equals',
+            comparisonType: 'static_value',
+            value: ""
+        };
+        const updatedRule = { ...rule, conditions: [...rule.conditions, newCondition] };
+        handleUpdateRule(updatedRule);
+    };
+
+    const handleUpdateBehavior = (updatedBehavior: Partial<Rule['behavior']>) => {
+        handleUpdateRule({ ...rule, behavior: { ...rule.behavior, ...updatedBehavior }});
+    }
+
+    return (
+        <div className="p-4 space-y-4">
+            <Input 
+                value={rule.name}
+                onChange={(e) => handleUpdateRuleName(e.target.value)}
+                className="text-lg font-medium"
+            />
+            <Separator />
+            <h4 className="font-medium text-sm text-muted-foreground flex items-center">
+                IF 
+                <RadioGroup
+                    value={rule.logicType}
+                    onValueChange={(value) => handleUpdateLogicType(value as 'and' | 'or')}
+                    className="flex ml-2"
+                >
+                    <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="and" id={`and-${rule.id}`} className="h-4 w-4" />
+                        <Label htmlFor={`and-${rule.id}`} className="text-sm">All (AND)</Label>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="or" id={`or-${rule.id}`} className="h-4 w-4" />
+                        <Label htmlFor={`or-${rule.id}`} className="text-sm">Any (OR)</Label>
+                    </div>
+                </RadioGroup>
+                OF THE FOLLOWING ARE MET:
+            </h4>
+            <div className="space-y-3">
+                 {rule.conditions.map((cond) => (
+                    <ConditionEditor key={cond.id} condition={cond} rule={rule} />
+                ))}
+            </div>
+             <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddCondition}>
+                <Plus className="mr-1 h-4 w-4"/> Add Condition
+            </Button>
+            <Separator />
+            <h4 className="font-medium text-sm text-muted-foreground">THEN DO THIS:</h4>
+            <div className="space-y-3 p-3 border rounded-lg bg-accent/20">
+                <div className="space-y-2">
+                        <Label className="text-xs">Behavior</Label>
+                        <Select
+                        value={rule.behavior.type}
+                        onValueChange={(value) => handleUpdateBehavior({ type: value as RuleBehaviorType })}
+                    >
+                        <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="show">Show</SelectItem>
+                            <SelectItem value="hide">Hide</SelectItem>
+                            <SelectItem value="change_color">Change Color</SelectItem>
+                            <SelectItem value="set_error">Set Error</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                 <div className="space-y-2">
+                    <Label className="text-xs">Target Field</Label>
+                    <Select
+                        value={rule.behavior.targetElementId || element.id}
+                        onValueChange={(value) => handleUpdateBehavior({ targetElementId: value })}
+                    >
+                        <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={element.id}>(This Field)</SelectItem>
+                            {allTargettableElements.map(el => (
+                                <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                {rule.behavior.type === 'change_color' && (
+                    <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                            <Label className="text-xs">Property</Label>
+                            <Select 
+                                value={rule.behavior.targetProperty}
+                                onValueChange={(value) => handleUpdateBehavior({ targetProperty: value as 'color' | 'backgroundColor' })}
+                            >
+                                <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Target" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="color">Text Color</SelectItem>
+                                    <SelectItem value="backgroundColor">Background Color</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex-1">
+                            <Label className="text-xs">Color</Label>
+                            <Input
+                                type="color"
+                                value={rule.behavior.color}
+                                onChange={(e) => handleUpdateBehavior({ color: e.target.value })}
+                                className="p-1 h-8"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {rule.behavior.type === 'set_error' && (
+                    <div className="space-y-2">
+                            <Label className="text-xs">Error Message</Label>
+                            <Input
+                            placeholder="e.g. Value must be greater than 10"
+                            value={rule.behavior.message}
+                            onChange={(e) => handleUpdateBehavior({ message: e.target.value })}
+                            className="h-8 text-xs"
+                        />
+                    </div>
+                )}
+            </div>
+        </div>
+    )
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle>Rule Editor</DialogTitle>
+          <DialogDescription>
+            Create and manage rules to add conditional logic to your form.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 flex overflow-hidden">
+            <aside className="w-1/3 border-r overflow-y-auto">
+                <div className="p-4">
+                     <Button variant="outline" className="w-full" onClick={handleAddRule}>
+                        <Plus className="mr-2 h-4 w-4" /> Add New Rule
+                    </Button>
+                </div>
+                <div className="p-2 space-y-1">
+                    {localRules.map(rule => (
+                        <button 
+                            key={rule.id}
+                            onClick={() => handleSelectRule(rule.id)}
+                            className={cn(
+                                "w-full text-left p-2 rounded-md flex justify-between items-center",
+                                selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
+                            )}
+                        >
+                            <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
+                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}>
+                                <Trash className="h-4 w-4 text-destructive" />
+                             </Button>
+                        </button>
+                    ))}
+                </div>
+            </aside>
+            <main className="flex-1 overflow-y-auto">
+                {selectedRule ? (
+                   <RuleEditor rule={selectedRule} />
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+                        <Settings2 className="h-12 w-12 mb-4" />
+                        <h3 className="text-lg font-semibold">No Rule Selected</h3>
+                        <p className="text-sm">Select a rule from the left panel to edit it, or add a new rule.</p>
+                    </div>
+                )}
+            </main>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
