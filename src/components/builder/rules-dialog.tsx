@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -26,6 +26,17 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
   const { sections } = useBuilder();
   const [localRules, setLocalRules] = useState(element.rules || []);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+        setLocalRules(element.rules || []);
+        if (element.rules && element.rules.length > 0 && !selectedRuleId) {
+            setSelectedRuleId(element.rules[0].id);
+        } else if (!element.rules || element.rules.length === 0) {
+            setSelectedRuleId(null);
+        }
+    }
+  }, [isOpen, element.rules]);
 
   const allElements = useMemo(() => getAllElements(sections, true), [sections]);
   const allTargettableElements = useMemo(() => getAllElements(sections), [sections]);
@@ -70,7 +81,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
     setLocalRules(newRules);
     onUpdate(newRules);
     if (selectedRuleId === ruleId) {
-      setSelectedRuleId(null);
+      setSelectedRuleId(newRules.length > 0 ? newRules[0].id : null);
     }
   };
 
@@ -114,8 +125,8 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
     }
 
     const getSourceElementOptions = () => {
-        if (sourceElementIsSelectOrRadio && sourceElement.options) {
-            return sourceElement.options;
+        if (sourceElement?.type === 'Select' || sourceElement?.type === 'RadioGroup') {
+            return sourceElement.options || [];
         }
         if (sourceElementIsTableColumnWithoptions()) {
             const [tableId, colKey] = sourceElement!.id.split('.');
@@ -397,19 +408,25 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                 </div>
                 <div className="p-2 space-y-1">
                     {localRules.map(rule => (
-                        <button 
-                            key={rule.id}
-                            onClick={() => handleSelectRule(rule.id)}
-                            className={cn(
-                                "w-full text-left p-2 rounded-md flex justify-between items-center",
-                                selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
-                            )}
-                        >
-                            <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
-                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}>
+                        <div key={rule.id} className="relative">
+                            <button 
+                                onClick={() => handleSelectRule(rule.id)}
+                                className={cn(
+                                    "w-full text-left p-2 rounded-md flex justify-between items-center",
+                                    selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
+                                )}
+                            >
+                                <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
+                            </button>
+                             <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6" 
+                                onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
+                             >
                                 <Trash className="h-4 w-4 text-destructive" />
                              </Button>
-                        </button>
+                        </div>
                     ))}
                 </div>
             </aside>
@@ -430,3 +447,4 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
   );
 }
 
+  
