@@ -74,7 +74,7 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     const allItems = [...sections, ...getAllElements(sections)];
 
     allItems.forEach(item => {
-        visibility[item.id] = true; 
+        visibility[item.id] = !item.hidden; 
     });
 
     rules.forEach(rule => {
@@ -84,17 +84,11 @@ export function FormPreview({ showSubmitButton = true }: Props) {
         const isRuleMet = evaluateRule(rule, formState);
 
         if (rule.behavior.type === 'show') {
-            const showRulesForTarget = rules.filter(r => r.behavior.targetElementId === targetId && r.behavior.type === 'show');
-            if (showRulesForTarget.length > 0) {
-                 const isAnyShowRuleMet = showRulesForTarget.some(r => evaluateRule(r, formState));
-                 visibility[targetId] = isAnyShowRuleMet;
-            }
+            if(isRuleMet) visibility[targetId] = true;
         }
         
         if (rule.behavior.type === 'hide') {
-            if (isRuleMet) {
-                visibility[targetId] = false;
-            }
+            if (isRuleMet) visibility[targetId] = false;
         }
     });
 

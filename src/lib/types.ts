@@ -57,6 +57,7 @@ export type TableColumn = {
     title:string;
     key: string;
     visible: boolean;
+    hidden?: boolean;
     formula?: string;
     cellType?: TableColumnCellType;
     options?: string[];
@@ -68,6 +69,7 @@ export type FormElementInstance = {
     key: string; // Unique key for JSON schema
     label: string;
     required: boolean;
+    hidden?: boolean;
     placeholder?: string;
     helperText?: string;
     // For Select, RadioGroup
@@ -101,6 +103,7 @@ export type Section = {
     id: string;
     title: string;
     config: 'expanded' | 'normal'; // normal is collapsible
+    hidden?: boolean;
     elements: FormElementInstance[];
 };
 
@@ -111,7 +114,7 @@ export type FormVersion = {
   type: "draft" | "published";
   timestamp: string;
   sections: Section[];
-  rules?: Rule[];
+  rules: Rule[];
 };
 
 export type SubCategory = {

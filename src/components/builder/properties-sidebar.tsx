@@ -91,6 +91,10 @@ function SectionProperties({ section }: { section: Section }) {
                             <Label htmlFor="section-title">Title</Label>
                             <Input id="section-title" value={section.title} onChange={(e) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, title: e.target.value } })} />
                         </div>
+                         <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <Label htmlFor="hidden-by-default">Hidden by default</Label>
+                            <Switch id="hidden-by-default" checked={section.hidden} onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, hidden: checked } })} />
+                        </div>
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
@@ -211,8 +215,8 @@ function AlignmentRadioGroup({
 
 function ElementProperties({ element }: { element: FormElementInstance }) {
   const { dispatch, state, sections } = useBuilder();
-  const { selectedElement } = state;
   const [props, setProps] = useState(element);
+  const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
 
@@ -225,7 +229,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   );
 
   useEffect(() => {
-    // Only update local props if the selected element changes
     setProps(element);
   }, [element]);
 
@@ -280,6 +283,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
         <Label htmlFor="required">Required</Label>
         <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
+      </div>
+       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+        <Label htmlFor="hidden-by-default">Hidden by default</Label>
+        <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
       </div>
     </>
   );
@@ -453,6 +460,14 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         />
                          <p className="text-xs text-muted-foreground">Use column keys like {"{key1} * {key2}"}</p>
                     </div>
+                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                        <Label htmlFor={`hidden-by-default-${col.id}`}>Hidden by default</Label>
+                        <Switch id={`hidden-by-default-${col.id}`} checked={col.hidden} onCheckedChange={(checked) => {
+                            const newCols = [...props.columns!];
+                            newCols[index].hidden = checked;
+                            updateProperty('columns', newCols);
+                        }} />
+                    </div>
                 </div>
             ))}
             <Button variant="outline" size="sm" className="mt-2" onClick={() => {
@@ -503,15 +518,40 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                 <Label htmlFor="label">Title</Label>
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hidden-by-default">Hidden by default</Label>
+                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>
             );
         case "Separator":
-            return <p className="text-sm text-muted-foreground">No properties for this element.</p>;
+            return (
+                <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hidden-by-default">Hidden by default</Label>
+                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                 </Accordion>
+            );
         case "Container":
              return (
-                <Accordion type="multiple" defaultValue={["layout"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "layout"]} className="w-full">
+                     <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hidden-by-default">Hidden by default</Label>
+                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
                     <AccordionItem value="layout">
                         <AccordionTrigger className="py-2">Layout</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -572,6 +612,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
                             {placeholderField}
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hidden-by-default">Hidden by default</Label>
+                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
@@ -695,6 +739,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="required">Required</Label>
                                 <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
+                            </div>
+                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hidden-by-default">Hidden by default</Label>
+                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                             <PopupSettings element={props} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
