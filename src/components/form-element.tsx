@@ -81,18 +81,18 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   
   const isDisabled = useMemo(() => {
     if (!formState) return false;
-    let disabled = false;
     
     const disableRules = rules.filter(r => r.behavior.type === 'disable' && r.behavior.targetElementId === element.id);
-    if(disableRules.some(r => evaluateRule(r, formState))) {
-        disabled = true;
+    if (disableRules.some(r => evaluateRule(r, formState))) {
+        return true;
     }
 
     const enableRules = rules.filter(r => r.behavior.type === 'enable' && r.behavior.targetElementId === element.id);
-    if(enableRules.some(r => evaluateRule(r, formState))) {
-        disabled = false;
+    if (enableRules.length > 0) {
+        return !enableRules.some(r => evaluateRule(r, formState));
     }
-    return disabled;
+
+    return false;
   }, [element.id, formState, rules]);
 
    const isVisible = useMemo(() => {
@@ -103,7 +103,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         if (element.hidden) {
             visible = showRules.some(r => evaluateRule(r, formState || {}));
         } else {
-             // If not hidden by default, it starts visible. But if there are show rules, it must meet one.
              visible = showRules.some(r => evaluateRule(r, formState || {}));
         }
     }
@@ -166,6 +165,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     if (hideRules.some(r => evaluateRule(r, formState || {}))) {
         visible = false;
     }
+    
+    if (element.hidden && showRules.length > 0) {
+        visible = showRules.some(r => evaluateRule(r, formState || {}));
+    } else if (element.hidden) {
+        visible = false;
+    }
+
 
     return visible;
   }, [isSection, element, formState, rules, elementId]);
@@ -546,74 +552,84 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
 
             let isCellVisible = !col.hidden;
-            const showRules = rules.filter(r => r.behavior.targetElementId === cellId && r.behavior.type === 'show');
+            const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === cellId);
             if (showRules.length > 0) {
                 isCellVisible = showRules.some(r => evaluateRule(r, rowContext));
             }
-            if (col.hidden) {
-                // If hidden by default, it must be explicitly shown
+            if (col.hidden && showRules.length > 0) {
                 isCellVisible = showRules.some(r => evaluateRule(r, rowContext));
+            } else if (col.hidden) {
+                isCellVisible = false;
             }
 
-            const hideRules = rules.filter(r => r.behavior.targetElementId === cellId && r.behavior.type === 'hide');
+
+            const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === cellId);
             if(hideRules.some(r => evaluateRule(r, rowContext))) {
                 isCellVisible = false;
             }
 
             if (!isCellVisible) {
-                return null;
+                return <TableCell key={col.id} className="p-2"></TableCell>;
             }
 
 
             if (isFormulaColumn) {
-                return cellValue || <span className="text-muted-foreground">...</span>;
+                return <TableCell key={col.id} className="p-2">{cellValue || <span className="text-muted-foreground">...</span>}</TableCell>;
             }
 
             switch(col.cellType) {
                 case 'select':
                     return (
-                        <Select
-                            value={cellValue}
-                            onValueChange={(val) => handleCellChange(rowIndex, colIndex, val)}
-                        >
-                            <SelectTrigger className="h-8">
-                                <SelectValue placeholder="Select..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {col.options?.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                        <TableCell key={col.id} className="p-2">
+                            <Select
+                                value={cellValue}
+                                onValueChange={(val) => handleCellChange(rowIndex, colIndex, val)}
+                            >
+                                <SelectTrigger className="h-8">
+                                    <SelectValue placeholder="Select..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {col.options?.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                </SelectContent>
+                            </Select>
+                        </TableCell>
                     );
                 case 'checkbox':
                     return (
-                        <Checkbox 
-                            checked={!!cellValue}
-                            onCheckedChange={(checked) => handleCellChange(rowIndex, colIndex, checked)}
-                        />
+                        <TableCell key={col.id} className="p-2">
+                            <Checkbox 
+                                checked={!!cellValue}
+                                onCheckedChange={(checked) => handleCellChange(rowIndex, colIndex, checked)}
+                            />
+                        </TableCell>
                     );
                 case 'radio':
                     return (
-                        <RadioGroup
-                            value={cellValue}
-                            onValueChange={(val) => handleCellChange(rowIndex, colIndex, val)}
-                            className="flex gap-2"
-                        >
-                            {col.options?.map(opt => (
-                                <div key={opt} className="flex items-center space-x-1">
-                                    <RadioGroupItem value={opt} id={`${element.id}-${rowIndex}-${col.id}-${opt}`} />
-                                    <Label htmlFor={`${element.id}-${rowIndex}-${col.id}-${opt}`} className="text-xs">{opt}</Label>
-                                </div>
-                            ))}
-                        </RadioGroup>
+                         <TableCell key={col.id} className="p-2">
+                            <RadioGroup
+                                value={cellValue}
+                                onValueChange={(val) => handleCellChange(rowIndex, colIndex, val)}
+                                className="flex gap-2"
+                            >
+                                {col.options?.map(opt => (
+                                    <div key={opt} className="flex items-center space-x-1">
+                                        <RadioGroupItem value={opt} id={`${element.id}-${rowIndex}-${col.id}-${opt}`} />
+                                        <Label htmlFor={`${element.id}-${rowIndex}-${col.id}-${opt}`} className="text-xs">{opt}</Label>
+                                    </div>
+                                ))}
+                            </RadioGroup>
+                        </TableCell>
                     );
                 case 'text':
                 default:
                     return (
-                        <Input
-                            value={cellValue}
-                            onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                            className="h-8"
-                        />
+                        <TableCell key={col.id} className="p-2">
+                            <Input
+                                value={cellValue}
+                                onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                                className="h-8"
+                            />
+                        </TableCell>
                     );
             }
         }
@@ -660,13 +676,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                         <TableBody>
                             {tableRows.map((row, rowIndex) => (
                                 <TableRow key={rowIndex}>
-                                    {visibleColumns.map((col) => {
-                                        return (
-                                            <TableCell key={col.id} className="p-2">
-                                                {allowEdit ? renderCell(row, rowIndex, col) : (row[getColumnIndex(col)] || <span className="text-muted-foreground">...</span>)}
-                                            </TableCell>
-                                        )
-                                    })}
+                                    {visibleColumns.map((col) => (
+                                        allowEdit ? renderCell(row, rowIndex, col) : <TableCell key={col.id} className="p-2">{row[getColumnIndex(col)] || <span className="text-muted-foreground">...</span>}</TableCell>
+                                    ))}
                                     {(allowEdit || allowDelete) && (
                                         <TableCell className="p-2">
                                             <div className="flex gap-2">
