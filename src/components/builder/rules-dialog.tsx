@@ -94,11 +94,11 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
     
     useEffect(() => {
         if (condition.sourceElementId) {
-            setSourceElement(findElementRecursive(sections, condition.sourceElementId));
+            setSourceElement(allElements.find(el => el.id === condition.sourceElementId) || null);
         } else {
             setSourceElement(null);
         }
-    }, [condition.sourceElementId, sections]);
+    }, [condition.sourceElementId, allElements]);
 
 
     const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
@@ -117,30 +117,22 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
         handleUpdateRule(updatedRule);
     }
     
-    const sourceElementIsSelectOrRadio = sourceElement?.type === 'Select' || sourceElement?.type === 'RadioGroup';
-
-    const sourceElementIsTableColumnWithoptions = () => {
-        if (!sourceElement || !sourceElement.id.includes('.')) return false;
-        const [tableId, colKey] = sourceElement.id.split('.');
-        const table = findElementRecursive(sections, tableId);
-        if (!table || table.type !== 'Table' || !table.columns) return false;
-        const column = table.columns.find(c => c.key === colKey);
-        return (column?.cellType === 'select' || column?.cellType === 'radio') && !!column.options;
-    }
-
     const getSourceElementOptions = () => {
-        if (sourceElement?.type === 'Select' || sourceElement?.type === 'RadioGroup') {
-            return sourceElement.options || [];
-        }
-        if (sourceElementIsTableColumnWithoptions()) {
-            const [tableId, colKey] = sourceElement!.id.split('.');
-            const table = findElementRecursive(sections, tableId)!;
-            return table.columns!.find(c => c.key === colKey)!.options!;
+        if (!sourceElement) return [];
+        if (sourceElement.options) return sourceElement.options;
+        
+        // Handle table columns
+        if (sourceElement.id.includes('.')) {
+            const [tableId, colKey] = sourceElement.id.split('.');
+            const table = findElementRecursive(sections, tableId);
+            if (!table || table.type !== 'Table' || !table.columns) return [];
+            const column = table.columns.find(c => c.key === colKey);
+            return column?.options || [];
         }
         return [];
     }
 
-    const showOptionsDropdown = (sourceElementIsSelectOrRadio || sourceElementIsTableColumnWithoptions()) && condition.comparisonType === 'static_value';
+    const showOptionsDropdown = (sourceElement?.type === 'Select' || sourceElement?.type === 'RadioGroup' || (sourceElement?.id.includes('.') && (sourceElement?.type === 'select' || sourceElement?.type === 'radio'))) && condition.comparisonType === 'static_value';
 
     return (
         <div className="border bg-background/50 p-3 rounded-md space-y-3 relative">
