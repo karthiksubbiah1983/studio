@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from "react";
@@ -8,7 +9,6 @@ import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Copy, Trash } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ConditionalWrapper } from "./conditional-wrapper";
 import { Badge } from "../ui/badge";
 import { Layout } from "lucide-react";
 
@@ -134,7 +134,6 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
         }
     }
     return (
-      <ConditionalWrapper logic={element.conditionalLogic}>
         <div
           onMouseEnter={() => setMouseIsOver(true)}
           onMouseLeave={() => setMouseIsOver(false)}
@@ -202,12 +201,10 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
             )}
            </div>
         </div>
-      </ConditionalWrapper>
     )
   }
 
   return (
-    <ConditionalWrapper logic={element.conditionalLogic}>
       <div
         draggable
         onDragStart={handleDragStart}
@@ -257,6 +254,5 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
         )}
         <ElementPreview element={element} />
       </div>
-    </ConditionalWrapper>
   );
 }

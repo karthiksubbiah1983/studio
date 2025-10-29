@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette } from "lucide-react";
-import { ConditionalLogic, DisplayDataSourceConfig, FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType, DynamicStyleRule } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType, DisplayDataSourceConfig, Rule } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -78,111 +78,189 @@ export function PropertiesSidebar() {
   );
 }
 
-function ConditionalLogicSettings({
+function RulesSettings({
     element,
-    onUpdate,
+    onUpdate
 }: {
     element: Section | FormElementInstance;
-    onUpdate: (logic: ConditionalLogic) => void;
+    onUpdate: (rules: Rule[]) => void;
 }) {
     const { sections } = useBuilder();
-    const logic = element.conditionalLogic || { enabled: false, triggerElementId: "", showWhenValue: "" };
-    
-    const allElements = sections.flatMap(s => {
+    const rules = element.rules || [];
+
+    const allElements = useMemo(() => sections.flatMap(s => {
         const elements: FormElementInstance[] = [];
         const findElementsRecursive = (els: FormElementInstance[]) => {
             for (const el of els) {
                 elements.push(el);
-                if (el.elements) {
-                    findElementsRecursive(el.elements);
-                }
+                if (el.elements) findElementsRecursive(el.elements);
             }
-        }
+        };
         findElementsRecursive(s.elements);
         return elements;
-    });
+    }).filter(e => e.id !== element.id && e.key), [sections, element.id]);
 
-    const triggerElements = useMemo(() =>
-        allElements.filter(e =>
-            (e.type === 'RadioGroup' || e.type === 'Select' || e.type === 'Checkbox') && e.id !== element.id
-        ), [allElements, element.id]
-    );
 
-    const selectedTrigger = triggerElements.find(el => el.id === logic.triggerElementId);
-    
-    const showValueDropdown = selectedTrigger && (selectedTrigger.type === 'RadioGroup' || (selectedTrigger.type === 'Select' && selectedTrigger.dataSource === 'static'));
-    const triggerOptions: string[] = selectedTrigger?.options || [];
+    const handleAddRule = () => {
+        const newRule: Rule = {
+            id: crypto.randomUUID(),
+            condition: {
+                sourceElementId: "",
+                operator: 'equals',
+                value: "",
+            },
+            behavior: {
+                type: 'show'
+            }
+        };
+        onUpdate([...rules, newRule]);
+    };
+
+    const handleUpdateRule = (index: number, updatedRule: Rule) => {
+        const newRules = [...rules];
+        newRules[index] = updatedRule;
+        onUpdate(newRules);
+    };
+
+    const handleDeleteRule = (index: number) => {
+        const newRules = rules.filter((_, i) => i !== index);
+        onUpdate(newRules);
+    };
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                <Label htmlFor="enable-logic">Enable Conditional Logic</Label>
-                <Switch
-                    id="enable-logic"
-                    checked={logic.enabled}
-                    onCheckedChange={(checked) => onUpdate({ ...logic, enabled: checked })}
-                />
-            </div>
-            {logic.enabled && (
-                <>
-                    <div className="flex flex-col gap-2">
-                        <Label>Show this field when...</Label>
+            {rules.map((rule, index) => (
+                <div key={rule.id} className="border p-3 rounded-lg space-y-4 relative bg-accent/20">
+                    <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => handleDeleteRule(index)}>
+                        <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                    
+                    <h4 className="font-medium text-xs text-muted-foreground">WHEN</h4>
+                    <div className="space-y-2">
+                        <Label className="text-xs">Source Field</Label>
                         <Select
-                            value={logic.triggerElementId}
-                            onValueChange={(value) => onUpdate({ ...logic, triggerElementId: value, showWhenValue: '' })}
+                            value={rule.condition.sourceElementId}
+                            onValueChange={(value) => handleUpdateRule(index, { ...rule, condition: { ...rule.condition, sourceElementId: value } })}
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder="Select a trigger field..." />
+                                <SelectValue placeholder="Select a source field..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {triggerElements.map(el => (
+                                {allElements.map(el => (
                                     <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
-                    {selectedTrigger && (
-                         <div className="flex flex-col gap-2">
-                            <Label>...this value is selected:</Label>
-                            {showValueDropdown ? (
-                                <Select
-                                    value={logic.showWhenValue}
-                                    onValueChange={(value) => onUpdate({ ...logic, showWhenValue: value })}
+
+                    <div className="flex items-end gap-2">
+                        <div className="flex-1">
+                            <Label className="text-xs">Operator</Label>
+                            <Select
+                                value={rule.condition.operator}
+                                onValueChange={(value) => handleUpdateRule(index, { ...rule, condition: { ...rule.condition, operator: value as Rule['condition']['operator'] } })}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="equals">Equals</SelectItem>
+                                    <SelectItem value="not_equals">Not Equals</SelectItem>
+                                    <SelectItem value="is_greater_than">Is Greater Than</SelectItem>
+                                    <SelectItem value="is_less_than">Is Less Than</SelectItem>
+                                    <SelectItem value="contains">Contains</SelectItem>
+                                    <SelectItem value="not_contains">Does Not Contain</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="flex-1">
+                             <Label className="text-xs">Value</Label>
+                            <Input
+                                placeholder="Value to compare"
+                                value={rule.condition.value}
+                                onChange={(e) => handleUpdateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })}
+                            />
+                        </div>
+                    </div>
+
+                    <Separator />
+                    <h4 className="font-medium text-xs text-muted-foreground">DO</h4>
+                    <div className="space-y-2">
+                         <Label className="text-xs">Behavior</Label>
+                         <Select
+                            value={rule.behavior.type}
+                            onValueChange={(value) => handleUpdateRule(index, { ...rule, behavior: { type: value as Rule['behavior']['type'] } })}
+                        >
+                            <SelectTrigger>
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="show">Show</SelectItem>
+                                <SelectItem value="hide">Hide</SelectItem>
+                                <SelectItem value="change_color">Change Color</SelectItem>
+                                <SelectItem value="set_error">Set Error</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {rule.behavior.type === 'change_color' && (
+                        <div className="flex items-end gap-2">
+                            <div className="flex-1">
+                                <Label className="text-xs">Property</Label>
+                                <Select 
+                                    value={rule.behavior.targetProperty}
+                                    onValueChange={(value) => handleUpdateRule(index, { ...rule, behavior: { ...rule.behavior, targetProperty: value as 'color' | 'backgroundColor' } })}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select an option..." />
+                                        <SelectValue placeholder="Target" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {triggerOptions.map(opt => (
-                                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                        ))}
+                                        <SelectItem value="color">Text Color</SelectItem>
+                                        <SelectItem value="backgroundColor">Background Color</SelectItem>
                                     </SelectContent>
                                 </Select>
-                            ) : (
-                                <Input 
-                                    placeholder="Enter expected value (e.g., 'true')"
-                                    value={logic.showWhenValue}
-                                    onChange={(e) => onUpdate({ ...logic, showWhenValue: e.target.value })}
+                            </div>
+                            <div className="flex-1">
+                                <Label className="text-xs">Color</Label>
+                                <Input
+                                    type="color"
+                                    value={rule.behavior.color}
+                                    onChange={(e) => handleUpdateRule(index, { ...rule, behavior: { ...rule.behavior, color: e.target.value } })}
+                                    className="p-1 h-10"
                                 />
-                            )}
+                            </div>
                         </div>
                     )}
-                </>
-            )}
+
+                     {rule.behavior.type === 'set_error' && (
+                        <div className="space-y-2">
+                             <Label className="text-xs">Error Message</Label>
+                             <Input
+                                placeholder="e.g. Value must be greater than 10"
+                                value={rule.behavior.message}
+                                onChange={(e) => handleUpdateRule(index, { ...rule, behavior: { ...rule.behavior, message: e.target.value } })}
+                            />
+                        </div>
+                     )}
+                </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={handleAddRule}>
+                <Plus className="mr-2 h-4 w-4" /> Add Rule
+            </Button>
         </div>
-    );
+    )
 }
 
 function SectionProperties({ section }: { section: Section }) {
     const { dispatch } = useBuilder();
     
-    const handleConditionalLogicUpdate = (logic: ConditionalLogic) => {
-        dispatch({ type: "UPDATE_SECTION", payload: { ...section, conditionalLogic: logic } });
+    const handleRulesUpdate = (rules: Rule[]) => {
+        dispatch({ type: "UPDATE_SECTION", payload: { ...section, rules: rules } });
     }
 
     return (
         <div className="flex flex-col gap-4">
-            <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
+            <Accordion type="multiple" defaultValue={["general", "rules"]} className="w-full">
                 <AccordionItem value="general">
                     <AccordionTrigger className="py-2">General</AccordionTrigger>
                     <AccordionContent className="flex flex-col gap-4">
@@ -192,10 +270,10 @@ function SectionProperties({ section }: { section: Section }) {
                         </div>
                     </AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="logic">
-                    <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
+                <AccordionItem value="rules">
+                    <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                     <AccordionContent>
-                        <ConditionalLogicSettings element={section} onUpdate={handleConditionalLogicUpdate} />
+                        <RulesSettings element={section} onUpdate={handleRulesUpdate} />
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
@@ -314,132 +392,6 @@ function AlignmentRadioGroup({
     )
 }
 
-function DynamicStylesSettings({
-  element,
-  onUpdate,
-}: {
-  element: FormElementInstance;
-  onUpdate: (rules: DynamicStyleRule[]) => void;
-}) {
-  const { sections } = useBuilder();
-  const rules = element.dynamicStyles || [];
-
-  const allElements = useMemo(() => sections.flatMap(s => {
-    const elements: FormElementInstance[] = [];
-    const findElementsRecursive = (els: FormElementInstance[]) => {
-      for (const el of els) {
-        elements.push(el);
-        if (el.elements) findElementsRecursive(el.elements);
-      }
-    };
-    findElementsRecursive(s.elements);
-    return elements;
-  }).filter(e => e.id !== element.id), [sections, element.id]);
-
-
-  const handleAddRule = () => {
-    const newRule: DynamicStyleRule = {
-      id: crypto.randomUUID(),
-      sourceElementId: "",
-      condition: 'equals',
-      value: "",
-      targetProperty: 'color',
-      color: '#ff0000',
-    };
-    onUpdate([...rules, newRule]);
-  };
-
-  const handleUpdateRule = (index: number, updatedRule: DynamicStyleRule) => {
-    const newRules = [...rules];
-    newRules[index] = updatedRule;
-    onUpdate(newRules);
-  };
-
-  const handleDeleteRule = (index: number) => {
-    const newRules = rules.filter((_, i) => i !== index);
-    onUpdate(newRules);
-  };
-
-  return (
-    <div className="flex flex-col gap-4">
-      {rules.map((rule, index) => (
-        <div key={rule.id} className="border p-3 rounded-lg space-y-3 relative">
-            <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => handleDeleteRule(index)}>
-                <X className="h-4 w-4 text-destructive" />
-            </Button>
-            <div className="flex flex-col gap-2">
-                <Label>When field...</Label>
-                <Select
-                    value={rule.sourceElementId}
-                    onValueChange={(value) => handleUpdateRule(index, { ...rule, sourceElementId: value })}
-                >
-                    <SelectTrigger>
-                        <SelectValue placeholder="Select a source field..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {allElements.map(el => (
-                            <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-            <div className="flex items-center gap-2">
-                <div className="flex-1">
-                    <Label>...value</Label>
-                    <Select
-                        value={rule.condition}
-                         onValueChange={(value) => handleUpdateRule(index, { ...rule, condition: value as DynamicStyleRule['condition'] })}
-                    >
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="equals">Equals</SelectItem>
-                            <SelectItem value="not_equals">Not Equals</SelectItem>
-                            <SelectItem value="contains">Contains</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex-1">
-                    <Label>&nbsp;</Label>
-                    <Input 
-                        placeholder="Value"
-                        value={rule.value}
-                        onChange={(e) => handleUpdateRule(index, { ...rule, value: e.target.value })}
-                    />
-                </div>
-            </div>
-             <div className="flex items-center gap-2">
-                <div className="flex-1">
-                    <Label>Then change</Label>
-                    <Select value={rule.targetProperty} disabled>
-                        <SelectTrigger>
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="color">Text Color</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="flex-1">
-                     <Label>To</Label>
-                     <Input
-                        type="color"
-                        value={rule.color}
-                        onChange={(e) => handleUpdateRule(index, { ...rule, color: e.target.value })}
-                        className="p-1 h-10"
-                    />
-                </div>
-             </div>
-        </div>
-      ))}
-       <Button variant="outline" size="sm" onClick={handleAddRule}>
-        <Plus className="mr-2 h-4 w-4" /> Add Style Rule
-      </Button>
-    </div>
-  )
-}
-
 function ElementProperties({ element }: { element: FormElementInstance }) {
   const { dispatch, state, sections } = useBuilder();
   const { selectedElement } = state;
@@ -505,11 +457,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   const updateElement = (key: keyof FormElementInstance, value: any) => {
     if (!selectedElement) return;
     const newProps = { ...element, [key]: value };
-    // If we're disabling conditional logic, clear the dependent fields
-    if (key === 'conditionalLogic' && value.enabled === false) {
-        newProps.conditionalLogic = { enabled: false, triggerElementId: '', showWhenValue: '' };
-    }
-     if (key === 'popup' && value.enabled === false) {
+
+    if (key === 'popup' && value.enabled === false) {
         newProps.popup = { enabled: false, title: '', description: '', icon: 'Info', iconColor: '#000000' };
     }
     dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: newProps } });
@@ -517,8 +466,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   
   if (!element) return null;
 
-  const handleConditionalLogicUpdate = (logic: ConditionalLogic) => {
-      updateElement('conditionalLogic', logic);
+  const handleRulesUpdate = (rules: Rule[]) => {
+      updateElement('rules', rules);
   }
 
   const handleDisplayDataSourceUpdate = (config: DisplayDataSourceConfig) => {
@@ -527,10 +476,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   const handlePopupUpdate = (popup: PopupConfig) => {
     updateElement('popup', popup);
-  }
-
-  const handleDynamicStylesUpdate = (rules: DynamicStyleRule[]) => {
-      updateElement('dynamicStyles', rules);
   }
 
   const handleFetchSchema = async () => {
@@ -807,7 +752,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             return <p className="text-sm text-muted-foreground">No properties for this element.</p>;
         case "Container":
              return (
-                <Accordion type="multiple" defaultValue={["layout", "logic"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["layout", "rules"]} className="w-full">
                     <AccordionItem value="layout">
                         <AccordionTrigger className="py-2">Layout</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -854,10 +799,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             />
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="logic">
-                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
+                    <AccordionItem value="rules">
+                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -865,7 +810,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         case "Display":
             const config = element.dataSourceConfig || { sourceElementId: "", displayKey: "" };
             return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "logic"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "rules"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -906,16 +851,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             </div>
                         </AccordionContent>
                     </AccordionItem>
-                     <AccordionItem value="logic">
-                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
+                     <AccordionItem value="rules">
+                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="styles">
-                        <AccordionTrigger className="py-2">Dynamic Styles</AccordionTrigger>
-                        <AccordionContent>
-                            <DynamicStylesSettings element={element} onUpdate={handleDynamicStylesUpdate} />
+                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>
@@ -924,30 +863,24 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         case "Textarea":
         case "RichText":
              return (
-                 <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "rules"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="logic">
-                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
+                    <AccordionItem value="rules">
+                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="styles">
-                        <AccordionTrigger className="py-2">Dynamic Styles</AccordionTrigger>
-                        <AccordionContent>
-                            <DynamicStylesSettings element={element} onUpdate={handleDynamicStylesUpdate} />
+                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>
             );
         case "Select":
             return (
-                <Accordion type="multiple" defaultValue={["general", "data", "logic"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "data", "rules"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -984,17 +917,17 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             {element.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="logic">
-                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
+                    <AccordionItem value="rules">
+                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
             );
         case "RadioGroup":
              return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "logic"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "rules"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1008,17 +941,17 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             {optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="logic">
-                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
+                    <AccordionItem value="rules">
+                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                           <RulesSettings element={element} onUpdate={handleRulesUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
              );
         case "Checkbox":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "rules"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1037,34 +970,34 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             <PopupSettings element={element} onUpdate={handlePopupUpdate} />
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="logic">
-                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
+                    <AccordionItem value="rules">
+                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                            <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                            <RulesSettings element={element} onUpdate={handleRulesUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
             );
         case "DatePicker":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "logic"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "rules"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent>
                             {commonFields}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="logic">
-                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
+                    <AccordionItem value="rules">
+                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                           <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                           <RulesSettings element={element} onUpdate={handleRulesUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
             );
         case "Table":
             return (
-                <Accordion type="multiple" defaultValue={["general", "columns", "actions", "logic"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "columns", "actions", "rules"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1077,10 +1010,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             {tableFields}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="logic">
-                        <AccordionTrigger className="py-2">Conditional Logic</AccordionTrigger>
+                    <AccordionItem value="rules">
+                        <AccordionTrigger className="py-2">Rules</AccordionTrigger>
                         <AccordionContent>
-                           <ConditionalLogicSettings element={element} onUpdate={handleConditionalLogicUpdate} />
+                           <RulesSettings element={element} onUpdate={handleRulesUpdate} />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

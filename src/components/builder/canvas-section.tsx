@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from "react";
@@ -8,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CanvasElement } from "./canvas-element";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { ConditionalWrapper } from "./conditional-wrapper";
 import { Copy, GripVertical, Trash } from "lucide-react";
 import { Badge } from "../ui/badge";
 
@@ -148,8 +148,8 @@ export function CanvasSection({ section }: { section: Section }) {
   }
 
   return (
-    <ConditionalWrapper logic={section.conditionalLogic}>
+    <>
       {sectionContent()}
-    </ConditionalWrapper>
+    </>
   )
 }

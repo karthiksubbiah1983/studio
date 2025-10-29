@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
@@ -57,22 +58,9 @@ const initialState: State = {
 };
 
 // Helper function to deep clone and assign new IDs
-const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[], sections?: any[], versions?: any[] }>(item: T): T => {
+const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[], sections?: any[], versions?: any[], rules?: any[] }>(item: T): T => {
   const itemClone = JSON.parse(JSON.stringify(item));
   
-  const reIdRecursive = (obj: any) => {
-    if (obj.id) obj.id = crypto.randomUUID();
-    
-    // Check for conditional logic triggers and update them if they exist in the map
-    if (obj.conditionalLogic && obj.conditionalLogic.triggerElementId && idMap[obj.conditionalLogic.triggerElementId]) {
-      obj.conditionalLogic.triggerElementId = idMap[obj.conditionalLogic.triggerElementId];
-    }
-
-    if (obj.elements && Array.isArray(obj.elements)) {
-      obj.elements.forEach(reIdRecursive);
-    }
-  };
-
   const idMap: { [oldId: string]: string } = {};
 
   // First pass: collect all old IDs and create new ones
@@ -84,22 +72,27 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
     if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(collectIds);
     if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(collectIds);
     if (obj.versions && Array.isArray(obj.versions)) obj.versions.forEach(collectIds);
+    if (obj.rules && Array.isArray(obj.rules)) obj.rules.forEach(collectIds);
   }
   collectIds(itemClone);
 
-  // Second pass: update all IDs
+  // Second pass: update all IDs and references
   const updateIds = (obj: any) => {
      if (obj.id && idMap[obj.id]) obj.id = idMap[obj.id];
 
      if (obj.key) obj.key = `${obj.key}_${Math.random().toString(36).substring(2, 7)}`;
 
-     // Update conditional logic triggers
-     if (obj.conditionalLogic && obj.conditionalLogic.triggerElementId && idMap[obj.conditionalLogic.triggerElementId]) {
-        obj.conditionalLogic.triggerElementId = idMap[obj.conditionalLogic.triggerElementId];
+     // Update rule triggers
+     if (obj.rules && Array.isArray(obj.rules)) {
+        obj.rules.forEach((rule: any) => {
+            if (rule.condition && rule.condition.sourceElementId && idMap[rule.condition.sourceElementId]) {
+                rule.condition.sourceElementId = idMap[rule.condition.sourceElementId];
+            }
+        });
      }
      
      if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(updateIds);
-     if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(collectIds);
+     if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(updateIds);
      if (obj.versions && Array.isArray(obj.versions)) obj.versions.forEach(updateIds);
   }
   updateIds(itemClone);
@@ -741,6 +734,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-
-    

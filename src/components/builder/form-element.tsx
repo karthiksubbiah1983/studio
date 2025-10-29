@@ -1,7 +1,8 @@
 
+
 "use client";
 
-import { FormElementInstance, TableColumn } from "@/lib/types";
+import { FormElementInstance, TableColumn, Rule } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,7 +21,7 @@ import { useEffect, useState, useMemo } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "../ui/popup";
 import { Button } from "../ui/button";
-import { icons, Info, Plus, Trash, ChevronDown } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "../lexical/lexical-editor";
@@ -51,34 +52,43 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
 
-  const dynamicStyle = useMemo(() => {
+  const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
-    if (element.dynamicStyles && formState) {
-        for (const rule of element.dynamicStyles) {
-            const sourceElement = findElementRecursive(sections, rule.sourceElementId);
-            if (!sourceElement) continue;
+    let error: string | null = null;
 
-            const sourceValue = formState[sourceElement.id]?.value;
-            let conditionMet = false;
-            switch(rule.condition) {
-                case 'equals':
-                    conditionMet = String(sourceValue) === rule.value;
-                    break;
-                case 'not_equals':
-                    conditionMet = String(sourceValue) !== rule.value;
-                    break;
-                case 'contains':
-                    conditionMet = String(sourceValue).includes(rule.value);
-                    break;
-            }
+    if (element.rules && formState) {
+        for (const rule of element.rules) {
+             const sourceValue = formState[rule.condition.sourceElementId]?.value;
+             if (sourceValue === undefined) continue;
+             
+             const conditionValue = rule.condition.value;
+             let conditionMet = false;
+             switch(rule.condition.operator) {
+                case 'equals': conditionMet = String(sourceValue) === conditionValue; break;
+                case 'not_equals': conditionMet = String(sourceValue) !== conditionValue; break;
+                case 'contains': conditionMet = String(sourceValue).includes(conditionValue); break;
+                case 'not_contains': conditionMet = !String(sourceValue).includes(conditionValue); break;
+                case 'is_greater_than': conditionMet = Number(sourceValue) > Number(conditionValue); break;
+                case 'is_less_than': conditionMet = Number(sourceValue) < Number(conditionValue); break;
+             }
 
             if (conditionMet) {
-                style[rule.targetProperty] = rule.color;
+                switch(rule.behavior.type) {
+                    case 'change_color':
+                        if (rule.behavior.targetProperty && rule.behavior.color) {
+                            style[rule.behavior.targetProperty] = rule.behavior.color;
+                        }
+                        break;
+                    case 'set_error':
+                        error = rule.behavior.message || "Invalid input.";
+                        break;
+                }
             }
         }
     }
-    return style;
-  }, [element.dynamicStyles, formState, sections]);
+    return { style, error };
+  }, [element.rules, formState]);
+
 
   useEffect(() => {
     if (element.type === 'Table') {
@@ -116,7 +126,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   const renderLabelWithPopup = () => (
     <div className="flex items-center gap-2">
-       <Label className="text-[0.9rem]" style={dynamicStyle}>
+       <Label className="text-[0.9rem]" style={appliedStyles.style}>
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
@@ -140,18 +150,28 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
-      <Label className="text-[0.9rem]" style={dynamicStyle}>
+      <Label className="text-[0.9rem]" style={appliedStyles.style}>
         {label}
         {required && <span className="text-destructive"> *</span>}
       </Label>
     </div>
   );
+
+  const renderError = () => {
+    if (!appliedStyles.error) return null;
+    return (
+        <p className="text-sm text-destructive mt-1 flex items-center gap-1">
+            <AlertCircle className="h-4 w-4" />
+            {appliedStyles.error}
+        </p>
+    )
+  }
   
   let content = null;
 
   switch (type) {
     case "Title":
-      content = <h2 className="text-2xl font-bold" style={dynamicStyle}>{label}</h2>;
+      content = <h2 className="text-2xl font-bold" style={appliedStyles.style}>{label}</h2>;
       break;
     case "Separator":
       content = <Separator />;
@@ -165,7 +185,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       content = (
         <div>
           <Label className="text-[0.9rem]">{label}</Label>
-          <p className="text-muted-foreground text-sm mt-1" style={dynamicStyle}>{displayValue}</p>
+          <p className="text-muted-foreground text-sm mt-1" style={appliedStyles.style}>{displayValue}</p>
         </div>
       );
       break;
@@ -190,7 +210,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             }
         }
         content = (
-            <div className={cn("flex gap-4",
+            <div style={appliedStyles.style} className={cn("flex gap-4",
                 direction === 'horizontal' ? 'flex-row' : 'flex-col',
                 justify && alignmentClasses.justify[justify],
                 align && alignmentClasses.align[align],
@@ -217,11 +237,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             placeholder={placeholder}
             value={value?.value || ""}
             onChange={(e) => onValueChange(element.id, e.target.value)}
-            style={dynamicStyle}
+            style={appliedStyles.style}
+            className={cn(appliedStyles.error && "border-destructive")}
           />
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
           )}
+          {renderError()}
         </div>
       );
       break;
@@ -233,11 +255,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             placeholder={placeholder}
             value={value?.value || ""}
             onChange={(e) => onValueChange(element.id, e.target.value)}
-            style={dynamicStyle}
+            style={appliedStyles.style}
+            className={cn(appliedStyles.error && "border-destructive")}
           />
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
           )}
+          {renderError()}
         </div>
       );
       break;
@@ -252,6 +276,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
           )}
+          {renderError()}
         </div>
       );
       break;
@@ -264,7 +289,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         <div>
           {renderLabel()}
           <Select value={value?.value} onValueChange={handleSelectChange}>
-            <SelectTrigger style={dynamicStyle}>
+            <SelectTrigger style={appliedStyles.style} className={cn(appliedStyles.error && "border-destructive")}>
               <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
             </SelectTrigger>
             <SelectContent>
@@ -286,12 +311,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
           )}
+          {renderError()}
         </div>
       );
       break;
     case "Checkbox":
         content = (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-start space-x-2">
                 <Checkbox 
                     id={element.id}
                     checked={value?.value}
@@ -299,6 +325,10 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 />
                 <div className="grid gap-1.5 leading-none">
                     {renderLabelWithPopup()}
+                    {helperText && (
+                        <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
+                    )}
+                    {renderError()}
                 </div>
             </div>
         );
@@ -314,13 +344,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                   value={option}
                   id={`${element.id}-${index}`}
                 />
-                <Label htmlFor={`${element.id}-${index}`} style={dynamicStyle}>{option}</Label>
+                <Label htmlFor={`${element.id}-${index}`} style={appliedStyles.style}>{option}</Label>
               </div>
             ))}
           </RadioGroup>
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
           )}
+          {renderError()}
         </div>
       );
       break;
@@ -350,18 +381,19 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
               mode="single"
               selected={dateValue}
               onSelect={handleDateChange}
-              className="p-0 border rounded-md"
+              className={cn("p-0 border rounded-md", appliedStyles.error && "border-destructive")}
             />
             <Input 
               type="time"
               value={timeValue}
               onChange={handleTimeChange}
-              className="w-32"
+              className={cn("w-32", appliedStyles.error && "border-destructive")}
             />
           </div>
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
           )}
+          {renderError()}
         </div>
       );
       break;
@@ -505,7 +537,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
-                <div className="rounded-md border">
+                <div className={cn("rounded-md border", appliedStyles.error && "border-destructive")}>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -548,6 +580,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                     </Button>
                 )}
                 {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+                {renderError()}
             </div>
         );
         break;

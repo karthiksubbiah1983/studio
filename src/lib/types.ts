@@ -1,20 +1,33 @@
 
+
 export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "Table" | "RichText" | "Container";
 
-export type ConditionalLogic = {
-    enabled: boolean;
-    triggerElementId: string; // ID of the trigger element (e.g., RadioGroup, Select, Checkbox)
-    showWhenValue: string;    // Value of the option that triggers visibility
-};
+export type RuleConditionOperator = 
+    | 'equals' 
+    | 'not_equals' 
+    | 'is_greater_than' 
+    | 'is_less_than'
+    | 'contains'
+    | 'not_contains';
 
-export type DynamicStyleRule = {
+export type RuleBehavior = 'show' | 'hide' | 'change_color' | 'set_error';
+
+export type Rule = {
     id: string;
-    sourceElementId: string;
-    condition: 'equals' | 'not_equals' | 'contains';
-    value: string;
-    targetProperty: 'color'; // For now, only color is supported
-    color: string;
-};
+    condition: {
+        sourceElementId: string;
+        operator: RuleConditionOperator;
+        value: string; // Can be a static value or another element's ID (TBD)
+    };
+    behavior: {
+        type: RuleBehavior;
+        // For 'change_color'
+        color?: string;
+        targetProperty?: 'color' | 'backgroundColor';
+        // For 'set_error'
+        message?: string;
+    }
+}
 
 export type DisplayDataSourceConfig = {
     sourceElementId:string; // ID of the Select element
@@ -59,11 +72,9 @@ export type FormElementInstance = {
     labelKey?: string; // Key in each object for option label
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
-    dynamicStyles?: DynamicStyleRule[];
+    rules?: Rule[];
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
-    // Conditional Visibility
-    conditionalLogic?: ConditionalLogic;
     // For Table
     columns?: TableColumn[];
     initialRows?: number;
@@ -84,8 +95,7 @@ export type Section = {
     title: string;
     config: 'expanded' | 'normal'; // normal is collapsible
     elements: FormElementInstance[];
-    // Conditional Visibility
-    conditionalLogic?: ConditionalLogic;
+    rules?: Rule[];
 };
 
 export type FormVersion = {
@@ -98,7 +108,7 @@ export type FormVersion = {
 };
 
 export type SubCategory = {
-    id: string;
+    id:string;
     name: string;
 };
 
@@ -126,3 +136,4 @@ export type Submission = {
     
 
     
+

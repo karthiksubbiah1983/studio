@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -9,8 +10,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
-import { useState } from "react";
-import { FormElementInstance, Section } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
+import { FormElementInstance, Section, Rule } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -93,24 +94,66 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     setFormState({});
   }
 
-  const isVisible = (element: FormElementInstance | Section) => {
-    const { conditionalLogic } = element;
-    if (!conditionalLogic || !conditionalLogic.enabled || !conditionalLogic.triggerElementId || !conditionalLogic.showWhenValue) {
-        return true;
-    }
-    const triggerValue = formState[conditionalLogic.triggerElementId]?.value;
-    
-    // For checkbox, triggerValue is boolean
-    if (typeof triggerValue === 'boolean') {
-        return String(triggerValue) === conditionalLogic.showWhenValue;
-    }
+ const elementVisibility = useMemo(() => {
+    const visibility: { [key: string]: boolean } = {};
+    const allElementsAndSections = [...sections, ...getAllElements(sections)];
 
-    return triggerValue === conditionalLogic.showWhenValue;
-  }
+    allElementsAndSections.forEach(item => {
+        visibility[item.id] = true; // Default to visible
+    });
+
+    allElementsAndSections.forEach(item => {
+        if (item.rules) {
+            const showRules = item.rules.filter(rule => rule.behavior.type === 'show');
+            const hideRules = item.rules.filter(rule => rule.behavior.type === 'hide');
+
+            let isVisible = true;
+            
+            // If there are 'show' rules, element is hidden by default unless a 'show' rule is met
+            if (showRules.length > 0) {
+                isVisible = false;
+                for (const rule of showRules) {
+                    if (evaluateRule(rule, formState)) {
+                        isVisible = true;
+                        break;
+                    }
+                }
+            }
+
+            // 'hide' rules can override 'show' rules
+            for (const rule of hideRules) {
+                if (evaluateRule(rule, formState)) {
+                    isVisible = false;
+                    break;
+                }
+            }
+            visibility[item.id] = isVisible;
+        }
+    });
+
+    return visibility;
+ }, [formState, sections]);
+
+ const evaluateRule = (rule: Rule, state: typeof formState) => {
+     const sourceValue = state[rule.condition.sourceElementId]?.value;
+     const conditionValue = rule.condition.value;
+
+     if (sourceValue === undefined) return false;
+
+     switch (rule.condition.operator) {
+        case 'equals': return String(sourceValue) === conditionValue;
+        case 'not_equals': return String(sourceValue) !== conditionValue;
+        case 'contains': return String(sourceValue).includes(conditionValue);
+        case 'not_contains': return !String(sourceValue).includes(conditionValue);
+        case 'is_greater_than': return Number(sourceValue) > Number(conditionValue);
+        case 'is_less_than': return Number(sourceValue) < Number(conditionValue);
+        default: return false;
+     }
+ }
   
   const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
     return elements.map((element) => {
-      if (!isVisible(element)) return null;
+      if (!elementVisibility[element.id]) return null;
 
       return (
           <FormElementRenderer
@@ -128,7 +171,7 @@ export function FormPreview({ showSubmitButton = true }: Props) {
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => {
-         if (!isVisible(section)) return null;
+         if (!elementVisibility[section.id]) return null;
 
         return (
           <Card key={section.id}>
