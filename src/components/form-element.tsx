@@ -447,18 +447,18 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 return acc;
             }, {} as { [key: string]: any }) || {};
 
-            let isVisible = !col.hidden;
-
+            let isVisible = true;
             const allRulesForCell = rules.filter(r => r.behavior.targetElementId === cellId);
-            const showRules = allRulesForCell.filter(r => r.behavior.type === 'show');
             
-            if (showRules.length > 0) {
-                // If there are "show" rules, the element is hidden by default unless a rule is met.
-                isVisible = showRules.some(r => evaluateRule(r, formState || {}, rowContext));
+            const showRules = allRulesForCell.filter(r => r.behavior.type === 'show');
+            if (col.hidden) {
+                isVisible = false;
+                if (showRules.length > 0) {
+                    isVisible = showRules.some(r => evaluateRule(r, formState || {}, rowContext));
+                }
             }
 
             const hideRules = allRulesForCell.filter(r => r.behavior.type === 'hide');
-            // "hide" rules override "show" rules
             if (hideRules.some(r => evaluateRule(r, formState || {}, rowContext))) {
                 isVisible = false;
             }
@@ -603,3 +603,5 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
+    
