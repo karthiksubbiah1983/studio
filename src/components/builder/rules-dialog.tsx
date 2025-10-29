@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -29,8 +30,13 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     if (isOpen) {
         const initialRules = JSON.parse(JSON.stringify(rules || []));
         setLocalRules(initialRules);
-        if (initialRules.length > 0) {
+        if (initialRules.length > 0 && !selectedRuleId) {
             setSelectedRuleId(initialRules[0].id);
+        } else if (initialRules.length > 0 && selectedRuleId) {
+            const stillExists = initialRules.some((r: Rule) => r.id === selectedRuleId);
+            if (!stillExists) {
+                setSelectedRuleId(initialRules[0].id);
+            }
         } else {
             setSelectedRuleId(null);
         }
@@ -91,7 +97,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
     useEffect(() => {
         if (condition.sourceElementId) {
-            setSourceElement(allElements.find(el => el.id === condition.sourceElementId) || null);
+            const el = allElements.find(el => el.id === condition.sourceElementId) || null;
+            setSourceElement(el as FormElementInstance | null);
         } else {
             setSourceElement(null);
         }
@@ -117,24 +124,30 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     const getSourceElementOptions = (): string[] => {
         if (!sourceElement || !('type' in sourceElement)) return [];
         
+        let options: string[] | undefined = [];
+        
         if (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup') {
-            return sourceElement.options || [];
+            options = sourceElement.options;
         }
         
-        // Handle table columns
         if (sourceElement.id.includes('.')) {
             const [tableId, colKey] = sourceElement.id.split('.');
             const table = findElementRecursive(sections, tableId);
             if (!table || table.type !== 'Table' || !table.columns) return [];
             const column = table.columns.find(c => c.key === colKey);
              if (column && (column.cellType === 'select' || column.cellType === 'radio')) {
-                return column.options || [];
+                options = column.options;
             }
         }
-        return [];
+        
+        if (sourceElement.type === 'Checkbox') {
+            return ['true', 'false'];
+        }
+
+        return options || [];
     }
 
-    const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || (sourceElement.id.includes('.') && (sourceElement.type === 'select' || sourceElement.type === 'radio'))) && condition.comparisonType === 'static_value';
+    const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || sourceElement.type === 'Checkbox' || (sourceElement.id.includes('.') && (sourceElement.type === 'select' || sourceElement.type === 'radio'))) && condition.comparisonType === 'static_value';
 
     return (
         <div className="border bg-background/50 p-3 rounded-md space-y-3 relative">
@@ -320,6 +333,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <SelectContent>
                             <SelectItem value="show">Show</SelectItem>
                             <SelectItem value="hide">Hide</SelectItem>
+                            <SelectItem value="enable">Enable</SelectItem>
+                            <SelectItem value="disable">Disable</SelectItem>
                             <SelectItem value="change_color">Change Color</SelectItem>
                             <SelectItem value="set_error">Set Error</SelectItem>
                         </SelectContent>

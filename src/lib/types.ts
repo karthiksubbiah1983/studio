@@ -10,7 +10,7 @@ export type RuleConditionOperator =
     | 'contains'
     | 'not_contains';
 
-export type RuleBehaviorType = 'show' | 'hide' | 'change_color' | 'set_error';
+export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_error';
 
 export type Condition = {
     id: string;

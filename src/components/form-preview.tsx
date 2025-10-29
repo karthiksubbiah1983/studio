@@ -69,104 +69,18 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     setFormState({});
   }
 
- const elementVisibility = useMemo(() => {
-    const visibility: { [key: string]: boolean } = {};
-    const allItems = [...sections, ...getAllElements(sections)];
-
-    // Initialize visibility based on the 'hidden' property
-    allItems.forEach(item => {
-        visibility[item.id] = !item.hidden;
-    });
-    
-    // Process rules
-    rules.forEach(rule => {
-        const targetId = rule.behavior.targetElementId;
-        if (!targetId || targetId.includes('.')) return; // Skip table cell rules, handled in form-element.tsx
-
-        const isRuleMet = evaluateRule(rule, formState);
-
-        if (rule.behavior.type === 'show' && isRuleMet) {
-            visibility[targetId] = true;
-        } else if (rule.behavior.type === 'hide' && isRuleMet) {
-            visibility[targetId] = false;
-        }
-    });
-
-    return visibility;
- }, [formState, sections, rules]);
-
-  
-  const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
-    return elements.map((element) => {
-      if (elementVisibility[element.id] === false) return null;
-
-      if (element.type === 'Container') {
-        const containerContent = renderElements(element.elements || [], element.direction === 'horizontal');
-        const { direction, justify, align } = element;
-        const alignmentClasses = {
-            justify: {
-                start: 'justify-start',
-                center: 'justify-center',
-                end: 'justify-end',
-                between: 'justify-between',
-                around: 'justify-around',
-                evenly: 'justify-evenly',
-            },
-            align: {
-                start: 'items-start',
-                center: 'items-center',
-                end: 'items-end',
-                stretch: 'items-stretch',
-                baseline: 'items-baseline',
-            }
-        };
-        return (
-            <div key={element.id} className={cn("flex gap-4",
-                direction === 'horizontal' ? 'flex-row' : 'flex-col',
-                justify && alignmentClasses.justify[justify],
-                align && alignmentClasses.align[align],
-            )}>
-                {containerContent}
-            </div>
-        )
-      }
-
-      return (
-          <FormElementRenderer
-              key={element.id}
-              element={element}
-              value={formState[element.id]}
-              onValueChange={handleValueChange}
-              formState={formState}
-              isParentHorizontal={isParentHorizontal}
-          />
-      )
-    })
-  }
-
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => {
-         if (visibility[section.id] === false) return null;
-
         return (
-          <Card key={section.id}>
-            <CardHeader>
-                <CardTitle className="text-base font-medium">
-                    {section.title}
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div
-                  className={cn(
-                  "grid gap-4 grid-cols-1"
-                  )}
-              >
-                  {renderElements(section.elements)}
-              </div>
-            </CardContent>
-          </Card>
-        );
+          <FormElementRenderer 
+            key={section.id}
+            element={section as unknown as FormElementInstance}
+            value={null}
+            onValueChange={handleValueChange}
+            formState={formState}
+          />
+        )
       })}
        {showSubmitButton && <div className="flex justify-end mt-8">
             <Button onClick={handleSubmit}>

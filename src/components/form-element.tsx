@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, TableColumn, Rule, Condition } from "@/lib/types";
+import { FormElementInstance, TableColumn, Rule, Condition, Section } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +29,7 @@ import { evaluate } from "@/lib/formula-parser";
 import { cn } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
 import { findElementRecursive, getAllElements, evaluateRule } from "../form-preview-helpers";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 type Props = {
   element: FormElementInstance;
@@ -43,7 +44,7 @@ const getNestedValue = (obj: any, path: string): any => {
 };
 
 export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal }: Props) {
-  const { rules } = useBuilder();
+  const { rules, sections } = useBuilder();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -77,6 +78,44 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     }
     return { style, error };
   }, [element.id, formState, rules]);
+  
+  const isDisabled = useMemo(() => {
+    if (!formState) return false;
+    let disabled = false;
+    const allRules = rules;
+    
+    const disableRules = allRules.filter(r => r.behavior.type === 'disable' && r.behavior.targetElementId === element.id);
+    if(disableRules.some(r => evaluateRule(r, formState))) {
+        disabled = true;
+    }
+
+    const enableRules = allRules.filter(r => r.behavior.type === 'enable' && r.behavior.targetElementId === element.id);
+    if(enableRules.some(r => evaluateRule(r, formState))) {
+        disabled = false;
+    }
+    return disabled;
+  }, [element.id, formState, rules]);
+
+   const isVisible = useMemo(() => {
+    if (!formState) return !element.hidden;
+
+    let visible = !element.hidden;
+    const allRules = rules;
+
+    const showRules = allRules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === element.id);
+    if (element.hidden && showRules.length > 0) {
+        visible = showRules.some(r => evaluateRule(r, formState));
+    } else if (showRules.length > 0) {
+        visible = showRules.some(r => evaluateRule(r, formState));
+    }
+
+    const hideRules = allRules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === element.id);
+    if(hideRules.some(r => evaluateRule(r, formState))) {
+        visible = false;
+    }
+
+    return visible;
+  }, [element.id, element.hidden, formState, rules]);
 
 
   useEffect(() => {
@@ -112,6 +151,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
 
   const LucideIcon = popup?.icon ? (icons as any)[popup.icon] : null;
+
+  if (!isVisible) return null;
 
   const renderLabelWithPopup = () => (
     <div className="flex items-center gap-2">
@@ -157,6 +198,35 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }
   
   let content = null;
+
+  // This is a special case to render sections and their elements.
+   if (!type) {
+    const section = element as unknown as Section;
+     if (!isVisible) return null;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base font-medium">
+                    {section.title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 grid-cols-1">
+                  {section.elements.map(el => (
+                    <FormElementRenderer 
+                        key={el.id}
+                        element={el}
+                        value={formState?.[el.id]}
+                        onValueChange={onValueChange}
+                        formState={formState}
+                    />
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+    )
+  }
 
   switch (type) {
     case "Title":
@@ -228,6 +298,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             onChange={(e) => onValueChange(element.id, e.target.value)}
             style={appliedStyles.style}
             className={cn(appliedStyles.error && "border-destructive")}
+            disabled={isDisabled}
           />
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
@@ -246,6 +317,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             onChange={(e) => onValueChange(element.id, e.target.value)}
             style={appliedStyles.style}
             className={cn(appliedStyles.error && "border-destructive")}
+            disabled={isDisabled}
           />
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
@@ -277,7 +349,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       content = (
         <div>
           {renderLabel()}
-          <Select value={value?.value} onValueChange={handleSelectChange}>
+          <Select value={value?.value} onValueChange={handleSelectChange} disabled={isDisabled}>
             <SelectTrigger style={appliedStyles.style} className={cn(appliedStyles.error && "border-destructive")}>
               <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
             </SelectTrigger>
@@ -311,6 +383,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                     id={element.id}
                     checked={value?.value}
                     onCheckedChange={(checked) => onValueChange(element.id, checked)}
+                    disabled={isDisabled}
                 />
                 <div className="grid gap-1.5 leading-none">
                     {renderLabelWithPopup()}
@@ -326,7 +399,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       content = (
         <div>
           {renderLabelWithPopup()}
-          <RadioGroup value={value?.value} onValueChange={(val) => onValueChange(element.id, val)} className="mt-3">
+          <RadioGroup value={value?.value} onValueChange={(val) => onValueChange(element.id, val)} className="mt-3" disabled={isDisabled}>
             {options?.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <RadioGroupItem
@@ -371,12 +444,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
               selected={dateValue}
               onSelect={handleDateChange}
               className={cn("p-0 border rounded-md", appliedStyles.error && "border-destructive")}
+              disabled={isDisabled}
             />
             <Input 
               type="time"
               value={timeValue}
               onChange={handleTimeChange}
               className={cn("w-32", appliedStyles.error && "border-destructive")}
+              disabled={isDisabled}
             />
           </div>
           {helperText && (
@@ -441,34 +516,35 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
         const renderCell = (row: any[], rowIndex: number, col: TableColumn) => {
             const colIndex = getColumnIndex(col);
-            if (colIndex === -1) return null;
-
             const cellValue = row[colIndex];
             const isFormulaColumn = !!col.formula;
-            
+
             const cellId = `${element.id}.${col.key}`;
+
             const rowContext = columns?.reduce((acc, c, index) => {
-                acc[`${element.id}.${c.key}`] = { value: row[index] };
+                 acc[`${element.id}.${c.key}`] = { value: row[index] };
                 return acc;
-            }, {} as { [key: string]: any }) || {};
+            }, { ...formState } as { [key: string]: any }) || {};
 
-            let isVisible = !col.hidden;
 
-            const allRulesForCell = rules.filter(r => r.behavior.targetElementId === cellId);
-            const showRules = allRulesForCell.filter(r => r.behavior.type === 'show');
-            const hideRules = allRulesForCell.filter(r => r.behavior.type === 'hide');
+            let isCellVisible = !col.hidden;
 
-            if (col.hidden) {
-                isVisible = showRules.some(r => evaluateRule(r, formState || {}, rowContext));
-            }
-            if (hideRules.some(r => evaluateRule(r, formState || {}, rowContext))) {
-                isVisible = false;
+            const showRules = rules.filter(r => r.behavior.targetElementId === cellId && r.behavior.type === 'show');
+            if (col.hidden && showRules.length > 0) {
+                isCellVisible = showRules.some(r => evaluateRule(r, rowContext));
+            } else if (showRules.length > 0) {
+                 isCellVisible = showRules.some(r => evaluateRule(r, rowContext));
             }
 
+            const hideRules = rules.filter(r => r.behavior.targetElementId === cellId && r.behavior.type === 'hide');
+            if(hideRules.some(r => evaluateRule(r, rowContext))) {
+                isCellVisible = false;
+            }
 
-            if (!isVisible) {
+            if (!isCellVisible) {
                 return null;
             }
+
 
             if (isFormulaColumn) {
                 return cellValue || <span className="text-muted-foreground">...</span>;
@@ -606,5 +682,3 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-    
