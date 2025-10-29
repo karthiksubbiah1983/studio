@@ -4,7 +4,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType } from "@/lib/types";
 import { Plus, Trash, X, Settings2, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
@@ -24,15 +24,16 @@ type Props = {
 
 export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) {
   const { sections } = useBuilder();
-  const [localRules, setLocalRules] = useState(element.rules || []);
+  const [localRules, setLocalRules] = useState<Rule[]>([]);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-        setLocalRules(element.rules || []);
-        if (element.rules && element.rules.length > 0 && !selectedRuleId) {
-            setSelectedRuleId(element.rules[0].id);
-        } else if (!element.rules || element.rules.length === 0) {
+        const initialRules = JSON.parse(JSON.stringify(element.rules || []));
+        setLocalRules(initialRules);
+        if (initialRules.length > 0 && !selectedRuleId) {
+            setSelectedRuleId(initialRules[0].id);
+        } else if (initialRules.length === 0) {
             setSelectedRuleId(null);
         }
     }
@@ -63,7 +64,6 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
     const newRules = [...localRules, newRule];
     setLocalRules(newRules);
     setSelectedRuleId(newRule.id);
-    onUpdate(newRules);
   };
 
   const handleSelectRule = (ruleId: string) => {
@@ -73,17 +73,20 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
   const handleUpdateRule = (updatedRule: Rule) => {
     const newRules = localRules.map(r => r.id === updatedRule.id ? updatedRule : r);
     setLocalRules(newRules);
-    onUpdate(newRules);
   };
 
   const handleDeleteRule = (ruleId: string) => {
     const newRules = localRules.filter(r => r.id !== ruleId);
     setLocalRules(newRules);
-    onUpdate(newRules);
     if (selectedRuleId === ruleId) {
       setSelectedRuleId(newRules.length > 0 ? newRules[0].id : null);
     }
   };
+
+  const handleSaveChanges = () => {
+    onUpdate(localRules);
+    onOpenChange(false);
+  }
 
   const ConditionEditor = ({ condition, rule }: { condition: Condition, rule: Rule }) => {
     const [sourceElement, setSourceElement] = useState<FormElementInstance | null>(null);
@@ -408,8 +411,8 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                 </div>
                 <div className="p-2 space-y-1">
                     {localRules.map(rule => (
-                        <div key={rule.id} className="relative">
-                            <button 
+                        <div key={rule.id} className="relative group/rule">
+                            <button
                                 onClick={() => handleSelectRule(rule.id)}
                                 className={cn(
                                     "w-full text-left p-2 rounded-md flex justify-between items-center",
@@ -418,10 +421,10 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                             >
                                 <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
                             </button>
-                             <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6" 
+                             <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
                                 onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
                              >
                                 <Trash className="h-4 w-4 text-destructive" />
@@ -442,9 +445,13 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                 )}
             </main>
         </div>
+        <DialogFooter className="p-4 border-t">
+            <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={handleSaveChanges}>Save Changes</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
-
-  
