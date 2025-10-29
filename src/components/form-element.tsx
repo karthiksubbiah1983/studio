@@ -66,7 +66,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 switch(rule.behavior.type) {
                     case 'change_color':
                         if (rule.behavior.targetProperty && rule.behavior.color) {
-                            style[rule.behavior.targetProperty] = rule.behavior.color;
+                            style[rule.behavior.targetProperty as any] = rule.behavior.color;
                         }
                         break;
                     case 'set_error':
@@ -82,14 +82,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const isDisabled = useMemo(() => {
     if (!formState) return false;
     let disabled = false;
-    const allRules = rules;
     
-    const disableRules = allRules.filter(r => r.behavior.type === 'disable' && r.behavior.targetElementId === element.id);
+    const disableRules = rules.filter(r => r.behavior.type === 'disable' && r.behavior.targetElementId === element.id);
     if(disableRules.some(r => evaluateRule(r, formState))) {
         disabled = true;
     }
 
-    const enableRules = allRules.filter(r => r.behavior.type === 'enable' && r.behavior.targetElementId === element.id);
+    const enableRules = rules.filter(r => r.behavior.type === 'enable' && r.behavior.targetElementId === element.id);
     if(enableRules.some(r => evaluateRule(r, formState))) {
         disabled = false;
     }
@@ -97,20 +96,20 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }, [element.id, formState, rules]);
 
    const isVisible = useMemo(() => {
-    if (!formState) return !element.hidden;
-
     let visible = !element.hidden;
-    const allRules = rules;
 
-    const showRules = allRules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === element.id);
-    if (element.hidden && showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, formState));
-    } else if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, formState));
+    const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === element.id);
+    if (showRules.length > 0) {
+        if (element.hidden) {
+            visible = showRules.some(r => evaluateRule(r, formState || {}));
+        } else {
+             // If not hidden by default, it starts visible. But if there are show rules, it must meet one.
+             visible = showRules.some(r => evaluateRule(r, formState || {}));
+        }
     }
 
-    const hideRules = allRules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === element.id);
-    if(hideRules.some(r => evaluateRule(r, formState))) {
+    const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === element.id);
+    if(hideRules.some(r => evaluateRule(r, formState || {}))) {
         visible = false;
     }
 
@@ -151,7 +150,55 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
 
   const LucideIcon = popup?.icon ? (icons as any)[popup.icon] : null;
+  
+  const elementId = element?.id;
+  const isSection = !type && elementId;
+  const sectionIsVisible = useMemo(() => {
+    if (!isSection) return true; // Not a section, so don't hide it here.
+    let visible = !element.hidden;
 
+    const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === elementId);
+    if (showRules.length > 0) {
+        visible = showRules.some(r => evaluateRule(r, formState || {}));
+    }
+
+    const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === elementId);
+    if (hideRules.some(r => evaluateRule(r, formState || {}))) {
+        visible = false;
+    }
+
+    return visible;
+  }, [isSection, element, formState, rules, elementId]);
+
+
+  if (isSection) {
+    const section = element as unknown as Section;
+    if (!sectionIsVisible) return null;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base font-medium">
+                    {section.title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 grid-cols-1">
+                  {section.elements.map(el => (
+                    <FormElementRenderer 
+                        key={el.id}
+                        element={el}
+                        value={formState?.[el.id]}
+                        onValueChange={onValueChange}
+                        formState={formState}
+                    />
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+    )
+  }
+  
   if (!isVisible) return null;
 
   const renderLabelWithPopup = () => (
@@ -198,35 +245,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }
   
   let content = null;
-
-  // This is a special case to render sections and their elements.
-   if (!type) {
-    const section = element as unknown as Section;
-     if (!isVisible) return null;
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base font-medium">
-                    {section.title}
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 grid-cols-1">
-                  {section.elements.map(el => (
-                    <FormElementRenderer 
-                        key={el.id}
-                        element={el}
-                        value={formState?.[el.id]}
-                        onValueChange={onValueChange}
-                        formState={formState}
-                    />
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-    )
-  }
 
   switch (type) {
     case "Title":
@@ -436,7 +454,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       const timeValue = dateValue ? `${String(dateValue.getHours()).padStart(2,'0')}:${String(dateValue.getMinutes()).padStart(2, '0')}` : "";
 
       content = (
-        <div>
+        <div className={cn(isDisabled && 'pointer-events-none opacity-50')}>
           {renderLabel()}
           <div className="flex gap-2">
             <Calendar 
@@ -528,12 +546,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
 
             let isCellVisible = !col.hidden;
-
             const showRules = rules.filter(r => r.behavior.targetElementId === cellId && r.behavior.type === 'show');
-            if (col.hidden && showRules.length > 0) {
+            if (showRules.length > 0) {
                 isCellVisible = showRules.some(r => evaluateRule(r, rowContext));
-            } else if (showRules.length > 0) {
-                 isCellVisible = showRules.some(r => evaluateRule(r, rowContext));
+            }
+            if (col.hidden) {
+                // If hidden by default, it must be explicitly shown
+                isCellVisible = showRules.some(r => evaluateRule(r, rowContext));
             }
 
             const hideRules = rules.filter(r => r.behavior.targetElementId === cellId && r.behavior.type === 'hide');
@@ -600,7 +619,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         }
 
         content = (
-            <div>
+            <div className={cn(isDisabled && 'pointer-events-none opacity-50')}>
                 <div className="flex justify-between items-center mb-2">
                     {renderLabel()}
                     <DropdownMenu>
@@ -682,3 +701,4 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
