@@ -82,36 +82,48 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const isDisabled = useMemo(() => {
     if (!formState) return false;
     
-    const disableRules = rules.filter(r => r.behavior.type === 'disable' && r.behavior.targetElementId === element.id);
-    if (disableRules.some(r => evaluateRule(r, formState))) {
+    // An element is disabled if any 'disable' rule is met. This takes highest priority.
+    const isExplicitlyDisabled = rules.some(r => 
+        r.behavior.type === 'disable' && 
+        r.behavior.targetElementId === element.id &&
+        evaluateRule(r, formState)
+    );
+
+    if (isExplicitlyDisabled) {
         return true;
     }
 
-    const enableRules = rules.filter(r => r.behavior.type === 'enable' && r.behavior.targetElementId === element.id);
+    // If 'enable' rules exist for this element, it is disabled by default unless one of them is met.
+    const enableRules = rules.filter(r => 
+        r.behavior.type === 'enable' && 
+        r.behavior.targetElementId === element.id
+    );
+
     if (enableRules.length > 0) {
-        return !enableRules.some(r => evaluateRule(r, formState));
+        const isEnabled = enableRules.some(r => evaluateRule(r, formState));
+        return !isEnabled; // Disabled if no enable rules are met
     }
 
+    // If no disable or enable rules apply, it is not disabled.
     return false;
   }, [element.id, formState, rules]);
+
 
    const isVisible = useMemo(() => {
     let visible = !element.hidden;
 
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === element.id);
     if (showRules.length > 0) {
-        if (element.hidden) {
-            visible = showRules.some(r => evaluateRule(r, formState || {}));
-        } else {
-             visible = showRules.some(r => evaluateRule(r, formState || {}));
-        }
+        visible = showRules.some(r => evaluateRule(r, formState || {}));
+    } else if (element.hidden) {
+        visible = false;
     }
 
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === element.id);
     if(hideRules.some(r => evaluateRule(r, formState || {}))) {
         visible = false;
     }
-
+    
     return visible;
   }, [element.id, element.hidden, formState, rules]);
 
@@ -159,6 +171,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === elementId);
     if (showRules.length > 0) {
         visible = showRules.some(r => evaluateRule(r, formState || {}));
+    } else if (element.hidden) {
+        visible = false;
     }
 
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === elementId);
@@ -166,13 +180,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         visible = false;
     }
     
-    if (element.hidden && showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, formState || {}));
-    } else if (element.hidden) {
-        visible = false;
-    }
-
-
     return visible;
   }, [isSection, element, formState, rules, elementId]);
 
@@ -468,14 +475,12 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
               selected={dateValue}
               onSelect={handleDateChange}
               className={cn("p-0 border rounded-md", appliedStyles.error && "border-destructive")}
-              disabled={isDisabled}
             />
             <Input 
               type="time"
               value={timeValue}
               onChange={handleTimeChange}
               className={cn("w-32", appliedStyles.error && "border-destructive")}
-              disabled={isDisabled}
             />
           </div>
           {helperText && (
@@ -545,33 +550,63 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
             const cellId = `${element.id}.${col.key}`;
 
-            const rowContext = columns?.reduce((acc, c, index) => {
-                 acc[`${element.id}.${c.key}`] = { value: row[index] };
-                return acc;
-            }, { ...formState } as { [key: string]: any }) || {};
+            const rowContext = useMemo(() => {
+                return columns?.reduce((acc, c, index) => {
+                    const id = `${element.id}.${c.key}`;
+                    acc[id] = { value: row[index] };
+                    return acc;
+                }, { ...formState } as { [key: string]: any }) || {};
+            }, [row, columns, formState, element.id]);
 
 
-            let isCellVisible = !col.hidden;
-            const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === cellId);
-            if (showRules.length > 0) {
-                isCellVisible = showRules.some(r => evaluateRule(r, rowContext));
-            }
-            if (col.hidden && showRules.length > 0) {
-                isCellVisible = showRules.some(r => evaluateRule(r, rowContext));
-            } else if (col.hidden) {
-                isCellVisible = false;
-            }
+            const isCellVisible = useMemo(() => {
+                let visible = !col.hidden;
+                const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === cellId);
 
+                if (showRules.length > 0) {
+                    visible = showRules.some(r => evaluateRule(r, rowContext));
+                } else if (col.hidden) {
+                    visible = false;
+                }
 
-            const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === cellId);
-            if(hideRules.some(r => evaluateRule(r, rowContext))) {
-                isCellVisible = false;
-            }
+                const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === cellId);
+                if(hideRules.some(r => evaluateRule(r, rowContext))) {
+                    visible = false;
+                }
+                
+                return visible;
+            }, [col.hidden, cellId, rowContext, rules]);
+            
+            const isCellDisabled = useMemo(() => {
+                 if (!rowContext) return false;
+    
+                const isExplicitlyDisabled = rules.some(r => 
+                    r.behavior.type === 'disable' && 
+                    r.behavior.targetElementId === cellId &&
+                    evaluateRule(r, rowContext)
+                );
+
+                if (isExplicitlyDisabled) {
+                    return true;
+                }
+
+                const enableRules = rules.filter(r => 
+                    r.behavior.type === 'enable' && 
+                    r.behavior.targetElementId === cellId
+                );
+
+                if (enableRules.length > 0) {
+                    const isEnabled = enableRules.some(r => evaluateRule(r, rowContext));
+                    return !isEnabled;
+                }
+
+                return false;
+            }, [cellId, rowContext, rules]);
+
 
             if (!isCellVisible) {
                 return <TableCell key={col.id} className="p-2"></TableCell>;
             }
-
 
             if (isFormulaColumn) {
                 return <TableCell key={col.id} className="p-2">{cellValue || <span className="text-muted-foreground">...</span>}</TableCell>;
@@ -584,6 +619,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                             <Select
                                 value={cellValue}
                                 onValueChange={(val) => handleCellChange(rowIndex, colIndex, val)}
+                                disabled={isCellDisabled}
                             >
                                 <SelectTrigger className="h-8">
                                     <SelectValue placeholder="Select..." />
@@ -600,6 +636,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                             <Checkbox 
                                 checked={!!cellValue}
                                 onCheckedChange={(checked) => handleCellChange(rowIndex, colIndex, checked)}
+                                disabled={isCellDisabled}
                             />
                         </TableCell>
                     );
@@ -610,6 +647,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                 value={cellValue}
                                 onValueChange={(val) => handleCellChange(rowIndex, colIndex, val)}
                                 className="flex gap-2"
+                                disabled={isCellDisabled}
                             >
                                 {col.options?.map(opt => (
                                     <div key={opt} className="flex items-center space-x-1">
@@ -628,6 +666,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                 value={cellValue}
                                 onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
                                 className="h-8"
+                                disabled={isCellDisabled}
                             />
                         </TableCell>
                     );
@@ -713,4 +752,5 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
