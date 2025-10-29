@@ -88,8 +88,8 @@ function RulesSettings({
     const { sections } = useBuilder();
     const rules = element.rules || [];
 
-    const allElements = useMemo(() => getAllElements(sections).filter(e => e.id !== element.id && e.key), [sections, element.id]);
-
+    const allElements = useMemo(() => getAllElements(sections, true), [sections]);
+    const allTargettableElements = useMemo(() => getAllElements(sections), [sections]);
 
     const handleAddRule = () => {
         const newRule: Rule = {
@@ -191,7 +191,7 @@ function RulesSettings({
                                         <SelectValue placeholder="Select a source field..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {getAllElements(sections).filter(e => e.key).map(el => (
+                                        {allElements.map(el => (
                                             <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -284,7 +284,7 @@ function RulesSettings({
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value={element.id}>(This Field)</SelectItem>
-                                {allElements.map(el => (
+                                {allTargettableElements.map(el => (
                                     <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
                                 ))}
                             </SelectContent>

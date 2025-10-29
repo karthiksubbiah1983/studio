@@ -1,6 +1,6 @@
 import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
 
-export const getAllElements = (sections: Section[]): FormElementInstance[] => {
+export const getAllElements = (sections: Section[], includeTableColumns = false): FormElementInstance[] => {
     let allElements: FormElementInstance[] = [];
     sections.forEach(section => {
         const findElementsRecursive = (els: FormElementInstance[]): void => {
@@ -8,6 +8,18 @@ export const getAllElements = (sections: Section[]): FormElementInstance[] => {
                 allElements.push(element);
                 if (element.type === 'Container' && element.elements) {
                     findElementsRecursive(element.elements);
+                }
+                if (includeTableColumns && element.type === 'Table' && element.columns) {
+                    element.columns.forEach(col => {
+                        // Treat each column as a pseudo-element for rule targeting
+                        allElements.push({
+                            id: `${element.id}.${col.key}`,
+                            key: `${element.key}.${col.key}`, // Unique key for the column
+                            type: col.cellType || 'text', // Or map to a more specific pseudo-type
+                            label: `${element.label} > ${col.title}`,
+                            required: false, // Individual table cells might not be "required" in the same way
+                        } as FormElementInstance);
+                    });
                 }
             });
         };
