@@ -28,19 +28,20 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
 
   useEffect(() => {
+    // Only reset local state when the dialog is opened, not on every re-render.
     if (isOpen) {
         const initialRules = JSON.parse(JSON.stringify(element.rules || []));
         setLocalRules(initialRules);
-        if (initialRules.length > 0 && !selectedRuleId) {
+        if (initialRules.length > 0) {
             setSelectedRuleId(initialRules[0].id);
-        } else if (initialRules.length === 0) {
+        } else {
             setSelectedRuleId(null);
         }
     }
-  }, [isOpen, element.rules]);
+  }, [isOpen]);
 
   const allElements = useMemo(() => getAllElements(sections, true), [sections]);
-  const allTargettableElements = useMemo(() => getAllElements(sections), [sections]);
+  const allTargettableElements = useMemo(() => getAllElements(sections, true), [sections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
