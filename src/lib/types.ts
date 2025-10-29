@@ -12,13 +12,19 @@ export type RuleConditionOperator =
 
 export type RuleBehavior = 'show' | 'hide' | 'change_color' | 'set_error';
 
+export type Condition = {
+    id: string;
+    sourceElementId: string;
+    operator: RuleConditionOperator;
+    comparisonType: 'static_value' | 'another_field';
+    value: string; // Used for static_value
+    comparisonElementId?: string; // Used for another_field
+};
+
 export type Rule = {
     id: string;
-    condition: {
-        sourceElementId: string;
-        operator: RuleConditionOperator;
-        value: string; // Can be a static value or another element's ID (TBD)
-    };
+    conditions: Condition[];
+    logicType: 'and' | 'or'; // How to evaluate multiple conditions
     behavior: {
         type: RuleBehavior;
         // For 'change_color'
@@ -132,8 +138,3 @@ export type Submission = {
     timestamp: string;
     data: Record<string, any>;
 };
-
-    
-
-    
-

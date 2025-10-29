@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType, DisplayDataSourceConfig, Rule } from "@/lib/types";
+import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2 } from "lucide-react";
+import { FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType, DisplayDataSourceConfig, Rule, Condition } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -104,94 +104,191 @@ function RulesSettings({
     const handleAddRule = () => {
         const newRule: Rule = {
             id: crypto.randomUUID(),
-            condition: {
+            conditions: [{
+                id: crypto.randomUUID(),
                 sourceElementId: "",
                 operator: 'equals',
-                value: "",
-            },
+                comparisonType: 'static_value',
+                value: ""
+            }],
+            logicType: 'and',
             behavior: {
                 type: 'show'
             }
         };
         onUpdate([...rules, newRule]);
     };
-
-    const handleUpdateRule = (index: number, updatedRule: Rule) => {
+    
+    const handleUpdateRule = (ruleIndex: number, updatedRule: Rule) => {
         const newRules = [...rules];
-        newRules[index] = updatedRule;
+        newRules[ruleIndex] = updatedRule;
         onUpdate(newRules);
     };
 
-    const handleDeleteRule = (index: number) => {
-        const newRules = rules.filter((_, i) => i !== index);
+    const handleDeleteRule = (ruleIndex: number) => {
+        const newRules = rules.filter((_, i) => i !== ruleIndex);
         onUpdate(newRules);
     };
+
+    const handleAddCondition = (ruleIndex: number) => {
+        const newCondition: Condition = {
+            id: crypto.randomUUID(),
+            sourceElementId: "",
+            operator: 'equals',
+            comparisonType: 'static_value',
+            value: ""
+        };
+        const ruleToUpdate = { ...rules[ruleIndex] };
+        ruleToUpdate.conditions.push(newCondition);
+        handleUpdateRule(ruleIndex, ruleToUpdate);
+    };
+
+    const handleUpdateCondition = (ruleIndex: number, condIndex: number, updatedCondition: Condition) => {
+        const ruleToUpdate = { ...rules[ruleIndex] };
+        ruleToUpdate.conditions[condIndex] = updatedCondition;
+        handleUpdateRule(ruleIndex, ruleToUpdate);
+    };
+
+    const handleDeleteCondition = (ruleIndex: number, condIndex: number) => {
+        const ruleToUpdate = { ...rules[ruleIndex] };
+        ruleToUpdate.conditions = ruleToUpdate.conditions.filter((_, i) => i !== condIndex);
+        handleUpdateRule(ruleIndex, ruleToUpdate);
+    };
+
 
     return (
         <div className="flex flex-col gap-4">
-            {rules.map((rule, index) => (
+            {rules.map((rule, ruleIndex) => (
                 <div key={rule.id} className="border p-3 rounded-lg space-y-4 relative bg-accent/20">
-                    <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => handleDeleteRule(index)}>
+                    <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => handleDeleteRule(ruleIndex)}>
                         <X className="h-4 w-4 text-destructive" />
                     </Button>
                     
-                    <h4 className="font-medium text-xs text-muted-foreground">WHEN</h4>
-                    <div className="space-y-2">
-                        <Label className="text-xs">Source Field</Label>
-                        <Select
-                            value={rule.condition.sourceElementId}
-                            onValueChange={(value) => handleUpdateRule(index, { ...rule, condition: { ...rule.condition, sourceElementId: value } })}
+                    <h4 className="font-medium text-xs text-muted-foreground flex items-center">
+                        IF 
+                        <RadioGroup
+                            value={rule.logicType}
+                            onValueChange={(value) => handleUpdateRule(ruleIndex, {...rule, logicType: value as 'and' | 'or'})}
+                            className="flex ml-2"
                         >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select a source field..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {allElements.map(el => (
-                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                            <div className="flex items-center space-x-1">
+                                <RadioGroupItem value="and" id={`and-${rule.id}`} className="h-3.5 w-3.5" />
+                                <Label htmlFor={`and-${rule.id}`} className="text-xs">All (AND)</Label>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                                <RadioGroupItem value="or" id={`or-${rule.id}`} className="h-3.5 w-3.5" />
+                                <Label htmlFor={`or-${rule.id}`} className="text-xs">Any (OR)</Label>
+                            </div>
+                        </RadioGroup>
+                        OF THE FOLLOWING ARE MET
+                    </h4>
 
-                    <div className="flex items-end gap-2">
-                        <div className="flex-1">
-                            <Label className="text-xs">Operator</Label>
-                            <Select
-                                value={rule.condition.operator}
-                                onValueChange={(value) => handleUpdateRule(index, { ...rule, condition: { ...rule.condition, operator: value as Rule['condition']['operator'] } })}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="equals">Equals</SelectItem>
-                                    <SelectItem value="not_equals">Not Equals</SelectItem>
-                                    <SelectItem value="is_greater_than">Is Greater Than</SelectItem>
-                                    <SelectItem value="is_less_than">Is Less Than</SelectItem>
-                                    <SelectItem value="contains">Contains</SelectItem>
-                                    <SelectItem value="not_contains">Does Not Contain</SelectItem>
-                                </SelectContent>
-                            </Select>
+                    {rule.conditions.map((cond, condIndex) => (
+                        <div key={cond.id} className="border bg-background/50 p-2 rounded-md space-y-2 relative">
+                             {rule.conditions.length > 1 && (
+                                <Button variant="ghost" size="icon" className="absolute top-0 right-0 h-5 w-5" onClick={() => handleDeleteCondition(ruleIndex, condIndex)}>
+                                    <X className="h-3 w-3 text-destructive/70" />
+                                </Button>
+                             )}
+                            <div className="space-y-1">
+                                <Label className="text-xs">Source Field</Label>
+                                <Select
+                                    value={cond.sourceElementId}
+                                    onValueChange={(value) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, sourceElementId: value })}
+                                >
+                                    <SelectTrigger className="h-8 text-xs">
+                                        <SelectValue placeholder="Select a source field..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {allElements.map(el => (
+                                            <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <div className="flex-1 space-y-1">
+                                    <Label className="text-xs">Operator</Label>
+                                    <Select
+                                        value={cond.operator}
+                                        onValueChange={(value) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, operator: value as Rule['conditions'][0]['operator'] })}
+                                    >
+                                        <SelectTrigger className="h-8 text-xs">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="equals">Equals</SelectItem>
+                                            <SelectItem value="not_equals">Not Equals</SelectItem>
+                                            <SelectItem value="is_greater_than">Is Greater Than</SelectItem>
+                                            <SelectItem value="is_less_than">Is Less Than</SelectItem>
+                                            <SelectItem value="contains">Contains</SelectItem>
+                                            <SelectItem value="not_contains">Does Not Contain</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="pt-5">
+                                    <GitCommitHorizontal className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <div className="flex-1 space-y-1">
+                                    <div className="flex items-center justify-between">
+                                        <Label className="text-xs">Compare To</Label>
+                                         <RadioGroup
+                                            value={cond.comparisonType}
+                                            onValueChange={(value) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, comparisonType: value as 'static_value' | 'another_field' })}
+                                            className="flex"
+                                        >
+                                            <div className="flex items-center space-x-1">
+                                                <RadioGroupItem value="static_value" id={`static-${cond.id}`} className="h-3 w-3" />
+                                                <Label htmlFor={`static-${cond.id}`} className="text-xs">Value</Label>
+                                            </div>
+                                            <div className="flex items-center space-x-1">
+                                                <RadioGroupItem value="another_field" id={`field-${cond.id}`} className="h-3 w-3" />
+                                                <Label htmlFor={`field-${cond.id}`} className="text-xs">Field</Label>
+                                            </div>
+                                        </RadioGroup>
+                                    </div>
+                                    {cond.comparisonType === 'static_value' ? (
+                                        <Input
+                                            placeholder="Value"
+                                            value={cond.value}
+                                            onChange={(e) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, value: e.target.value })}
+                                            className="h-8 text-xs"
+                                        />
+                                    ) : (
+                                        <Select
+                                            value={cond.comparisonElementId}
+                                            onValueChange={(value) => handleUpdateCondition(ruleIndex, condIndex, { ...cond, comparisonElementId: value })}
+                                        >
+                                            <SelectTrigger className="h-8 text-xs">
+                                                <SelectValue placeholder="Select a field..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {allElements.map(el => (
+                                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex-1">
-                             <Label className="text-xs">Value</Label>
-                            <Input
-                                placeholder="Value to compare"
-                                value={rule.condition.value}
-                                onChange={(e) => handleUpdateRule(index, { ...rule, condition: { ...rule.condition, value: e.target.value } })}
-                            />
-                        </div>
-                    </div>
+                    ))}
+                    
+                    <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleAddCondition(ruleIndex)}>
+                       <Plus className="mr-1 h-3 w-3"/> Add Condition
+                    </Button>
+                    
 
                     <Separator />
-                    <h4 className="font-medium text-xs text-muted-foreground">DO</h4>
+                    <h4 className="font-medium text-xs text-muted-foreground">THEN DO</h4>
                     <div className="space-y-2">
                          <Label className="text-xs">Behavior</Label>
                          <Select
                             value={rule.behavior.type}
-                            onValueChange={(value) => handleUpdateRule(index, { ...rule, behavior: { type: value as Rule['behavior']['type'] } })}
+                            onValueChange={(value) => handleUpdateRule(ruleIndex, { ...rule, behavior: { type: value as Rule['behavior']['type'] } })}
                         >
-                            <SelectTrigger>
+                            <SelectTrigger className="h-8 text-xs">
                                 <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -209,9 +306,9 @@ function RulesSettings({
                                 <Label className="text-xs">Property</Label>
                                 <Select 
                                     value={rule.behavior.targetProperty}
-                                    onValueChange={(value) => handleUpdateRule(index, { ...rule, behavior: { ...rule.behavior, targetProperty: value as 'color' | 'backgroundColor' } })}
+                                    onValueChange={(value) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, targetProperty: value as 'color' | 'backgroundColor' } })}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger className="h-8 text-xs">
                                         <SelectValue placeholder="Target" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -225,8 +322,8 @@ function RulesSettings({
                                 <Input
                                     type="color"
                                     value={rule.behavior.color}
-                                    onChange={(e) => handleUpdateRule(index, { ...rule, behavior: { ...rule.behavior, color: e.target.value } })}
-                                    className="p-1 h-10"
+                                    onChange={(e) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, color: e.target.value } })}
+                                    className="p-1 h-8"
                                 />
                             </div>
                         </div>
@@ -238,7 +335,8 @@ function RulesSettings({
                              <Input
                                 placeholder="e.g. Value must be greater than 10"
                                 value={rule.behavior.message}
-                                onChange={(e) => handleUpdateRule(index, { ...rule, behavior: { ...rule.behavior, message: e.target.value } })}
+                                onChange={(e) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, message: e.target.value } })}
+                                className="h-8 text-xs"
                             />
                         </div>
                      )}

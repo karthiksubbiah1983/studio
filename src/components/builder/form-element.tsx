@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, TableColumn, Rule } from "@/lib/types";
+import { FormElementInstance, TableColumn, Rule, Condition } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +29,7 @@ import { evaluate } from "@/lib/formula-parser";
 import { cn } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
 import { findElementRecursive } from "@/lib/utils";
+import { evaluateRule } from "../form-preview-helpers";
 
 type Props = {
   element: FormElementInstance;
@@ -58,21 +59,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
     if (element.rules && formState) {
         for (const rule of element.rules) {
-             const sourceValue = formState[rule.condition.sourceElementId]?.value;
-             if (sourceValue === undefined) continue;
-             
-             const conditionValue = rule.condition.value;
-             let conditionMet = false;
-             switch(rule.condition.operator) {
-                case 'equals': conditionMet = String(sourceValue) === conditionValue; break;
-                case 'not_equals': conditionMet = String(sourceValue) !== conditionValue; break;
-                case 'contains': conditionMet = String(sourceValue).includes(conditionValue); break;
-                case 'not_contains': conditionMet = !String(sourceValue).includes(conditionValue); break;
-                case 'is_greater_than': conditionMet = Number(sourceValue) > Number(conditionValue); break;
-                case 'is_less_than': conditionMet = Number(sourceValue) < Number(conditionValue); break;
-             }
+             const isRuleMet = evaluateRule(rule, formState);
 
-            if (conditionMet) {
+            if (isRuleMet) {
                 switch(rule.behavior.type) {
                     case 'change_color':
                         if (rule.behavior.targetProperty && rule.behavior.color) {

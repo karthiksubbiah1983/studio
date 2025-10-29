@@ -16,34 +16,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "../ui/badge";
+import { getAllElements, evaluateRule } from "../form-preview-helpers";
 
 type Props = {
     showSubmitButton?: boolean;
 }
-
-const getAllElements = (sections: Section[]): FormElementInstance[] => {
-    let allElements: FormElementInstance[] = [];
-    sections.forEach(section => {
-        section.elements.forEach(element => {
-            allElements.push(element);
-            if (element.type === 'Container' && element.elements) {
-                // A recursive function to get nested elements
-                const getNestedElements = (els: FormElementInstance[]): FormElementInstance[] => {
-                    let nested: FormElementInstance[] = [];
-                    els.forEach(e => {
-                        nested.push(e);
-                        if (e.elements) {
-                            nested = nested.concat(getNestedElements(e.elements));
-                        }
-                    });
-                    return nested;
-                }
-                allElements = allElements.concat(getNestedElements(element.elements));
-            }
-        });
-    });
-    return allElements;
-};
 
 const generateSubmissionJson = (elements: FormElementInstance[], formState: { [key: string]: { value: any } }): Record<string, any> => {
     const submission: Record<string, any> = {};
@@ -96,13 +73,13 @@ export function FormPreview({ showSubmitButton = true }: Props) {
 
  const elementVisibility = useMemo(() => {
     const visibility: { [key: string]: boolean } = {};
-    const allElementsAndSections = [...sections, ...getAllElements(sections)];
+    const allItems = [...sections, ...getAllElements(sections)];
 
-    allElementsAndSections.forEach(item => {
+    allItems.forEach(item => {
         visibility[item.id] = true; // Default to visible
     });
 
-    allElementsAndSections.forEach(item => {
+    allItems.forEach(item => {
         if (item.rules) {
             const showRules = item.rules.filter(rule => rule.behavior.type === 'show');
             const hideRules = item.rules.filter(rule => rule.behavior.type === 'hide');
@@ -134,22 +111,6 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     return visibility;
  }, [formState, sections]);
 
- const evaluateRule = (rule: Rule, state: typeof formState) => {
-     const sourceValue = state[rule.condition.sourceElementId]?.value;
-     const conditionValue = rule.condition.value;
-
-     if (sourceValue === undefined) return false;
-
-     switch (rule.condition.operator) {
-        case 'equals': return String(sourceValue) === conditionValue;
-        case 'not_equals': return String(sourceValue) !== conditionValue;
-        case 'contains': return String(sourceValue).includes(conditionValue);
-        case 'not_contains': return !String(sourceValue).includes(conditionValue);
-        case 'is_greater_than': return Number(sourceValue) > Number(conditionValue);
-        case 'is_less_than': return Number(sourceValue) < Number(conditionValue);
-        default: return false;
-     }
- }
   
   const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
     return elements.map((element) => {
