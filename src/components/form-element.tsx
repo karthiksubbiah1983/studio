@@ -441,7 +441,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             const cellValue = row[colIndex];
             const isFormulaColumn = !!col.formula;
             
-            // Check for visibility rules for this cell
             const cellId = `${element.id}.${col.key}`;
             const rowContext = columns?.reduce((acc, c, index) => {
                 acc[`${element.id}.${c.key}`] = { value: row[index] };
@@ -454,14 +453,16 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             
             let isVisible = true;
             if (showRules.length > 0) {
+                // If there are "show" rules, the element is hidden by default
                 isVisible = showRules.some(r => evaluateRule(r, formState || {}, rowContext));
             }
+            // "hide" rules override "show" rules
             if (hideRules.some(r => evaluateRule(r, formState || {}, rowContext))) {
                 isVisible = false;
             }
 
             if (!isVisible) {
-                return null; // Don't render the cell's content if hidden
+                return null;
             }
 
             if (isFormulaColumn) {
