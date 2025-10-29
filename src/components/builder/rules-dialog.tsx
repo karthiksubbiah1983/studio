@@ -28,7 +28,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Only reset local state when the dialog is opened, not on every re-render.
+    // Only reset local state when the dialog is opened.
     if (isOpen) {
         const initialRules = JSON.parse(JSON.stringify(element.rules || []));
         setLocalRules(initialRules);
@@ -41,7 +41,10 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
   }, [isOpen]);
 
   const allElements = useMemo(() => getAllElements(sections, true), [sections]);
-  const allTargettableElements = useMemo(() => getAllElements(sections, true), [sections]);
+  const allTargettableElements = useMemo(() => {
+    const elementsAndSections = [...getAllElements(sections, true), ...sections];
+    return elementsAndSections.filter(item => item.id !== element.id);
+  }, [sections, element.id]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
@@ -90,7 +93,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
   }
 
   const ConditionEditor = ({ condition, rule }: { condition: Condition, rule: Rule }) => {
-    const [sourceElement, setSourceElement] = useState<FormElementInstance | null>(null);
+    const [sourceElement, setSourceElement] = useState<FormElementInstance | Section | null>(null);
     
     useEffect(() => {
         if (condition.sourceElementId) {
@@ -98,7 +101,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
         } else {
             setSourceElement(null);
         }
-    }, [condition.sourceElementId, allElements]);
+    }, [condition.sourceElementId]);
 
 
     const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
@@ -117,9 +120,12 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
         handleUpdateRule(updatedRule);
     }
     
-    const getSourceElementOptions = () => {
-        if (!sourceElement) return [];
-        if (sourceElement.options) return sourceElement.options;
+    const getSourceElementOptions = (): string[] => {
+        if (!sourceElement || !('type' in sourceElement)) return [];
+        
+        if (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup') {
+            return sourceElement.options || [];
+        }
         
         // Handle table columns
         if (sourceElement.id.includes('.')) {
@@ -127,12 +133,14 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
             const table = findElementRecursive(sections, tableId);
             if (!table || table.type !== 'Table' || !table.columns) return [];
             const column = table.columns.find(c => c.key === colKey);
-            return column?.options || [];
+             if (column && (column.cellType === 'select' || column.cellType === 'radio')) {
+                return column.options || [];
+            }
         }
         return [];
     }
 
-    const showOptionsDropdown = (sourceElement?.type === 'Select' || sourceElement?.type === 'RadioGroup' || (sourceElement?.id.includes('.') && (sourceElement?.type === 'select' || sourceElement?.type === 'radio'))) && condition.comparisonType === 'static_value';
+    const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || (sourceElement.id.includes('.') && (sourceElement.type === 'select' || sourceElement.type === 'radio'))) && condition.comparisonType === 'static_value';
 
     return (
         <div className="border bg-background/50 p-3 rounded-md space-y-3 relative">
@@ -152,7 +160,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                     </SelectTrigger>
                     <SelectContent>
                         {allElements.map(el => (
-                            <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                            <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
@@ -186,7 +194,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                         <Label className="text-xs">Compare To</Label>
                             <RadioGroup
                             value={condition.comparisonType}
-                            onValueChange={(value) => handleUpdateCondition({ comparisonType: value as 'static_value' | 'another_field' })}
+                            onValueChange={(value) => handleUpdateCondition({ comparisonType: value as 'static_value' | 'another_field', value: '', comparisonElementId: undefined })}
                             className="flex"
                         >
                             <div className="flex items-center space-x-1">
@@ -232,7 +240,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                             </SelectTrigger>
                             <SelectContent>
                                 {allElements.map(el => (
-                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                                    <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -326,16 +334,16 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                  <div className="space-y-2">
                     <Label className="text-xs">Target Field</Label>
                     <Select
-                        value={rule.behavior.targetElementId || element.id}
+                        value={rule.behavior.targetElementId || ""}
                         onValueChange={(value) => handleUpdateBehavior({ targetElementId: value })}
                     >
                         <SelectTrigger className="h-8 text-xs">
-                            <SelectValue />
+                            <SelectValue placeholder="(This Field)" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value={element.id}>(This Field)</SelectItem>
                             {allTargettableElements.map(el => (
-                                <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                                <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -362,7 +370,7 @@ export function RulesDialog({ isOpen, onOpenChange, element, onUpdate }: Props) 
                             <Label className="text-xs">Color</Label>
                             <Input
                                 type="color"
-                                value={rule.behavior.color}
+                                value={rule.behavior.color || '#000000'}
                                 onChange={(e) => handleUpdateBehavior({ color: e.target.value })}
                                 className="p-1 h-8"
                             />

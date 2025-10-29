@@ -246,72 +246,26 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   );
 
   useEffect(() => {
+    // Only update local props if the selected element changes
     setProps(element);
   }, [element]);
 
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      if (!selectedElement) return;
-
-      const findAndDispatchUpdate = () => {
-          for (const section of sections) {
-              const findElementRecursive = (elements: FormElementInstance[], elementId: string): boolean => {
-                  for (let i = 0; i < elements.length; i++) {
-                      if (elements[i].id === elementId) {
-                          dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: section.id, element: props }});
-                          return true;
-                      }
-                      if (elements[i].type === 'Container' && elements[i].elements) {
-                          if (findElementRecursive(elements[i].elements!, elementId)) return true;
-                      }
-                  }
-                  return false;
-              }
-              if (findElementRecursive(section.elements, selectedElement.elementId)) return;
-          }
-      }
-      findAndDispatchUpdate();
-
-    }, 500);
-    return () => clearTimeout(handler);
-  }, [props, dispatch, selectedElement, sections]);
-
   const updateProperty = (key: keyof FormElementInstance, value: any) => {
-    setProps(prev => ({...prev, [key]: value}));
+      const newProps = { ...props, [key]: value };
+      setProps(newProps);
+      if (selectedElement) {
+          dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: newProps }});
+      }
   };
-
-  const updateElement = (key: keyof FormElementInstance, value: any) => {
-    if (!selectedElement) return;
-    const newProps = { ...element, [key]: value };
-
-    if (key === 'popup' && value.enabled === false) {
-        newProps.popup = { enabled: false, title: '', description: '', icon: 'Info', iconColor: '#000000' };
-    }
-    dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: newProps } });
-  };
-  
-  if (!element) return null;
-
-  const handleRulesUpdate = (rules: Rule[]) => {
-      updateElement('rules', rules);
-  }
-
-  const handleDisplayDataSourceUpdate = (config: DisplayDataSourceConfig) => {
-    updateElement('dataSourceConfig', config);
-  }
-
-  const handlePopupUpdate = (popup: PopupConfig) => {
-    updateElement('popup', popup);
-  }
 
   const handleFetchSchema = async () => {
-    if (!element.apiUrl) {
+    if (!props.apiUrl) {
         setFetchedKeys([]);
         return;
     };
     setIsFetching(true);
     try {
-        const rawData = await fetchFromApi(element.apiUrl);
+        const rawData = await fetchFromApi(props.apiUrl);
         if (rawData) {
             const dataArray = findFirstArray(rawData);
             
@@ -338,15 +292,15 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     <>
       <div className="flex flex-col gap-2">
         <Label htmlFor="key">Field Key</Label>
-        <Input id="key" value={element.key} onChange={(e) => updateElement('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+        <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
       </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="label">Label</Label>
-        <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
+        <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
       </div>
       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
         <Label htmlFor="required">Required</Label>
-        <Switch id="required" checked={element.required} onCheckedChange={(checked) => updateElement('required', checked)} />
+        <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
       </div>
     </>
   );
@@ -354,7 +308,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   const placeholderField = (
     <div className="flex flex-col gap-2">
       <Label htmlFor="placeholder">Placeholder</Label>
-      <Input id="placeholder" value={element.placeholder || ''} onChange={(e) => updateElement('placeholder', e.target.value)} />
+      <Input id="placeholder" value={props.placeholder || ''} onChange={(e) => updateProperty('placeholder', e.target.value)} />
     </div>
   );
   
@@ -430,21 +384,21 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     <>
         <div className="flex flex-col gap-2">
             <Label>Columns</Label>
-            {element.columns?.map((col, index) => (
+            {props.columns?.map((col, index) => (
                 <div key={col.id} className="border p-3 rounded-lg space-y-3">
                     <div className="flex justify-between items-center">
                         <Label className="text-base">Column {index + 1}</Label>
                         <div className="flex items-center gap-2">
                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                                const newCols = [...element.columns!];
+                                const newCols = [...props.columns!];
                                 newCols[index].visible = !newCols[index].visible;
-                                updateElement('columns', newCols);
+                                updateProperty('columns', newCols);
                             }}>
                                 {col.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                                const newCols = element.columns!.filter(c => c.id !== col.id);
-                                updateElement('columns', newCols);
+                                const newCols = props.columns!.filter(c => c.id !== col.id);
+                                updateProperty('columns', newCols);
                             }}>
                                 <X className="h-4 w-4 text-destructive" />
                             </Button>
@@ -456,9 +410,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             id={`col-title-${col.id}`}
                             value={col.title}
                             onChange={(e) => {
-                                const newCols = [...element.columns!];
+                                const newCols = [...props.columns!];
                                 newCols[index].title = e.target.value;
-                                updateElement('columns', newCols);
+                                updateProperty('columns', newCols);
                             }}
                         />
                     </div>
@@ -468,9 +422,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             id={`col-key-${col.id}`}
                             value={col.key}
                             onChange={(e) => {
-                                const newCols = [...element.columns!];
+                                const newCols = [...props.columns!];
                                 newCols[index].key = e.target.value.replace(/\s+/g, '_').toLowerCase();
-                                updateElement('columns', newCols);
+                                updateProperty('columns', newCols);
                             }}
                         />
                     </div>
@@ -479,12 +433,12 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <Select
                             value={col.cellType || 'text'}
                             onValueChange={(value: TableColumnCellType) => {
-                                const newCols = [...element.columns!];
+                                const newCols = [...props.columns!];
                                 newCols[index].cellType = value;
                                 if ((value === 'select' || value === 'radio') && !newCols[index].options) {
                                     newCols[index].options = ['Option 1'];
                                 }
-                                updateElement('columns', newCols);
+                                updateProperty('columns', newCols);
                             }}
                         >
                             <SelectTrigger>
@@ -501,9 +455,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
                     {(col.cellType === 'select' || col.cellType === 'radio') && (
                         optionsField(col.options, (newOptions) => {
-                             const newCols = [...element.columns!];
+                             const newCols = [...props.columns!];
                              newCols[index].options = newOptions;
-                             updateElement('columns', newCols);
+                             updateProperty('columns', newCols);
                         })
                     )}
                     <div className="flex flex-col gap-2">
@@ -513,9 +467,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             placeholder="e.g., {quantity} * {price}"
                             value={col.formula || ''}
                             onChange={(e) => {
-                                const newCols = [...element.columns!];
+                                const newCols = [...props.columns!];
                                 newCols[index].formula = e.target.value;
-                                updateElement('columns', newCols);
+                                updateProperty('columns', newCols);
                             }}
                         />
                          <p className="text-xs text-muted-foreground">Use column keys like {"{key1} * {key2}"}</p>
@@ -523,9 +477,9 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                 </div>
             ))}
             <Button variant="outline" size="sm" className="mt-2" onClick={() => {
-                const newKey = `col${(element.columns?.length || 0) + 1}`;
-                const newCols = [...(element.columns || []), { id: crypto.randomUUID(), title: `Column ${ (element.columns?.length || 0) + 1}`, key: newKey, visible: true, cellType: 'text' }];
-                updateElement('columns', newCols);
+                const newKey = `col${(props.columns?.length || 0) + 1}`;
+                const newCols = [...(props.columns || []), { id: crypto.randomUUID(), title: `Column ${ (props.columns?.length || 0) + 1}`, key: newKey, visible: true, cellType: 'text' }];
+                updateProperty('columns', newCols);
             }}>
                 <Plus className="mr-2 h-4 w-4" />
                 Add Column
@@ -537,8 +491,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             <Input
                 id="initialRows"
                 type="number"
-                value={element.initialRows || 1}
-                onChange={(e) => updateElement('initialRows', parseInt(e.target.value, 10))}
+                value={props.initialRows || 1}
+                onChange={(e) => updateProperty('initialRows', parseInt(e.target.value, 10))}
                 min={1}
             />
         </div>
@@ -546,20 +500,20 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         <h4 className="font-medium">User Actions</h4>
         <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
             <Label htmlFor="allowAdd">Allow Add</Label>
-            <Switch id="allowAdd" checked={element.allowAdd} onCheckedChange={(checked) => updateElement('allowAdd', checked)} />
+            <Switch id="allowAdd" checked={props.allowAdd} onCheckedChange={(checked) => updateProperty('allowAdd', checked)} />
         </div>
         <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
             <Label htmlFor="allowEdit">Allow Edit</Label>
-            <Switch id="allowEdit" checked={element.allowEdit} onCheckedChange={(checked) => updateElement('allowEdit', checked)} />
+            <Switch id="allowEdit" checked={props.allowEdit} onCheckedChange={(checked) => updateProperty('allowEdit', checked)} />
         </div>
         <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-            <Label htmlFor="allowDelete">Allow Delete</Label>            <Switch id="allowDelete" checked={element.allowDelete} onCheckedChange={(checked) => updateElement('allowDelete', checked)} />
+            <Label htmlFor="allowDelete">Allow Delete</Label>            <Switch id="allowDelete" checked={props.allowDelete} onCheckedChange={(checked) => updateProperty('allowDelete', checked)} />
         </div>
     </>
   );
   
   const content = () => {
-      switch(element.type) {
+      switch(props.type) {
         case "Title":
             return (
                  <Accordion type="multiple" defaultValue={["general"]} className="w-full">
@@ -568,7 +522,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Title</Label>
-                                <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
+                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -585,8 +539,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                            <div className="flex flex-col gap-2">
                                 <Label>Direction</Label>
                                 <RadioGroup
-                                    value={element.direction}
-                                    onValueChange={(value) => updateElement('direction', value as 'horizontal' | 'vertical')}
+                                    value={props.direction}
+                                    onValueChange={(value) => updateProperty('direction', value as 'horizontal' | 'vertical')}
                                     className="flex gap-4"
                                 >
                                     <div className="flex items-center space-x-2">
@@ -601,8 +555,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             </div>
                             <AlignmentRadioGroup 
                                 label="Justify Content"
-                                value={element.justify}
-                                onValueChange={(value) => updateElement('justify', value)}
+                                value={props.justify}
+                                onValueChange={(value) => updateProperty('justify', value)}
                                 options={[
                                     { value: 'start', label: 'Start', icon: AlignStartHorizontal },
                                     { value: 'center', label: 'Center', icon: AlignCenterHorizontal },
@@ -613,8 +567,8 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             />
                              <AlignmentRadioGroup 
                                 label="Align Items"
-                                value={element.align}
-                                onValueChange={(value) => updateElement('align', value)}
+                                value={props.align}
+                                onValueChange={(value) => updateProperty('align', value)}
                                 options={[
                                     { value: 'start', label: 'Start', icon: AlignStartVertical },
                                     { value: 'center', label: 'Center', icon: AlignCenterVertical },
@@ -636,7 +590,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                 </Accordion>
              )
         case "Display":
-            const config = element.dataSourceConfig || { sourceElementId: "", displayKey: "" };
+            const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "" };
             return (
                  <Accordion type="multiple" defaultValue={["general", "data", "rules"]} className="w-full">
                     <AccordionItem value="general">
@@ -644,7 +598,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Label</Label>
-                                <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
+                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
                             {placeholderField}
                         </AccordionContent>
@@ -656,7 +610,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                 <Label>Source Dropdown</Label>
                                 <Select
                                     value={config.sourceElementId}
-                                    onValueChange={(value) => handleDisplayDataSourceUpdate({ ...config, sourceElementId: value })}
+                                    onValueChange={(value) => updateProperty('dataSourceConfig', { ...config, sourceElementId: value })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select a dropdown..." />
@@ -673,7 +627,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                 <Input 
                                     id="display-key" 
                                     value={config.displayKey}
-                                    onChange={(e) => handleDisplayDataSourceUpdate({ ...config, displayKey: e.target.value })}
+                                    onChange={(e) => updateProperty('dataSourceConfig', { ...config, displayKey: e.target.value })}
                                     placeholder="e.g., 'email' or 'address.city'"
                                 />
                             </div>
@@ -725,14 +679,14 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                              <div className="flex flex-col gap-2 mb-1.5">
                                 <Label>Source Type</Label>
                                 <RadioGroup
-                                    defaultValue={element.dataSource || 'static'}
+                                    defaultValue={props.dataSource || 'static'}
                                     onValueChange={(val) => {
-                                    const newProps = {...element, dataSource: val as 'static' | 'dynamic'};
-                                    if (val === 'static' && !newProps.options) {
-                                        newProps.options = ['Option 1'];
-                                    }
-                                    if (!selectedElement) return;
-                                    dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: newProps } });
+                                      const newDataSource = val as 'static' | 'dynamic';
+                                      const newOptions = (newDataSource === 'static' && !props.options) ? ['Option 1'] : props.options;
+                                      updateProperty('dataSource', newDataSource);
+                                      if (newDataSource === 'static') {
+                                        updateProperty('options', newOptions);
+                                      }
                                     }}
                                     className="flex"
                                 >
@@ -746,7 +700,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                                     </div>
                                 </RadioGroup>
                             </div>
-                            {element.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
+                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="rules">
@@ -766,13 +720,13 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            <PopupSettings element={element} onUpdate={handlePopupUpdate} />
+                            <PopupSettings element={props} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="data">
                         <AccordionTrigger className="py-2">Options</AccordionTrigger>
                         <AccordionContent>
-                            {optionsField(element.options, (newOptions) => updateElement('options', newOptions))}
+                            {optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="rules">
@@ -793,17 +747,17 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="key">Field Key</Label>
-                                <Input id="key" value={element.key} onChange={(e) => updateElement('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
                             </div>
                             <div className="flex flex-col gap-2 mt-[6px]">
                                 <Label htmlFor="label">Label</Label>
-                                <Input id="label" value={element.label} onChange={(e) => updateElement('label', e.target.value)} />
+                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="required">Required</Label>
-                                <Switch id="required" checked={element.required} onCheckedChange={(checked) => updateElement('required', checked)} />
+                                <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
                             </div>
-                            <PopupSettings element={element} onUpdate={handlePopupUpdate} />
+                            <PopupSettings element={props} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="rules">
@@ -872,7 +826,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
             isOpen={isRulesOpen}
             onOpenChange={setIsRulesOpen}
             element={element}
-            onUpdate={handleRulesUpdate}
+            onUpdate={(rules) => updateProperty('rules', rules)}
         />
     </div>
   );
