@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2 } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType, DisplayDataSourceConfig, Rule, Condition } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType, DisplayDataSourceConfig, Rule, Condition, RuleBehaviorType } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -24,7 +24,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { fetchFromApi } from "@/services/api";
-import { findFirstArray, flattenObject } from "@/lib/utils";
+import { findFirstArray, flattenObject, getAllElements } from "@/lib/utils";
 
 
 export function PropertiesSidebar() {
@@ -88,17 +88,7 @@ function RulesSettings({
     const { sections } = useBuilder();
     const rules = element.rules || [];
 
-    const allElements = useMemo(() => sections.flatMap(s => {
-        const elements: FormElementInstance[] = [];
-        const findElementsRecursive = (els: FormElementInstance[]) => {
-            for (const el of els) {
-                elements.push(el);
-                if (el.elements) findElementsRecursive(el.elements);
-            }
-        };
-        findElementsRecursive(s.elements);
-        return elements;
-    }).filter(e => e.id !== element.id && e.key), [sections, element.id]);
+    const allElements = useMemo(() => getAllElements(sections).filter(e => e.id !== element.id && e.key), [sections, element.id]);
 
 
     const handleAddRule = () => {
@@ -113,7 +103,8 @@ function RulesSettings({
             }],
             logicType: 'and',
             behavior: {
-                type: 'show'
+                type: 'show',
+                targetElementId: element.id // Default target to self
             }
         };
         onUpdate([...rules, newRule]);
@@ -200,7 +191,7 @@ function RulesSettings({
                                         <SelectValue placeholder="Select a source field..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {allElements.map(el => (
+                                        {getAllElements(sections).filter(e => e.key).map(el => (
                                             <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -283,10 +274,27 @@ function RulesSettings({
                     <Separator />
                     <h4 className="font-medium text-xs text-muted-foreground">THEN DO</h4>
                     <div className="space-y-2">
+                        <Label className="text-xs">Target Field</Label>
+                        <Select
+                            value={rule.behavior.targetElementId || element.id}
+                            onValueChange={(value) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, targetElementId: value } })}
+                        >
+                            <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value={element.id}>(This Field)</SelectItem>
+                                {allElements.map(el => (
+                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
                          <Label className="text-xs">Behavior</Label>
                          <Select
                             value={rule.behavior.type}
-                            onValueChange={(value) => handleUpdateRule(ruleIndex, { ...rule, behavior: { type: value as Rule['behavior']['type'] } })}
+                            onValueChange={(value) => handleUpdateRule(ruleIndex, { ...rule, behavior: { ...rule.behavior, type: value as RuleBehaviorType } })}
                         >
                             <SelectTrigger className="h-8 text-xs">
                                 <SelectValue />
@@ -498,19 +506,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
   const [isFetching, setIsFetching] = useState(false);
 
 
-  const allElements = sections.flatMap(s => {
-      const elements: FormElementInstance[] = [];
-      const findElementsRecursive = (els: FormElementInstance[]) => {
-          for (const el of els) {
-              elements.push(el);
-              if (el.elements) {
-                  findElementsRecursive(el.elements);
-              }
-          }
-      }
-      findElementsRecursive(s.elements);
-      return elements;
-  });
+  const allElements = getAllElements(sections);
 
   const dynamicSelects = useMemo(() =>
     allElements.filter(e => e.type === 'Select' && e.dataSource === 'dynamic' && e.id !== element.id)

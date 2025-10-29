@@ -65,3 +65,19 @@ export const findElementRecursive = (sections: Section[], elementId: string): Fo
     }
     return null;
 }
+
+export const getAllElements = (sections: Section[]): FormElementInstance[] => {
+    let allElements: FormElementInstance[] = [];
+    sections.forEach(section => {
+        const findElementsRecursive = (els: FormElementInstance[]): void => {
+            els.forEach(element => {
+                allElements.push(element);
+                if (element.type === 'Container' && element.elements) {
+                    findElementsRecursive(element.elements);
+                }
+            });
+        };
+        findElementsRecursive(section.elements);
+    });
+    return allElements;
+};

@@ -1,4 +1,3 @@
-
 import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
 
 export const getAllElements = (sections: Section[]): FormElementInstance[] => {
@@ -20,23 +19,35 @@ export const getAllElements = (sections: Section[]): FormElementInstance[] => {
 const evaluateSingleCondition = (condition: Condition, state: { [key: string]: { value: any } }) => {
     const sourceValue = state[condition.sourceElementId]?.value;
     
-    if (sourceValue === undefined) return false;
+    // Treat undefined source value as not meeting the condition, except for 'not_equals'
+    if (sourceValue === undefined && condition.operator !== 'not_equals') return false;
     
     let comparisonValue: any;
-    if (condition.comparisonType === 'another_field') {
-        comparisonValue = state[condition.comparisonElementId!]?.value;
-        if (comparisonValue === undefined) return false;
+    if (condition.comparisonType === 'another_field' && condition.comparisonElementId) {
+        comparisonValue = state[condition.comparisonElementId]?.value;
+        if (comparisonValue === undefined) return false; // Can't compare against an undefined field
     } else {
         comparisonValue = condition.value;
     }
 
+    // Handle boolean "true"/"false" strings from checkboxes
+    const normalizedSourceValue = typeof sourceValue === 'boolean' ? String(sourceValue) : sourceValue;
+
     switch (condition.operator) {
-       case 'equals': return String(sourceValue) === String(comparisonValue);
-       case 'not_equals': return String(sourceValue) !== String(comparisonValue);
-       case 'contains': return String(sourceValue).includes(String(comparisonValue));
-       case 'not_contains': return !String(sourceValue).includes(String(comparisonValue));
-       case 'is_greater_than': return Number(sourceValue) > Number(comparisonValue);
-       case 'is_less_than': return Number(sourceValue) < Number(comparisonValue);
+       case 'equals': return String(normalizedSourceValue) === String(comparisonValue);
+       case 'not_equals': return String(normalizedSourceValue) !== String(comparisonValue);
+       case 'contains': return String(normalizedSourceValue).includes(String(comparisonValue));
+       case 'not_contains': return !String(normalizedSourceValue).includes(String(comparisonValue));
+       case 'is_greater_than': {
+            const numSource = parseFloat(normalizedSourceValue);
+            const numComparison = parseFloat(comparisonValue);
+            return !isNaN(numSource) && !isNaN(numComparison) && numSource > numComparison;
+       }
+       case 'is_less_than': {
+            const numSource = parseFloat(normalizedSourceValue);
+            const numComparison = parseFloat(comparisonValue);
+            return !isNaN(numSource) && !isNaN(numComparison) && numSource < numComparison;
+       }
        default: return false;
     }
 }

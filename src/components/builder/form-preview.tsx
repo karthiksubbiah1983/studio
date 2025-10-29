@@ -74,37 +74,33 @@ export function FormPreview({ showSubmitButton = true }: Props) {
  const elementVisibility = useMemo(() => {
     const visibility: { [key: string]: boolean } = {};
     const allItems = [...sections, ...getAllElements(sections)];
+    const allRules = allItems.flatMap(item => item.rules || []);
 
     allItems.forEach(item => {
         visibility[item.id] = true; // Default to visible
     });
 
-    allItems.forEach(item => {
-        if (item.rules) {
-            const showRules = item.rules.filter(rule => rule.behavior.type === 'show');
-            const hideRules = item.rules.filter(rule => rule.behavior.type === 'hide');
+    allRules.forEach(rule => {
+        const targetId = rule.behavior.targetElementId;
+        if (!targetId) return;
 
-            let isVisible = true;
-            
-            // If there are 'show' rules, element is hidden by default unless a 'show' rule is met
-            if (showRules.length > 0) {
-                isVisible = false;
-                for (const rule of showRules) {
-                    if (evaluateRule(rule, formState)) {
-                        isVisible = true;
-                        break;
-                    }
-                }
-            }
+        const isRuleMet = evaluateRule(rule, formState);
 
-            // 'hide' rules can override 'show' rules
-            for (const rule of hideRules) {
-                if (evaluateRule(rule, formState)) {
-                    isVisible = false;
-                    break;
-                }
+        if (rule.behavior.type === 'show') {
+            // For "show" rules, the element is hidden unless a rule is met.
+            // We need to find all "show" rules for a target.
+            const showRulesForTarget = allRules.filter(r => r.behavior.targetElementId === targetId && r.behavior.type === 'show');
+            if (showRulesForTarget.length > 0) {
+                 const isAnyShowRuleMet = showRulesForTarget.some(r => evaluateRule(r, formState));
+                 visibility[targetId] = isAnyShowRuleMet;
             }
-            visibility[item.id] = isVisible;
+        }
+        
+        if (rule.behavior.type === 'hide') {
+            // "hide" rules override "show" rules.
+            if (isRuleMet) {
+                visibility[targetId] = false;
+            }
         }
     });
 
@@ -114,7 +110,39 @@ export function FormPreview({ showSubmitButton = true }: Props) {
   
   const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
     return elements.map((element) => {
-      if (!elementVisibility[element.id]) return null;
+      if (elementVisibility[element.id] === false) return null;
+
+      if (element.type === 'Container') {
+        // We need to render the container and its children
+        const containerContent = renderElements(element.elements || [], element.direction === 'horizontal');
+        const { direction, justify, align } = element;
+        const alignmentClasses = {
+            justify: {
+                start: 'justify-start',
+                center: 'justify-center',
+                end: 'justify-end',
+                between: 'justify-between',
+                around: 'justify-around',
+                evenly: 'justify-evenly',
+            },
+            align: {
+                start: 'items-start',
+                center: 'items-center',
+                end: 'items-end',
+                stretch: 'items-stretch',
+                baseline: 'items-baseline',
+            }
+        };
+        return (
+            <div key={element.id} className={cn("flex gap-4",
+                direction === 'horizontal' ? 'flex-row' : 'flex-col',
+                justify && alignmentClasses.justify[justify],
+                align && alignmentClasses.align[align],
+            )}>
+                {containerContent}
+            </div>
+        )
+      }
 
       return (
           <FormElementRenderer
@@ -132,7 +160,7 @@ export function FormPreview({ showSubmitButton = true }: Props) {
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => {
-         if (!elementVisibility[section.id]) return null;
+         if (elementVisibility[section.id] === false) return null;
 
         return (
           <Card key={section.id}>

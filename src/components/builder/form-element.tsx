@@ -28,7 +28,7 @@ import { LexicalEditor } from "../lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
 import { cn } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
-import { findElementRecursive } from "@/lib/utils";
+import { findElementRecursive, getAllElements } from "@/lib/utils";
 import { evaluateRule } from "../form-preview-helpers";
 
 type Props = {
@@ -56,10 +56,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
     let error: string | null = null;
+    if (!formState) return { style, error };
 
-    if (element.rules && formState) {
-        for (const rule of element.rules) {
-             const isRuleMet = evaluateRule(rule, formState);
+    const allRules = getAllElements(sections).flatMap(el => el.rules || []);
+    
+    for (const rule of allRules) {
+        // Find the rule that targets the current element
+        if (rule.behavior.targetElementId === element.id) {
+            const isRuleMet = evaluateRule(rule, formState);
 
             if (isRuleMet) {
                 switch(rule.behavior.type) {
@@ -76,7 +80,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         }
     }
     return { style, error };
-  }, [element.rules, formState]);
+  }, [element.id, formState, sections]);
 
 
   useEffect(() => {
@@ -580,3 +584,4 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+

@@ -10,7 +10,7 @@ export type RuleConditionOperator =
     | 'contains'
     | 'not_contains';
 
-export type RuleBehavior = 'show' | 'hide' | 'change_color' | 'set_error';
+export type RuleBehaviorType = 'show' | 'hide' | 'change_color' | 'set_error';
 
 export type Condition = {
     id: string;
@@ -26,7 +26,8 @@ export type Rule = {
     conditions: Condition[];
     logicType: 'and' | 'or'; // How to evaluate multiple conditions
     behavior: {
-        type: RuleBehavior;
+        type: RuleBehaviorType;
+        targetElementId?: string; // ID of the element to apply the behavior to
         // For 'change_color'
         color?: string;
         targetProperty?: 'color' | 'backgroundColor';
