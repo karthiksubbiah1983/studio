@@ -28,8 +28,7 @@ import { LexicalEditor } from "../lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
 import { cn } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
-import { findElementRecursive, getAllElements } from "@/lib/utils";
-import { evaluateRule } from "../form-preview-helpers";
+import { findElementRecursive, getAllElements, evaluateRule } from "../form-preview-helpers";
 
 type Props = {
   element: FormElementInstance;
@@ -59,7 +58,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     if (!formState) return { style, error };
     
     for (const rule of rules) {
-        // Find the rule that targets the current element
         if (rule.behavior.targetElementId === element.id) {
             const isRuleMet = evaluateRule(rule, formState);
 
@@ -409,17 +407,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             const newRows = tableRows.map(row => [...row]);
             newRows[rowIndex][colIndex] = newValue;
         
-            // Create a context object with the most recent values for the current row
             const rowData = columns?.reduce((acc, col, index) => {
                 acc[col.key] = newRows[rowIndex][index];
                 return acc;
             }, {} as { [key: string]: any }) || {};
         
-            // Recalculate formulas for the row
             columns?.forEach((col, cIndex) => {
                 if (col.formula) {
                     try {
-                        // Update rowData context with the latest calculated values for this iteration
                         const currentContext = columns.reduce((acc, c, i) => {
                             acc[c.key] = newRows[rowIndex][i];
                             return acc;
@@ -445,6 +440,29 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             const colIndex = getColumnIndex(col);
             const cellValue = row[colIndex];
             const isFormulaColumn = !!col.formula;
+            
+            // Check for visibility rules for this cell
+            const cellId = `${element.id}.${col.key}`;
+            const rowContext = columns?.reduce((acc, c, index) => {
+                acc[`${element.id}.${c.key}`] = { value: row[index] };
+                return acc;
+            }, {} as { [key: string]: any }) || {};
+
+            const allRulesForCell = rules.filter(r => r.behavior.targetElementId === cellId);
+            const hideRules = allRulesForCell.filter(r => r.behavior.type === 'hide');
+            const showRules = allRulesForCell.filter(r => r.behavior.type === 'show');
+            
+            let isVisible = true;
+            if (showRules.length > 0) {
+                isVisible = showRules.some(r => evaluateRule(r, formState || {}, rowContext));
+            }
+            if (hideRules.some(r => evaluateRule(r, formState || {}, rowContext))) {
+                isVisible = false;
+            }
+
+            if (!isVisible) {
+                return null; // Don't render the cell's content if hidden
+            }
 
             if (isFormulaColumn) {
                 return cellValue || <span className="text-muted-foreground">...</span>;
@@ -582,3 +600,4 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+

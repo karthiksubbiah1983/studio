@@ -11,11 +11,10 @@ export const getAllElements = (sections: Section[], includeTableColumns = false)
                 }
                 if (includeTableColumns && element.type === 'Table' && element.columns) {
                     element.columns.forEach(col => {
-                        // Treat each column as a pseudo-element for rule targeting
                         allElements.push({
                             id: `${element.id}.${col.key}`,
-                            key: `${element.key}.${col.key}`, // Unique key for the column
-                            type: col.cellType || 'text', // Or map to a more specific pseudo-type
+                            key: `${element.key}.${col.key}`, 
+                            type: col.cellType || 'text',
                             label: `${element.label} > ${col.title}`,
                             options: col.options,
                         } as FormElementInstance);
@@ -28,21 +27,22 @@ export const getAllElements = (sections: Section[], includeTableColumns = false)
     return allElements;
 };
 
-const evaluateSingleCondition = (condition: Condition, state: { [key: string]: { value: any } }) => {
-    const sourceValue = state[condition.sourceElementId]?.value;
+const evaluateSingleCondition = (condition: Condition, state: { [key: string]: { value: any } }, rowContext: { [key: string]: { value: any } } = {}) => {
     
-    // Treat undefined source value as not meeting the condition, except for 'not_equals'
+    const combinedState = { ...state, ...rowContext };
+    
+    const sourceValue = combinedState[condition.sourceElementId]?.value;
+    
     if (sourceValue === undefined && condition.operator !== 'not_equals') return false;
     
     let comparisonValue: any;
     if (condition.comparisonType === 'another_field' && condition.comparisonElementId) {
-        comparisonValue = state[condition.comparisonElementId]?.value;
-        if (comparisonValue === undefined) return false; // Can't compare against an undefined field
+        comparisonValue = combinedState[condition.comparisonElementId]?.value;
+        if (comparisonValue === undefined) return false;
     } else {
         comparisonValue = condition.value;
     }
 
-    // Handle boolean "true"/"false" strings from checkboxes
     const normalizedSourceValue = typeof sourceValue === 'boolean' ? String(sourceValue) : sourceValue;
 
     switch (condition.operator) {
@@ -64,9 +64,9 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
     }
 }
 
-export const evaluateRule = (rule: Rule, state: { [key: string]: { value: any } }): boolean => {
+export const evaluateRule = (rule: Rule, state: { [key: string]: { value: any } }, rowContext?: { [key: string]: { value: any } }): boolean => {
     if (rule.conditions.length === 0) return false;
-    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state));
+    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, rowContext));
 
     if (rule.logicType === 'and') {
         return conditionResults.every(res => res);

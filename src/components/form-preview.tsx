@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "../ui/badge";
-import { getAllElements, evaluateRule } from "../form-preview-helpers";
+import { getAllElements, evaluateRule } from "./form-preview-helpers";
 
 type Props = {
     showSubmitButton?: boolean;
@@ -66,7 +66,6 @@ export function FormPreview({ showSubmitButton = true }: Props) {
         )
     });
 
-    // Optionally clear the form after submission
     setFormState({});
   }
 
@@ -75,18 +74,16 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     const allItems = [...sections, ...getAllElements(sections)];
 
     allItems.forEach(item => {
-        visibility[item.id] = true; // Default to visible
+        visibility[item.id] = true; 
     });
 
     rules.forEach(rule => {
         const targetId = rule.behavior.targetElementId;
-        if (!targetId) return;
+        if (!targetId || targetId.includes('.')) return; 
 
         const isRuleMet = evaluateRule(rule, formState);
 
         if (rule.behavior.type === 'show') {
-            // For "show" rules, the element is hidden unless a rule is met.
-            // We need to find all "show" rules for a target.
             const showRulesForTarget = rules.filter(r => r.behavior.targetElementId === targetId && r.behavior.type === 'show');
             if (showRulesForTarget.length > 0) {
                  const isAnyShowRuleMet = showRulesForTarget.some(r => evaluateRule(r, formState));
@@ -95,7 +92,6 @@ export function FormPreview({ showSubmitButton = true }: Props) {
         }
         
         if (rule.behavior.type === 'hide') {
-            // "hide" rules override "show" rules.
             if (isRuleMet) {
                 visibility[targetId] = false;
             }
@@ -111,7 +107,6 @@ export function FormPreview({ showSubmitButton = true }: Props) {
       if (elementVisibility[element.id] === false) return null;
 
       if (element.type === 'Container') {
-        // We need to render the container and its children
         const containerContent = renderElements(element.elements || [], element.direction === 'horizontal');
         const { direction, justify, align } = element;
         const alignmentClasses = {
