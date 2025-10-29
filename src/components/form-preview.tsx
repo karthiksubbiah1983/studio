@@ -73,38 +73,22 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     const visibility: { [key: string]: boolean } = {};
     const allItems = [...sections, ...getAllElements(sections)];
 
-    // 1. Initialize visibility based on the 'hidden' property
+    // Initialize visibility based on the 'hidden' property
     allItems.forEach(item => {
-        visibility[item.id] = !item.hidden; 
+        visibility[item.id] = !item.hidden;
     });
-
-    // 2. Process rules
+    
+    // Process rules
     rules.forEach(rule => {
         const targetId = rule.behavior.targetElementId;
-        if (!targetId || targetId.includes('.')) return; 
+        if (!targetId || targetId.includes('.')) return; // Skip table cell rules, handled in form-element.tsx
 
         const isRuleMet = evaluateRule(rule, formState);
-        const targetItem = allItems.find(item => item.id === targetId);
-        
-        if (rule.behavior.type === 'show') {
-            // An element with a "show" rule and is "hidden by default" should only be visible when the rule is met.
-            if (targetItem?.hidden) {
-                if (isRuleMet) {
-                    visibility[targetId] = true;
-                }
-            } else {
-                 // If not hidden by default, "show" rules can make it visible if any are met (if it was hidden by another rule)
-                 if (isRuleMet) {
-                    visibility[targetId] = true;
-                 }
-            }
-        }
-        
-        if (rule.behavior.type === 'hide') {
-            // "hide" rules always take precedence
-            if (isRuleMet) {
-                visibility[targetId] = false;
-            }
+
+        if (rule.behavior.type === 'show' && isRuleMet) {
+            visibility[targetId] = true;
+        } else if (rule.behavior.type === 'hide' && isRuleMet) {
+            visibility[targetId] = false;
         }
     });
 
@@ -114,7 +98,7 @@ export function FormPreview({ showSubmitButton = true }: Props) {
   
   const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
     return elements.map((element) => {
-      if (visibility[element.id] === false) return null;
+      if (elementVisibility[element.id] === false) return null;
 
       if (element.type === 'Container') {
         const containerContent = renderElements(element.elements || [], element.direction === 'horizontal');

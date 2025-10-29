@@ -407,14 +407,17 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             const newRows = tableRows.map(row => [...row]);
             newRows[rowIndex][colIndex] = newValue;
         
+            // Create a context object with the most recent values for the current row
             const rowData = columns?.reduce((acc, col, index) => {
                 acc[col.key] = newRows[rowIndex][index];
                 return acc;
             }, {} as { [key: string]: any }) || {};
         
+            // Recalculate formulas for the row
             columns?.forEach((col, cIndex) => {
                 if (col.formula) {
                     try {
+                        // Update rowData context with the latest calculated values for this iteration
                         const currentContext = columns.reduce((acc, c, i) => {
                             acc[c.key] = newRows[rowIndex][i];
                             return acc;
@@ -438,6 +441,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
         const renderCell = (row: any[], rowIndex: number, col: TableColumn) => {
             const colIndex = getColumnIndex(col);
+            if (colIndex === -1) return null;
+
             const cellValue = row[colIndex];
             const isFormulaColumn = !!col.formula;
             
@@ -447,21 +452,19 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 return acc;
             }, {} as { [key: string]: any }) || {};
 
-            let isVisible = true;
-            const allRulesForCell = rules.filter(r => r.behavior.targetElementId === cellId);
-            
-            const showRules = allRulesForCell.filter(r => r.behavior.type === 'show');
-            if (col.hidden) {
-                isVisible = false;
-                if (showRules.length > 0) {
-                    isVisible = showRules.some(r => evaluateRule(r, formState || {}, rowContext));
-                }
-            }
+            let isVisible = !col.hidden;
 
+            const allRulesForCell = rules.filter(r => r.behavior.targetElementId === cellId);
+            const showRules = allRulesForCell.filter(r => r.behavior.type === 'show');
             const hideRules = allRulesForCell.filter(r => r.behavior.type === 'hide');
+
+            if (col.hidden) {
+                isVisible = showRules.some(r => evaluateRule(r, formState || {}, rowContext));
+            }
             if (hideRules.some(r => evaluateRule(r, formState || {}, rowContext))) {
                 isVisible = false;
             }
+
 
             if (!isVisible) {
                 return null;
