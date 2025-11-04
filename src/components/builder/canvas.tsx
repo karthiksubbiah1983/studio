@@ -1,15 +1,16 @@
 
+
 "use client";
 
 import { useState } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { CanvasSection } from "./canvas-section";
-import { Plus } from "lucide-react";
+import { Plus, ClipboardPaste } from "lucide-react";
 import { FormMetadataEditor } from "./form-metadata-editor";
 
 export function Canvas() {
-  const { state, sections, dispatch } = useBuilder();
+  const { state, sections, dispatch, clipboard } = useBuilder();
 
   const handleSectionDrop = (e: React.DragEvent, targetSectionId: string) => {
     e.preventDefault();
@@ -30,6 +31,12 @@ export function Canvas() {
     
     if (fromIndex !== -1 && toIndex !== -1 && fromIndex !== toIndex) {
         dispatch({ type: "MOVE_SECTION", payload: { fromIndex, toIndex: fromIndex < toIndex ? toIndex -1 : toIndex } });
+    }
+  };
+
+  const handlePasteSection = () => {
+    if (clipboard?.type === 'section') {
+      dispatch({ type: "PASTE_FROM_CLIPBOARD", payload: {} });
     }
   };
 
@@ -57,14 +64,26 @@ export function Canvas() {
                     <CanvasSection section={section} />
                 </div>
             ))}
-            <Button
-            variant="outline"
-            className="w-full py-6 border-dashed"
-            onClick={() => dispatch({ type: "ADD_SECTION" })}
-            >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Section
-            </Button>
+            <div className="flex gap-2">
+                <Button
+                    variant="outline"
+                    className="w-full py-6 border-dashed"
+                    onClick={() => dispatch({ type: "ADD_SECTION" })}
+                >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Section
+                </Button>
+                {clipboard?.type === 'section' && (
+                    <Button
+                        variant="outline"
+                        className="w-full py-6 border-dashed"
+                        onClick={handlePasteSection}
+                    >
+                        <ClipboardPaste className="mr-2 h-4 w-4" />
+                        Paste Section
+                    </Button>
+                )}
+            </div>
         </div>
 
         <style jsx>{`

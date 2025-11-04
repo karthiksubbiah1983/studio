@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
 type State = {
@@ -13,6 +13,7 @@ type State = {
   activeFormId: string | null;
   selectedElement: { elementId: string; sectionId: string } | null;
   draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType } | { sectionId: string } | null;
+  clipboard: ClipboardItem | null;
 };
 
 type Action =
@@ -46,7 +47,9 @@ type Action =
   | { type: "DELETE_CATEGORY", payload: { categoryId: string } }
   | { type: "ADD_SUBCATEGORY", payload: { categoryId: string, name: string } }
   | { type: "UPDATE_SUBCATEGORY", payload: { categoryId: string, subCategory: SubCategory } }
-  | { type: "DELETE_SUBCATEGORY", payload: { categoryId: string, subCategoryId: string } };
+  | { type: "DELETE_SUBCATEGORY", payload: { categoryId: string, subCategoryId: string } }
+  | { type: "COPY_TO_CLIPBOARD", payload: ClipboardItem }
+  | { type: "PASTE_FROM_CLIPBOARD", payload: { sectionId?: string, index?: number } };
 
 
 const initialState: State = {
@@ -56,6 +59,7 @@ const initialState: State = {
   activeFormId: null,
   selectedElement: null,
   draggedElement: null,
+  clipboard: null,
 };
 
 // Helper function to deep clone and assign new IDs
@@ -201,6 +205,38 @@ const builderReducer = (state: State, action: Action): State => {
   const activeFormSections = activeForm?.versions[0]?.sections || [];
 
   switch (action.type) {
+    case "COPY_TO_CLIPBOARD": {
+        return { ...state, clipboard: action.payload };
+    }
+    case "PASTE_FROM_CLIPBOARD": {
+        if (!activeForm || !state.clipboard) return state;
+
+        const { sectionId, index } = action.payload;
+
+        if (state.clipboard.type === 'section') {
+            const newSection = cloneWithNewIds(state.clipboard.content);
+            const targetIndex = index ?? activeFormSections.length;
+            const newSections = [...activeFormSections];
+            newSections.splice(targetIndex, 0, newSection);
+            return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSections }) };
+        }
+
+        if (state.clipboard.type === 'element' && sectionId) {
+            const newElement = cloneWithNewIds(state.clipboard.content);
+            const newSections = activeFormSections.map(s => {
+                if (s.id === sectionId) {
+                    const newElements = [...s.elements];
+                    const targetIndex = index ?? newElements.length;
+                    newElements.splice(targetIndex, 0, newElement);
+                    return { ...s, elements: newElements };
+                }
+                return s;
+            });
+            return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSections }) };
+        }
+        
+        return state;
+    }
     case "ADD_FORM": {
         const { title, description, categoryId, subCategoryId } = action.payload;
         const newFormId = crypto.randomUUID();
@@ -670,6 +706,7 @@ type BuilderContextType = {
   setSections: (sections: Section[]) => void;
   rules: Rule[];
   updateRules: (rules: Rule[]) => void;
+  clipboard: ClipboardItem | null;
 };
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
@@ -706,6 +743,7 @@ const defaultState: State = {
     activeFormId: defaultFormId,
     selectedElement: null,
     draggedElement: null,
+    clipboard: null,
 };
 
 
@@ -779,7 +817,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, activeForm, sections, setSections, rules, updateRules }}>
+    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, activeForm, sections, setSections, rules, updateRules, clipboard: state.clipboard }}>
       {children}
     </BuilderContext.Provider>
   );

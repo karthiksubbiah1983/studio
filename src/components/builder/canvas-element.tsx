@@ -7,7 +7,7 @@ import { FormElementInstance } from "@/lib/types";
 import { ElementPreview } from "./element-preview";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
-import { Copy, Trash } from "lucide-react";
+import { Copy, Trash, ClipboardCopy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { Layout } from "lucide-react";
@@ -115,6 +115,11 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
   const parent = findParent(element.id, state.forms.find(f => f.id === state.activeFormId)?.versions[0]?.sections || []);
   const isHorizontalChild = parent?.direction === 'horizontal';
 
+  const handleCopyToClipboard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    dispatch({ type: 'COPY_TO_CLIPBOARD', payload: { type: 'element', content: element } });
+  }
+
   if (element.type === 'Container') {
     const alignmentClasses = {
         justify: {
@@ -153,7 +158,15 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
             </Badge>
           </div>
           {mouseIsOver && (
-            <div className="absolute top-2 right-2 flex gap-2 z-10">
+            <div className="absolute top-2 right-2 flex gap-1 z-10">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-6 w-6"
+                onClick={handleCopyToClipboard}
+              >
+                <ClipboardCopy className="h-3 w-3" />
+              </Button>
               <Button
                 variant="outline"
                 size="icon"
@@ -227,7 +240,15 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
         {mouseIsOver && state.draggedElement && !isTopHalf && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary z-10" />}
 
         {mouseIsOver && (
-          <div className="absolute top-2 right-2 flex gap-2 z-10">
+          <div className="absolute top-2 right-2 flex gap-1 z-10">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-6 w-6"
+              onClick={handleCopyToClipboard}
+            >
+              <ClipboardCopy className="h-3 w-3" />
+            </Button>
             <Button
               variant="outline"
               size="icon"

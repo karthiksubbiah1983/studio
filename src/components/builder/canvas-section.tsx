@@ -9,12 +9,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CanvasElement } from "./canvas-element";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
-import { Copy, GripVertical, Trash } from "lucide-react";
+import { Copy, GripVertical, Trash, ClipboardPaste, ClipboardCopy } from "lucide-react";
 import { Badge } from "../ui/badge";
 
 
 export function CanvasSection({ section }: { section: Section }) {
-  const { state, dispatch, activeForm } = useBuilder();
+  const { state, dispatch, activeForm, clipboard } = useBuilder();
   const [isOver, setIsOver] = useState(false);
 
   const latestVersion = activeForm?.versions[0];
@@ -74,6 +74,16 @@ export function CanvasSection({ section }: { section: Section }) {
   
   const isElementBeingDragged = state.draggedElement && ('type' in state.draggedElement || 'element' in state.draggedElement);
 
+  const handleCopyToClipboard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    dispatch({ type: 'COPY_TO_CLIPBOARD', payload: { type: 'section', content: section } });
+  }
+
+  const handlePasteFromClipboard = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    dispatch({ type: 'PASTE_FROM_CLIPBOARD', payload: { sectionId: section.id } });
+  }
+
   const content = (
     <div className="flex flex-col gap-4 min-h-[100px] droppable"
         onDragOver={handleDragOver}
@@ -89,8 +99,13 @@ export function CanvasSection({ section }: { section: Section }) {
           ))}
         </div>
       ) : (
-        <div className={cn("flex-1 border-dashed border-2 flex items-center justify-center text-muted-foreground min-h-[100px] p-4", isOver && isElementBeingDragged ? 'border-primary bg-accent/20' : 'bg-transparent')}>
+        <div className={cn("flex-1 border-dashed border-2 flex flex-col items-center justify-center text-muted-foreground min-h-[100px] p-4", isOver && isElementBeingDragged ? 'border-primary bg-accent/20' : 'bg-transparent')}>
           <p>Drop elements here</p>
+          {clipboard?.type === 'element' && (
+            <Button variant="outline" size="sm" className="mt-4" onClick={handlePasteFromClipboard}>
+              <ClipboardPaste className="mr-2 h-4 w-4"/> Paste Element
+            </Button>
+          )}
         </div>
       )}
     </div>
@@ -114,7 +129,15 @@ export function CanvasSection({ section }: { section: Section }) {
                     <CardTitle className="text-base font-medium">
                         {section.title}
                     </CardTitle>
-                    <div className="flex gap-2 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                    <div className="flex gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                         <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={handleCopyToClipboard}
+                        >
+                            <ClipboardCopy className="h-4 w-4" />
+                        </Button>
                         <Button
                             variant="ghost"
                             size="icon"

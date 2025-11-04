@@ -143,3 +143,7 @@ export type Submission = {
     timestamp: string;
     data: Record<string, any>;
 };
+
+export type ClipboardItem = 
+    | { type: 'section', content: Section }
+    | { type: 'element', content: FormElementInstance };
