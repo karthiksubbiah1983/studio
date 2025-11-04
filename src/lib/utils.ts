@@ -69,20 +69,27 @@ export const findElementRecursive = (sections: Section[], elementId: string): Fo
 export const getAllElements = (sections: Section[], includeTableColumns = false): FormElementInstance[] => {
     let allElements: FormElementInstance[] = [];
     sections.forEach(section => {
-        const findElementsRecursive = (els: FormElementInstance[]): void => {
+        const findElementsRecursive = (els: FormElementInstance[], parentKey: string = ''): void => {
             els.forEach(element => {
+                const currentKey = element.key || '';
+                // Push the main element
                 allElements.push(element);
+
                 if (element.type === 'Container' && element.elements) {
-                    findElementsRecursive(element.elements);
+                    // Recurse into container elements
+                    findElementsRecursive(element.elements, currentKey);
                 }
+                
                 if (includeTableColumns && element.type === 'Table' && element.columns) {
                     element.columns.forEach(col => {
                         // Treat each column as a pseudo-element for rule targeting
                         allElements.push({
                             id: `${element.id}.${col.key}`,
-                            key: `${element.key}.${col.key}`, // Unique key for the column
-                            type: col.cellType || 'text', // Or map to a more specific pseudo-type
+                            key: `${element.key}.${col.key}`,
+                            type: col.cellType || 'text',
                             label: `${element.label} > ${col.title}`,
+                            options: col.options,
+                            hidden: col.hidden,
                             required: false, // Individual table cells might not be "required" in the same way
                         } as FormElementInstance);
                     });

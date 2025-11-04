@@ -73,6 +73,9 @@ const mapElementToSchemaProperty = (element: FormElementInstance): Record<string
                 if (col.options) {
                     itemSchema.properties[col.key].enum = col.options;
                 }
+                 if (col.hidden) {
+                    itemSchema.properties[col.key].ui = { hidden: true };
+                }
             });
             schemaProperty.items = itemSchema;
             break;
@@ -90,10 +93,8 @@ const mapElementToSchemaProperty = (element: FormElementInstance): Record<string
                     }
                 });
             }
-            // The container's UI properties are already added by the generic loop
             break;
         default:
-            // For Title, Separator, Display
             return {};
     }
 
@@ -125,7 +126,6 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
   if (latestVersion) {
     if (latestVersion.type === 'published') {
         schema.versionName = latestVersion.name;
-        // Version number is the count of published versions
         schema.versionNumber = form.versions.filter(v => v.type === 'published').length;
     } else {
         schema.version = 'draft';
@@ -137,20 +137,36 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
   }
   
   schema['x-ui-sections'] = sections.map(section => {
+      const getElementKeysRecursive = (elements: FormElementInstance[]): string[] => {
+          let keys: string[] = [];
+          elements.forEach(el => {
+              if (el.key) {
+                keys.push(el.key);
+              }
+              if (el.type === 'Container' && el.elements) {
+                  // For containers, we don't add the container key itself, just its children.
+                  keys = keys.concat(getElementKeysRecursive(el.elements));
+              }
+          });
+          return keys;
+      }
       return {
           id: section.id,
           title: section.title,
           hidden: section.hidden || false,
-          elementKeys: section.elements.map(el => el.key).filter(Boolean)
+          elementKeys: getElementKeysRecursive(section.elements)
       }
   })
 
   const processElements = (elements: FormElementInstance[]) => {
     for (const element of elements) {
-        if (!element.key || element.type === 'Title' || element.type === 'Separator' || element.gittype === 'Display') {
-            if (element.type === 'Container' && element.elements) {
-                 processElements(element.elements);
-            }
+        // Recurse into containers
+        if (element.type === 'Container' && element.elements) {
+             processElements(element.elements);
+        }
+        
+        // Skip elements that don't have a key or are purely presentational
+        if (!element.key || element.type === 'Title' || element.type === 'Separator' || element.type === 'Display') {
             continue;
         }
 
