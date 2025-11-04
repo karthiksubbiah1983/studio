@@ -18,14 +18,14 @@ type Props = {
 };
 
 export function JsonPreviewDialog({ isOpen, onOpenChange }: Props) {
-  const { activeForm } = useBuilder();
+  const { activeForm, sections, rules } = useBuilder();
 
   const jsonSchema = useMemo(() => {
     if (isOpen && activeForm) {
-      return generateJsonSchema(activeForm);
+      return generateJsonSchema(activeForm, sections, rules);
     }
     return {};
-  }, [activeForm, isOpen]);
+  }, [activeForm, sections, rules, isOpen]);
 
   const jsonString = useMemo(() => JSON.stringify(jsonSchema, null, 2), [jsonSchema]);
 

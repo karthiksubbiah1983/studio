@@ -1,5 +1,5 @@
 
-import { Form, FormElementInstance, Section } from "./types";
+import { Form, FormElementInstance, Rule, Section } from "./types";
 
 const mapElementTypeToJsonSchemaType = (element: FormElementInstance) => {
     switch (element.type) {
@@ -70,9 +70,8 @@ const getElementsRecursive = (elements: FormElementInstance[]): FormElementInsta
 }
 
 
-export const generateJsonSchema = (form: Form) => {
+export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[]) => {
   const latestVersion = form.versions[0];
-  const sections = latestVersion?.sections || [];
   
   const schema: {
     title: string;
@@ -83,6 +82,7 @@ export const generateJsonSchema = (form: Form) => {
     versionNumber?: number;
     properties: { [key: string]: any };
     required: string[];
+    'x-rules'?: Rule[];
   } = {
     title: form.title,
     description: "JSON schema for the generated form",
@@ -101,6 +101,9 @@ export const generateJsonSchema = (form: Form) => {
     }
   }
 
+  if (rules && rules.length > 0) {
+    schema['x-rules'] = rules;
+  }
 
   const allElements = sections.flatMap(s => s.elements);
 
