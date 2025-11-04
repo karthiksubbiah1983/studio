@@ -1,74 +1,107 @@
 
 import { Form, FormElementInstance, Rule, Section } from "./types";
 
-const mapElementTypeToJsonSchemaType = (element: FormElementInstance) => {
-    switch (element.type) {
+const mapElementToSchemaProperty = (element: FormElementInstance): Record<string, any> => {
+    const { type, label, required, helperText, placeholder, options, dataSource, apiUrl, valueKey, labelKey, columns, elements } = element;
+
+    const schemaProperty: Record<string, any> = {
+        title: label,
+        description: helperText || '',
+        ui: {
+            component: type
+        }
+    };
+
+    if (placeholder) {
+        schemaProperty.ui.placeholder = placeholder;
+    }
+
+    switch (type) {
         case "Input":
         case "Textarea":
-        case "RadioGroup":
         case "RichText":
-            return { type: "string" };
+            schemaProperty.type = "string";
+            break;
         case "DatePicker":
-            return { type: "string", format: "date-time" };
+            schemaProperty.type = "string";
+            schemaProperty.format = "date-time";
+            break;
         case "Checkbox":
-            return { type: "boolean" };
+            schemaProperty.type = "boolean";
+            break;
+        case "RadioGroup":
+            schemaProperty.type = "string";
+            if (options) {
+                schemaProperty.enum = options;
+                schemaProperty.ui.options = options;
+            }
+            break;
         case "Select":
-             const schema: { type: string, enum?: string[] } = { type: "string" };
-             if (element.dataSource === 'static' && element.options) {
-                schema.enum = element.options;
-             }
-             return schema;
+            schemaProperty.type = "string";
+            schemaProperty.ui.dataSource = dataSource;
+            if (dataSource === 'static' && options) {
+                schemaProperty.enum = options;
+                schemaProperty.ui.options = options;
+            } else if (dataSource === 'dynamic') {
+                schemaProperty.ui.apiUrl = apiUrl;
+                schemaProperty.ui.valueKey = valueKey;
+                schemaProperty.ui.labelKey = labelKey;
+            }
+            break;
         case "Table":
-            const itemSchema: { type: string, properties: any, required: string[] } = {
+            schemaProperty.type = "array";
+            const itemSchema: { type: string, properties: any, required: string[], ui: any } = {
                 type: "object",
                 properties: {},
-                required: []
+                required: [],
+                ui: {
+                    columns: []
+                }
             };
-            element.columns?.forEach(col => {
+            columns?.forEach(col => {
                 itemSchema.properties[col.key] = {
+                    title: col.title,
                     type: col.cellType === 'checkbox' ? 'boolean' : 'string',
-                    title: col.title
                 };
-                // Assuming all table columns are optional for now
+                if (col.options) {
+                    itemSchema.properties[col.key].enum = col.options;
+                }
+                const uiColumnDef: any = {
+                    key: col.key,
+                    title: col.title,
+                    cellType: col.cellType,
+                    hidden: col.hidden
+                };
+                 if (col.options) {
+                    uiColumnDef.options = col.options;
+                }
+                if (col.formula) {
+                    uiColumnDef.formula = col.formula;
+                }
+                itemSchema.ui.columns.push(uiColumnDef);
             });
-            return {
-                type: "array",
-                items: itemSchema
-            };
+            schemaProperty.items = itemSchema;
+            break;
         case "Container":
-            const containerProperties: any = {};
-            const containerRequired: string[] = [];
-            element.elements?.forEach(el => {
-                if (!el.key) return;
-                containerProperties[el.key] = mapElementTypeToJsonSchemaType(el);
-                if (el.required) {
-                    containerRequired.push(el.key);
+            schemaProperty.type = "object";
+            schemaProperty.properties = {};
+            schemaProperty.required = [];
+            elements?.forEach(el => {
+                if (el.key) {
+                    schemaProperty.properties[el.key] = mapElementToSchemaProperty(el);
+                    if (el.required) {
+                        schemaProperty.required.push(el.key);
+                    }
                 }
             });
-            return {
-                type: "object",
-                properties: containerProperties,
-                required: containerRequired
-            };
+            break;
         default:
+            // For Title, Separator, Display
             return {};
     }
-}
 
-const getElementsRecursive = (elements: FormElementInstance[]): FormElementInstance[] => {
-    let allElements: FormElementInstance[] = [];
-    for (const el of elements) {
-        // We only care about elements that can hold a value
-        if (el.type !== 'Title' && el.type !== 'Separator' && el.type !== 'Display') {
-            allElements.push(el);
-        }
-        if (el.elements) {
-            allElements = allElements.concat(getElementsRecursive(el.elements));
-        }
-    }
-    return allElements;
+    return schemaProperty;
 }
-
 
 export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[]) => {
   const latestVersion = form.versions[0];
@@ -105,27 +138,25 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
     schema['x-rules'] = rules;
   }
 
-  const allElements = sections.flatMap(s => s.elements);
-
   const processElements = (elements: FormElementInstance[]) => {
     for (const element of elements) {
         if (!element.key || element.type === 'Title' || element.type === 'Separator' || element.type === 'Display') {
             continue;
         }
 
-        const propertySchema = mapElementTypeToJsonSchemaType(element);
+        const propertySchema = mapElementToSchemaProperty(element);
         
-        schema.properties[element.key] = {
-            title: element.label,
-            ...propertySchema
-        };
+        if (Object.keys(propertySchema).length > 0) {
+            schema.properties[element.key] = propertySchema;
 
-        if (element.required) {
-            schema.required.push(element.key);
+            if (element.required) {
+                schema.required.push(element.key);
+            }
         }
     }
   }
-
+  
+  const allElements = sections.flatMap(s => s.elements);
   processElements(allElements);
 
   return schema;

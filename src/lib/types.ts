@@ -70,6 +70,7 @@ export type FormElementInstance = {
     label: string;
     required: boolean;
     hidden?: boolean;
+    description?: string; // Corresponds to JSON Schema description
     placeholder?: string;
     helperText?: string;
     // For Select, RadioGroup
