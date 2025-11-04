@@ -81,8 +81,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   
  const isDisabled = useMemo(() => {
     if (!formState) return false;
-    
-    // First, check for 'disable' rules. If any are met, the element is disabled.
+
+    // A field is disabled if ANY 'disable' rule is met.
     const isExplicitlyDisabled = rules.some(r => 
         r.behavior.type === 'disable' && 
         r.behavior.targetElementId === element.id &&
@@ -93,7 +93,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         return true;
     }
 
-    // If no 'disable' rules are met, check for 'enable' rules.
+    // If no 'disable' rules are active, check for 'enable' rules.
     const enableRules = rules.filter(r => 
         r.behavior.type === 'enable' && 
         r.behavior.targetElementId === element.id
@@ -110,30 +110,28 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }, [element.id, formState, rules]);
 
 
-   const isVisible = useMemo(() => {
+  const isVisible = useMemo(() => {
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === element.id);
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === element.id);
     const currentState = formState || {};
-
+    
     let visible;
 
+    // If "show" rules exist, the element starts as hidden.
     if (showRules.length > 0) {
-        // If there are "show" rules, the element's visibility is determined solely by them.
         visible = showRules.some(r => evaluateRule(r, currentState));
     } else {
-        // If there are no "show" rules, start with the element's default hidden state.
+        // Otherwise, its default visibility is based on the "hidden" property.
         visible = !element.hidden;
     }
 
-    // "Hide" rules act as an override. If any "hide" rule is met, the element is hidden.
-    if (visible && hideRules.length > 0) {
-        if (hideRules.some(r => evaluateRule(r, currentState))) {
-            visible = false;
-        }
+    // "Hide" rules act as a final override. If any are met, the element is hidden.
+    if (visible && hideRules.some(r => evaluateRule(r, currentState))) {
+        visible = false;
     }
     
     return visible;
-  }, [element.id, element.hidden, formState, rules]);
+}, [element.id, element.hidden, formState, rules]);
 
 
   useEffect(() => {
@@ -571,7 +569,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             }, [row, columns, formState, element.id]);
 
 
-            const isCellVisible = useMemo(() => {
+           const isCellVisible = useMemo(() => {
                 const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === cellId);
                 const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === cellId);
                 
@@ -583,10 +581,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                     visible = !col.hidden;
                 }
 
-                if (visible && hideRules.length > 0) {
-                    if(hideRules.some(r => evaluateRule(r, rowContext))) {
-                        visible = false;
-                    }
+                if (visible && hideRules.some(r => evaluateRule(r, rowContext))) {
+                    visible = false;
                 }
                 
                 return visible;

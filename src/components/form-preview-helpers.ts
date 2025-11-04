@@ -33,7 +33,14 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
     
     const sourceValue = combinedState[condition.sourceElementId]?.value;
     
-    if (sourceValue === undefined && condition.operator !== 'not_equals') return false;
+    // If sourceValue is undefined, it can only satisfy 'not_equals' if the comparison value is not also undefined-like.
+    if (sourceValue === undefined) {
+        if (condition.operator === 'not_equals') {
+             const comparisonValue = condition.comparisonType === 'static_value' ? condition.value : combinedState[condition.comparisonElementId!]?.value;
+             return comparisonValue !== undefined && comparisonValue !== null && comparisonValue !== "";
+        }
+        return false;
+    }
     
     let comparisonValue: any;
     if (condition.comparisonType === 'another_field' && condition.comparisonElementId) {
