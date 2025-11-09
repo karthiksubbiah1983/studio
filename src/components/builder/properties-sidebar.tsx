@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, DataGridColumn, InputTableColumn, Rule, Condition, RuleBehaviorType, ElementType } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -215,94 +215,12 @@ function AlignmentRadioGroup({
     )
 }
 
-function InputTableColumnEditor({ 
-    column,
-    onUpdate,
-    onDelete,
-}: {
-    column: InputTableColumn;
-    onUpdate: (updatedColumn: InputTableColumn) => void;
-    onDelete: () => void;
-}) {
-    const [isElementEditorOpen, setIsElementEditorOpen] = useState(false);
-    
-    return (
-        <div className="border p-3 rounded-lg space-y-3 bg-card">
-            <div className="flex justify-between items-center">
-                <Label className="text-base">{column.title || 'Column'}</Label>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onDelete}>
-                    <X className="h-4 w-4 text-destructive" />
-                </Button>
-            </div>
-            <div className="flex flex-col gap-2">
-                <Label htmlFor={`col-title-${column.id}`}>Title</Label>
-                <Input
-                    id={`col-title-${column.id}`}
-                    value={column.title}
-                    onChange={(e) => onUpdate({ ...column, title: e.target.value })}
-                />
-            </div>
-            <div className="flex flex-col gap-2">
-                <Label htmlFor={`col-key-${column.id}`}>Key</Label>
-                <Input
-                    id={`col-key-${column.id}`}
-                    value={column.key}
-                    onChange={(e) => onUpdate({ ...column, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
-                />
-            </div>
-             <div className="flex flex-col gap-2">
-                <Label htmlFor={`col-width-${column.id}`}>Width</Label>
-                <Input
-                    id={`col-width-${column.id}`}
-                    value={column.width || ''}
-                    placeholder="e.g. 150px"
-                    onChange={(e) => onUpdate({ ...column, width: e.target.value })}
-                />
-            </div>
-            <div className="flex flex-col gap-2">
-                <Label>Contained Element</Label>
-                <div className="border rounded-md p-2 flex justify-between items-center">
-                    <p className="text-sm font-mono bg-muted px-2 py-1 rounded">{column.element.type}</p>
-                    <Button variant="outline" size="sm" onClick={() => setIsElementEditorOpen(true)}>
-                        <Edit className="mr-2 h-3 w-3" /> Edit
-                    </Button>
-                </div>
-            </div>
-
-            {isElementEditorOpen && (
-                 <Dialog open={isElementEditorOpen} onOpenChange={setIsElementEditorOpen}>
-                    <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                            <DialogTitle>Editing Column: {column.title}</DialogTitle>
-                            <DialogDescription>
-                                Configure the form element for this column. Changes here will not affect the column's Title or Key.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className="py-4 max-h-[60vh] overflow-y-auto px-1">
-                            <ElementProperties 
-                                element={column.element}
-                                onUpdate={(updatedElement) => onUpdate({ ...column, element: updatedElement })}
-                                isColumnElement={true}
-                            />
-                        </div>
-                        <DialogFooter>
-                            <Button onClick={() => setIsElementEditorOpen(false)}>Done</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            )}
-        </div>
-    );
-}
-
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
   const { dispatch, state, sections } = useBuilder();
   const [props, setProps] = useState(element);
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
-
-  const [editingColumn, setEditingColumn] = useState<InputTableColumn | null>(null);
 
   const allElements = getAllElements(sections);
 
@@ -711,156 +629,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
             );
-        case "DataGrid":
-            return (
-                <Accordion type="multiple" defaultValue={['general', 'data', 'columns']} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="data">
-                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="apiUrl">API URL</Label>
-                                 <div className="flex gap-2">
-                                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
-                                    <Button onClick={handleFetchSchema} disabled={isFetching} size="sm">
-                                        {isFetching ? "Fetching..." : "Fetch Schema"}
-                                    </Button>
-                                </div>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="columns">
-                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-2">
-                            {props.columns?.map((col, index) => (
-                                <div key={col.id} className="border p-3 rounded-lg space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <Label className="text-base">{col.title || `Column ${index + 1}`}</Label>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                                            const newCols = props.columns!.filter(c => c.id !== col.id);
-                                            updateProperty('columns', newCols);
-                                        }}>
-                                            <X className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <Label htmlFor={`col-title-${col.id}`}>Title</Label>
-                                        <Input id={`col-title-${col.id}`} value={col.title} onChange={(e) => {
-                                            const newCols = [...props.columns!];
-                                            newCols[index].title = e.target.value;
-                                            updateProperty('columns', newCols);
-                                        }}/>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <Label htmlFor={`col-dataKey-${col.id}`}>Data Key</Label>
-                                        <Select value={col.dataKey} onValueChange={(value) => {
-                                            const newCols = [...props.columns!];
-                                            newCols[index].dataKey = value;
-                                            updateProperty('columns', newCols);
-                                        }}>
-                                            <SelectTrigger><SelectValue placeholder="Select a data key..."/></SelectTrigger>
-                                            <SelectContent>
-                                                {fetchedKeys.length > 0 ? (
-                                                    fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)
-                                                ) : (
-                                                    <SelectItem value={col.dataKey} disabled>{col.dataKey || "No keys available"}</SelectItem>
-                                                )}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <Label htmlFor={`col-visible-${col.id}`}>Visible by default</Label>
-                                        <Switch id={`col-visible-${col.id}`} checked={col.visible} onCheckedChange={(checked) => {
-                                            const newCols = [...props.columns!];
-                                            newCols[index].visible = checked;
-                                            updateProperty('columns', newCols);
-                                        }} />
-                                    </div>
-                                </div>
-                            ))}
-                            <Button variant="outline" size="sm" className="mt-2" onClick={() => {
-                                const newCols = [...(props.columns || []), { id: crypto.randomUUID(), title: `Column ${(props.columns?.length || 0) + 1}`, dataKey: "", key: `col${(props.columns?.length || 0) + 1}`, visible: true }];
-                                updateProperty('columns', newCols);
-                            }}>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Add Column
-                            </Button>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-            );
-         case "InputTable":
-            return (
-                 <Accordion type="multiple" defaultValue={['general', 'columns', 'config']} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                     <AccordionItem value="columns">
-                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
-                        <AccordionContent className="space-y-2">
-                           {props.inputColumns?.map((col, index) => (
-                                <InputTableColumnEditor 
-                                    key={col.id} 
-                                    column={col}
-                                    onUpdate={(updatedColumn) => {
-                                        const newCols = [...props.inputColumns!];
-                                        newCols[index] = updatedColumn;
-                                        updateProperty('inputColumns', newCols);
-                                    }}
-                                    onDelete={() => {
-                                        const newCols = props.inputColumns!.filter(c => c.id !== col.id);
-                                        updateProperty('inputColumns', newCols);
-                                    }}
-                                />
-                           ))}
-                           <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => {
-                                const newCol: InputTableColumn = {
-                                    id: crypto.randomUUID(),
-                                    title: `Column ${(props.inputColumns?.length || 0) + 1}`,
-                                    key: `col${(props.inputColumns?.length || 0) + 1}`,
-                                    element: createNewElement('Input'),
-                                };
-                                const newCols = [...(props.inputColumns || []), newCol];
-                                updateProperty('inputColumns', newCols);
-                           }}>
-                               <Plus className="mr-2 h-4 w-4" />
-                                Add Column
-                           </Button>
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="config">
-                        <AccordionTrigger className="py-2">Configuration</AccordionTrigger>
-                        <AccordionContent className="space-y-4">
-                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="initialRows">Initial Rows</Label>
-                                <Input
-                                    id="initialRows"
-                                    type="number"
-                                    value={props.initialRows || 1}
-                                    onChange={(e) => updateProperty('initialRows', parseInt(e.target.value, 10))}
-                                    min={1}
-                                />
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="allowAdd">Allow Add Rows</Label>
-                                <Switch id="allowAdd" checked={!!props.allowAdd} onCheckedChange={(checked) => updateProperty('allowAdd', checked)} />
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="allowDelete">Allow Delete Rows</Label>
-                                <Switch id="allowDelete" checked={!!props.allowDelete} onCheckedChange={(checked) => updateProperty('allowDelete', checked)} />
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-            )
         default:
             return null;
       }

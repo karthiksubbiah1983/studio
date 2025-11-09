@@ -1,7 +1,8 @@
 
+
 "use client";
 
-import { FormElementInstance, InputTableColumn, Rule, Condition, Section, DataGridColumn } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,11 +50,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
-  const [tableData, setTableData] = useState<any[]>([]);
-  
-  const [tableRows, setTableRows] = useState<any[]>([]);
-
-  const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({});
 
    const isVisible = useMemo(() => {
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === element.id);
@@ -119,51 +115,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }, [element.id, formState, rules]);
 
   useEffect(() => {
-    if (element.type === 'DataGrid' && element.apiUrl) {
-        setIsLoading(true);
-        fetchFromApi(element.apiUrl)
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setTableData(data);
-                } else {
-                    setTableData([]);
-                }
-            })
-            .finally(() => setIsLoading(false));
-    }
     if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
       setIsLoading(true);
       fetchFromApi(element.apiUrl)
         .then(data => setDynamicOptions(data || []))
         .finally(() => setIsLoading(false));
     }
-     if (element.type === 'InputTable') {
-        if (value) {
-            setTableRows(value);
-        } else {
-            const initial = Array.from({ length: element.initialRows || 1 }, () => ({ id: crypto.randomUUID() }));
-            setTableRows(initial);
-            onValueChange(element.id, initial);
-        }
-    }
   }, [element, onValueChange, value]);
-
-  useEffect(() => {
-    if (element.type === 'DataGrid') {
-        const initialVisibility = element.columns?.reduce((acc, col) => {
-            acc[col.id] = col.visible;
-            return acc;
-        }, {} as Record<string, boolean>) || {};
-        setColumnVisibility(initialVisibility);
-    }
-     if (element.type === 'InputTable') {
-        const initialVisibility = element.inputColumns?.reduce((acc, col) => {
-            acc[col.id] = true; // All input columns visible by default
-            return acc;
-        }, {} as Record<string, boolean>) || {};
-        setColumnVisibility(initialVisibility);
-    }
-  }, [element.columns, element.inputColumns, element.type]);
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
 
@@ -447,168 +405,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         </div>
       );
       break;
-    case "DataGrid": {
-        const { columns } = element;
-        const visibleColumns = columns?.filter(c => c.visible) || [];
-         content = (
-            <div>
-                {renderLabel()}
-                <div className={cn("rounded-md border", appliedStyles.error && "border-destructive")}>
-                    <ScrollArea className="w-full whitespace-nowrap">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    {visibleColumns.map((col) => (
-                                        <TableHead key={col.id}>{col.title}</TableHead>
-                                    ))}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {isLoading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={visibleColumns.length} className="h-24 text-center">
-                                            <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
-                                        </TableCell>
-                                    </TableRow>
-                                ) : tableData.length > 0 ? (
-                                    tableData.map((row, rowIndex) => (
-                                        <TableRow key={rowIndex}>
-                                            {visibleColumns.map((col) => (
-                                                <TableCell key={col.id} className="p-2">
-                                                    {getNestedValue(row, col.dataKey) || '-'}
-                                                </TableCell>
-                                            ))}
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                     <TableRow>
-                                        <TableCell colSpan={visibleColumns.length} className="h-24 text-center">
-                                            No data to display.
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                         <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                </div>
-                 {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
-                {renderError()}
-            </div>
-        );
-        break;
-    }
-    case "InputTable": {
-        const { inputColumns, allowAdd, allowDelete } = element;
-
-        const handleAddRow = () => {
-            const newRow = { id: crypto.randomUUID() };
-            const newRows = [...tableRows, newRow];
-            setTableRows(newRows);
-            onValueChange(element.id, newRows);
-        };
-
-        const handleDeleteRow = (rowId: string) => {
-            const newRows = tableRows.filter((row) => row.id !== rowId);
-            setTableRows(newRows);
-            onValueChange(element.id, newRows);
-        };
-
-       const handleCellChange = useCallback((rowId: string, colKey: string, cellValue: any, fullObject?: any) => {
-            const newRows = tableRows.map(row => {
-                if (row.id === rowId) {
-                    const newRow = { ...row, [colKey]: cellValue };
-                    // Recalculate formulas for the row
-                    inputColumns?.forEach(col => {
-                        const formula = col.element.description; // Using description for formula
-                        if (formula) {
-                            try {
-                                const result = evaluate(formula, newRow);
-                                newRow[col.key] = result;
-                            } catch (e) {
-                                console.warn(`Error evaluating formula for ${col.key}:`, e);
-                                newRow[col.key] = "#ERROR!";
-                            }
-                        }
-                    });
-                    return newRow;
-                }
-                return row;
-            });
-            setTableRows(newRows);
-            onValueChange(element.id, newRows);
-        }, [tableRows, onValueChange, element.id, inputColumns]);
-        
-        content = (
-            <div className={cn(isDisabled && 'pointer-events-none opacity-50')}>
-                {renderLabel()}
-                 <div className={cn("rounded-md border", appliedStyles.error && "border-destructive")}>
-                     <ScrollArea className="w-full whitespace-nowrap">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    {inputColumns?.map((col) => (
-                                        <TableHead key={col.id} style={{width: col.width}}>{col.title}</TableHead>
-                                    ))}
-                                    {(allowDelete) && <TableHead className="w-[50px]"> </TableHead>}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {tableRows.map((row) => (
-                                    <TableRow key={row.id}>
-                                        {inputColumns?.map((col) => {
-                                            const cellElement = col.element;
-                                            const cellValue = row[col.key];
-                                            const cellId = `${element.id}.${row.id}.${col.key}`; // Unique ID for rules
-                                            
-                                            const tempCellElement = {
-                                                ...cellElement,
-                                                id: cellId,
-                                                label: '', // Labels are in the header
-                                            };
-                                            
-                                            const cellFormState = {
-                                                ...formState,
-                                                [cellId]: { value: cellValue }
-                                            };
-                                            
-                                            return (
-                                                <TableCell key={col.id} className="p-1 align-top">
-                                                    <FormElementRenderer
-                                                        element={tempCellElement}
-                                                        value={cellValue}
-                                                        onValueChange={(_id, val, fullObj) => handleCellChange(row.id, col.key, val, fullObj)}
-                                                        formState={cellFormState}
-                                                    />
-                                                </TableCell>
-                                            );
-                                        })}
-                                        {allowDelete && (
-                                            <TableCell className="p-1 align-middle">
-                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteRow(row.id)}>
-                                                    <Trash className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </TableCell>
-                                        )}
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                         <ScrollBar orientation="horizontal" />
-                    </ScrollArea>
-                </div>
-                {allowAdd && (
-                    <Button variant="outline" size="sm" className="mt-4" onClick={handleAddRow}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add Row
-                    </Button>
-                )}
-                {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
-                {renderError()}
-            </div>
-        );
-        break;
-    }
     default:
       content = <div>Unsupported element type: {type}</div>;
       break;

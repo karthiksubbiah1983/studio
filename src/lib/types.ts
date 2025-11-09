@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "DataGrid" | "InputTable" | "RichText" | "Container";
+export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -50,22 +50,6 @@ export type PopupConfig = {
     iconColor: string;
 }
 
-export type DataGridColumn = {
-    id: string;
-    title: string;
-    dataKey: string; // Key from the API data object
-    key: string;
-    visible: boolean;
-};
-
-export type InputTableColumn = {
-    id: string;
-    title: string;
-    key: string;
-    width?: string;
-    element: FormElementInstance; // Each column contains a full form element
-};
-
 export type FormElementInstance = {
     id: string;
     type: ElementType;
@@ -79,7 +63,7 @@ export type FormElementInstance = {
     // For Select, RadioGroup
     dataSource?: 'static' | 'dynamic';
     options?: string[];
-    // For dynamic data source (Select, DataGrid)
+    // For dynamic data source (Select)
     apiUrl?: string;
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
@@ -87,13 +71,6 @@ export type FormElementInstance = {
     dataSourceConfig?: DisplayDataSourceConfig;
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
-    // For DataGrid
-    columns?: DataGridColumn[];
-    // For InputTable
-    inputColumns?: InputTableColumn[];
-    initialRows?: number;
-    allowAdd?: boolean;
-    allowDelete?: boolean;
     // For RichText
     content?: string;
     // For Container

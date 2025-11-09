@@ -1,6 +1,6 @@
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, Heading1, Database, Edit, FileText, MousePointerSquare, RadioTower, ChevronsUpDown, Layout } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, Heading1, FileText, RadioTower, ChevronsUpDown, Layout } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -16,8 +16,6 @@ export const FormElements: {
     { type: 'RadioGroup', icon: RadioTower, label: 'Radio Group' },
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
-    { type: 'DataGrid', icon: Database, label: 'Data Grid' },
-    { type: 'InputTable', icon: Edit, label: 'Input Table' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'Title', icon: Heading1, label: 'Title' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
@@ -53,41 +51,6 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
             return { ...baseElement, label: "Date Picker" };
         case "Display":
             return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "" } };
-        case "DataGrid":
-            return {
-                ...baseElement,
-                label: "Data Grid",
-                apiUrl: "https://jsonplaceholder.typicode.com/users",
-                columns: [
-                    { id: crypto.randomUUID(), title: "Name", dataKey: "name", visible: true },
-                    { id: crypto.randomUUID(), title: "Email", dataKey: "email", visible: true },
-                    { id: crypto.randomUUID(), title: "City", dataKey: "address.city", visible: true },
-                ],
-            }
-        case "InputTable":
-             return {
-                ...baseElement,
-                label: "Input Table",
-                inputColumns: [
-                    { 
-                        id: crypto.randomUUID(),
-                        title: "Product",
-                        key: "product",
-                        width: "200px",
-                        element: createNewElement('Input')
-                    },
-                     { 
-                        id: crypto.randomUUID(),
-                        title: "Quantity",
-                        key: "quantity",
-                        width: "100px",
-                        element: createNewElement('Input')
-                    },
-                ],
-                initialRows: 1,
-                allowAdd: true,
-                allowDelete: true,
-            }
         case "RichText":
             return { ...baseElement, label: "Rich Text Editor", content: "" };
         case "Container":

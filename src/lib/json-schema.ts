@@ -1,4 +1,5 @@
 
+
 import { Form, FormElementInstance, Rule, Section } from "./types";
 
 const mapElementToSchemaProperty = (element: FormElementInstance): Record<string, any> => {
@@ -56,28 +57,6 @@ const mapElementToSchemaProperty = (element: FormElementInstance): Record<string
              if (rest.dataSource === 'static' && rest.options) {
                 schemaProperty.enum = rest.options;
             }
-            break;
-        case "Table":
-            schemaProperty.type = "array";
-            schemaProperty.default = [];
-            const itemSchema: { type: string, properties: any, required: string[] } = {
-                type: "object",
-                properties: {},
-                required: [],
-            };
-            rest.columns?.forEach(col => {
-                itemSchema.properties[col.key] = {
-                    title: col.title,
-                    type: col.cellType === 'checkbox' ? 'boolean' : 'string',
-                };
-                if (col.options) {
-                    itemSchema.properties[col.key].enum = col.options;
-                }
-                 if (col.hidden) {
-                    itemSchema.properties[col.key].ui = { hidden: true };
-                }
-            });
-            schemaProperty.items = itemSchema;
             break;
         case "Container":
             schemaProperty.type = "object";

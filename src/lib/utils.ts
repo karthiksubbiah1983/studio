@@ -1,4 +1,5 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section } from "./types";
@@ -67,7 +68,7 @@ export const findElementRecursive = (sections: Section[], elementId: string): Fo
     return null;
 }
 
-export const getAllElements = (sections: Section[], includeTableColumns = false): FormElementInstance[] => {
+export const getAllElements = (sections: Section[]): FormElementInstance[] => {
     let allElements: FormElementInstance[] = [];
     sections.forEach(section => {
         const findElementsRecursive = (els: FormElementInstance[]): void => {
@@ -76,21 +77,6 @@ export const getAllElements = (sections: Section[], includeTableColumns = false)
 
                 if (element.type === 'Container' && element.elements) {
                     findElementsRecursive(element.elements);
-                }
-                
-                if (includeTableColumns && element.type === 'InputTable' && element.inputColumns) {
-                   // This part is complex because we need row context. 
-                   // The simple flat list here is mostly for the rule editor's target selector.
-                   // The actual rule evaluation needs to happen with row context.
-                   // For now, we can add a generic representation.
-                   element.inputColumns.forEach(col => {
-                        allElements.push({
-                            id: `${element.id}.*.${col.key}`, // Representative ID
-                            key: col.key,
-                            type: col.element.type,
-                            label: `${element.label} > ${col.title}`,
-                        } as any);
-                   })
                 }
             });
         };

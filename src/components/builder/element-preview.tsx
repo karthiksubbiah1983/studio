@@ -10,12 +10,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Edit, CheckSquare, List, MousePointerSquareDashed, Layout, Database, Edit2, Columns, FileText, Heading1, Milestone, RadioTower, TextCursorInput, ChevronsUpDown, Pilcrow, CaseSensitive, CalendarDays } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
-  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, columns, initialRows, elements, direction, inputColumns } = element;
+  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -113,31 +112,6 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
           {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
         </div>
       );
-    case "DataGrid":
-        return (
-             <div>
-                {renderLabel()}
-                 <div className="rounded-md border p-4 text-center text-sm text-muted-foreground bg-background">
-                    <Database className="h-8 w-8 mx-auto mb-2" />
-                    <p>Data Grid will display dynamic data from an API.</p>
-                </div>
-                 {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
-            </div>
-        );
-    case "InputTable":
-        return (
-             <div>
-                {renderLabel()}
-                 <div className="rounded-md border p-4 text-center text-sm text-muted-foreground bg-background">
-                    <Edit2 className="h-8 w-8 mx-auto mb-2" />
-                    <p>Input Table for user-editable rows and columns.</p>
-                    <div className="flex gap-2 justify-center mt-2">
-                        {inputColumns?.map(col => <div key={col.id} className="flex items-center gap-1 text-xs p-1.5 border rounded-md"><Columns className="h-3 w-3" /> {col.title}</div>)}
-                    </div>
-                </div>
-                 {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
-            </div>
-        );
     case "RichText":
       return (
         <div>
