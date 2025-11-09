@@ -628,27 +628,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                             <div className="flex flex-col gap-2">
-                                <Label>Selection Mode</Label>
-                                <RadioGroup
-                                    value={props.selectionMode}
-                                    onValueChange={(val) => updateProperty('selectionMode', val)}
-                                    className="flex gap-4"
-                                >
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="single" id="sel-single" />
-                                        <Label htmlFor="sel-single">Single</Label>
-                                    </div>
-                                     <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="multiple" id="sel-multiple" />
-                                        <Label htmlFor="sel-multiple">Multiple</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="none" id="sel-none" />
-                                        <Label htmlFor="sel-none">None</Label>
-                                    </div>
-                                </RadioGroup>
-                            </div>
                         </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="data">

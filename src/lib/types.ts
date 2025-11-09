@@ -1,5 +1,4 @@
 
-
 export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid";
 
 export type RuleConditionOperator = 
@@ -87,7 +86,6 @@ export type FormElementInstance = {
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
     // For DataGrid
     columns?: DataGridColumn[];
-    selectionMode?: 'single' | 'multiple' | 'none';
 };
 
 export type Section = {
@@ -137,4 +135,3 @@ export type Submission = {
 export type ClipboardItem = 
     | { type: 'section', content: Section }
     | { type: 'element', content: FormElementInstance };
-

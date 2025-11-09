@@ -61,7 +61,6 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
                 ...baseElement,
                 label: "Data Grid",
                 apiUrl: "https://jsonplaceholder.typicode.com/users",
-                selectionMode: 'single',
                 columns: [
                     { id: '1', key: 'name', label: 'Name', visible: true },
                     { id: '2', key: 'email', label: 'Email', visible: true },

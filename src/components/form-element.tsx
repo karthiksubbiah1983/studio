@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section } from "@/lib/types";
@@ -412,9 +411,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 <DataGrid
                     apiUrl={element.apiUrl || ""}
                     columns={element.columns || []}
-                    selectionMode={element.selectionMode || 'none'}
-                    onSelectionChange={(selected) => onValueChange(element.id, selected)}
-                    value={value}
                 />
             </div>
         );
