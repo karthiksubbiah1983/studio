@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "Table" | "RichText" | "Container";
+export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "DataGrid" | "InputTable" | "RichText" | "Container";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -50,17 +50,19 @@ export type PopupConfig = {
     iconColor: string;
 }
 
-export type TableColumnCellType = 'text' | 'select' | 'checkbox' | 'radio';
-
-export type TableColumn = {
+export type DataGridColumn = {
     id: string;
-    title:string;
-    key: string;
+    title: string;
+    dataKey: string; // Key from the API data object
     visible: boolean;
-    hidden?: boolean;
-    formula?: string;
-    cellType?: TableColumnCellType;
-    options?: string[];
+};
+
+export type InputTableColumn = {
+    id: string;
+    title: string;
+    key: string;
+    width?: string;
+    element: FormElementInstance; // Each column contains a full form element
 };
 
 export type FormElementInstance = {
@@ -76,20 +78,20 @@ export type FormElementInstance = {
     // For Select, RadioGroup
     dataSource?: 'static' | 'dynamic';
     options?: string[];
-    // For dynamic data source (Select)
+    // For dynamic data source (Select, DataGrid)
     apiUrl?: string;
-    dataKey?: string; // Key in API response that holds the array
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
-    // For Table
-    columns?: TableColumn[];
+    // For DataGrid
+    columns?: DataGridColumn[];
+    // For InputTable
+    inputColumns?: InputTableColumn[];
     initialRows?: number;
     allowAdd?: boolean;
-    allowEdit?: boolean;
     allowDelete?: boolean;
     // For RichText
     content?: string;

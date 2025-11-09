@@ -1,6 +1,6 @@
 
 import { FormElementInstance, ElementType } from "./types";
-import { faCheckSquare, faList, faParagraph, faTable, faFont, faCalendarDays, faDotCircle, faFileAlt, faLayerGroup, faTextHeight } from "@fortawesome/free-solid-svg-icons";
+import { faCheckSquare, faList, faParagraph, faTable, faFont, faCalendarDays, faDotCircle, faFileAlt, faLayerGroup, faTextHeight, faDatabase, faEdit } from "@fortawesome/free-solid-svg-icons";
 import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
 export const FormElements: {
@@ -16,14 +16,15 @@ export const FormElements: {
     { type: 'RadioGroup', icon: faDotCircle, label: 'Radio Group' },
     { type: 'DatePicker', icon: faCalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: faTextHeight, label: 'Display Text' },
-    { type: 'Table', icon: faTable, label: 'Table' },
+    { type: 'DataGrid', icon: faDatabase, label: 'Data Grid' },
+    { type: 'InputTable', icon: faEdit, label: 'Input Table' },
     { type: 'RichText', icon: faFileAlt, label: 'Rich Text' },
 ];
 
 export const createNewElement = (type: ElementType): FormElementInstance => {
     const id = crypto.randomUUID();
     const key = `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 7)}`;
-    const baseElement = { id, type, label: type, key, required: false };
+    const baseElement = { id, type, label: type, key, required: false, hidden: false };
     
     switch (type) {
         case "Title":
@@ -50,17 +51,39 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
             return { ...baseElement, label: "Date Picker" };
         case "Display":
             return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "" } };
-        case "Table":
+        case "DataGrid":
             return {
                 ...baseElement,
-                label: "Data Table",
+                label: "Data Grid",
+                apiUrl: "https://jsonplaceholder.typicode.com/users",
                 columns: [
-                    { id: crypto.randomUUID(), title: "Column 1", key: "col1", visible: true, cellType: 'text' },
-                    { id: crypto.randomUUID(), title: "Column 2", key: "col2", visible: true, cellType: 'text' },
+                    { id: crypto.randomUUID(), title: "Name", dataKey: "name", visible: true },
+                    { id: crypto.randomUUID(), title: "Email", dataKey: "email", visible: true },
+                    { id: crypto.randomUUID(), title: "City", dataKey: "address.city", visible: true },
                 ],
-                initialRows: 3,
+            }
+        case "InputTable":
+             return {
+                ...baseElement,
+                label: "Input Table",
+                inputColumns: [
+                    { 
+                        id: crypto.randomUUID(),
+                        title: "Product",
+                        key: "product",
+                        width: "200px",
+                        element: createNewElement('Input')
+                    },
+                     { 
+                        id: crypto.randomUUID(),
+                        title: "Quantity",
+                        key: "quantity",
+                        width: "100px",
+                        element: createNewElement('Input')
+                    },
+                ],
+                initialRows: 1,
                 allowAdd: true,
-                allowEdit: true,
                 allowDelete: true,
             }
         case "RichText":

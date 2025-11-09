@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2 } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, TableColumn, TableColumnCellType, DisplayDataSourceConfig, Rule, Condition, RuleBehaviorType } from "@/lib/types";
+import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit } from "lucide-react";
+import { FormElementInstance, PopupConfig, Section, DataGridColumn, InputTableColumn, Rule, Condition, RuleBehaviorType, ElementType } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -25,6 +25,8 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { fetchFromApi } from "@/services/api";
 import { findFirstArray, flattenObject, getAllElements } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
+import { createNewElement } from "@/lib/form-elements";
 
 
 export function PropertiesSidebar() {
@@ -93,7 +95,7 @@ function SectionProperties({ section }: { section: Section }) {
                         </div>
                          <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                             <Label htmlFor="hidden-by-default">Hidden by default</Label>
-                            <Switch id="hidden-by-default" checked={section.hidden} onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, hidden: checked } })} />
+                            <Switch id="hidden-by-default" checked={!!section.hidden} onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, hidden: checked } })} />
                         </div>
                     </AccordionContent>
                 </AccordionItem>
@@ -213,13 +215,94 @@ function AlignmentRadioGroup({
     )
 }
 
-function ElementProperties({ element }: { element: FormElementInstance }) {
+function InputTableColumnEditor({ 
+    column,
+    onUpdate,
+    onDelete,
+}: {
+    column: InputTableColumn;
+    onUpdate: (updatedColumn: InputTableColumn) => void;
+    onDelete: () => void;
+}) {
+    const [isElementEditorOpen, setIsElementEditorOpen] = useState(false);
+    
+    return (
+        <div className="border p-3 rounded-lg space-y-3 bg-card">
+            <div className="flex justify-between items-center">
+                <Label className="text-base">{column.title || 'Column'}</Label>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onDelete}>
+                    <X className="h-4 w-4 text-destructive" />
+                </Button>
+            </div>
+            <div className="flex flex-col gap-2">
+                <Label htmlFor={`col-title-${column.id}`}>Title</Label>
+                <Input
+                    id={`col-title-${column.id}`}
+                    value={column.title}
+                    onChange={(e) => onUpdate({ ...column, title: e.target.value })}
+                />
+            </div>
+            <div className="flex flex-col gap-2">
+                <Label htmlFor={`col-key-${column.id}`}>Key</Label>
+                <Input
+                    id={`col-key-${column.id}`}
+                    value={column.key}
+                    onChange={(e) => onUpdate({ ...column, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                />
+            </div>
+             <div className="flex flex-col gap-2">
+                <Label htmlFor={`col-width-${column.id}`}>Width</Label>
+                <Input
+                    id={`col-width-${column.id}`}
+                    value={column.width || ''}
+                    placeholder="e.g. 150px"
+                    onChange={(e) => onUpdate({ ...column, width: e.target.value })}
+                />
+            </div>
+            <div className="flex flex-col gap-2">
+                <Label>Contained Element</Label>
+                <div className="border rounded-md p-2 flex justify-between items-center">
+                    <p className="text-sm font-mono bg-muted px-2 py-1 rounded">{column.element.type}</p>
+                    <Button variant="outline" size="sm" onClick={() => setIsElementEditorOpen(true)}>
+                        <Edit className="mr-2 h-3 w-3" /> Edit
+                    </Button>
+                </div>
+            </div>
+
+            {isElementEditorOpen && (
+                 <Dialog open={isElementEditorOpen} onOpenChange={setIsElementEditorOpen}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Editing Column: {column.title}</DialogTitle>
+                            <DialogDescription>
+                                Configure the form element for this column. Changes here will not affect the column's Title or Key.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="py-4 max-h-[60vh] overflow-y-auto px-1">
+                            <ElementProperties 
+                                element={column.element}
+                                onUpdate={(updatedElement) => onUpdate({ ...column, element: updatedElement })}
+                                isColumnElement={true}
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button onClick={() => setIsElementEditorOpen(false)}>Done</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+        </div>
+    );
+}
+
+function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
   const { dispatch, state, sections } = useBuilder();
   const [props, setProps] = useState(element);
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
 
+  const [editingColumn, setEditingColumn] = useState<InputTableColumn | null>(null);
 
   const allElements = getAllElements(sections);
 
@@ -232,12 +315,20 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
     setProps(element);
   }, [element]);
 
+  const onUpdate = (newProps: FormElementInstance) => {
+    if (onUpdateProp) {
+        onUpdateProp(newProps);
+    } else {
+        if (selectedElement) {
+            dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: newProps }});
+        }
+    }
+  };
+
   const updateProperty = (key: keyof FormElementInstance, value: any) => {
       const newProps = { ...props, [key]: value };
       setProps(newProps);
-      if (selectedElement) {
-          dispatch({ type: "UPDATE_ELEMENT", payload: { sectionId: selectedElement.sectionId, element: newProps }});
-      }
+      onUpdate(newProps);
   };
 
   const handleFetchSchema = async () => {
@@ -272,10 +363,10 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
 
   const commonFields = (
     <>
-      <div className="flex flex-col gap-2">
+      {!isColumnElement && <div className="flex flex-col gap-2">
         <Label htmlFor="key">Field Key</Label>
         <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
-      </div>
+      </div>}
       <div className="flex flex-col gap-2">
         <Label htmlFor="label">Label</Label>
         <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
@@ -286,7 +377,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
       </div>
        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
         <Label htmlFor="hidden-by-default">Hidden by default</Label>
-        <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+        <Switch id="hidden-by-default" checked={!!props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
       </div>
     </>
   );
@@ -365,146 +456,6 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
         )}
     </div>
   );
-
-  const tableFields = (
-    <>
-        <div className="flex flex-col gap-2">
-            <Label>Columns</Label>
-            {props.columns?.map((col, index) => (
-                <div key={col.id} className="border p-3 rounded-lg space-y-3">
-                    <div className="flex justify-between items-center">
-                        <Label className="text-base">Column {index + 1}</Label>
-                        <div className="flex items-center gap-2">
-                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                                const newCols = [...props.columns!];
-                                newCols[index].visible = !newCols[index].visible;
-                                updateProperty('columns', newCols);
-                            }}>
-                                {col.visible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                                const newCols = props.columns!.filter(c => c.id !== col.id);
-                                updateProperty('columns', newCols);
-                            }}>
-                                <X className="h-4 w-4 text-destructive" />
-                            </Button>
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor={`col-title-${col.id}`}>Title</Label>
-                        <Input
-                            id={`col-title-${col.id}`}
-                            value={col.title}
-                            onChange={(e) => {
-                                const newCols = [...props.columns!];
-                                newCols[index].title = e.target.value;
-                                updateProperty('columns', newCols);
-                            }}
-                        />
-                    </div>
-                     <div className="flex flex-col gap-2">
-                        <Label htmlFor={`col-key-${col.id}`}>Key (for formulas)</Label>
-                        <Input
-                            id={`col-key-${col.id}`}
-                            value={col.key}
-                            onChange={(e) => {
-                                const newCols = [...props.columns!];
-                                newCols[index].key = e.target.value.replace(/\s+/g, '_').toLowerCase();
-                                updateProperty('columns', newCols);
-                            }}
-                        />
-                    </div>
-                     <div className="flex flex-col gap-2">
-                        <Label>Cell Type</Label>
-                        <Select
-                            value={col.cellType || 'text'}
-                            onValueChange={(value: TableColumnCellType) => {
-                                const newCols = [...props.columns!];
-                                newCols[index].cellType = value;
-                                if ((value === 'select' || value === 'radio') && !newCols[index].options) {
-                                    newCols[index].options = ['Option 1'];
-                                }
-                                updateProperty('columns', newCols);
-                            }}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select cell type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="text">Text</SelectItem>
-                                <SelectItem value="select">Select</SelectItem>
-                                <SelectItem value="checkbox">Checkbox</SelectItem>
-                                <SelectItem value="radio">Radio</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {(col.cellType === 'select' || col.cellType === 'radio') && (
-                        optionsField(col.options, (newOptions) => {
-                             const newCols = [...props.columns!];
-                             newCols[index].options = newOptions;
-                             updateProperty('columns', newCols);
-                        })
-                    )}
-                    <div className="flex flex-col gap-2">
-                        <Label htmlFor={`col-formula-${col.id}`}>Formula</Label>
-                        <Input
-                            id={`col-formula-${col.id}`}
-                            placeholder="e.g., {quantity} * {price}"
-                            value={col.formula || ''}
-                            onChange={(e) => {
-                                const newCols = [...props.columns!];
-                                newCols[index].formula = e.target.value;
-                                updateProperty('columns', newCols);
-                            }}
-                        />
-                         <p className="text-xs text-muted-foreground">Use column keys like {"{key1} * {key2}"}</p>
-                    </div>
-                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                        <Label htmlFor={`hidden-by-default-${col.id}`}>Hidden by default</Label>
-                        <Switch id={`hidden-by-default-${col.id}`} checked={col.hidden} onCheckedChange={(checked) => {
-                            const newCols = [...props.columns!];
-                            newCols[index].hidden = checked;
-                            updateProperty('columns', newCols);
-                        }} />
-                    </div>
-                </div>
-            ))}
-            <Button variant="outline" size="sm" className="mt-2" onClick={() => {
-                const newKey = `col${(props.columns?.length || 0) + 1}`;
-                const newCols = [...(props.columns || []), { id: crypto.randomUUID(), title: `Column ${ (props.columns?.length || 0) + 1}`, key: newKey, visible: true, cellType: 'text' }];
-                updateProperty('columns', newCols);
-            }}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Column
-            </Button>
-        </div>
-        <Separator />
-         <div className="flex flex-col gap-2">
-            <Label htmlFor="initialRows">Initial Rows</Label>
-            <Input
-                id="initialRows"
-                type="number"
-                value={props.initialRows || 1}
-                onChange={(e) => updateProperty('initialRows', parseInt(e.target.value, 10))}
-                min={1}
-            />
-        </div>
-        <Separator />
-        <h4 className="font-medium">User Actions</h4>
-        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-            <Label htmlFor="allowAdd">Allow Add</Label>
-            <Switch id="allowAdd" checked={props.allowAdd} onCheckedChange={(checked) => updateProperty('allowAdd', checked)} />
-        </div>
-        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-            <Label htmlFor="allowEdit">Allow Edit</Label>
-            <Switch id="allowEdit" checked={props.allowEdit} onCheckedChange={(checked) => updateProperty('allowEdit', checked)} />
-        </div>
-        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-            <Label htmlFor="allowDelete">Allow Delete</Label>            <Switch id="allowDelete" checked={props.allowDelete} onCheckedChange={(checked) => updateProperty('allowDelete', checked)} />
-        </div>
-    </>
-  );
   
   const content = () => {
       switch(props.type) {
@@ -520,7 +471,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden-by-default">Hidden by default</Label>
-                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                                <Switch id="hidden-by-default" checked={!!props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -534,7 +485,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden-by-default">Hidden by default</Label>
-                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                                <Switch id="hidden-by-default" checked={!!props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -548,7 +499,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden-by-default">Hidden by default</Label>
-                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                                <Switch id="hidden-by-default" checked={!!props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -614,7 +565,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             {placeholderField}
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden-by-default">Hidden by default</Label>
-                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                                <Switch id="hidden-by-default" checked={!!props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -742,7 +693,7 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                             </div>
                              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden-by-default">Hidden by default</Label>
-                                <Switch id="hidden-by-default" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                                <Switch id="hidden-by-default" checked={!!props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                             <PopupSettings element={props} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
@@ -760,9 +711,78 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     </AccordionItem>
                 </Accordion>
             );
-        case "Table":
+        case "DataGrid":
             return (
-                <Accordion type="multiple" defaultValue={["general", "columns", "actions"]} className="w-full">
+                <Accordion type="multiple" defaultValue={['general', 'data', 'columns']} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="apiUrl">API URL</Label>
+                                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="columns">
+                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-2">
+                            {props.columns?.map((col, index) => (
+                                <div key={col.id} className="border p-3 rounded-lg space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <Label className="text-base">Column {index + 1}</Label>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                                            const newCols = props.columns!.filter(c => c.id !== col.id);
+                                            updateProperty('columns', newCols);
+                                        }}>
+                                            <X className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor={`col-title-${col.id}`}>Title</Label>
+                                        <Input id={`col-title-${col.id}`} value={col.title} onChange={(e) => {
+                                            const newCols = [...props.columns!];
+                                            newCols[index].title = e.target.value;
+                                            updateProperty('columns', newCols);
+                                        }}/>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor={`col-dataKey-${col.id}`}>Data Key</Label>
+                                        <Input id={`col-dataKey-${col.id}`} value={col.dataKey} placeholder="e.g. user.address.street" onChange={(e) => {
+                                            const newCols = [...props.columns!];
+                                            newCols[index].dataKey = e.target.value;
+                                            updateProperty('columns', newCols);
+                                        }}/>
+                                    </div>
+                                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <Label htmlFor={`col-visible-${col.id}`}>Visible</Label>
+                                        <Switch id={`col-visible-${col.id}`} checked={col.visible} onCheckedChange={(checked) => {
+                                            const newCols = [...props.columns!];
+                                            newCols[index].visible = checked;
+                                            updateProperty('columns', newCols);
+                                        }} />
+                                    </div>
+                                </div>
+                            ))}
+                            <Button variant="outline" size="sm" className="mt-2" onClick={() => {
+                                const newCols = [...(props.columns || []), { id: crypto.randomUUID(), title: `Column ${(props.columns?.length || 0) + 1}`, dataKey: "", visible: true }];
+                                updateProperty('columns', newCols);
+                            }}>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Column
+                            </Button>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
+         case "InputTable":
+            return (
+                 <Accordion type="multiple" defaultValue={['general', 'columns', 'config']} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -771,8 +791,58 @@ function ElementProperties({ element }: { element: FormElementInstance }) {
                     </AccordionItem>
                      <AccordionItem value="columns">
                         <AccordionTrigger className="py-2">Columns</AccordionTrigger>
-                        <AccordionContent>
-                            {tableFields}
+                        <AccordionContent className="space-y-2">
+                           {props.inputColumns?.map((col, index) => (
+                                <InputTableColumnEditor 
+                                    key={col.id} 
+                                    column={col}
+                                    onUpdate={(updatedColumn) => {
+                                        const newCols = [...props.inputColumns!];
+                                        newCols[index] = updatedColumn;
+                                        updateProperty('inputColumns', newCols);
+                                    }}
+                                    onDelete={() => {
+                                        const newCols = props.inputColumns!.filter(c => c.id !== col.id);
+                                        updateProperty('inputColumns', newCols);
+                                    }}
+                                />
+                           ))}
+                           <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => {
+                                const newCol: InputTableColumn = {
+                                    id: crypto.randomUUID(),
+                                    title: `Column ${(props.inputColumns?.length || 0) + 1}`,
+                                    key: `col${(props.inputColumns?.length || 0) + 1}`,
+                                    element: createNewElement('Input'),
+                                };
+                                const newCols = [...(props.inputColumns || []), newCol];
+                                updateProperty('inputColumns', newCols);
+                           }}>
+                               <Plus className="mr-2 h-4 w-4" />
+                                Add Column
+                           </Button>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="config">
+                        <AccordionTrigger className="py-2">Configuration</AccordionTrigger>
+                        <AccordionContent className="space-y-4">
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="initialRows">Initial Rows</Label>
+                                <Input
+                                    id="initialRows"
+                                    type="number"
+                                    value={props.initialRows || 1}
+                                    onChange={(e) => updateProperty('initialRows', parseInt(e.target.value, 10))}
+                                    min={1}
+                                />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="allowAdd">Allow Add Rows</Label>
+                                <Switch id="allowAdd" checked={!!props.allowAdd} onCheckedChange={(checked) => updateProperty('allowAdd', checked)} />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="allowDelete">Allow Delete Rows</Label>
+                                <Switch id="allowDelete" checked={!!props.allowDelete} onCheckedChange={(checked) => updateProperty('allowDelete', checked)} />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
