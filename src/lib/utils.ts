@@ -78,6 +78,13 @@ export const getAllElements = (sections: Section[]): FormElementInstance[] => {
                 if (element.type === 'Container' && element.elements) {
                     findElementsRecursive(element.elements);
                 }
+                if (element.type === 'Table' && element.tableColumns) {
+                    element.tableColumns.forEach(col => {
+                        // We add the column's element template to the list of all elements
+                        // so it can be targeted by the rule engine.
+                        allElements.push(col.element);
+                    });
+                }
             });
         };
         findElementsRecursive(section.elements);
