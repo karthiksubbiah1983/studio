@@ -1,7 +1,7 @@
 
 import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
 
-export const getAllElements = (sections: Section[], includeTableColumns = false): (FormElementInstance | Section)[] => {
+export const getAllElements = (sections: Section[]): (FormElementInstance | Section)[] => {
     let allElements: (FormElementInstance | Section)[] = [];
     sections.forEach(section => {
         const findElementsRecursive = (els: FormElementInstance[]): void => {
