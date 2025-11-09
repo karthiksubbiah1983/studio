@@ -18,18 +18,18 @@ import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { fetchFromApi } from "@/services/api";
-import { Popup } from "../ui/popup";
-import { Button } from "../ui/button";
+import { Popup } from "@/components/ui/popup";
+import { Button } from "@/components/ui/button";
 import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
-import { LexicalEditor } from "./lexical/lexical-editor";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
 import { cn } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
-import { findElementRecursive, getAllElements, evaluateRule } from "./form-preview-helpers";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { ScrollArea, ScrollBar } from "../ui/scroll-area";
-import { DataGrid } from "../ui/data-grid";
+import { findElementRecursive, getAllElements, evaluateRule } from "@/components/form-preview-helpers";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { DataGrid } from "@/components/ui/data-grid";
 
 type Props = {
   element: FormElementInstance;
@@ -422,3 +422,5 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
+    
