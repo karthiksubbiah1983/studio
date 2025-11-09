@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { FormElementRenderer } from "./form-element";
+import { FormElementRenderer } from "../form-element";
 import { useEffect, useMemo, useState } from "react";
 import { FormElementInstance, Section, Rule } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -22,10 +22,10 @@ type Props = {
     showSubmitButton?: boolean;
 }
 
-const generateSubmissionJson = (elements: FormElementInstance[], formState: { [key: string]: { value: any } }): Record<string, any> => {
+const generateSubmissionJson = (elements: (FormElementInstance|Section)[], formState: { [key: string]: any }): Record<string, any> => {
     const submission: Record<string, any> = {};
     elements.forEach(element => {
-        if (element.key && formState[element.id]) {
+        if ('key' in element && element.key && formState[element.id]) {
             submission[element.key] = formState[element.id].value;
         }
     });
@@ -33,12 +33,11 @@ const generateSubmissionJson = (elements: FormElementInstance[], formState: { [k
 };
 
 export function FormPreview({ showSubmitButton = true }: Props) {
-  const { activeForm, sections, dispatch } = useBuilder();
+  const { activeForm, sections, rules, dispatch } = useBuilder();
   const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
   const { toast } = useToast();
   
   const latestVersion = activeForm?.versions[0];
-  const publishedVersionsCount = activeForm?.versions.filter(v => v.type === 'published').length || 0;
 
   const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
     setFormState((prev) => ({ ...prev, [elementId]: { value, fullObject } }));
@@ -67,100 +66,48 @@ export function FormPreview({ showSubmitButton = true }: Props) {
         )
     });
 
-    // Optionally clear the form after submission
     setFormState({});
   }
 
- const elementVisibility = useMemo(() => {
-    const visibility: { [key: string]: boolean } = {};
-    const allItems = [...sections, ...getAllElements(sections)];
-    const allRules = allItems.flatMap(item => item.rules || []);
+ const isSectionVisible = (section: Section): boolean => {
+    const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === section.id);
+    const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === section.id);
 
-    allItems.forEach(item => {
-        visibility[item.id] = true; // Default to visible
-    });
+    let visible;
 
-    allRules.forEach(rule => {
-        const targetId = rule.behavior.targetElementId;
-        if (!targetId) return;
+    if (showRules.length > 0) {
+      visible = showRules.some(r => evaluateRule(r, formState || {}));
+    } else {
+      visible = !section.hidden;
+    }
 
-        const isRuleMet = evaluateRule(rule, formState);
-
-        if (rule.behavior.type === 'show') {
-            // For "show" rules, the element is hidden unless a rule is met.
-            // We need to find all "show" rules for a target.
-            const showRulesForTarget = allRules.filter(r => r.behavior.targetElementId === targetId && r.behavior.type === 'show');
-            if (showRulesForTarget.length > 0) {
-                 const isAnyShowRuleMet = showRulesForTarget.some(r => evaluateRule(r, formState));
-                 visibility[targetId] = isAnyShowRuleMet;
-            }
-        }
-        
-        if (rule.behavior.type === 'hide') {
-            // "hide" rules override "show" rules.
-            if (isRuleMet) {
-                visibility[targetId] = false;
-            }
-        }
-    });
-
-    return visibility;
- }, [formState, sections]);
-
-  
-  const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
-    return elements.map((element) => {
-      if (elementVisibility[element.id] === false) return null;
-
-      if (element.type === 'Container') {
-        // We need to render the container and its children
-        const containerContent = renderElements(element.elements || [], element.direction === 'horizontal');
-        const { direction, justify, align } = element;
-        const alignmentClasses = {
-            justify: {
-                start: 'justify-start',
-                center: 'justify-center',
-                end: 'justify-end',
-                between: 'justify-between',
-                around: 'justify-around',
-                evenly: 'justify-evenly',
-            },
-            align: {
-                start: 'items-start',
-                center: 'items-center',
-                end: 'items-end',
-                stretch: 'items-stretch',
-                baseline: 'items-baseline',
-            }
-        };
-        return (
-            <div key={element.id} className={cn("flex gap-4",
-                direction === 'horizontal' ? 'flex-row' : 'flex-col',
-                justify && alignmentClasses.justify[justify],
-                align && alignmentClasses.align[align],
-            )}>
-                {containerContent}
-            </div>
-        )
+    if (visible && hideRules.length > 0) {
+      if (hideRules.some(r => evaluateRule(r, formState || {}))) {
+        visible = false;
       }
+    }
+    
+    return visible;
+  }
 
-      return (
+  const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
+      return elements.map(element => (
           <FormElementRenderer
               key={element.id}
               element={element}
-              value={formState[element.id]}
+              value={formState[element.id]?.value}
               onValueChange={handleValueChange}
               formState={formState}
               isParentHorizontal={isParentHorizontal}
           />
-      )
-    })
-  }
+      ));
+  };
+
 
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => {
-         if (elementVisibility[section.id] === false) return null;
+         if (!isSectionVisible(section)) return null;
 
         return (
           <Card key={section.id}>
