@@ -61,7 +61,6 @@ export type TableColumn = {
     key: string;
     label: string;
     element: FormElementInstance;
-    isCalculated?: boolean;
     formula?: string;
 }
 

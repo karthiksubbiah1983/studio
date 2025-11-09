@@ -433,7 +433,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
             // Recalculate formula fields in the same row
             element.tableColumns?.forEach(col => {
-                if (col.isCalculated && col.formula) {
+                if (col.formula) {
                     const formulaResult = evaluate(col.formula, newRows[rowIndex]);
                     newRows[rowIndex][col.key] = formulaResult;
                 }
@@ -468,7 +468,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                         const cellId = `${element.id}-${rowIndex}-${col.key}`;
                                         let cellValue = row[col.key];
 
-                                        if (col.isCalculated && col.formula) {
+                                        if (col.formula) {
                                           const calculatedValue = evaluate(col.formula, row);
                                           cellValue = calculatedValue;
                                           // Note: We are not calling onValueChange here to prevent potential infinite loops.
@@ -483,7 +483,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                           }
                                         });
 
-                                        if (col.isCalculated) {
+                                        if (col.formula) {
                                             return (
                                                 <TableCell key={cellId}>
                                                     <Input readOnly value={cellValue} className="border-none bg-transparent" />

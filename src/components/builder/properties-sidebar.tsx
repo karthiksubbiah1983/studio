@@ -788,33 +788,23 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 </div>
 
                                 <Separator />
-                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <div className="space-y-0.5">
-                                        <Label>Calculated Value</Label>
-                                        <p className="text-xs text-muted-foreground">
-                                            Calculate this column's value based on a formula.
-                                        </p>
-                                    </div>
-                                    <Switch
-                                        checked={editingColumn.isCalculated}
-                                        onCheckedChange={(checked) => setEditingColumn({ ...editingColumn, isCalculated: checked })}
-                                    />
-                                </div>
 
-                                {editingColumn.isCalculated ? (
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Formula</Label>
-                                        <Input 
-                                            placeholder="e.g. {col_1} * {col_2}"
-                                            value={editingColumn.formula || ''}
-                                            onChange={(e) => setEditingColumn({ ...editingColumn, formula: e.target.value })}
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            Use {'{column_key}'} to reference other columns in the same row.
-                                        </p>
-                                    </div>
-                                ) : (
+                                <div className="flex flex-col gap-2">
+                                    <Label>Formula (Optional)</Label>
+                                    <Input 
+                                        placeholder="e.g. {col_1} * {col_2}"
+                                        value={editingColumn.formula || ''}
+                                        onChange={(e) => setEditingColumn({ ...editingColumn, formula: e.target.value })}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
+                                    </p>
+                                </div>
+                                
+                                {!(editingColumn.formula) && (
                                     <>
+                                        <Separator />
+                                        <h3 className="text-lg font-medium">Field Properties</h3>
                                         <div className="flex flex-col gap-2">
                                             <Label>Field Type</Label>
                                             <Select 
@@ -836,8 +826,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                 </SelectContent>
                                             </Select>
                                         </div>
-                                        <Separator />
-                                        <h3 className="text-lg font-medium">Field Properties</h3>
+                                        
                                         <ElementProperties
                                             element={editingColumn.element}
                                             onUpdate={(updatedElement) => setEditingColumn({ ...editingColumn, element: updatedElement })}
