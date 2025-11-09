@@ -616,7 +616,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         break;
     }
     default:
-      content = <div>Unsupported element type</div>;
+      content = <div>Unsupported element type: {type}</div>;
       break;
   }
 
