@@ -41,10 +41,10 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             setSelectedRuleId(null);
         }
     }
-  }, [isOpen]);
+  }, [isOpen, rules, selectedRuleId]);
 
-  const allElements = useMemo(() => getAllElements(sections, true), [sections]);
-  const allTargettableElements = useMemo(() => [...getAllElements(sections, true), ...sections], [sections]);
+  const allElements = useMemo(() => getAllElements(sections), [sections]);
+  const allTargettableElements = useMemo(() => [...getAllElements(sections), ...sections], [sections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
@@ -130,16 +130,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             options = sourceElement.options;
         }
         
-        if (sourceElement.id.includes('.')) {
-            const [tableId, colKey] = sourceElement.id.split('.');
-            const table = findElementRecursive(sections, tableId);
-            if (!table || table.type !== 'Table' || !table.columns) return [];
-            const column = table.columns.find(c => c.key === colKey);
-             if (column && (column.cellType === 'select' || column.cellType === 'radio')) {
-                options = column.options;
-            }
-        }
-        
         if (sourceElement.type === 'Checkbox') {
             return ['true', 'false'];
         }
@@ -147,7 +137,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         return options || [];
     }
 
-    const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || sourceElement.type === 'Checkbox' || (sourceElement.id.includes('.') && (sourceElement.type === 'select' || sourceElement.type === 'radio'))) && condition.comparisonType === 'static_value';
+    const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || sourceElement.type === 'Checkbox') && condition.comparisonType === 'static_value';
 
     return (
         <div className="border bg-background/50 p-3 rounded-md space-y-3 relative">

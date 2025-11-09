@@ -10,16 +10,6 @@ export const getAllElements = (sections: Section[], includeTableColumns = false)
                 if (element.type === 'Container' && element.elements) {
                     findElementsRecursive(element.elements);
                 }
-                if (includeTableColumns && element.type === 'InputTable' && element.inputColumns) {
-                   element.inputColumns.forEach(col => {
-                        allElements.push({
-                            id: `${element.id}.*.${col.key}`, // Representative ID for rule targeting
-                            key: col.key,
-                            type: col.element.type,
-                            label: `${element.label} > ${col.title}`,
-                        } as any);
-                   })
-                }
             });
         };
         findElementsRecursive(section.elements);
