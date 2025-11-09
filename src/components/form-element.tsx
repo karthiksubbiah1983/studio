@@ -423,11 +423,20 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "Table":
         const tableRows = (value as any[]) || [];
         const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
-            const newRows = [...tableRows];
+            let newRows = [...tableRows];
             if (!newRows[rowIndex]) {
                 newRows[rowIndex] = {};
             }
             newRows[rowIndex][columnKey] = cellValue;
+
+            // Recalculate formula fields in the same row
+            element.tableColumns?.forEach(col => {
+                if (col.isCalculated && col.formula) {
+                    const formulaResult = evaluate(col.formula, newRows[rowIndex]);
+                    newRows[rowIndex][col.key] = formulaResult;
+                }
+            })
+
             onValueChange(element.id, newRows);
         }
         const handleAddRow = () => {
@@ -455,7 +464,15 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                 <TableRow key={rowIndex}>
                                     {element.tableColumns?.map(col => {
                                         const cellId = `${element.id}-${rowIndex}-${col.key}`;
-                                        const cellValue = row[col.key];
+                                        let cellValue = row[col.key];
+
+                                        if (col.isCalculated && col.formula) {
+                                          const calculatedValue = evaluate(col.formula, row);
+                                          cellValue = calculatedValue;
+                                          // Note: We are not calling onValueChange here to prevent potential infinite loops.
+                                          // The value is directly used for rendering. The state update will consolidate all changes.
+                                        }
+
                                         // create a sub-state for the row to pass to rule engine
                                         const rowFormState = { ...formState };
                                         element.tableColumns?.forEach(c => {
@@ -463,6 +480,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                             rowFormState[c.element.id] = { value: row[c.key] };
                                           }
                                         });
+
+                                        if (col.isCalculated) {
+                                            return (
+                                                <TableCell key={cellId}>
+                                                    <Input readOnly value={cellValue} className="border-none bg-transparent" />
+                                                </TableCell>
+                                            )
+                                        }
 
                                         return (
                                         <TableCell key={cellId}>
