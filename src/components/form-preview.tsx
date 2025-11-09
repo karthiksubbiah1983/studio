@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -69,18 +68,61 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     setFormState({});
   }
 
+ const elementVisibility = useMemo(() => {
+    const visibility: { [key: string]: boolean } = {};
+    const allItems = [...sections, ...getAllElements(sections)];
+    
+    allItems.forEach(item => {
+        // Default visibility: not hidden
+        visibility[item.id] = item.hidden !== true;
+
+        const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === item.id);
+        const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === item.id);
+
+        // If there are "show" rules, the element is hidden unless a rule is met.
+        if (showRules.length > 0) {
+            visibility[item.id] = showRules.some(r => evaluateRule(r, formState || {}));
+        }
+
+        // "hide" rules always take precedence.
+        if (hideRules.some(r => evaluateRule(r, formState || {}))) {
+            visibility[item.id] = false;
+        }
+    });
+    return visibility;
+ }, [formState, sections, rules]);
+
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => {
+         if (elementVisibility[section.id] === false) return null;
+
         return (
-          <FormElementRenderer 
-            key={section.id}
-            element={section as unknown as FormElementInstance}
-            value={null}
-            onValueChange={handleValueChange}
-            formState={formState}
-          />
-        )
+          <Card key={section.id}>
+            <CardHeader>
+                <CardTitle className="text-base font-medium">
+                    {section.title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div
+                  className={cn(
+                  "grid gap-4 grid-cols-1"
+                  )}
+              >
+                  {section.elements.map(element => (
+                      <FormElementRenderer
+                          key={element.id}
+                          element={element}
+                          value={formState[element.id]?.value}
+                          onValueChange={handleValueChange}
+                          formState={formState}
+                      />
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        );
       })}
        {showSubmitButton && <div className="flex justify-end mt-8">
             <Button onClick={handleSubmit}>

@@ -46,7 +46,7 @@ const getNestedValue = (obj: any, path: string): any => {
 };
 
 export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal }: Props) {
-  const { rules, sections } = useBuilder();
+  const { rules } = useBuilder();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -173,57 +173,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
 
   const LucideIcon = popup?.icon ? (icons as any)[popup.icon] : null;
-  
-  const elementId = element?.id;
-  const isSection = !type && elementId;
-  const sectionIsVisible = useMemo(() => {
-    if (!isSection) return true;
-    const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === elementId);
-    const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === elementId);
-
-    let visible;
-    if (showRules.length > 0) {
-      visible = showRules.some(r => evaluateRule(r, formState || {}));
-    } else {
-      visible = !element.hidden;
-    }
-
-    if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, formState || {}))) {
-        visible = false;
-      }
-    }
-    return visible;
-  }, [isSection, element, formState, rules, elementId]);
-
-
-  if (isSection) {
-    const section = element as unknown as Section;
-    if (!sectionIsVisible) return null;
-
-    return (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-base font-medium">
-                    {section.title}
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 grid-cols-1">
-                  {section.elements.map(el => (
-                    <FormElementRenderer 
-                        key={el.id}
-                        element={el}
-                        value={formState?.[el.id]?.value}
-                        onValueChange={onValueChange}
-                        formState={formState}
-                    />
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
-    )
-  }
   
   if (!isVisible) return null;
 
