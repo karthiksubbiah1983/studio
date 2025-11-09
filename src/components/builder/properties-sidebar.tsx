@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -643,7 +642,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "DataGrid":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "columns"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "columns", "pagination"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -668,6 +667,27 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                         <AccordionContent>
                             {dataGridColumnsField(props.columns, (newColumns) => updateProperty('columns', newColumns))}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="pagination">
+                        <AccordionTrigger className="py-2">Pagination</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="pagination-enabled">Enable Pagination</Label>
+                                <Switch id="pagination-enabled" checked={props.paginationEnabled} onCheckedChange={(checked) => updateProperty('paginationEnabled', checked)} />
+                            </div>
+                            {props.paginationEnabled && (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="page-size">Page Size</Label>
+                                    <Input 
+                                        id="page-size" 
+                                        type="number" 
+                                        value={props.pageSize || 5} 
+                                        onChange={(e) => updateProperty('pageSize', parseInt(e.target.value))}
+                                        min={1}
+                                    />
+                                </div>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

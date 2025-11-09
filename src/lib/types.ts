@@ -86,6 +86,8 @@ export type FormElementInstance = {
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
     // For DataGrid
     columns?: DataGridColumn[];
+    paginationEnabled?: boolean;
+    pageSize?: number;
 };
 
 export type Section = {

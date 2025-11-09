@@ -14,19 +14,26 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Skeleton } from "./skeleton";
+import { Button } from "./button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type DataGridProps = {
   apiUrl: string;
   columns: DataGridColumn[];
+  paginationEnabled?: boolean;
+  pageSize?: number;
 };
 
 export function DataGrid({
   apiUrl,
   columns,
+  paginationEnabled,
+  pageSize = 5,
 }: DataGridProps) {
   const [data, setData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!apiUrl) {
@@ -60,9 +67,20 @@ export function DataGrid({
   
   const visibleColumns = columns.filter(c => c.visible);
 
+  const totalPages = paginationEnabled ? Math.ceil(data.length / pageSize) : 1;
+  const paginatedData = paginationEnabled ? data.slice((currentPage - 1) * pageSize, currentPage * pageSize) : data;
+
+  const handlePrevPage = () => {
+    setCurrentPage(p => Math.max(1, p - 1));
+  }
+  const handleNextPage = () => {
+    setCurrentPage(p => Math.min(totalPages, p + 1));
+  }
+
+
   const renderLoadingState = () => (
     <div className="space-y-2">
-      {[...Array(5)].map((_, i) => (
+      {[...Array(pageSize)].map((_, i) => (
         <div key={i} className="flex gap-2">
           {visibleColumns.map(col => <Skeleton key={col.id} className="h-8 flex-1" />)}
         </div>
@@ -79,29 +97,56 @@ export function DataGrid({
   }
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            {visibleColumns.map(col => (
-              <TableHead key={col.id}>{col.label}</TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((row, rowIndex) => {
-            return (
-              <TableRow
-                key={rowIndex}
-              >
+    <div>
+        <div className="rounded-md border">
+        <Table>
+            <TableHeader>
+            <TableRow>
                 {visibleColumns.map(col => (
-                  <TableCell key={col.id}>{getNestedValue(row, col.key)}</TableCell>
+                <TableHead key={col.id}>{col.label}</TableHead>
                 ))}
-              </TableRow>
-            )
-          })}
-        </TableBody>
-      </Table>
+            </TableRow>
+            </TableHeader>
+            <TableBody>
+            {paginatedData.map((row, rowIndex) => {
+                return (
+                <TableRow
+                    key={rowIndex}
+                >
+                    {visibleColumns.map(col => (
+                    <TableCell key={col.id}>{getNestedValue(row, col.key)}</TableCell>
+                    ))}
+                </TableRow>
+                )
+            })}
+            </TableBody>
+        </Table>
+        </div>
+        {paginationEnabled && totalPages > 1 && (
+            <div className="flex items-center justify-end space-x-2 py-4">
+                 <div className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                </Button>
+            </div>
+        )}
     </div>
   );
 }

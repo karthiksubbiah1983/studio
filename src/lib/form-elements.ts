@@ -65,7 +65,9 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
                     { id: '1', key: 'name', label: 'Name', visible: true },
                     { id: '2', key: 'email', label: 'Email', visible: true },
                     { id: '3', key: 'phone', label: 'Phone', visible: false },
-                ]
+                ],
+                paginationEnabled: true,
+                pageSize: 5,
             }
         default:
             throw new Error("Invalid element type");

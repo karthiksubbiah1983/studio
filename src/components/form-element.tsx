@@ -26,7 +26,7 @@ import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
 import { cn } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
-import { findElementRecursive, getAllElements, evaluateRule } from "@/components/form-preview-helpers";
+import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DataGrid } from "@/components/ui/data-grid";
@@ -411,6 +411,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 <DataGrid
                     apiUrl={element.apiUrl || ""}
                     columns={element.columns || []}
+                    paginationEnabled={element.paginationEnabled}
+                    pageSize={element.pageSize}
                 />
             </div>
         );
@@ -422,5 +424,3 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-    
