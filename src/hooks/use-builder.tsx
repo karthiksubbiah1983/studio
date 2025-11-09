@@ -577,16 +577,9 @@ const builderReducer = (state: State, action: Action): State => {
       const newForms = state.forms.map(form => {
           if (form.id === state.activeFormId) {
               const otherVersions = form.versions.filter(v => v.id !== action.payload.versionId);
-              // Make a copy to be the new active draft, ensuring original version is untouched
-              const newActiveDraft = { 
-                  ...versionToLoad, 
-                  id: crypto.randomUUID(), 
-                  timestamp: new Date().toISOString(),
-                  // If loading a published version, the new top version should be a draft based on it
-                  type: 'draft' as "draft" | "published",
-                  name: `Draft of ${versionToLoad.name}`
-              };
-              const newVersions = [newActiveDraft, versionToLoad, ...otherVersions];
+              // Make the loaded version the new active draft by placing it at the top.
+              // This is a direct state manipulation, so the original version becomes the draft.
+              const newVersions = [versionToLoad, ...otherVersions];
               return { ...form, versions: newVersions };
           }
           return form;
@@ -750,32 +743,39 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    // This effect runs only once on the client, after initial render
     if (typeof window !== "undefined") {
+      let storedState;
       try {
-        const storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (storedState) {
+        storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+      } catch (e) {
+        console.error("Could not access localStorage.", e);
+      }
+      
+      if (storedState) {
+        try {
           const parsedState = JSON.parse(storedState);
-          if (parsedState && Array.isArray(parsedState.forms)) {
+           if (parsedState && Array.isArray(parsedState.forms) && parsedState.forms.length > 0) {
             dispatchAction({ type: "SET_STATE", payload: parsedState });
           } else {
              dispatchAction({ type: "SET_STATE", payload: defaultState });
           }
-        } else {
-            dispatchAction({ type: "SET_STATE", payload: defaultState });
+        } catch (error) {
+           console.error("Failed to parse state from localStorage, initializing with default.", error);
+           dispatchAction({ type: "SET_STATE", payload: defaultState });
         }
-      } catch (error) {
-        console.error("Failed to load state from localStorage, initializing with default.", error);
-        dispatchAction({ type: "SET_STATE", payload: defaultState });
-      } finally {
-        setIsLoaded(true);
+      } else {
+         dispatchAction({ type: "SET_STATE", payload: defaultState });
       }
+       setIsLoaded(true);
     }
   }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined" && isLoaded && state !== initialState) {
       try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
+        const stateToSave = JSON.parse(JSON.stringify(state));
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
       } catch (error) {
         console.error("Failed to save state to localStorage", error);
       }
@@ -828,5 +828,7 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
 
     
