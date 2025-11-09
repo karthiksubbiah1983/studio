@@ -54,6 +54,7 @@ export type DataGridColumn = {
     id: string;
     title: string;
     dataKey: string; // Key from the API data object
+    key: string;
     visible: boolean;
 };
 
@@ -149,3 +150,5 @@ export type Submission = {
 export type ClipboardItem = 
     | { type: 'section', content: Section }
     | { type: 'element', content: FormElementInstance };
+
+    
