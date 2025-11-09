@@ -41,7 +41,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             setSelectedRuleId(null);
         }
     }
-  }, [isOpen, rules, selectedRuleId]);
+  }, [isOpen, rules]);
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
   const allTargettableElements = useMemo(() => [...getAllElements(sections), ...sections], [sections]);
