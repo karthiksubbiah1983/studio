@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -8,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, DataGridColumn } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, DataGridColumn, TableColumn } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -220,6 +221,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
+  const [editingColumn, setEditingColumn] = useState<TableColumn | null>(null);
 
   const allElements = getAllElements(sections);
 
@@ -276,6 +278,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     } finally {
         setIsFetching(false);
     }
+  }
+  
+  const handleUpdateColumn = (updatedColumn: TableColumn) => {
+    if (!props.tableColumns) return;
+    const newColumns = props.tableColumns.map(c => c.id === updatedColumn.id ? updatedColumn : c);
+    updateProperty('tableColumns', newColumns);
+    setEditingColumn(updatedColumn);
   }
 
   const commonFields = (
@@ -436,7 +445,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             </div>
         ))}
         <Button variant="outline" size="sm" onClick={() => {
-            const newCols = [...(columns || []), { id: crypto.randomUUID(), key: "", label: `Column ${(columns?.length || 0) + 1}`, visible: true }];
+            const newCols = [...(columns || []), { id: crypto.randomUUID(), key: "", label: `Column ${(columns?.length || 0) + 1}` }];
             onUpdate(newCols);
         }}>
             <Plus className="mr-2 h-4 w-4" />
@@ -695,6 +704,127 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
             )
+        case "Table":
+            return (
+                <>
+                <Accordion type="multiple" defaultValue={["general", "columns", "rows"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="columns">
+                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
+                        <AccordionContent>
+                            <div className="flex flex-col gap-2">
+                                <Label>Columns</Label>
+                                {props.tableColumns?.map((col, index) => (
+                                    <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
+                                        <div className="flex-1 text-sm">{col.label} ({col.element.type})</div>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingColumn(col)}>
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                                            const newCols = props.tableColumns?.filter(c => c.id !== col.id);
+                                            updateProperty('tableColumns', newCols);
+                                        }}>
+                                            <Trash className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                <Button variant="outline" size="sm" onClick={() => {
+                                    const newCol: TableColumn = {
+                                        id: crypto.randomUUID(),
+                                        key: `col_${(props.tableColumns?.length || 0) + 1}`,
+                                        label: `Column ${(props.tableColumns?.length || 0) + 1}`,
+                                        element: createNewElement('Input')
+                                    };
+                                    setEditingColumn(newCol); // Open dialog to configure new column
+                                }}>
+                                    <Plus className="mr-2 h-4 w-4" /> Add Column
+                                </Button>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="rows">
+                        <AccordionTrigger className="py-2">Rows</AccordionTrigger>
+                        <AccordionContent>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="can-add-rows">User can add rows</Label>
+                                <Switch id="can-add-rows" checked={props.canAddRows} onCheckedChange={(checked) => updateProperty('canAddRows', checked)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+
+                <Dialog open={!!editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
+                    <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                            <DialogTitle>Edit Column</DialogTitle>
+                            <DialogDescription>
+                                Configure the properties for this table column.
+                            </DialogDescription>
+                        </DialogHeader>
+                        {editingColumn && (
+                            <div className="py-4 flex flex-col gap-4">
+                                <div className="flex flex-col gap-2">
+                                    <Label>Column Header</Label>
+                                    <Input value={editingColumn.label} onChange={(e) => setEditingColumn({...editingColumn, label: e.target.value })} />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label>Column Key</Label>
+                                    <Input value={editingColumn.key} onChange={(e) => setEditingColumn({...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label>Field Type</Label>
+                                    <Select 
+                                        value={editingColumn.element.type}
+                                        onValueChange={(type) => {
+                                            const newElement = createNewElement(type as ElementType);
+                                            setEditingColumn({...editingColumn, element: newElement });
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a field type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Input">Input</SelectItem>
+                                            <SelectItem value="Select">Select</SelectItem>
+                                            <SelectItem value="Checkbox">Checkbox</SelectItem>
+                                            <SelectItem value="RadioGroup">Radio Group</SelectItem>
+                                            <SelectItem value="DatePicker">Date Picker</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <Separator />
+                                <h3 className="text-lg font-medium">Field Properties</h3>
+                                <ElementProperties
+                                    element={editingColumn.element}
+                                    onUpdate={(updatedElement) => setEditingColumn({ ...editingColumn, element: updatedElement })}
+                                    isColumnElement={true}
+                                />
+                            </div>
+                        )}
+                        <DialogFooter>
+                             <Button variant="outline" onClick={() => setEditingColumn(null)}>Cancel</Button>
+                             <Button onClick={() => {
+                                if (!editingColumn) return;
+                                const existing = props.tableColumns?.find(c => c.id === editingColumn.id);
+                                let newColumns: TableColumn[];
+                                if (existing) {
+                                    newColumns = (props.tableColumns || []).map(c => c.id === editingColumn.id ? editingColumn : c);
+                                } else {
+                                    newColumns = [...(props.tableColumns || []), editingColumn];
+                                }
+                                updateProperty('tableColumns', newColumns);
+                                setEditingColumn(null);
+                             }}>Save Column</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+                </>
+            );
         case "RadioGroup":
              return (
                  <Accordion type="multiple" defaultValue={["general", "data"]} className="w-full">
@@ -762,5 +892,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-    

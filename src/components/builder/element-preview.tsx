@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance } from "@/lib/types";
@@ -10,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table } from "lucide-react";
+import { Clock, Table, Table2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
@@ -135,6 +136,17 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
           </div>
         </div>
        );
+    case "Table":
+        return (
+            <div>
+                {renderLabel()}
+                <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
+                    <Table2 className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Editable Table</p>
+                    <p className="text-xs text-muted-foreground/70">{element.tableColumns?.length || 0} columns configured</p>
+                </div>
+            </div>
+        )
     default:
       return <div>Unsupported element type</div>;
   }

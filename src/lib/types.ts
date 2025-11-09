@@ -1,5 +1,6 @@
 
-export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid";
+
+export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -53,8 +54,14 @@ export type DataGridColumn = {
     id: string;
     key: string;
     label: string;
-    visible: boolean;
 };
+
+export type TableColumn = {
+    id: string;
+    key: string;
+    label: string;
+    element: FormElementInstance;
+}
 
 export type FormElementInstance = {
     id: string;
@@ -88,6 +95,9 @@ export type FormElementInstance = {
     columns?: DataGridColumn[];
     paginationEnabled?: boolean;
     pageSize?: number;
+    // For Table
+    tableColumns?: TableColumn[];
+    canAddRows?: boolean;
 };
 
 export type Section = {

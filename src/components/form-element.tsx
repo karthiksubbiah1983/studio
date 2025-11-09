@@ -1,7 +1,8 @@
 
+
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, TableColumn } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +31,8 @@ import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DataGrid } from "@/components/ui/data-grid";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 
 type Props = {
   element: FormElementInstance;
@@ -414,6 +417,81 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                     paginationEnabled={element.paginationEnabled}
                     pageSize={element.pageSize}
                 />
+            </div>
+        );
+        break;
+    case "Table":
+        const tableRows = (value as any[]) || [];
+        const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
+            const newRows = [...tableRows];
+            if (!newRows[rowIndex]) {
+                newRows[rowIndex] = {};
+            }
+            newRows[rowIndex][columnKey] = cellValue;
+            onValueChange(element.id, newRows);
+        }
+        const handleAddRow = () => {
+            const newRow = {};
+            onValueChange(element.id, [...tableRows, newRow]);
+        }
+        const handleDeleteRow = (rowIndex: number) => {
+            const newRows = tableRows.filter((_, i) => i !== rowIndex);
+            onValueChange(element.id, newRows);
+        }
+
+        content = (
+            <div>
+                {renderLabel()}
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {element.tableColumns?.map(col => <TableHead key={col.id}>{col.label}</TableHead>)}
+                                {element.canAddRows && <TableHead className="w-[50px]"></TableHead>}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {tableRows.map((row, rowIndex) => (
+                                <TableRow key={rowIndex}>
+                                    {element.tableColumns?.map(col => {
+                                        const cellId = `${element.id}-${rowIndex}-${col.key}`;
+                                        const cellValue = row[col.key];
+                                        // create a sub-state for the row to pass to rule engine
+                                        const rowFormState = { ...formState };
+                                        element.tableColumns?.forEach(c => {
+                                          if (row[c.key]) {
+                                            rowFormState[c.element.id] = { value: row[c.key] };
+                                          }
+                                        });
+
+                                        return (
+                                        <TableCell key={cellId}>
+                                            <FormElementRenderer 
+                                                element={{...col.element, id: cellId}} // Unique ID for each cell
+                                                value={cellValue}
+                                                onValueChange={(_id, val) => handleRowValueChange(rowIndex, col.key, val)}
+                                                formState={rowFormState}
+                                            />
+                                        </TableCell>
+                                    )})}
+                                     {element.canAddRows && (
+                                        <TableCell>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
+                                                <Trash className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </TableCell>
+                                    )}
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+                 {element.canAddRows && (
+                    <Button variant="outline" size="sm" className="mt-2" onClick={handleAddRow}>
+                        <Plus className="h-4 w-4 mr-2"/>
+                        Add Row
+                    </Button>
+                )}
             </div>
         );
         break;

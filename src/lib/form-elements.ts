@@ -1,6 +1,7 @@
 
+
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, Heading1, FileText, RadioTower, ChevronsUpDown, Layout, Grid } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, Heading1, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -18,6 +19,7 @@ export const FormElements: {
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'DataGrid', icon: Grid, label: 'Data Grid'},
+    { type: 'Table', icon: Table2, label: 'Table' },
     { type: 'Title', icon: Heading1, label: 'Title' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
@@ -62,12 +64,24 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
                 label: "Data Grid",
                 apiUrl: "https://jsonplaceholder.typicode.com/users",
                 columns: [
-                    { id: '1', key: 'name', label: 'Name', visible: true },
-                    { id: '2', key: 'email', label: 'Email', visible: true },
-                    { id: '3', key: 'phone', label: 'Phone', visible: false },
+                    { id: '1', key: 'name', label: 'Name' },
+                    { id: '2', key: 'email', label: 'Email' },
+                    { id: '3', key: 'phone', label: 'Phone' },
                 ],
                 paginationEnabled: true,
                 pageSize: 5,
+            }
+        case "Table":
+            const inputColumnElement = createNewElement('Input');
+            const selectColumnElement = createNewElement('Select');
+            return {
+                ...baseElement,
+                label: "Editable Table",
+                canAddRows: true,
+                tableColumns: [
+                    { id: crypto.randomUUID(), key: 'col_1', label: 'Column 1', element: { ...inputColumnElement, label: 'Input in Table' } },
+                    { id: crypto.randomUUID(), key: 'col_2', label: 'Column 2', element: { ...selectColumnElement, label: 'Select in Table' } },
+                ]
             }
         default:
             throw new Error("Invalid element type");
