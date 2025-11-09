@@ -80,19 +80,20 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
  const isDisabled = useMemo(() => {
     if (!formState) return false;
     
+    // Disabling rules take precedence
     const disableRules = rules.filter(r => r.behavior.type === 'disable' && r.behavior.targetElementId === element.id);
     if (disableRules.some(r => evaluateRule(r, formState))) {
       return true;
     }
 
+    // If any enable rules exist, the field is disabled unless one of them is met
     const enableRules = rules.filter(r => r.behavior.type === 'enable' && r.behavior.targetElementId === element.id);
     if (enableRules.length > 0) {
-      if (enableRules.some(r => evaluateRule(r, formState))) {
-        return false;
-      }
-      return true;
+      // It's disabled unless an 'enable' rule is met
+      return !enableRules.some(r => evaluateRule(r, formState));
     }
 
+    // Default to not disabled
     return false;
   }, [element.id, formState, rules]);
 

@@ -69,30 +69,27 @@ export const findElementRecursive = (sections: Section[], elementId: string): Fo
 export const getAllElements = (sections: Section[], includeTableColumns = false): FormElementInstance[] => {
     let allElements: FormElementInstance[] = [];
     sections.forEach(section => {
-        const findElementsRecursive = (els: FormElementInstance[], parentKey: string = ''): void => {
+        const findElementsRecursive = (els: FormElementInstance[]): void => {
             els.forEach(element => {
-                const currentKey = element.key || '';
-                // Push the main element
                 allElements.push(element);
 
                 if (element.type === 'Container' && element.elements) {
-                    // Recurse into container elements
-                    findElementsRecursive(element.elements, currentKey);
+                    findElementsRecursive(element.elements);
                 }
                 
-                if (includeTableColumns && element.type === 'Table' && element.columns) {
-                    element.columns.forEach(col => {
-                        // Treat each column as a pseudo-element for rule targeting
+                if (includeTableColumns && element.type === 'InputTable' && element.inputColumns) {
+                   // This part is complex because we need row context. 
+                   // The simple flat list here is mostly for the rule editor's target selector.
+                   // The actual rule evaluation needs to happen with row context.
+                   // For now, we can add a generic representation.
+                   element.inputColumns.forEach(col => {
                         allElements.push({
-                            id: `${element.id}.${col.key}`,
-                            key: `${element.key}.${col.key}`,
-                            type: col.cellType || 'text',
+                            id: `${element.id}.*.${col.key}`, // Representative ID
+                            key: col.key,
+                            type: col.element.type,
                             label: `${element.label} > ${col.title}`,
-                            options: col.options,
-                            hidden: col.hidden,
-                            required: false, // Individual table cells might not be "required" in the same way
-                        } as FormElementInstance);
-                    });
+                        } as any);
+                   })
                 }
             });
         };
