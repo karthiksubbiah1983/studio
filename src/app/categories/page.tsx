@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Category, SubCategory } from "@/lib/types";
 import { Plus, Trash, X, GripVertical, Save } from "lucide-react";
-import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/page-header";
@@ -106,30 +105,29 @@ export default function CategoriesPage() {
           </div>
 
           <div className="border rounded-lg">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[50px]"></TableHead>
-                  <TableHead>Category Name</TableHead>
-                  <TableHead>Sub-categories</TableHead>
-                  <TableHead className="text-right w-[150px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+             <div className="hidden md:grid grid-cols-[50px_1fr_1fr_150px] items-center p-4 border-b font-medium text-sm text-muted-foreground">
+                  <div />
+                  <div>Category Name</div>
+                  <div>Sub-categories</div>
+                  <div className="text-right">Actions</div>
+              </div>
+              <div className="divide-y">
                 {categories.length > 0 ? (
                   categories.map(cat => (
-                    <TableRow key={cat.id}>
-                      <TableCell className="cursor-grab text-muted-foreground">
+                    <div key={cat.id} className="grid grid-cols-1 md:grid-cols-[50px_1fr_1fr_150px] items-center p-4 gap-4 md:gap-2">
+                      <div className="cursor-grab text-muted-foreground hidden md:block">
                         <GripVertical />
-                      </TableCell>
-                      <TableCell>
+                      </div>
+                      <div>
+                         <span className="md:hidden font-medium mr-2">Category:</span>
                         <Input
                           value={editingCategoryNames[cat.id] || cat.name}
                           onChange={e => setEditingCategoryNames(prev => ({ ...prev, [cat.id]: e.target.value }))}
                           className="font-medium"
                         />
-                      </TableCell>
-                      <TableCell>
+                      </div>
+                      <div>
+                         <span className="md:hidden font-medium mr-2">Sub-categories:</span>
                         <div className="flex flex-wrap items-center gap-2">
                           {cat.subCategories.map(sub => (
                             <Badge key={sub.id} variant="secondary" className="group">
@@ -152,8 +150,9 @@ export default function CategoriesPage() {
                             </Button>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right">
+                      </div>
+                      <div className="text-right">
+                         <span className="md:hidden font-medium mr-2">Actions:</span>
                         <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="icon" onClick={() => handleUpdateCategory(cat.id)}>
                                 <Save className="h-4 w-4 text-green-600" />
@@ -162,18 +161,15 @@ export default function CategoriesPage() {
                                 <Trash className="h-4 w-4 text-destructive" />
                             </Button>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                    </div>
                   ))
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">
-                      No categories found.
-                    </TableCell>
-                  </TableRow>
+                  <div className="h-24 text-center flex items-center justify-center">
+                    No categories found.
+                  </div>
                 )}
-              </TableBody>
-            </Table>
+              </div>
           </div>
         </CardContent>
       </Card>

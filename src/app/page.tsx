@@ -6,7 +6,6 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHeader, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Edit, PlusCircle, Trash, Search, Copy } from "lucide-react";
@@ -217,18 +216,15 @@ export default function Home() {
       <Card>
         <CardContent className="p-0">
           <div className="border-t">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Template Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Sub Category</TableHead>
-                  <TableHead>Version</TableHead>
-                  <TableHead>Last Modified</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+              <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center p-4 border-b font-medium text-sm text-muted-foreground">
+                  <div>Template Name</div>
+                  <div>Category</div>
+                  <div>Sub Category</div>
+                  <div>Version</div>
+                  <div>Last Modified</div>
+                  <div className="text-right">Actions</div>
+              </div>
+              <div className="divide-y">
                 {filteredForms.length > 0 ? (
                   filteredForms.map((form) => {
                     const latestVersion = form.versions[0];
@@ -240,23 +236,32 @@ export default function Home() {
                     const displayVersionText = status === 'Published' ? `v${versionNumber}` : 'Draft';
 
                     return (
-                      <TableRow key={form.id}>
-                        <TableCell className="font-medium">{form.title}</TableCell>
-                        <TableCell>{getCategoryName(form.categoryId)}</TableCell>
-                        <TableCell>{getSubCategoryName(form.categoryId, form.subCategoryId)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">{displayVersionText}</span>
-                            <Badge className={cn(
-                              status === 'Published' && "bg-green-100 text-green-800 border-green-200"
-                            )} variant={status === 'Published' ? 'outline' : 'secondary'}>
-                              {status}
-                            </Badge>
-                          </div>
-                        </TableCell>
-                        <TableCell><FormattedDate timestamp={latestVersion.timestamp} /></TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-0">
+                      <div key={form.id} className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center p-4 gap-4 md:gap-2">
+                        <div className="font-medium">{form.title}</div>
+                        <div>
+                            <span className="md:hidden font-medium mr-2">Category:</span>
+                            {getCategoryName(form.categoryId)}
+                        </div>
+                        <div>
+                            <span className="md:hidden font-medium mr-2">Sub Category:</span>
+                            {getSubCategoryName(form.categoryId, form.subCategoryId)}
+                        </div>
+                        <div>
+                            <span className="md:hidden font-medium mr-2">Version:</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">{displayVersionText}</span>
+                                <Badge className={cn(
+                                status === 'Published' && "bg-green-100 text-green-800 border-green-200"
+                                )} variant={status === 'Published' ? 'outline' : 'secondary'}>
+                                {status}
+                                </Badge>
+                            </div>
+                        </div>
+                        <div>
+                            <span className="md:hidden font-medium mr-2">Last Modified:</span>
+                            <FormattedDate timestamp={latestVersion.timestamp} />
+                        </div>
+                        <div className="flex justify-end gap-0">
                              <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>
                               <Copy className="h-4 w-4" />
                             </Button>
@@ -288,19 +293,15 @@ export default function Home() {
                               </AlertDialogContent>
                             </AlertDialog>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                      </div>
                     );
                   })
                 ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="h-24 text-center">
-                      No templates found.
-                    </TableCell>
-                  </TableRow>
+                  <div className="h-24 text-center flex items-center justify-center">
+                    No templates found.
+                  </div>
                 )}
-              </TableBody>
-            </Table>
+              </div>
           </div>
         </CardContent>
       </Card>

@@ -22,7 +22,6 @@ import { fetchFromApi } from "@/services/api";
 import { Popup } from "../ui/popup";
 import { Button } from "../ui/button";
 import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2 } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "../lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
