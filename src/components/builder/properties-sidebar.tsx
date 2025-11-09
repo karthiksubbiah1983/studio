@@ -378,52 +378,55 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     <div className="flex flex-col gap-2">
         <Label>Columns</Label>
         {columns?.map((col, index) => (
-            <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
-                <div className="flex-1 space-y-2">
-                     <Input 
-                        placeholder="Column Label"
-                        value={col.label}
-                        onChange={(e) => {
-                            const newCols = [...columns];
-                            newCols[index].label = e.target.value;
-                            onUpdate(newCols);
-                        }}
-                    />
-                    {fetchedKeys.length > 0 ? (
-                        <Select
-                            value={col.key}
-                             onValueChange={(value) => {
-                                const newCols = [...columns];
-                                newCols[index].key = value;
-                                onUpdate(newCols);
-                            }}
-                        >
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select data key..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {fetchedKeys.map(key => (
-                                    <SelectItem key={key} value={key}>{key}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    ) : (
-                         <Input 
-                            placeholder="Data Key"
-                            value={col.key}
+            <div key={col.id} className="flex items-end gap-2 p-2 border rounded-md">
+                <div className="flex-1 grid gap-2">
+                    <div className="space-y-1">
+                        <Label htmlFor={`col-label-${col.id}`} className="text-xs">Column Label</Label>
+                        <Input 
+                            id={`col-label-${col.id}`}
+                            placeholder="e.g., User Name"
+                            value={col.label}
                             onChange={(e) => {
                                 const newCols = [...columns];
-                                newCols[index].key = e.target.value;
+                                newCols[index].label = e.target.value;
                                 onUpdate(newCols);
                             }}
                         />
-                    )}
+                    </div>
+                     <div className="space-y-1">
+                        <Label htmlFor={`col-key-${col.id}`} className="text-xs">Data Key</Label>
+                        {fetchedKeys.length > 0 ? (
+                            <Select
+                                value={col.key}
+                                onValueChange={(value) => {
+                                    const newCols = [...columns];
+                                    newCols[index].key = value;
+                                    onUpdate(newCols);
+                                }}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select data key..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {fetchedKeys.map(key => (
+                                        <SelectItem key={key} value={key}>{key}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <Input 
+                                id={`col-key-${col.id}`}
+                                placeholder="e.g., user.name"
+                                value={col.key}
+                                onChange={(e) => {
+                                    const newCols = [...columns];
+                                    newCols[index].key = e.target.value;
+                                    onUpdate(newCols);
+                                }}
+                            />
+                        )}
+                    </div>
                 </div>
-                <Switch checked={col.visible} onCheckedChange={(checked) => {
-                    const newCols = [...columns];
-                    newCols[index].visible = checked;
-                    onUpdate(newCols);
-                }} />
                 <Button variant="ghost" size="icon" onClick={() => {
                     const newCols = columns.filter((_, i) => i !== index);
                     onUpdate(newCols);
@@ -759,3 +762,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
