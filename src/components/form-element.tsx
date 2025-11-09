@@ -119,6 +119,36 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }, [element.id, formState, rules]);
 
   useEffect(() => {
+    if (element.type === 'DataGrid' && element.apiUrl) {
+        setIsLoading(true);
+        fetchFromApi(element.apiUrl)
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setTableData(data);
+                } else {
+                    setTableData([]);
+                }
+            })
+            .finally(() => setIsLoading(false));
+    }
+    if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
+      setIsLoading(true);
+      fetchFromApi(element.apiUrl)
+        .then(data => setDynamicOptions(data || []))
+        .finally(() => setIsLoading(false));
+    }
+     if (element.type === 'InputTable') {
+        if (value) {
+            setTableRows(value);
+        } else {
+            const initial = Array.from({ length: element.initialRows || 1 }, () => ({ id: crypto.randomUUID() }));
+            setTableRows(initial);
+            onValueChange(element.id, initial);
+        }
+    }
+  }, [element, onValueChange, value]);
+
+  useEffect(() => {
     if (element.type === 'DataGrid') {
         const initialVisibility = element.columns?.reduce((acc, col) => {
             acc[col.id] = col.visible;
@@ -134,36 +164,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         setColumnVisibility(initialVisibility);
     }
   }, [element.columns, element.inputColumns, element.type]);
-
-  useEffect(() => {
-    if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
-      setIsLoading(true);
-      fetchFromApi(element.apiUrl)
-        .then(data => setDynamicOptions(data || []))
-        .finally(() => setIsLoading(false));
-    }
-    if (element.type === 'DataGrid' && element.apiUrl) {
-        setIsLoading(true);
-        fetchFromApi(element.apiUrl)
-            .then(data => {
-                if (Array.isArray(data)) {
-                    setTableData(data);
-                } else {
-                    setTableData([]);
-                }
-            })
-            .finally(() => setIsLoading(false));
-    }
-     if (element.type === 'InputTable') {
-        if (value) {
-            setTableRows(value);
-        } else {
-            const initial = Array.from({ length: element.initialRows || 1 }, () => ({ id: crypto.randomUUID() }));
-            setTableRows(initial);
-            onValueChange(element.id, initial);
-        }
-    }
-  }, [element, value, onValueChange]);
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
 
@@ -616,4 +616,3 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-    

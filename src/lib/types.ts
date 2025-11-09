@@ -150,5 +150,3 @@ export type Submission = {
 export type ClipboardItem = 
     | { type: 'section', content: Section }
     | { type: 'element', content: FormElementInstance };
-
-    
