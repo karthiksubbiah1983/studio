@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, InputTableColumn, Rule, Condition, Section, DataGridColumn } from "@/lib/types";
@@ -164,7 +163,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             onValueChange(element.id, initial);
         }
     }
-  }, [element, onValueChange, value]);
+  }, [element.apiUrl, element.dataSource, element.id, element.initialRows, element.type, onValueChange, value]);
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
 
@@ -617,3 +616,4 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+    

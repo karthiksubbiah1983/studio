@@ -574,12 +574,19 @@ const builderReducer = (state: State, action: Action): State => {
       const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
       if (!versionToLoad) return state;
 
-      // Move the loaded version to the top of the list, marking it as the active "draft"
       const newForms = state.forms.map(form => {
           if (form.id === state.activeFormId) {
               const otherVersions = form.versions.filter(v => v.id !== action.payload.versionId);
-              const updatedVersionToLoad = { ...versionToLoad, timestamp: new Date().toISOString() };
-              const newVersions = [updatedVersionToLoad, ...otherVersions];
+              // Make a copy to be the new active draft, ensuring original version is untouched
+              const newActiveDraft = { 
+                  ...versionToLoad, 
+                  id: crypto.randomUUID(), 
+                  timestamp: new Date().toISOString(),
+                  // If loading a published version, the new top version should be a draft based on it
+                  type: 'draft' as "draft" | "published",
+                  name: `Draft of ${versionToLoad.name}`
+              };
+              const newVersions = [newActiveDraft, versionToLoad, ...otherVersions];
               return { ...form, versions: newVersions };
           }
           return form;
@@ -821,3 +828,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
