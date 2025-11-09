@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn } from "@/lib/types";
@@ -421,7 +420,10 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         );
         break;
     case "Table":
-        const tableRows = (value as any[]) || [];
+        const tableValue = value as any[] || [];
+        const numDefaultRows = element.defaultRows || 0;
+        const tableRows = tableValue.length > 0 ? tableValue : Array(numDefaultRows).fill({});
+        
         const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
             let newRows = [...tableRows];
             if (!newRows[rowIndex]) {

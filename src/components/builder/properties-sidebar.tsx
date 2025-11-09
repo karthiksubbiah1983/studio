@@ -749,10 +749,20 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                     <AccordionItem value="rows">
                         <AccordionTrigger className="py-2">Rows</AccordionTrigger>
-                        <AccordionContent>
+                        <AccordionContent className="flex flex-col gap-4">
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="can-add-rows">User can add rows</Label>
                                 <Switch id="can-add-rows" checked={props.canAddRows} onCheckedChange={(checked) => updateProperty('canAddRows', checked)} />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="default-rows">Default Rows</Label>
+                                <Input
+                                    id="default-rows"
+                                    type="number"
+                                    min="0"
+                                    value={props.defaultRows || 0}
+                                    onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value) || 0)}
+                                />
                             </div>
                         </AccordionContent>
                     </AccordionItem>

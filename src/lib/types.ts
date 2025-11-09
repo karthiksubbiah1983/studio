@@ -100,6 +100,7 @@ export type FormElementInstance = {
     // For Table
     tableColumns?: TableColumn[];
     canAddRows?: boolean;
+    defaultRows?: number;
 };
 
 export type Section = {
