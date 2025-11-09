@@ -163,7 +163,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             onValueChange(element.id, initial);
         }
     }
-  }, [element.apiUrl, element.dataSource, element.id, element.initialRows, element.type, onValueChange, value]);
+  }, [element, value, onValueChange]);
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
 
@@ -616,6 +616,4 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-    
-
     
