@@ -22,7 +22,7 @@ type Props = {
     showSubmitButton?: boolean;
 }
 
-const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: { value: any } }): Record<string, any> => {
+const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
     const submission: Record<string, any> = {};
     elements.forEach(element => {
         if ('key' in element && element.key && formState[element.id]) {
@@ -69,34 +69,44 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     setFormState({});
   }
 
- const elementVisibility = useMemo(() => {
-    const visibility: { [key: string]: boolean } = {};
-    const allItems = [...sections, ...getAllElements(sections)];
+  const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
+      return elements.map(element => (
+          <FormElementRenderer
+              key={element.id}
+              element={element}
+              value={formState[element.id]?.value}
+              onValueChange={handleValueChange}
+              formState={formState}
+              isParentHorizontal={isParentHorizontal}
+          />
+      ));
+  };
+
+  const isSectionVisible = (section: Section): boolean => {
+    const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === section.id);
+    const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === section.id);
+
+    let visible;
+
+    if (showRules.length > 0) {
+      visible = showRules.some(r => evaluateRule(r, formState || {}));
+    } else {
+      visible = !section.hidden;
+    }
+
+    if (visible && hideRules.length > 0) {
+      if (hideRules.some(r => evaluateRule(r, formState || {}))) {
+        visible = false;
+      }
+    }
     
-    allItems.forEach(item => {
-        // Default visibility: not hidden
-        visibility[item.id] = item.hidden !== true;
-
-        const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === item.id);
-        const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === item.id);
-
-        // If there are "show" rules, the element is hidden unless a rule is met.
-        if (showRules.length > 0) {
-            visibility[item.id] = showRules.some(r => evaluateRule(r, formState || {}));
-        }
-
-        // "hide" rules always take precedence.
-        if (hideRules.some(r => evaluateRule(r, formState || {}))) {
-            visibility[item.id] = false;
-        }
-    });
-    return visibility;
- }, [formState, sections, rules]);
+    return visible;
+  }
 
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => {
-         if (elementVisibility[section.id] === false) return null;
+         if (!isSectionVisible(section)) return null;
 
         return (
           <Card key={section.id}>
@@ -111,15 +121,7 @@ export function FormPreview({ showSubmitButton = true }: Props) {
                   "grid gap-4 grid-cols-1"
                   )}
               >
-                  {section.elements.map(element => (
-                      <FormElementRenderer
-                          key={element.id}
-                          element={element}
-                          value={formState[element.id]?.value}
-                          onValueChange={handleValueChange}
-                          formState={formState}
-                      />
-                  ))}
+                  {renderElements(section.elements)}
               </div>
             </CardContent>
           </Card>
@@ -133,5 +135,3 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     </div>
   );
 }
-
-    
