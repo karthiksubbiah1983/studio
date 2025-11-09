@@ -1,24 +1,26 @@
 
 import { FormElementInstance, ElementType } from "./types";
-import { faCheckSquare, faList, faParagraph, faTable, faFont, faCalendarDays, faDotCircle, faFileAlt, faLayerGroup, faTextHeight, faDatabase, faEdit } from "@fortawesome/free-solid-svg-icons";
-import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, Heading1, Database, Edit, FileText, MousePointerSquare, RadioTower, ChevronsUpDown, Layout } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
   type: ElementType;
-  icon: IconDefinition;
+  icon: LucideIcon;
   label: string;
 }[] = [
-    { type: 'Container', icon: faLayerGroup, label: 'Container' },
-    { type: 'Input', icon: faFont, label: 'Text Input' },
-    { type: 'Textarea', icon: faParagraph, label: 'Textarea' },
-    { type: 'Select', icon: faList, label: 'Select' },
-    { type: 'Checkbox', icon: faCheckSquare, label: 'Checkbox' },
-    { type: 'RadioGroup', icon: faDotCircle, label: 'Radio Group' },
-    { type: 'DatePicker', icon: faCalendarDays, label: 'Date Picker' },
-    { type: 'Display', icon: faTextHeight, label: 'Display Text' },
-    { type: 'DataGrid', icon: faDatabase, label: 'Data Grid' },
-    { type: 'InputTable', icon: faEdit, label: 'Input Table' },
-    { type: 'RichText', icon: faFileAlt, label: 'Rich Text' },
+    { type: 'Container', icon: Layout, label: 'Container' },
+    { type: 'Input', icon: TextCursorInput, label: 'Text Input' },
+    { type: 'Textarea', icon: Pilcrow, label: 'Textarea' },
+    { type: 'Select', icon: ChevronsUpDown, label: 'Select' },
+    { type: 'Checkbox', icon: CheckSquare, label: 'Checkbox' },
+    { type: 'RadioGroup', icon: RadioTower, label: 'Radio Group' },
+    { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
+    { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
+    { type: 'DataGrid', icon: Database, label: 'Data Grid' },
+    { type: 'InputTable', icon: Edit, label: 'Input Table' },
+    { type: 'RichText', icon: FileText, label: 'Rich Text' },
+    { type: 'Title', icon: Heading1, label: 'Title' },
+    { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
 
 export const createNewElement = (type: ElementType): FormElementInstance => {
