@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock } from "lucide-react";
+import { Clock, Table } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
@@ -124,6 +124,17 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
       )
     case "Container":
       return null;
+    case "DataGrid":
+       return (
+         <div>
+          {renderLabel()}
+          <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
+            <Table className="h-12 w-12 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Data Grid</p>
+            <p className="text-xs text-muted-foreground/70">Data will be fetched from API</p>
+          </div>
+        </div>
+       );
     default:
       return <div>Unsupported element type</div>;
   }

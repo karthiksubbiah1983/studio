@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container";
+export type ElementType = "Title" | "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -50,6 +50,13 @@ export type PopupConfig = {
     iconColor: string;
 }
 
+export type DataGridColumn = {
+    id: string;
+    key: string;
+    label: string;
+    visible: boolean;
+};
+
 export type FormElementInstance = {
     id: string;
     type: ElementType;
@@ -63,7 +70,7 @@ export type FormElementInstance = {
     // For Select, RadioGroup
     dataSource?: 'static' | 'dynamic';
     options?: string[];
-    // For dynamic data source (Select)
+    // For dynamic data source (Select, DataGrid)
     apiUrl?: string;
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
@@ -78,6 +85,9 @@ export type FormElementInstance = {
     direction?: 'horizontal' | 'vertical';
     justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
+    // For DataGrid
+    columns?: DataGridColumn[];
+    selectionMode?: 'single' | 'multiple' | 'none';
 };
 
 export type Section = {
@@ -127,3 +137,4 @@ export type Submission = {
 export type ClipboardItem = 
     | { type: 'section', content: Section }
     | { type: 'element', content: FormElementInstance };
+

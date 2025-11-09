@@ -1,6 +1,6 @@
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, Heading1, FileText, RadioTower, ChevronsUpDown, Layout } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, Heading1, FileText, RadioTower, ChevronsUpDown, Layout, Grid } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -17,6 +17,7 @@ export const FormElements: {
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
+    { type: 'DataGrid', icon: Grid, label: 'Data Grid'},
     { type: 'Title', icon: Heading1, label: 'Title' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
@@ -55,6 +56,18 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
             return { ...baseElement, label: "Rich Text Editor", content: "" };
         case "Container":
             return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch' };
+        case "DataGrid":
+            return {
+                ...baseElement,
+                label: "Data Grid",
+                apiUrl: "https://jsonplaceholder.typicode.com/users",
+                selectionMode: 'single',
+                columns: [
+                    { id: '1', key: 'name', label: 'Name', visible: true },
+                    { id: '2', key: 'email', label: 'Email', visible: true },
+                    { id: '3', key: 'phone', label: 'Phone', visible: false },
+                ]
+            }
         default:
             throw new Error("Invalid element type");
     }

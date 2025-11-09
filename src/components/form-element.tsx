@@ -30,6 +30,7 @@ import { useBuilder } from "@/hooks/use-builder";
 import { findElementRecursive, getAllElements, evaluateRule } from "../form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { ScrollArea, ScrollBar } from "../ui/scroll-area";
+import { DataGrid } from "../ui/data-grid";
 
 type Props = {
   element: FormElementInstance;
@@ -404,6 +405,20 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         </div>
       );
       break;
+    case "DataGrid":
+        content = (
+            <div>
+                {renderLabel()}
+                <DataGrid
+                    apiUrl={element.apiUrl || ""}
+                    columns={element.columns || []}
+                    selectionMode={element.selectionMode || 'none'}
+                    onSelectionChange={(selected) => onValueChange(element.id, selected)}
+                    value={value}
+                />
+            </div>
+        );
+        break;
     default:
       content = <div>Unsupported element type: {type}</div>;
       break;

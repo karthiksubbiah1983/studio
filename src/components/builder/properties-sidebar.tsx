@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, DataGridColumn } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -374,6 +374,54 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         )}
     </div>
   );
+
+  const dataGridColumnsField = (columns: DataGridColumn[] | undefined, onUpdate: (columns: DataGridColumn[]) => void) => (
+    <div className="flex flex-col gap-2">
+        <Label>Columns</Label>
+        {columns?.map((col, index) => (
+            <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
+                <div className="flex-1 space-y-2">
+                     <Input 
+                        placeholder="Column Label"
+                        value={col.label}
+                        onChange={(e) => {
+                            const newCols = [...columns];
+                            newCols[index].label = e.target.value;
+                            onUpdate(newCols);
+                        }}
+                    />
+                     <Input 
+                        placeholder="Data Key"
+                        value={col.key}
+                        onChange={(e) => {
+                            const newCols = [...columns];
+                            newCols[index].key = e.target.value;
+                            onUpdate(newCols);
+                        }}
+                    />
+                </div>
+                <Switch checked={col.visible} onCheckedChange={(checked) => {
+                    const newCols = [...columns];
+                    newCols[index].visible = checked;
+                    onUpdate(newCols);
+                }} />
+                <Button variant="ghost" size="icon" onClick={() => {
+                    const newCols = columns.filter((_, i) => i !== index);
+                    onUpdate(newCols);
+                }}>
+                    <X className="h-4 w-4" />
+                </Button>
+            </div>
+        ))}
+        <Button variant="outline" size="sm" onClick={() => {
+            const newCols = [...(columns || []), { id: crypto.randomUUID(), key: "", label: `Column ${(columns?.length || 0) + 1}`, visible: true }];
+            onUpdate(newCols);
+        }}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Column
+        </Button>
+    </div>
+  );
   
   const content = () => {
       switch(props.type) {
@@ -573,6 +621,53 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
             );
+        case "DataGrid":
+            return (
+                 <Accordion type="multiple" defaultValue={["general", "data", "columns"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                             <div className="flex flex-col gap-2">
+                                <Label>Selection Mode</Label>
+                                <RadioGroup
+                                    value={props.selectionMode}
+                                    onValueChange={(val) => updateProperty('selectionMode', val)}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="single" id="sel-single" />
+                                        <Label htmlFor="sel-single">Single</Label>
+                                    </div>
+                                     <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="multiple" id="sel-multiple" />
+                                        <Label htmlFor="sel-multiple">Multiple</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="none" id="sel-none" />
+                                        <Label htmlFor="sel-none">None</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="apiUrl">API URL</Label>
+                                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="columns">
+                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
+                        <AccordionContent>
+                            {dataGridColumnsField(props.columns, (newColumns) => updateProperty('columns', newColumns))}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            )
         case "RadioGroup":
              return (
                  <Accordion type="multiple" defaultValue={["general", "data"]} className="w-full">
