@@ -45,7 +45,7 @@ export function FormPreview({ showSubmitButton = true }: Props) {
   const handleSubmit = () => {
     if (!activeForm) return;
 
-    const allElements = getAllElements(sections, true);
+    const allElements = getAllElements(sections);
     const submissionData = generateSubmissionJson(allElements, formState);
     
     dispatch({
