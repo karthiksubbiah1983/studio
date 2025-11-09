@@ -390,15 +390,35 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             onUpdate(newCols);
                         }}
                     />
-                     <Input 
-                        placeholder="Data Key"
-                        value={col.key}
-                        onChange={(e) => {
-                            const newCols = [...columns];
-                            newCols[index].key = e.target.value;
-                            onUpdate(newCols);
-                        }}
-                    />
+                    {fetchedKeys.length > 0 ? (
+                        <Select
+                            value={col.key}
+                             onValueChange={(value) => {
+                                const newCols = [...columns];
+                                newCols[index].key = value;
+                                onUpdate(newCols);
+                            }}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select data key..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {fetchedKeys.map(key => (
+                                    <SelectItem key={key} value={key}>{key}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    ) : (
+                         <Input 
+                            placeholder="Data Key"
+                            value={col.key}
+                            onChange={(e) => {
+                                const newCols = [...columns];
+                                newCols[index].key = e.target.value;
+                                onUpdate(newCols);
+                            }}
+                        />
+                    )}
                 </div>
                 <Switch checked={col.visible} onCheckedChange={(checked) => {
                     const newCols = [...columns];
@@ -635,7 +655,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="apiUrl">API URL</Label>
-                                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                                <div className="flex gap-2">
+                                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                                     <Button onClick={handleFetchSchema} disabled={isFetching} size="sm">
+                                        {isFetching ? "Fetching..." : "Fetch"}
+                                    </Button>
+                                </div>
                             </div>
                         </AccordionContent>
                     </AccordionItem>
