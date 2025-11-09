@@ -725,7 +725,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="apiUrl">API URL</Label>
-                                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                                 <div className="flex gap-2">
+                                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                                    <Button onClick={handleFetchSchema} disabled={isFetching} size="sm">
+                                        {isFetching ? "Fetching..." : "Fetch Schema"}
+                                    </Button>
+                                </div>
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -735,7 +740,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {props.columns?.map((col, index) => (
                                 <div key={col.id} className="border p-3 rounded-lg space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <Label className="text-base">Column {index + 1}</Label>
+                                        <Label className="text-base">{col.title || `Column ${index + 1}`}</Label>
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
                                             const newCols = props.columns!.filter(c => c.id !== col.id);
                                             updateProperty('columns', newCols);
@@ -753,14 +758,23 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <Label htmlFor={`col-dataKey-${col.id}`}>Data Key</Label>
-                                        <Input id={`col-dataKey-${col.id}`} value={col.dataKey} placeholder="e.g. user.address.street" onChange={(e) => {
+                                        <Select value={col.dataKey} onValueChange={(value) => {
                                             const newCols = [...props.columns!];
-                                            newCols[index].dataKey = e.target.value;
+                                            newCols[index].dataKey = value;
                                             updateProperty('columns', newCols);
-                                        }}/>
+                                        }}>
+                                            <SelectTrigger><SelectValue placeholder="Select a data key..."/></SelectTrigger>
+                                            <SelectContent>
+                                                {fetchedKeys.length > 0 ? (
+                                                    fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)
+                                                ) : (
+                                                    <SelectItem value={col.dataKey} disabled>{col.dataKey || "No keys available"}</SelectItem>
+                                                )}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <Label htmlFor={`col-visible-${col.id}`}>Visible</Label>
+                                        <Label htmlFor={`col-visible-${col.id}`}>Visible by default</Label>
                                         <Switch id={`col-visible-${col.id}`} checked={col.visible} onCheckedChange={(checked) => {
                                             const newCols = [...props.columns!];
                                             newCols[index].visible = checked;
@@ -770,7 +784,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 </div>
                             ))}
                             <Button variant="outline" size="sm" className="mt-2" onClick={() => {
-                                const newCols = [...(props.columns || []), { id: crypto.randomUUID(), title: `Column ${(props.columns?.length || 0) + 1}`, dataKey: "", visible: true }];
+                                const newCols = [...(props.columns || []), { id: crypto.randomUUID(), title: `Column ${(props.columns?.length || 0) + 1}`, dataKey: "", key: `col${(props.columns?.length || 0) + 1}`, visible: true }];
                                 updateProperty('columns', newCols);
                             }}>
                                 <Plus className="mr-2 h-4 w-4" />
