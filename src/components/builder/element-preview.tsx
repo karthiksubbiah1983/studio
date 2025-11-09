@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Edit, CheckSquare, List, MousePointerSquareDashed, Layout, Database, Edit2, Columns } from "lucide-react";
+import { Clock, Edit, CheckSquare, List, MousePointerSquareDashed, Layout, Database, Edit2, Columns, FileText, Heading1, Milestone, RadioTower, TextCursorInput, ChevronsUpDown, Pilcrow, CaseSensitive, CalendarDays } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
 import { cn } from "@/lib/utils";
 
