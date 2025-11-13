@@ -27,6 +27,7 @@ import { fetchFromApi } from "@/services/api";
 import { findFirstArray, flattenObject, getAllElements } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
 import { createNewElement } from "@/lib/form-elements";
+import { FetchedJsonDialog } from "./fetched-json-dialog";
 
 
 export function PropertiesSidebar() {
@@ -222,6 +223,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [editingColumn, setEditingColumn] = useState<TableColumn | null>(null);
+  const [isFetchedJsonDialogOpen, setIsFetchedJsonDialogOpen] = useState(false);
+  const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
 
   const allElements = getAllElements(sections);
 
@@ -235,7 +238,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     // When the element changes, if it's a type that uses fetchedKeys, re-fetch if needed
     if (element.type === 'Select' || element.type === 'DataGrid') {
         if(element.apiUrl) {
-            handleFetchSchema(element.apiUrl);
+            handleFetchSchema(element.apiUrl, false);
         } else {
             setFetchedKeys([]);
         }
@@ -271,7 +274,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     setFetchedKeys([]);
   }
 
-  const handleFetchSchema = async (url?: string) => {
+  const handleFetchSchema = async (url?: string, showPopup = true) => {
     const apiUrl = url || props.apiUrl;
     if (!apiUrl) {
         setFetchedKeys([]);
@@ -281,6 +284,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     try {
         const rawData = await fetchFromApi(apiUrl);
         if (rawData) {
+            if (showPopup) {
+                setFetchedJsonData(rawData);
+                setIsFetchedJsonDialogOpen(true);
+            }
             const dataArray = findFirstArray(rawData);
             
             if (dataArray && dataArray.length > 0) {
@@ -690,7 +697,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="apiUrl">API URL</Label>
                                 <div className="flex gap-2">
                                     <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                                     <Button onClick={() => handleFetchSchema()} disabled={isFetching} size="sm">
+                                     <Button onClick={() => handleFetchSchema(props.apiUrl)} disabled={isFetching} size="sm">
                                         {isFetching ? "Fetching..." : "Fetch"}
                                     </Button>
                                 </div>
@@ -941,6 +948,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   return (
     <div className="flex flex-col gap-4">
       {content()}
+      <FetchedJsonDialog
+        isOpen={isFetchedJsonDialogOpen}
+        onOpenChange={setIsFetchedJsonDialogOpen}
+        jsonData={fetchedJsonData}
+      />
     </div>
   );
 }
@@ -951,4 +963,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
 
     
+
 
