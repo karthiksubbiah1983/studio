@@ -405,7 +405,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 
-  const dataGridColumnsField = (columns: DataGridColumn[] | undefined, onUpdate: (columns: DataGridColumn[]) => void) => (
+  const dataGridColumnsField = (columns: DataGridColumn[] | undefined, onUpdate: (columns: DataGridColumn[]) => void, availableKeys: string[]) => (
     <div className="flex flex-col gap-2">
         <Label>Columns</Label>
         {columns?.map((col, index) => (
@@ -426,7 +426,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </div>
                      <div className="space-y-1">
                         <Label htmlFor={`col-key-${col.id}`} className="text-xs">Data Key</Label>
-                        {fetchedKeys.length > 0 ? (
+                        {availableKeys.length > 0 ? (
                             <Select
                                 value={col.key}
                                 onValueChange={(value) => {
@@ -439,7 +439,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <SelectValue placeholder="Select data key..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {fetchedKeys.map(key => (
+                                    {availableKeys.map(key => (
                                         <SelectItem key={key} value={key}>{key}</SelectItem>
                                     ))}
                                 </SelectContent>
@@ -700,7 +700,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     <AccordionItem value="columns">
                         <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                         <AccordionContent>
-                            {dataGridColumnsField(props.columns, (newColumns) => updateProperty('columns', newColumns))}
+                            {dataGridColumnsField(props.columns, (newColumns) => updateProperty('columns', newColumns), fetchedKeys)}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="pagination">
@@ -951,3 +951,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
 
     
+
