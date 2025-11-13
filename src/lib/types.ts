@@ -37,6 +37,18 @@ export type Rule = {
     }
 }
 
+export type WorkflowAction = 
+    | { type: 'CREATE_TASK', payload: { title: string; notes: string; } }
+    | { type: 'CLOSE_TASK', payload: { notes: string } };
+
+export type Workflow = {
+    id: string;
+    name: string;
+    conditions: Condition[];
+    logicType: 'and' | 'or';
+    action: WorkflowAction;
+}
+
 export type DisplayDataSourceConfig = {
     sourceElementId:string; // ID of the Select element
     displayKey: string;      // Key of the property to display from the selected object
@@ -121,6 +133,7 @@ export type FormVersion = {
   timestamp: string;
   sections: Section[];
   rules: Rule[];
+  workflows: Workflow[];
 };
 
 export type SubCategory = {

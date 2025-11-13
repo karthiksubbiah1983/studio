@@ -11,13 +11,14 @@ import {
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
 import { useEffect, useMemo, useState } from "react";
-import { FormElementInstance, Section, Rule } from "@/lib/types";
+import { FormElementInstance, Section, Workflow, WorkflowAction } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "../ui/badge";
 import { getAllElements, evaluateRule } from "./form-preview-helpers";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
+import { Zap } from "lucide-react";
 
 type Props = {
     showSubmitButton?: boolean;
@@ -26,15 +27,21 @@ type Props = {
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
     const submission: Record<string, any> = {};
     elements.forEach(element => {
-        if ('key' in element && element.key && formState[element.id]) {
-            submission[element.key] = formState[element.id].value;
+        if ('key' in element && element.key) {
+            submission[element.key] = formState[element.id]?.value;
         }
     });
     return submission;
 };
 
+const interpolateString = (template: string, data: Record<string, any>): string => {
+    return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
+        return data[key] || match;
+    });
+}
+
 export function FormPreview({ showSubmitButton = true }: Props) {
-  const { activeForm, sections, rules, dispatch } = useBuilder();
+  const { activeForm, sections, rules, workflows, dispatch } = useBuilder();
   const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
   const { toast } = useToast();
   
@@ -43,6 +50,50 @@ export function FormPreview({ showSubmitButton = true }: Props) {
   const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
     setFormState((prev) => ({ ...prev, [elementId]: { value, fullObject } }));
   };
+
+  const processWorkflows = (submissionData: Record<string, any>) => {
+    if (!workflows || workflows.length === 0) return;
+
+    for (const workflow of workflows) {
+        // Create a temporary state object with keys instead of IDs for evaluation
+        const stateForEval: { [key: string]: { value: any } } = {};
+        const allElements = getAllElements(sections);
+        allElements.forEach(el => {
+            if ('key' in el && el.key) {
+                stateForEval[el.id] = { value: submissionData[el.key] };
+            }
+        })
+        
+        const isTriggered = evaluateRule(workflow, stateForEval);
+
+        if (isTriggered) {
+            // If the workflow condition is met, execute the action
+            const { type, payload } = workflow.action;
+            let toastTitle = '';
+            let toastDescription = '';
+            
+            if (type === 'CREATE_TASK') {
+                const title = interpolateString(payload.title, submissionData);
+                const notes = interpolateString(payload.notes, submissionData);
+                toastTitle = `Workflow: Create Task`;
+                toastDescription = `A new task was created with title "${title}" and notes: "${notes}"`;
+            } else if (type === 'CLOSE_TASK') {
+                 const notes = interpolateString(payload.notes, submissionData);
+                 toastTitle = `Workflow: Close Task`;
+                 toastDescription = `The task was automatically closed with notes: "${notes}"`;
+            }
+            
+            toast({
+                title: <div className="flex items-center gap-2"><Zap className="h-4 w-4" /> {toastTitle}</div>,
+                description: toastDescription,
+            });
+
+            // In a real application, you would only trigger one workflow per submission.
+            // For this simulation, we'll stop after the first one is triggered.
+            break;
+        }
+    }
+  }
   
   const handleSubmit = () => {
     if (!activeForm) return;
@@ -57,6 +108,8 @@ export function FormPreview({ showSubmitButton = true }: Props) {
             data: submissionData,
         }
     });
+
+    processWorkflows(submissionData);
     
     toast({
         title: "Submission Saved!",

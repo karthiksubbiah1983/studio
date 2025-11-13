@@ -25,7 +25,7 @@ type Props = {
 };
 
 export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
-  const { activeForm, sections, rules, dispatch } = useBuilder();
+  const { activeForm, sections, rules, workflows, dispatch } = useBuilder();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -52,6 +52,7 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
         type: saveType,
         sections: sections,
         rules: rules,
+        workflows: workflows,
       },
     });
 

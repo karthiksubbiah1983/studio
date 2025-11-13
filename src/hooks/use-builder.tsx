@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
 type State = {
@@ -35,13 +35,14 @@ type Action =
   | { type: "SET_DRAGGED_ELEMENT"; payload: State['draggedElement'] }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number, toIndex: number } }
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index?: number, parentId?: string } } }
-  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[], rules: Rule[] } }
+  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[], rules: Rule[], workflows: Workflow[] } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any> } }
   | { type: "SET_STATE"; payload: Partial<State> }
   | { type: "SET_SECTIONS"; payload: { sections: Section[] } }
   | { type: "UPDATE_RULES"; payload: { rules: Rule[] } }
+  | { type: "UPDATE_WORKFLOWS"; payload: { workflows: Workflow[] } }
   | { type: "ADD_CATEGORY", payload: { name: string } }
   | { type: "UPDATE_CATEGORY", payload: { category: Category } }
   | { type: "DELETE_CATEGORY", payload: { categoryId: string } }
@@ -63,7 +64,7 @@ const initialState: State = {
 };
 
 // Helper function to deep clone and assign new IDs
-const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[], sections?: any[], versions?: any[], rules?: any[] }>(item: T): T => {
+const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[], sections?: any[], versions?: any[], rules?: any[], workflows?: any[] }>(item: T): T => {
   const itemClone = JSON.parse(JSON.stringify(item));
   
   const idMap: { [oldId: string]: string } = {};
@@ -77,22 +78,24 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
     if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(collectIds);
     if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(collectIds);
     if (obj.versions && Array.isArray(obj.versions)) obj.versions.forEach(collectIds);
-    if (obj.rules && Array.isArray(obj.rules)) {
-        obj.rules.forEach((rule: any) => {
-             if (rule.id) {
-                const newId = crypto.randomUUID();
-                idMap[rule.id] = newId;
-            }
-             if (rule.conditions && Array.isArray(rule.conditions)) {
-                rule.conditions.forEach((cond: any) => {
-                    if (cond.id) {
-                        const newId = crypto.randomUUID();
-                        idMap[cond.id] = newId;
-                    }
-                });
-             }
-        })
+    const processConditions = (conditions: any[]) => {
+      if (conditions && Array.isArray(conditions)) {
+          conditions.forEach((cond: any) => {
+              if (cond.id) {
+                  const newId = crypto.randomUUID();
+                  idMap[cond.id] = newId;
+              }
+          });
+        }
     }
+    if (obj.rules && Array.isArray(obj.rules)) obj.rules.forEach((rule: any) => {
+        if (rule.id) idMap[rule.id] = crypto.randomUUID();
+        processConditions(rule.conditions);
+    });
+     if (obj.workflows && Array.isArray(obj.workflows)) obj.workflows.forEach((workflow: any) => {
+        if (workflow.id) idMap[workflow.id] = crypto.randomUUID();
+        processConditions(workflow.conditions);
+    });
   }
   collectIds(itemClone);
 
@@ -102,28 +105,28 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
 
      if (obj.key) obj.key = `${obj.key}_${Math.random().toString(36).substring(2, 7)}`;
 
-     // Update rule triggers and targets
-     if (obj.rules && Array.isArray(obj.rules)) {
-        obj.rules.forEach((rule: any) => {
-            if (rule.id && idMap[rule.id]) rule.id = idMap[rule.id];
-            
-            if (rule.conditions && Array.isArray(rule.conditions)) {
-                rule.conditions.forEach((cond: any) => {
-                    if (cond.id && idMap[cond.id]) cond.id = idMap[cond.id];
-                    if (cond.sourceElementId && idMap[cond.sourceElementId]) {
-                        cond.sourceElementId = idMap[cond.sourceElementId];
-                    }
-                    if (cond.comparisonElementId && idMap[cond.comparisonElementId]) {
-                        cond.comparisonElementId = idMap[cond.comparisonElementId];
-                    }
-                });
-            }
-
-            if (rule.behavior && rule.behavior.targetElementId && idMap[rule.behavior.targetElementId]) {
-                rule.behavior.targetElementId = idMap[rule.behavior.targetElementId];
-            }
-        });
+     const updateConditions = (conditions: any[]) => {
+        if (conditions && Array.isArray(conditions)) {
+          conditions.forEach((cond: any) => {
+              if (cond.id && idMap[cond.id]) cond.id = idMap[cond.id];
+              if (cond.sourceElementId && idMap[cond.sourceElementId]) cond.sourceElementId = idMap[cond.sourceElementId];
+              if (cond.comparisonElementId && idMap[cond.comparisonElementId]) cond.comparisonElementId = idMap[cond.comparisonElementId];
+          });
+       }
      }
+
+     if (obj.rules && Array.isArray(obj.rules)) obj.rules.forEach((rule: any) => {
+        if (rule.id && idMap[rule.id]) rule.id = idMap[rule.id];
+        updateConditions(rule.conditions);
+        if (rule.behavior && rule.behavior.targetElementId && idMap[rule.behavior.targetElementId]) {
+            rule.behavior.targetElementId = idMap[rule.behavior.targetElementId];
+        }
+     });
+
+     if (obj.workflows && Array.isArray(obj.workflows)) obj.workflows.forEach((workflow: any) => {
+        if (workflow.id && idMap[workflow.id]) workflow.id = idMap[workflow.id];
+        updateConditions(workflow.conditions);
+     });
      
      if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(updateIds);
      if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(updateIds);
@@ -253,6 +256,7 @@ const builderReducer = (state: State, action: Action): State => {
               timestamp: new Date().toISOString(),
               sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }],
               rules: [],
+              workflows: [],
             }]
         };
         // This is a bit of a hack for the special dispatch, we return the ID via the state itself
@@ -359,6 +363,23 @@ const builderReducer = (state: State, action: Action): State => {
           newVersions[0] = {
             ...newVersions[0],
             rules: rules,
+            timestamp: new Date().toISOString(),
+          };
+          return { ...form, versions: newVersions };
+        }
+        return form;
+      });
+      return { ...state, forms: newForms };
+    }
+     case "UPDATE_WORKFLOWS": {
+      if (!activeForm) return state;
+      const { workflows } = action.payload;
+      const newForms = state.forms.map(form => {
+        if (form.id === state.activeFormId) {
+          const newVersions = [...form.versions];
+          newVersions[0] = {
+            ...newVersions[0],
+            workflows: workflows,
             timestamp: new Date().toISOString(),
           };
           return { ...form, versions: newVersions };
@@ -548,7 +569,7 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SAVE_VERSION": {
       if (!activeForm) return state;
-      const { name, description, type, sections, rules } = action.payload;
+      const { name, description, type, sections, rules, workflows } = action.payload;
       
       const newVersion: FormVersion = {
         id: crypto.randomUUID(),
@@ -558,6 +579,7 @@ const builderReducer = (state: State, action: Action): State => {
         timestamp: new Date().toISOString(),
         sections,
         rules,
+        workflows,
       };
       
       const newForms = state.forms.map(form => {
@@ -697,6 +719,8 @@ type BuilderContextType = {
   setSections: (sections: Section[]) => void;
   rules: Rule[];
   updateRules: (rules: Rule[]) => void;
+  workflows: Workflow[];
+  updateWorkflows: (workflows: Workflow[]) => void;
   clipboard: ClipboardItem | null;
 };
 
@@ -723,6 +747,7 @@ const defaultState: State = {
             timestamp: "2023-01-01T00:00:00.000Z",
             sections: [{ id: defaultSectionId, title: "New Section", displayMode: "default", elements: [] }],
             rules: [],
+            workflows: [],
         }]
     }],
     categories: [{
@@ -785,6 +810,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
   const sections = activeForm?.versions[0]?.sections || [];
   const rules = activeForm?.versions[0]?.rules || [];
+  const workflows = activeForm?.versions[0]?.workflows || [];
   
   const dispatch = (action: Action): string | void => {
     if (action.type === 'ADD_FORM') {
@@ -802,6 +828,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const updateRules = (newRules: Rule[]) => {
     dispatchAction({ type: 'UPDATE_RULES', payload: { rules: newRules }});
   }
+  
+  const updateWorkflows = (newWorkflows: Workflow[]) => {
+    dispatchAction({ type: 'UPDATE_WORKFLOWS', payload: { workflows: newWorkflows }});
+  }
 
   if (!isLoaded) {
     return (
@@ -815,7 +845,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, activeForm, sections, setSections, rules, updateRules, clipboard: state.clipboard }}>
+    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, clipboard: state.clipboard }}>
       {children}
     </BuilderContext.Provider>
   );
@@ -832,4 +862,5 @@ export const useBuilder = () => {
     
 
     
+
 
