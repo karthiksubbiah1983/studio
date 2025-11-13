@@ -86,7 +86,7 @@ function SectionProperties({ section }: { section: Section }) {
     
     return (
         <div className="flex flex-col gap-4">
-            <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+            <Accordion type="multiple" defaultValue={["general", "layout"]} className="w-full">
                 <AccordionItem value="general">
                     <AccordionTrigger className="py-2">General</AccordionTrigger>
                     <AccordionContent className="flex flex-col gap-4">
@@ -97,6 +97,28 @@ function SectionProperties({ section }: { section: Section }) {
                          <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                             <Label htmlFor="hidden-by-default">Hidden by default</Label>
                             <Switch id="hidden-by-default" checked={!!section.hidden} onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, hidden: checked } })} />
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+                 <AccordionItem value="layout">
+                    <AccordionTrigger className="py-2">Layout</AccordionTrigger>
+                    <AccordionContent className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-2">
+                            <Label>Display Mode</Label>
+                            <RadioGroup
+                                value={section.displayMode || 'default'}
+                                onValueChange={(value) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, displayMode: value as 'default' | 'accordion' }})}
+                                className="flex gap-4"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="default" id="mode-default" />
+                                    <Label htmlFor="mode-default">Default</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="accordion" id="mode-accordion" />
+                                    <Label htmlFor="mode-accordion">Accordion</Label>
+                                </div>
+                            </RadioGroup>
                         </div>
                     </AccordionContent>
                 </AccordionItem>
@@ -274,7 +296,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    const apiUrl = url || props.apiUrl;
+    const apiUrl = url || (props.type === 'DataGrid' ? props.apiUrl : element.apiUrl);
     if (!apiUrl) {
         setFetchedKeys([]);
         return;
@@ -995,3 +1017,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
 
     
+

@@ -251,7 +251,7 @@ const builderReducer = (state: State, action: Action): State => {
               description: description || "Initial version",
               type: "draft",
               timestamp: new Date().toISOString(),
-              sections: [{ id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] }],
+              sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }],
               rules: [],
             }]
         };
@@ -371,7 +371,7 @@ const builderReducer = (state: State, action: Action): State => {
        if (!activeForm) return state;
       const newSectionsAfterAdd = [
           ...activeFormSections,
-          { id: crypto.randomUUID(), title: "New Section", config: "expanded", elements: [] },
+          { id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] },
         ];
       return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSectionsAfterAdd }) };
 
@@ -721,7 +721,7 @@ const defaultState: State = {
             description: "",
             type: "draft",
             timestamp: "2023-01-01T00:00:00.000Z",
-            sections: [{ id: defaultSectionId, title: "New Section", config: "expanded", elements: [] }],
+            sections: [{ id: defaultSectionId, title: "New Section", displayMode: "default", elements: [] }],
             rules: [],
         }]
     }],
@@ -832,3 +832,4 @@ export const useBuilder = () => {
     
 
     
+

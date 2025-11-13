@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Copy, GripVertical, Trash, ClipboardPaste, ClipboardCopy } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 
 export function CanvasSection({ section }: { section: Section }) {
@@ -114,6 +115,77 @@ export function CanvasSection({ section }: { section: Section }) {
   const sectionContent = () => {
     const isPublished = latestVersion?.type === 'published';
     
+    const header = (
+        <div className="flex-row items-center justify-between">
+            <div className="flex justify-between items-center">
+                <CardTitle className="text-base font-medium">
+                    {section.title}
+                </CardTitle>
+                 <div className="flex gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={handleCopyToClipboard}
+                    >
+                        <ClipboardCopy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
+                        }}
+                    >
+                        <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        size="icon"
+                        className="h-6 w-6"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
+                        }}
+                    >
+                        <Trash className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+        </div>
+    );
+    
+    if (section.displayMode === 'accordion') {
+        return (
+             <div className="relative">
+                 <div 
+                  draggable 
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  className="absolute top-1/2 -translate-y-1/2 -left-8 h-full flex items-center cursor-grab opacity-0 group-hover/section:opacity-100 transition-opacity"
+                >
+                    <GripVertical className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <Accordion type="single" collapsible defaultValue="item-1" className="w-full">
+                    <AccordionItem value="item-1" className="border-none">
+                        <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "overflow-visible group/section relative")} onClick={handleSectionClick}>
+                             <AccordionTrigger className="p-4 hover:no-underline w-full">
+                                {header}
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <CardContent className="p-4 pt-0">
+                                    {content}
+                                </CardContent>
+                            </AccordionContent>
+                        </Card>
+                    </AccordionItem>
+                </Accordion>
+             </div>
+        )
+    }
+
     return (
         <div className="relative">
             <Card className={cn(isSelected && "shadow-[inset_0_0_0_1px_#084D8E]", isOver && isElementBeingDragged && "shadow-[inset_0_0_0_1px_#084D8E40]", "overflow-visible group/section relative")} onClick={handleSectionClick}>
@@ -125,42 +197,8 @@ export function CanvasSection({ section }: { section: Section }) {
                 >
                     <GripVertical className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <CardHeader className="p-4 flex-row items-center justify-between">
-                    <CardTitle className="text-base font-medium">
-                        {section.title}
-                    </CardTitle>
-                    <div className="flex gap-1 opacity-0 group-hover/section:opacity-100 transition-opacity">
-                         <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={handleCopyToClipboard}
-                        >
-                            <ClipboardCopy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                dispatch({ type: "CLONE_SECTION", payload: { sectionId: section.id } });
-                            }}
-                        >
-                            <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="destructive"
-                            size="icon"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                dispatch({ type: "DELETE_SECTION", payload: { sectionId: section.id } });
-                            }}
-                        >
-                            <Trash className="h-4 w-4" />
-                        </Button>
-                    </div>
+                <CardHeader className="p-4">
+                    {header}
                 </CardHeader>
                 <CardContent className="p-4 pt-0">
                   {content}

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -16,6 +17,7 @@ import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "../ui/badge";
 import { getAllElements, evaluateRule } from "./form-preview-helpers";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 
 type Props = {
     showSubmitButton?: boolean;
@@ -102,10 +104,35 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     return visible;
   }
 
+  const renderSectionContent = (section: Section) => (
+    <div className={cn("grid gap-4 grid-cols-1", section.displayMode !== 'accordion' && 'p-6 pt-0')}>
+        {renderElements(section.elements)}
+    </div>
+  );
+
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => {
          if (!isSectionVisible(section)) return null;
+
+         if (section.displayMode === 'accordion') {
+            return (
+                <Accordion type="single" collapsible key={section.id}>
+                    <AccordionItem value={section.id}>
+                        <Card>
+                            <AccordionTrigger className="w-full p-6 text-base font-medium">
+                               {section.title}
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <CardContent>
+                                    {renderSectionContent(section)}
+                                </CardContent>
+                            </AccordionContent>
+                        </Card>
+                    </AccordionItem>
+                </Accordion>
+            );
+         }
 
         return (
           <Card key={section.id}>
@@ -115,13 +142,7 @@ export function FormPreview({ showSubmitButton = true }: Props) {
                 </CardTitle>
             </CardHeader>
             <CardContent>
-              <div
-                  className={cn(
-                  "grid gap-4 grid-cols-1"
-                  )}
-              >
-                  {renderElements(section.elements)}
-              </div>
+              {renderSectionContent(section)}
             </CardContent>
           </Card>
         );

@@ -108,7 +108,7 @@ export type FormElementInstance = {
 export type Section = {
     id: string;
     title: string;
-    config: 'expanded' | 'normal'; // normal is collapsible
+    displayMode?: 'default' | 'accordion';
     hidden?: boolean;
     elements: FormElementInstance[];
 };
