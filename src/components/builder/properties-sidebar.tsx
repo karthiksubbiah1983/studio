@@ -250,6 +250,18 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       onUpdate(newProps);
   };
 
+  const handleApiUrlChange = (newUrl: string) => {
+    const newProps = { 
+        ...props,
+        apiUrl: newUrl,
+        valueKey: undefined,
+        labelKey: undefined
+    };
+    setProps(newProps);
+    onUpdate(newProps);
+    setFetchedKeys([]);
+  }
+
   const handleFetchSchema = async () => {
     if (!props.apiUrl) {
         setFetchedKeys([]);
@@ -351,9 +363,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <div className="flex flex-col gap-2">
             <Label htmlFor="apiUrl">API URL</Label>
             <div className="flex gap-2">
-                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
                 <Button onClick={handleFetchSchema} disabled={isFetching} size="sm">
-                    {isFetching ? "Fetching..." : "Fetch Schema"}
+                    {isFetching ? "Fetching..." : "Fetch"}
                 </Button>
             </div>
         </div>
@@ -667,7 +679,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="apiUrl">API URL</Label>
                                 <div className="flex gap-2">
-                                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
                                      <Button onClick={handleFetchSchema} disabled={isFetching} size="sm">
                                         {isFetching ? "Fetching..." : "Fetch"}
                                     </Button>
@@ -923,3 +935,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   );
 }
 
+
+
+    
