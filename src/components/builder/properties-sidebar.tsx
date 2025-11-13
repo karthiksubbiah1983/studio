@@ -235,7 +235,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   useEffect(() => {
     setProps(element);
-    // When the element changes, if it's a type that uses fetchedKeys, re-fetch if needed
     if (element.type === 'Select' || element.type === 'DataGrid') {
         if(element.apiUrl) {
             handleFetchSchema(element.apiUrl, false);
@@ -464,6 +463,18 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             />
                         )}
                     </div>
+                    <div className="flex items-center space-x-2">
+                        <Switch 
+                            id={`col-visible-${col.id}`}
+                            checked={col.visible ?? true}
+                            onCheckedChange={(checked) => {
+                                const newCols = [...columns];
+                                newCols[index].visible = checked;
+                                onUpdate(newCols);
+                            }}
+                        />
+                        <Label htmlFor={`col-visible-${col.id}`} className="text-xs">Visible</Label>
+                    </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => {
                     const newCols = columns.filter((_, i) => i !== index);
@@ -474,7 +485,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             </div>
         ))}
         <Button variant="outline" size="sm" onClick={() => {
-            const newCols = [...(columns || []), { id: crypto.randomUUID(), key: "", label: `Column ${(columns?.length || 0) + 1}` }];
+            const newCols = [...(columns || []), { id: crypto.randomUUID(), key: "", label: `Column ${(columns?.length || 0) + 1}`, visible: true }];
             onUpdate(newCols);
         }}>
             <Plus className="mr-2 h-4 w-4" />
@@ -628,6 +639,27 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                  </Accordion>
             );
         case "Input":
+             return (
+                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="input-format">Format</Label>
+                                <Select value={props.inputFormat || 'text'} onValueChange={(v) => updateProperty('inputFormat', v as 'text' | 'number' | 'alphanumeric')}>
+                                    <SelectTrigger><SelectValue/></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="text">Text</SelectItem>
+                                        <SelectItem value="number">Numbers Only</SelectItem>
+                                        <SelectItem value="alphanumeric">Alphanumeric Only</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                 </Accordion>
+            );
         case "Textarea":
         case "RichText":
              return (
@@ -963,5 +995,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
 
     
-
-

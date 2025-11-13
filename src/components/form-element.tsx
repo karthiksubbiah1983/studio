@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn } from "@/lib/types";
@@ -124,7 +125,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     }
   }, [element, onValueChange, value]);
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat } = element;
 
   const LucideIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -236,13 +237,22 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         break;
     }
     case "Input":
+      const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        let val = e.target.value;
+        if (inputFormat === 'number') {
+            val = val.replace(/[^0-9]/g, '');
+        } else if (inputFormat === 'alphanumeric') {
+            val = val.replace(/[^a-zA-Z0-9]/g, '');
+        }
+        onValueChange(element.id, val);
+      };
       content = (
         <div>
           {renderLabel()}
           <Input 
             placeholder={placeholder}
             value={value || ""}
-            onChange={(e) => onValueChange(element.id, e.target.value)}
+            onChange={handleInputChange}
             style={appliedStyles.style}
             className={cn(appliedStyles.error && "border-destructive")}
             disabled={isDisabled}

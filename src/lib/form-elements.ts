@@ -35,7 +35,7 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
         case "Separator":
             return { ...baseElement, label: "" };
         case "Input":
-            return { ...baseElement, label: "Text Field", placeholder: "Enter text..." };
+            return { ...baseElement, label: "Text Field", placeholder: "Enter text...", inputFormat: 'text' };
         case "Textarea":
             return { ...baseElement, label: "Textarea Field", placeholder: "Enter more text..." };
         case "Select":
@@ -64,9 +64,9 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
                 label: "Data Grid",
                 apiUrl: "https://jsonplaceholder.typicode.com/users",
                 columns: [
-                    { id: '1', key: 'name', label: 'Name' },
-                    { id: '2', key: 'email', label: 'Email' },
-                    { id: '3', key: 'phone', label: 'Phone' },
+                    { id: '1', key: 'name', label: 'Name', visible: true },
+                    { id: '2', key: 'email', label: 'Email', visible: true },
+                    { id: '3', key: 'phone', label: 'Phone', visible: true },
                 ],
                 paginationEnabled: true,
                 pageSize: 5,

@@ -54,6 +54,7 @@ export type DataGridColumn = {
     id: string;
     key: string;
     label: string;
+    visible?: boolean;
 };
 
 export type TableColumn = {
@@ -74,6 +75,8 @@ export type FormElementInstance = {
     description?: string; // Corresponds to JSON Schema description
     placeholder?: string;
     helperText?: string;
+    // For Input
+    inputFormat?: 'text' | 'number' | 'alphanumeric';
     // For Select, RadioGroup
     dataSource?: 'static' | 'dynamic';
     options?: string[];
