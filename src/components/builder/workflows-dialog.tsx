@@ -30,18 +30,14 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     if (isOpen) {
         const initialWorkflows = JSON.parse(JSON.stringify(workflows || []));
         setLocalWorkflows(initialWorkflows);
-        if (initialWorkflows.length > 0 && !selectedWorkflowId) {
-            setSelectedWorkflowId(initialWorkflows[0].id);
-        } else if (initialWorkflows.length > 0 && selectedWorkflowId) {
-            const stillExists = initialWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
-            if (!stillExists) {
-                setSelectedWorkflowId(initialWorkflows[0].id);
-            }
-        } else {
-            setSelectedWorkflowId(null);
+
+        const stillExists = initialWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
+
+        if (!stillExists) {
+            setSelectedWorkflowId(initialWorkflows.length > 0 ? initialWorkflows[0].id : null);
         }
     }
-  }, [isOpen, workflows, selectedWorkflowId]);
+  }, [isOpen, workflows]);
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
   
