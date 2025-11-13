@@ -69,25 +69,35 @@ export const findElementRecursive = (sections: Section[], elementId: string): Fo
 }
 
 export const getAllElements = (sections: Section[]): FormElementInstance[] => {
-    let allElements: FormElementInstance[] = [];
-    sections.forEach(section => {
-        const findElementsRecursive = (els: FormElementInstance[]): void => {
-            els.forEach(element => {
-                allElements.push(element);
+    const allElements: FormElementInstance[] = [];
+    const processedElements = new Set<string>();
 
-                if (element.type === 'Container' && element.elements) {
-                    findElementsRecursive(element.elements);
-                }
-                if (element.type === 'Table' && element.tableColumns) {
-                    element.tableColumns.forEach(col => {
-                        // We add the column's element template to the list of all elements
-                        // so it can be targeted by the rule engine.
+    const findElementsRecursive = (els: FormElementInstance[]): void => {
+        els.forEach(element => {
+            if (processedElements.has(element.id)) return;
+            
+            allElements.push(element);
+            processedElements.add(element.id);
+
+            if (element.type === 'Container' && element.elements) {
+                findElementsRecursive(element.elements);
+            }
+            if (element.type === 'Table' && element.tableColumns) {
+                element.tableColumns.forEach(col => {
+                    // This is a template element, it should be included for rule configuration
+                    // but we need to avoid processing it in a way that causes infinite recursion if it's nested.
+                    if (!processedElements.has(col.element.id)) {
                         allElements.push(col.element);
-                    });
-                }
-            });
-        };
+                        processedElements.add(col.element.id);
+                    }
+                });
+            }
+        });
+    };
+
+    sections.forEach(section => {
         findElementsRecursive(section.elements);
     });
+
     return allElements;
 };
