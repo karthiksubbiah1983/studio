@@ -305,6 +305,7 @@ const builderReducer = (state: State, action: Action): State => {
                     description: `Cloned from "${formToClone.title}"`,
                     type: "draft",
                     timestamp: new Date().toISOString(),
+                    workflows: newVersionContent.workflows || [],
                 }
             ]
         };
@@ -862,5 +863,6 @@ export const useBuilder = () => {
     
 
     
+
 
 
