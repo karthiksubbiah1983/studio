@@ -296,7 +296,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    const apiUrl = url || (props.type === 'DataGrid' ? props.apiUrl : element.apiUrl);
+    const apiUrl = url || (props.type === 'DataGrid' || props.type === 'Select' ? props.apiUrl : undefined);
     if (!apiUrl) {
         setFetchedKeys([]);
         return;
@@ -1010,11 +1010,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-
-
-    
-
-
-    
-

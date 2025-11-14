@@ -33,7 +33,7 @@ export const findFirstArray = (data: any): any[] | null => {
     }
     if (typeof data === 'object' && data !== null) {
         // Prioritize common keys for data arrays
-        const commonKeys = ["$values", "data", "results", "items", "values", "list"];
+        const commonKeys = ["data", "$values", "results", "items", "values", "list"];
         for (const key of commonKeys) {
             if (Array.isArray(data[key])) {
                 return data[key];
@@ -110,4 +110,3 @@ export const getAllElements = (sections: Section[]): FormElementInstance[] => {
 
     return allElements;
 };
-
