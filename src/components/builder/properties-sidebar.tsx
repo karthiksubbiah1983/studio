@@ -60,7 +60,7 @@ export function PropertiesSidebar() {
   const getSelectedElementName = () => {
     if (!selected) return null;
     if ('type' in selected) {
-        return selected.type;
+        return selected.type === 'Table' ? 'Editable Table' : selected.type;
     }
     return "Section";
   }

@@ -18,7 +18,7 @@ export const FormElements: {
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'DataGrid', icon: Grid, label: 'Data Grid'},
-    { type: 'Table', icon: Table2, label: 'Table' },
+    { type: 'Table', icon: Table2, label: 'Editable Table' },
     { type: 'Title', icon: Heading1, label: 'Title' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
