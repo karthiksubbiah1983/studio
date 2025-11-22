@@ -314,9 +314,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         setFetchedKeys([]);
         return;
     };
-    if (apiUrlToFetch.includes('{')) {
-        // Don't fetch if it's a dependent URL template
-        setFetchedKeys([]);
+    // Don't try to fetch if it's a dependent URL template that still has a placeholder
+    if (apiUrlToFetch.includes('{') && apiUrlToFetch.includes('}')) {
+        setFetchedKeys([]); // Clear keys as we can't fetch a sample
         return;
     }
     setIsFetching(true);
@@ -419,7 +419,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <div className="flex flex-col gap-2">
             <Label htmlFor="dependent-field">Dependent Field (Optional)</Label>
             <Select 
-                value={props.dependentFieldId || ''} 
+                value={props.dependentFieldId || 'none'} 
                 onValueChange={handleDependentFieldChange}
             >
                 <SelectTrigger>
@@ -459,7 +459,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 <Label htmlFor="apiUrl">API URL</Label>
                 <div className="flex gap-2">
                     <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                    <Button onClick={() => handleFetchSchema()} disabled={isFetching || !!props.dependentFieldId} size="sm">
+                    <Button onClick={() => handleFetchSchema()} disabled={isFetching} size="sm">
                         {isFetching ? "Fetching..." : "Fetch"}
                     </Button>
                 </div>
