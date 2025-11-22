@@ -489,21 +489,33 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <>
             <div className="flex flex-col gap-2">
                 <Label htmlFor="valueKey">Option Value Key</Label>
-                <Input 
-                    id="valueKey"
+                <Select
                     value={props.valueKey || ''}
-                    onChange={(e) => updateProperty('valueKey', e.target.value)}
-                    placeholder={props.dependencyType === 'parent' ? "Key for value in sub-array" : "Key for value"}
-                />
+                    onValueChange={(value) => updateProperty('valueKey', value)}
+                    disabled={fetchedKeys.length === 0}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
             <div className="flex flex-col gap-2">
                 <Label htmlFor="labelKey">Option Label Key</Label>
-                    <Input 
-                    id="labelKey"
+                <Select
                     value={props.labelKey || ''}
-                    onChange={(e) => updateProperty('labelKey', e.target.value)}
-                    placeholder={props.dependencyType === 'parent' ? "Key for label in sub-array" : "Key for label"}
-                />
+                    onValueChange={(value) => updateProperty('labelKey', value)}
+                    disabled={fetchedKeys.length === 0}
+                >
+                    <SelectTrigger>
+                        <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             </div>
         </>
     </div>
@@ -1086,3 +1098,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
