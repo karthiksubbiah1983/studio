@@ -25,7 +25,7 @@ import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2 } from "luc
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn, getAllElements } from "@/lib/utils";
+import { cn, getAllElements, getNestedValue } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
 import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,11 +40,6 @@ type Props = {
   onValueChange: (id: string, value: any, fullObject?: any) => void;
   formState?: { [key: string]: any };
   isParentHorizontal?: boolean;
-};
-
-const getNestedValue = (obj: any, path: string): any => {
-    if (!obj || !path) return undefined;
-    return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 };
 
 export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal }: Props) {
@@ -119,30 +114,47 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   useEffect(() => {
-    if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
-      let finalApiUrl = element.apiUrl;
-      let isDependentFetch = false;
-
-      if (element.dependentFieldId && formState) {
-        const dependentField = allElements.find(el => el.id === element.dependentFieldId);
-        const dependentValue = formState[element.dependentFieldId]?.value;
-        
-        if (dependentField && 'key' in dependentField && dependentValue) {
-            finalApiUrl = finalApiUrl.replace(`{${dependentField.key}}`, encodeURIComponent(dependentValue));
-            isDependentFetch = true;
+    if (element.type === 'Select' && element.dataSource === 'dynamic') {
+      
+      // Handle 'parent' dependency type
+      if (element.dependencyType === 'parent' && element.dependentFieldId && element.subKey) {
+        const parentValue = formState?.[element.dependentFieldId];
+        if (parentValue?.fullObject) {
+            const subArray = getNestedValue(parentValue.fullObject, element.subKey);
+            if (Array.isArray(subArray)) {
+                setDynamicOptions(subArray);
+            } else {
+                setDynamicOptions([]);
+            }
         } else {
-            // Don't fetch if dependent value is not set
             setDynamicOptions([]);
-            return;
         }
+        return; // Stop here for 'parent' dependency type
       }
+      
+      // Handle 'api' dependency type or no dependency
+      if (element.apiUrl) {
+        let finalApiUrl = element.apiUrl;
 
-      setIsLoading(true);
-      fetchFromApi(finalApiUrl)
-        .then(data => setDynamicOptions(data || []))
-        .finally(() => setIsLoading(false));
+        if (element.dependentFieldId && formState) {
+          const dependentField = allElements.find(el => el.id === element.dependentFieldId);
+          const dependentValue = formState[element.dependentFieldId]?.value;
+          
+          if (dependentField && 'key' in dependentField && dependentValue) {
+              finalApiUrl = finalApiUrl.replace(`{${dependentField.key}}`, encodeURIComponent(dependentValue));
+          } else {
+              setDynamicOptions([]);
+              return; // Don't fetch if dependent value is missing
+          }
+        }
+
+        setIsLoading(true);
+        fetchFromApi(finalApiUrl)
+          .then(data => setDynamicOptions(data || []))
+          .finally(() => setIsLoading(false));
+      }
     }
-  }, [element, onValueChange, value, formState, allElements]);
+  }, [element, formState, allElements]);
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId } = element;
 

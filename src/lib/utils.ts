@@ -23,7 +23,7 @@ export const flattenObject = (obj: any, parentKey = '', result: Record<string, a
 };
 
 export const getNestedValue = (obj: any, path: string): any => {
-    if (!path) return obj;
+    if (!obj || !path) return undefined;
     return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 };
 

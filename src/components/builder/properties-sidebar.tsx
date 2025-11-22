@@ -252,7 +252,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const dependentFieldOptions = useMemo(() => 
       allElements.filter(el => 
-          el.id !== element.id && (el.type === 'Input' || el.type === 'Select' || el.type === 'RadioGroup')
+          el.id !== element.id && (el.type === 'Select' || el.type === 'RadioGroup')
       )
   , [allElements, element.id]);
 
@@ -260,7 +260,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   useEffect(() => {
     setProps(element);
     if (element.type === 'Select' || element.type === 'DataGrid') {
-        if(element.apiUrl) {
+        if(element.apiUrl && !element.dependentFieldId) {
             handleFetchSchema(element.apiUrl, false);
         } else {
             setFetchedKeys([]);
@@ -283,6 +283,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       setProps(newProps);
       onUpdate(newProps);
   };
+  
+  const handleDependentFieldChange = (value: string | null) => {
+    const newDependentFieldId = value === 'none' ? undefined : value;
+    updateProperty('dependentFieldId', newDependentFieldId);
+    
+    // Reset dependency type if dependent field is removed
+    if (!newDependentFieldId) {
+        updateProperty('dependencyType', undefined);
+    }
+  }
+
 
   const handleApiUrlChange = (newUrl: string) => {
     const newProps = { 
@@ -409,7 +420,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             <Label htmlFor="dependent-field">Dependent Field (Optional)</Label>
             <Select 
                 value={props.dependentFieldId || ''} 
-                onValueChange={(value) => updateProperty('dependentFieldId', value === 'none' ? undefined : value)}
+                onValueChange={handleDependentFieldChange}
             >
                 <SelectTrigger>
                     <SelectValue placeholder="None" />
@@ -422,40 +433,79 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </SelectContent>
             </Select>
         </div>
-        <div className="flex flex-col gap-2">
-            <Label htmlFor="apiUrl">API URL</Label>
-            <div className="flex gap-2">
-                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                <Button onClick={() => handleFetchSchema()} disabled={isFetching || !!props.dependentFieldId} size="sm">
-                    {isFetching ? "Fetching..." : "Fetch"}
-                </Button>
+        
+        {props.dependentFieldId && (
+             <div className="flex flex-col gap-2">
+                <Label>Dependency Type</Label>
+                <RadioGroup
+                    value={props.dependencyType || 'api'}
+                    onValueChange={(value) => updateProperty('dependencyType', value as 'api' | 'parent')}
+                    className="flex"
+                >
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="api" id="dep-api" />
+                        <Label htmlFor="dep-api">API Call</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="parent" id="dep-parent" />
+                        <Label htmlFor="dep-parent">Parent Data</Label>
+                    </div>
+                </RadioGroup>
             </div>
-            {props.dependentFieldId && (
-                <p className="text-xs text-muted-foreground">
-                    Use {'{field_key}'} to include the value of the dependent field. The dependent field's key will be used.
-                </p>
-            )}
-        </div>
+        )}
 
-        {fetchedKeys.length > 0 && (
+        {(props.dependencyType === 'api' || !props.dependentFieldId) && (
+            <div className="flex flex-col gap-2">
+                <Label htmlFor="apiUrl">API URL</Label>
+                <div className="flex gap-2">
+                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
+                    <Button onClick={() => handleFetchSchema()} disabled={isFetching || !!props.dependentFieldId} size="sm">
+                        {isFetching ? "Fetching..." : "Fetch"}
+                    </Button>
+                </div>
+                {props.dependentFieldId && (
+                    <p className="text-xs text-muted-foreground">
+                        Use {'{field_key}'} to include the value of the dependent field.
+                    </p>
+                )}
+            </div>
+        )}
+
+        {props.dependencyType === 'parent' && props.dependentFieldId && (
+             <div className="flex flex-col gap-2">
+                <Label htmlFor="sub-key">Sub-Array Key</Label>
+                <Input
+                    id="sub-key"
+                    value={props.subKey || ''}
+                    onChange={(e) => updateProperty('subKey', e.target.value)}
+                    placeholder="e.g., 'comments' or 'address.history'"
+                />
+                 <p className="text-xs text-muted-foreground">
+                    The key for the array within the parent's selected object.
+                </p>
+            </div>
+        )}
+
+
+        {(fetchedKeys.length > 0 || props.dependencyType === 'parent') && (
              <>
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="valueKey">Option Value Key</Label>
-                    <Select value={props.valueKey} onValueChange={(v) => updateProperty('valueKey', v)}>
-                        <SelectTrigger><SelectValue placeholder="Select value key..."/></SelectTrigger>
-                        <SelectContent>
-                            {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                    <Input 
+                        id="valueKey"
+                        value={props.valueKey || ''}
+                        onChange={(e) => updateProperty('valueKey', e.target.value)}
+                        placeholder={props.dependencyType === 'parent' ? "Key for value in sub-array" : "Key for value"}
+                    />
                 </div>
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="labelKey">Option Label Key</Label>
-                     <Select value={props.labelKey} onValueChange={(v) => updateProperty('labelKey', v)}>
-                        <SelectTrigger><SelectValue placeholder="Select label key..."/></SelectTrigger>
-                        <SelectContent>
-                            {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                     <Input 
+                        id="labelKey"
+                        value={props.labelKey || ''}
+                        onChange={(e) => updateProperty('labelKey', e.target.value)}
+                        placeholder={props.dependencyType === 'parent' ? "Key for label in sub-array" : "Key for label"}
+                    />
                 </div>
             </>
         )}

@@ -97,6 +97,8 @@ export type FormElementInstance = {
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
     dependentFieldId?: string; // For cascading dropdowns
+    dependencyType?: 'api' | 'parent'; // 'api' calls new url, 'parent' uses sub-array from parent data
+    subKey?: string; // Key for the sub-array when dependencyType is 'parent'
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     // For Checkbox, RadioGroup
