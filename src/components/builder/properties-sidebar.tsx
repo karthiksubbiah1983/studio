@@ -284,7 +284,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       onUpdate(newProps);
   };
   
-  const handleDependentFieldChange = (value: string | null) => {
+  const handleDependentFieldChange = (value: string) => {
     const newDependentFieldId = value === 'none' ? undefined : value;
     updateProperty('dependentFieldId', newDependentFieldId);
     
@@ -459,7 +459,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 <Label htmlFor="apiUrl">API URL</Label>
                 <div className="flex gap-2">
                     <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                    <Button onClick={() => handleFetchSchema()} disabled={isFetching} size="sm">
+                    <Button onClick={() => handleFetchSchema(props.apiUrl)} disabled={isFetching} size="sm">
                         {isFetching ? "Fetching..." : "Fetch"}
                     </Button>
                 </div>
@@ -486,29 +486,26 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             </div>
         )}
 
-
-        {(fetchedKeys.length > 0 || props.dependencyType === 'parent') && (
-             <>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="valueKey">Option Value Key</Label>
+        <>
+            <div className="flex flex-col gap-2">
+                <Label htmlFor="valueKey">Option Value Key</Label>
+                <Input 
+                    id="valueKey"
+                    value={props.valueKey || ''}
+                    onChange={(e) => updateProperty('valueKey', e.target.value)}
+                    placeholder={props.dependencyType === 'parent' ? "Key for value in sub-array" : "Key for value"}
+                />
+            </div>
+            <div className="flex flex-col gap-2">
+                <Label htmlFor="labelKey">Option Label Key</Label>
                     <Input 
-                        id="valueKey"
-                        value={props.valueKey || ''}
-                        onChange={(e) => updateProperty('valueKey', e.target.value)}
-                        placeholder={props.dependencyType === 'parent' ? "Key for value in sub-array" : "Key for value"}
-                    />
-                </div>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="labelKey">Option Label Key</Label>
-                     <Input 
-                        id="labelKey"
-                        value={props.labelKey || ''}
-                        onChange={(e) => updateProperty('labelKey', e.target.value)}
-                        placeholder={props.dependencyType === 'parent' ? "Key for label in sub-array" : "Key for label"}
-                    />
-                </div>
-            </>
-        )}
+                    id="labelKey"
+                    value={props.labelKey || ''}
+                    onChange={(e) => updateProperty('labelKey', e.target.value)}
+                    placeholder={props.dependencyType === 'parent' ? "Key for label in sub-array" : "Key for label"}
+                />
+            </div>
+        </>
     </div>
   );
 
