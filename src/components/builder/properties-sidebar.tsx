@@ -107,7 +107,7 @@ function SectionProperties({ section }: { section: Section }) {
                             <Label>Display Mode</Label>
                             <RadioGroup
                                 value={section.displayMode || 'default'}
-                                onValueChange={(value) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, displayMode: value as 'default' | 'accordion' }})}
+                                onValueChange={(value) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, displayMode: value as 'default' | 'accordion' } })}
                                 className="flex gap-4"
                             >
                                 <div className="flex items-center space-x-2">
@@ -409,13 +409,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             <Label htmlFor="dependent-field">Dependent Field (Optional)</Label>
             <Select 
                 value={props.dependentFieldId || ''} 
-                onValueChange={(value) => updateProperty('dependentFieldId', value)}
+                onValueChange={(value) => updateProperty('dependentFieldId', value === 'none' ? undefined : value)}
             >
                 <SelectTrigger>
                     <SelectValue placeholder="None" />
                 </SelectTrigger>
                 <SelectContent>
-                    <SelectItem value="">None</SelectItem>
+                    <SelectItem value="none">None</SelectItem>
                     {dependentFieldOptions.map(opt => (
                         <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>
                     ))}
