@@ -25,7 +25,7 @@ import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2 } from "luc
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn } from "@/lib/utils";
+import { cn, getAllElements } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
 import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,7 +48,7 @@ const getNestedValue = (obj: any, path: string): any => {
 };
 
 export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal }: Props) {
-  const { rules } = useBuilder();
+  const { rules, sections } = useBuilder();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
@@ -115,17 +115,36 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     }
     return { style, error };
   }, [element.id, formState, rules]);
+  
+  const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   useEffect(() => {
     if (element.type === 'Select' && element.dataSource === 'dynamic' && element.apiUrl) {
+      let finalApiUrl = element.apiUrl;
+      let isDependentFetch = false;
+
+      if (element.dependentFieldId && formState) {
+        const dependentField = allElements.find(el => el.id === element.dependentFieldId);
+        const dependentValue = formState[element.dependentFieldId]?.value;
+        
+        if (dependentField && 'key' in dependentField && dependentValue) {
+            finalApiUrl = finalApiUrl.replace(`{${dependentField.key}}`, encodeURIComponent(dependentValue));
+            isDependentFetch = true;
+        } else {
+            // Don't fetch if dependent value is not set
+            setDynamicOptions([]);
+            return;
+        }
+      }
+
       setIsLoading(true);
-      fetchFromApi(element.apiUrl)
+      fetchFromApi(finalApiUrl)
         .then(data => setDynamicOptions(data || []))
         .finally(() => setIsLoading(false));
     }
-  }, [element, onValueChange, value]);
+  }, [element, onValueChange, value, formState, allElements]);
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId } = element;
 
   const LucideIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -300,15 +319,22 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       break;
     case "Select":
         const handleSelectChange = (val: string) => {
-            const fullObject = dynamicOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === val);
-            onValueChange(element.id, val, fullObject);
+            if (element.dataSource === 'dynamic') {
+                const fullObject = dynamicOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === val);
+                onValueChange(element.id, val, fullObject);
+            } else {
+                 onValueChange(element.id, val);
+            }
         }
+
+        const isDependentAndParentNotSelected = dependentFieldId && !formState?.[dependentFieldId]?.value;
+
       content = (
         <div>
           {renderLabel()}
-          <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled}>
+          <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled || isDependentAndParentNotSelected}>
             <SelectTrigger style={appliedStyles.style} className={cn(appliedStyles.error && "border-destructive")}>
-              <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
+              <SelectValue placeholder={isLoading ? "Loading..." : (isDependentAndParentNotSelected ? "Select parent first" : placeholder)} />
             </SelectTrigger>
             <SelectContent>
               {element.dataSource === 'dynamic' ? (

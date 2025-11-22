@@ -96,6 +96,7 @@ export type FormElementInstance = {
     apiUrl?: string;
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
+    dependentFieldId?: string; // For cascading dropdowns
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     // For Checkbox, RadioGroup

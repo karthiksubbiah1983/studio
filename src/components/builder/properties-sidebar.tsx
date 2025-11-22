@@ -250,10 +250,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const allElements = getAllElements(sections);
 
-  const dynamicSelects = useMemo(() =>
-    allElements.filter(e => e.type === 'Select' && e.dataSource === 'dynamic' && e.id !== element.id)
-    , [allElements, element.id]
-  );
+  const dependentFieldOptions = useMemo(() => 
+      allElements.filter(el => 
+          el.id !== element.id && (el.type === 'Input' || el.type === 'Select' || el.type === 'RadioGroup')
+      )
+  , [allElements, element.id]);
+
 
   useEffect(() => {
     setProps(element);
@@ -296,14 +298,19 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    const apiUrl = url || (props.type === 'DataGrid' || props.type === 'Select' ? props.apiUrl : undefined);
-    if (!apiUrl) {
+    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' ? props.apiUrl : undefined);
+    if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
     };
+    if (apiUrlToFetch.includes('{')) {
+        // Don't fetch if it's a dependent URL template
+        setFetchedKeys([]);
+        return;
+    }
     setIsFetching(true);
     try {
-        const rawData = await fetchFromApi(apiUrl);
+        const rawData = await fetchFromApi(apiUrlToFetch);
         if (rawData) {
             if (showPopup) {
                 setFetchedJsonData(rawData);
@@ -399,13 +406,35 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const dynamicDataSourceFields = (
     <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
+            <Label htmlFor="dependent-field">Dependent Field (Optional)</Label>
+            <Select 
+                value={props.dependentFieldId || ''} 
+                onValueChange={(value) => updateProperty('dependentFieldId', value)}
+            >
+                <SelectTrigger>
+                    <SelectValue placeholder="None" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {dependentFieldOptions.map(opt => (
+                        <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+        <div className="flex flex-col gap-2">
             <Label htmlFor="apiUrl">API URL</Label>
             <div className="flex gap-2">
                 <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                <Button onClick={() => handleFetchSchema()} disabled={isFetching} size="sm">
+                <Button onClick={() => handleFetchSchema()} disabled={isFetching || !!props.dependentFieldId} size="sm">
                     {isFetching ? "Fetching..." : "Fetch"}
                 </Button>
             </div>
+            {props.dependentFieldId && (
+                <p className="text-xs text-muted-foreground">
+                    Use {'{field_key}'} to include the value of the dependent field. The dependent field's key will be used.
+                </p>
+            )}
         </div>
 
         {fetchedKeys.length > 0 && (
@@ -641,7 +670,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <SelectValue placeholder="Select a dropdown..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {dynamicSelects.map(sel => (
+                                        {dependentFieldOptions.map(sel => (
                                             <SelectItem key={sel.id} value={sel.id}>{sel.label}</SelectItem>
                                         ))}
                                     </SelectContent>
