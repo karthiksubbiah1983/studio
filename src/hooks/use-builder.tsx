@@ -791,7 +791,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
            dispatchAction({ type: "SET_STATE", payload: defaultState });
         }
       } else {
-         dispatchAction({ type: "SET_STATE", payload: defaultState });
+         // Only set default if nothing is in localStorage, to avoid unnecessary writes.
+        if (state === initialState) {
+            dispatchAction({ type: "SET_STATE", payload: defaultState });
+        }
       }
        setIsLoaded(true);
     }
@@ -863,6 +866,7 @@ export const useBuilder = () => {
     
 
     
+
 
 
 
