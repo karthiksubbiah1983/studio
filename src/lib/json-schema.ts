@@ -144,7 +144,7 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
         }
         
         // Skip elements that don't have a key or are purely presentational
-        if (!element.key || element.type === 'Title' || element.type === 'Separator' || element.type === 'Display') {
+        if (!element.key || element.type === 'Separator' || element.type === 'Display') {
             continue;
         }
 

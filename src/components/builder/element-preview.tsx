@@ -42,8 +42,6 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
   }
 
   switch (type) {
-    case "Title":
-        return <h2 className="text-2xl font-bold">{label}</h2>;
     case "Separator":
         return <Separator />;
     case "Display": {

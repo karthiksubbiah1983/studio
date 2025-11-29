@@ -599,20 +599,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   
   const content = () => {
       switch(props.type) {
-        case "Title":
-            return (
-                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="label">Title</Label>
-                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                 </Accordion>
-            );
         case "Separator":
             return null;
         case "Container":
@@ -1114,14 +1100,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-    
-
-
-
-    
-
-    
-
-
-

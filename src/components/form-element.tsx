@@ -223,9 +223,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   let content = null;
 
   switch (type) {
-    case "Title":
-      content = <h2 className="text-2xl font-bold" style={appliedStyles.style}>{label}</h2>;
-      break;
     case "Separator":
       content = <Separator />;
       break;

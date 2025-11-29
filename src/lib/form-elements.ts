@@ -1,6 +1,6 @@
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, Heading1, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2 } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -19,7 +19,6 @@ export const FormElements: {
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'DataGrid', icon: Grid, label: 'Data Grid'},
     { type: 'Table', icon: Table2, label: 'Editable Table' },
-    { type: 'Title', icon: Heading1, label: 'Title' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
 
@@ -29,8 +28,6 @@ export const createNewElement = (type: ElementType): FormElementInstance => {
     const baseElement = { id, type, label: type, key, required: false };
     
     switch (type) {
-        case "Title":
-            return { ...baseElement, label: "Title" };
         case "Separator":
             return { ...baseElement, label: "" };
         case "Input":
