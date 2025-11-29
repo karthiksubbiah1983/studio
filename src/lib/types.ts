@@ -83,9 +83,7 @@ export type FormElementInstance = {
     key: string; // Unique key for JSON schema
     label: string;
     required: boolean;
-    hidden?: boolean;
     description?: string; // Corresponds to JSON Schema description
-    placeholder?: string;
     helperText?: string;
     // For Input
     inputFormat?: 'text' | 'number' | 'alphanumeric';
@@ -127,7 +125,6 @@ export type Section = {
     id: string;
     title: string;
     displayMode?: 'default' | 'accordion';
-    hidden?: boolean;
     elements: FormElementInstance[];
 };
 

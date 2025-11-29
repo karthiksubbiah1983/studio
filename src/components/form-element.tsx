@@ -65,27 +65,24 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === element.id);
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === element.id);
 
-    let visible;
+    let visible = true;
 
-    // Default visibility is based on the 'hidden' prop
-    visible = !element.hidden;
-
-    // "Show" rules can override the default hidden state
+    // "Show" rules can make a previously hidden-by-rule element visible
     if (showRules.length > 0) {
       if (evaluateRule(showRules[0], formState || {})) {
         visible = true;
       }
     }
 
-    // "Hide" rules can override the visible state
-    if (visible && hideRules.length > 0) {
+    // "Hide" rules can make an element hidden
+    if (hideRules.length > 0) {
       if (evaluateRule(hideRules[0], formState || {})) {
         visible = false;
       }
     }
     
     return visible;
-  }, [element.id, element.hidden, formState, rules]);
+  }, [element.id, formState, rules]);
   
  const isDisabled = useMemo(() => {
     if (!formState) return false;

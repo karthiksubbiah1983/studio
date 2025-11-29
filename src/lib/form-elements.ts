@@ -26,7 +26,7 @@ export const FormElements: {
 export const createNewElement = (type: ElementType): FormElementInstance => {
     const id = crypto.randomUUID();
     const key = `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 7)}`;
-    const baseElement = { id, type, label: type, key, required: false, hidden: false };
+    const baseElement = { id, type, label: type, key, required: false };
     
     switch (type) {
         case "Title":

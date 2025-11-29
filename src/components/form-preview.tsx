@@ -140,21 +140,16 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === section.id);
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === section.id);
 
-    let visible;
+    let visible = true;
 
-    // Default visibility is based on the 'hidden' prop
-    visible = !section.hidden;
-
-    // "Show" rules can override the default hidden state
+    // "Show" rules can make a section visible
     if (showRules.length > 0) {
-      if (evaluateRule(showRules[0], formState || {})) {
-        visible = true;
-      }
+        visible = showRules.some(r => evaluateRule(r, formState || {}));
     }
 
-    // "Hide" rules can override the visible state
+    // "Hide" rules can override the visible state and make it hidden
     if (visible && hideRules.length > 0) {
-      if (evaluateRule(hideRules[0], formState || {})) {
+      if (hideRules.some(r => evaluateRule(r, formState || {}))) {
         visible = false;
       }
     }

@@ -132,7 +132,6 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
       return {
           id: section.id,
           title: section.title,
-          hidden: section.hidden || false,
           elementKeys: getElementKeysRecursive(section.elements)
       }
   })

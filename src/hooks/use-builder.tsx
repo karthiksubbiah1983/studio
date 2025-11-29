@@ -778,36 +778,32 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         console.error("Could not access localStorage.", e);
       }
       
+      let parsedState = defaultState;
       if (storedState) {
         try {
-          const parsedState = JSON.parse(storedState);
-           if (parsedState && Array.isArray(parsedState.forms) && parsedState.forms.length > 0) {
-            dispatchAction({ type: "SET_STATE", payload: parsedState });
-          } else {
-             dispatchAction({ type: "SET_STATE", payload: defaultState });
+          const parsed = JSON.parse(storedState);
+          // Simple validation to ensure we have a valid-looking state
+          if (parsed && Array.isArray(parsed.forms)) {
+            parsedState = parsed;
           }
         } catch (error) {
            console.error("Failed to parse state from localStorage, initializing with default.", error);
-           dispatchAction({ type: "SET_STATE", payload: defaultState });
-        }
-      } else {
-         // Only set default if nothing is in localStorage, to avoid unnecessary writes.
-        if (state === initialState) {
-            dispatchAction({ type: "SET_STATE", payload: defaultState });
         }
       }
-       setIsLoaded(true);
+
+      dispatchAction({ type: "SET_STATE", payload: parsedState });
+      setIsLoaded(true);
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && isLoaded && state !== initialState) {
-      try {
-        const stateToSave = JSON.parse(JSON.stringify(state));
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
-      } catch (error) {
-        console.error("Failed to save state to localStorage", error);
-      }
+    if (isLoaded && state !== initialState) {
+        try {
+            const stateToSave = JSON.stringify(state);
+            localStorage.setItem(LOCAL_STORAGE_KEY, stateToSave);
+        } catch (error) {
+            console.error("Failed to save state to localStorage", error);
+        }
     }
   }, [state, isLoaded]);
 
@@ -866,6 +862,7 @@ export const useBuilder = () => {
     
 
     
+
 
 
 
