@@ -42,12 +42,12 @@ type Props = {
   isParentHorizontal?: boolean;
 };
 
-const interpolateString = (template: string, data: Record<string, any>): string => {
+const interpolateString = (template: string, data: { sections: Section[], formState: { [key: string]: any } }): string => {
     return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
         // Find the element with this key
         const allElements = getAllElements(data.sections || []);
         const element = allElements.find(el => 'key' in el && el.key === key);
-        if (element && data.formState && data.formState[element.id]) {
+        if (element && 'id' in element && data.formState && data.formState[element.id]) {
              return data.formState[element.id].value || match;
         }
         return match;
@@ -67,14 +67,19 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
     let visible;
 
+    // Default visibility is based on the 'hidden' prop
+    visible = !element.hidden;
+
+    // "Show" rules can override the default hidden state
     if (showRules.length > 0) {
-      visible = showRules.some(r => evaluateRule(r, formState || {}));
-    } else {
-      visible = !element.hidden;
+      if (evaluateRule(showRules[0], formState || {})) {
+        visible = true;
+      }
     }
 
+    // "Hide" rules can override the visible state
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, formState || {}))) {
+      if (evaluateRule(hideRules[0], formState || {})) {
         visible = false;
       }
     }
@@ -237,7 +242,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       }
       
       if (isLink && linkUrl) {
-          const finalUrl = interpolateString(linkUrl, { formState, sections });
+          const finalUrl = interpolateString(linkUrl, { formState: formState || {}, sections });
           return (
                  <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     <Link className="h-4 w-4" />

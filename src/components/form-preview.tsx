@@ -142,14 +142,19 @@ export function FormPreview({ showSubmitButton = true }: Props) {
 
     let visible;
 
+    // Default visibility is based on the 'hidden' prop
+    visible = !section.hidden;
+
+    // "Show" rules can override the default hidden state
     if (showRules.length > 0) {
-      visible = showRules.some(r => evaluateRule(r, formState || {}));
-    } else {
-      visible = !section.hidden;
+      if (evaluateRule(showRules[0], formState || {})) {
+        visible = true;
+      }
     }
 
+    // "Hide" rules can override the visible state
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, formState || {}))) {
+      if (evaluateRule(hideRules[0], formState || {})) {
         visible = false;
       }
     }
