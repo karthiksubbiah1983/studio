@@ -42,8 +42,15 @@ function FormattedDate({ timestamp }: { timestamp: string }) {
     const [formattedDate, setFormattedDate] = useState('');
 
     useEffect(() => {
-        setFormattedDate(format(new Date(timestamp), "PPP p"));
+        if (timestamp) {
+            setFormattedDate(format(new Date(timestamp), "PPP p"));
+        }
     }, [timestamp]);
+
+    // Render a placeholder on the server and initial client render
+    if (!formattedDate) {
+        return null; 
+    }
 
     return <>{formattedDate}</>;
 }
