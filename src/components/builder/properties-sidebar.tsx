@@ -706,10 +706,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
-                                <Label htmlFor="label">Label</Label>
+                                <Label htmlFor="label">Text / Label</Label>
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
-                            {placeholderField}
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden-by-default">Hidden by default</Label>
                                 <Switch id="hidden-by-default" checked={!!props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
@@ -792,6 +791,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
+                            {placeholderField}
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="input-format">Format</Label>
                                 <Select value={props.inputFormat || 'text'} onValueChange={(v) => updateProperty('inputFormat', v as 'text' | 'number' | 'alphanumeric')}>
@@ -815,6 +815,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
+                            {placeholderField}
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>
@@ -826,6 +827,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
+                            {placeholderField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
@@ -927,7 +929,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent>
                             <div className="flex flex-col gap-2">
                                 <Label>Columns</Label>
-                                {props.tableColumns?.map((col, index) => (
+                                {props.tableColumns?.map((col) => (
                                     <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
                                         <div className="flex-1 text-sm">{col.label} ({col.element.type})</div>
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingColumn(col)}>

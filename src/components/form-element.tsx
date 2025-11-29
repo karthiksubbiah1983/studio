@@ -229,32 +229,26 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       content = <Separator />;
       break;
     case "Display": {
-      if (!formState) return null;
-
-      let displayValue = placeholder || '';
-      if(dataSourceConfig?.sourceElementId && dataSourceConfig?.displayKey) {
+      let displayValue = label;
+      if (dataSourceConfig?.sourceElementId && formState) {
           const sourceObject = formState[dataSourceConfig.sourceElementId]?.fullObject;
-          displayValue = sourceObject ? getNestedValue(sourceObject, dataSourceConfig.displayKey) : `(Not selected)`;
+          if (sourceObject) {
+              displayValue = getNestedValue(sourceObject, dataSourceConfig.displayKey) || label;
+          }
       }
       
       if (isLink && linkUrl) {
           const finalUrl = interpolateString(linkUrl, { formState, sections });
           return (
-             <div>
-                <Label className="text-[0.9rem]">{label}</Label>
                  <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     {LinkIcon && <LinkIcon className="h-4 w-4" />}
                     <span className="text-sm">{displayValue}</span>
                 </a>
-            </div>
           )
       }
 
       content = (
-        <div>
-          <Label className="text-[0.9rem]">{label}</Label>
-          <p className="text-muted-foreground text-sm mt-1" style={appliedStyles.style}>{displayValue}</p>
-        </div>
+          <p className="text-sm mt-1" style={appliedStyles.style}>{displayValue}</p>
       );
       break;
     }
