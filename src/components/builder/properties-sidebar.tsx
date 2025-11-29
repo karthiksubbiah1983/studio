@@ -709,6 +709,23 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="label">Text / Label</Label>
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
+                            {!props.isLink && (
+                                <div className="flex flex-col gap-2">
+                                    <Label>Text Style</Label>
+                                    <Select value={props.textStyle || 'p'} onValueChange={v => updateProperty('textStyle', v as any)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="p">Paragraph</SelectItem>
+                                            <SelectItem value="h1">Heading 1</SelectItem>
+                                            <SelectItem value="h2">Heading 2</SelectItem>
+                                            <SelectItem value="h3">Heading 3</SelectItem>
+                                            <SelectItem value="h4">Heading 4</SelectItem>
+                                            <SelectItem value="h5">Heading 5</SelectItem>
+                                            <SelectItem value="h6">Heading 6</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden-by-default">Hidden by default</Label>
                                 <Switch id="hidden-by-default" checked={!!props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
@@ -721,7 +738,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                              <div className="flex flex-col gap-2">
                                 <Label>Source Dropdown</Label>
                                 <Select
-                                    value={config.sourceElementId}
+                                    value={config.sourceElementId || 'none'}
                                     onValueChange={(value) => updateProperty('dataSourceConfig', { ...config, sourceElementId: value === 'none' ? '' : value })}
                                 >
                                     <SelectTrigger>
@@ -761,23 +778,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                          <p className="text-xs text-muted-foreground">
                                             Use {'{field_key}'} to include form values.
                                         </p>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <Label htmlFor="link-icon">Icon</Label>
-                                        <Select
-                                            value={props.linkIcon || 'none'}
-                                            onValueChange={(value) => updateProperty('linkIcon', value === 'none' ? undefined : value)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select an icon (optional)" />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                 <SelectItem value="none">None</SelectItem>
-                                                {iconNames.map(name => (
-                                                    <SelectItem key={name} value={name}>{name}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
                                     </div>
                                 </>
                             )}
@@ -1146,4 +1146,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
-

@@ -21,7 +21,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2 } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -169,10 +169,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     }
   }, [element, formState, allElements]);
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, linkIcon } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, textStyle } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
-  const LinkIcon = linkIcon ? (icons as any)[linkIcon] : null;
   
   if (!isVisible) return null;
 
@@ -241,15 +240,24 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
           const finalUrl = interpolateString(linkUrl, { formState, sections });
           return (
                  <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
-                    {LinkIcon && <LinkIcon className="h-4 w-4" />}
+                    <Link className="h-4 w-4" />
                     <span className="text-sm">{displayValue}</span>
                 </a>
           )
       }
 
-      content = (
-          <p className="text-sm mt-1" style={appliedStyles.style}>{displayValue}</p>
-      );
+      const style = textStyle || 'p';
+      const classes = {
+          p: 'text-sm',
+          h1: 'text-4xl font-bold',
+          h2: 'text-3xl font-bold',
+          h3: 'text-2xl font-bold',
+          h4: 'text-xl font-bold',
+          h5: 'text-lg font-bold',
+          h6: 'text-base font-bold',
+      };
+      const Tag = style === 'p' ? 'p' : style;
+      content = <Tag className={cn(classes[style], 'mt-1')} style={appliedStyles.style}>{displayValue}</Tag>;
       break;
     }
     case "Container": {

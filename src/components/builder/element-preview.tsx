@@ -15,7 +15,7 @@ import { Clock, Table, Table2, Link, icons } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
-  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink, linkUrl, linkIcon } = element;
+  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink, linkUrl, textStyle } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -26,6 +26,21 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
     </div>
   );
 
+  const renderStyledText = (text: string) => {
+    const style = textStyle || 'p';
+    const classes = {
+        p: 'text-muted-foreground text-sm',
+        h1: 'text-4xl font-bold',
+        h2: 'text-3xl font-bold',
+        h3: 'text-2xl font-bold',
+        h4: 'text-xl font-bold',
+        h5: 'text-lg font-bold',
+        h6: 'text-base font-bold',
+    };
+    const Tag = style === 'p' ? 'p' : style;
+    return <Tag className={cn(classes[style], 'mt-1')}>{text}</Tag>;
+  }
+
   switch (type) {
     case "Title":
         return <h2 className="text-2xl font-bold">{label}</h2>;
@@ -33,21 +48,16 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         return <Separator />;
     case "Display": {
         const text = dataSourceConfig?.sourceElementId ? `(Value from ${dataSourceConfig?.displayKey || '...'})` : label;
-        const Icon = linkIcon ? (icons as any)[linkIcon] : null;
 
         if (isLink) {
             return (
                  <a className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
-                    {Icon && <Icon className="h-4 w-4" />}
+                    <Link className="h-4 w-4" />
                     <span className="text-sm">{text}</span>
                 </a>
             )
         }
-        return (
-            <p className="text-muted-foreground text-sm mt-1">
-                {text}
-            </p>
-        );
+        return renderStyledText(text);
     }
     case "Input":
       return (
