@@ -42,6 +42,19 @@ type Props = {
   isParentHorizontal?: boolean;
 };
 
+const interpolateString = (template: string, data: Record<string, any>): string => {
+    return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
+        // Find the element with this key
+        const allElements = getAllElements(data.sections || []);
+        const element = allElements.find(el => 'key' in el && el.key === key);
+        if (element && data.formState && data.formState[element.id]) {
+             return data.formState[element.id].value || match;
+        }
+        return match;
+    });
+}
+
+
 export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal }: Props) {
   const { rules, sections } = useBuilder();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
@@ -156,9 +169,10 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     }
   }, [element, formState, allElements]);
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, linkIcon } = element;
 
-  const LucideIcon = popup?.icon ? (icons as any)[popup.icon] : null;
+  const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
+  const LinkIcon = linkIcon ? (icons as any)[linkIcon] : null;
   
   if (!isVisible) return null;
 
@@ -178,7 +192,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 onOpenChange={setIsPopupOpen}
                 title={popup.title}
                 description={popup.description}
-                icon={LucideIcon}
+                icon={PopupIcon}
                 iconColor={popup.iconColor}
             />
         </>
@@ -215,11 +229,27 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       content = <Separator />;
       break;
     case "Display": {
-      if (!dataSourceConfig || !formState) return null;
-      const { sourceElementId, displayKey } = dataSourceConfig;
-      const sourceObject = formState[sourceElementId]?.fullObject;
-      const displayValue = sourceObject ? getNestedValue(sourceObject, displayKey) : `(Not selected)`;
+      if (!formState) return null;
+
+      let displayValue = placeholder || '';
+      if(dataSourceConfig?.sourceElementId && dataSourceConfig?.displayKey) {
+          const sourceObject = formState[dataSourceConfig.sourceElementId]?.fullObject;
+          displayValue = sourceObject ? getNestedValue(sourceObject, dataSourceConfig.displayKey) : `(Not selected)`;
+      }
       
+      if (isLink && linkUrl) {
+          const finalUrl = interpolateString(linkUrl, { formState, sections });
+          return (
+             <div>
+                <Label className="text-[0.9rem]">{label}</Label>
+                 <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
+                    {LinkIcon && <LinkIcon className="h-4 w-4" />}
+                    <span className="text-sm">{displayValue}</span>
+                </a>
+            </div>
+          )
+      }
+
       content = (
         <div>
           <Label className="text-[0.9rem]">{label}</Label>

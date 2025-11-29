@@ -249,6 +249,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
 
   const allElements = getAllElements(sections);
+  const iconNames = Object.keys(icons);
 
   const dependentFieldOptions = useMemo(() => 
       allElements.filter(el => 
@@ -701,7 +702,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         case "Display":
             const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "" };
             return (
-                 <Accordion type="multiple" defaultValue={["general", "data"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "link"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -717,7 +718,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
-                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Data Source (Optional)</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label>Source Dropdown</Label>
@@ -744,6 +745,40 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     placeholder="e.g., 'email' or 'address.city'"
                                 />
                             </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="link">
+                        <AccordionTrigger className="py-2">Link Settings</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="is-link">Enable as Link</Label>
+                                <Switch id="is-link" checked={!!props.isLink} onCheckedChange={(checked) => updateProperty('isLink', checked)} />
+                            </div>
+                            {props.isLink && (
+                                <>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="link-url">URL</Label>
+                                        <Input id="link-url" value={props.linkUrl || ''} onChange={(e) => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com" />
+                                         <p className="text-xs text-muted-foreground">
+                                            Use {'{field_key}'} to include form values.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="link-icon">Icon</Label>
+                                        <Select value={props.linkIcon || ''} onValueChange={(value) => updateProperty('linkIcon', value)}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select an icon (optional)" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                 <SelectItem value="">None</SelectItem>
+                                                {iconNames.map(name => (
+                                                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>

@@ -11,11 +11,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table, Table2 } from "lucide-react";
+import { Clock, Table, Table2, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
-  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction } = element;
+  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -31,15 +31,28 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         return <h2 className="text-2xl font-bold">{label}</h2>;
     case "Separator":
         return <Separator />;
-    case "Display":
+    case "Display": {
+        const text = placeholder || `(Value from ${dataSourceConfig?.displayKey || '...'})`;
+        if (isLink) {
+            return (
+                 <div>
+                    <Label className="text-[0.9rem]">{label}</Label>
+                    <div className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
+                        <Link className="h-4 w-4" />
+                        <span className="text-sm">{text}</span>
+                    </div>
+                </div>
+            )
+        }
         return (
             <div>
                 <Label className="text-[0.9rem]">{label}</Label>
                 <p className="text-muted-foreground text-sm mt-1">
-                    {placeholder || `(Value from ${dataSourceConfig?.displayKey || '...'})`}
+                    {text}
                 </p>
             </div>
         );
+    }
     case "Input":
       return (
         <div>

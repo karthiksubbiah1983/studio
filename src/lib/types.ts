@@ -101,6 +101,9 @@ export type FormElementInstance = {
     subKey?: string; // Key for the sub-array when dependencyType is 'parent'
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
+    isLink?: boolean;
+    linkUrl?: string;
+    linkIcon?: string;
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
     // For RichText
