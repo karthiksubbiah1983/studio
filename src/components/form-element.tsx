@@ -229,9 +229,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "Display": {
       let displayValue = label;
       if (dataSourceConfig?.sourceElementId && formState) {
-          const sourceObject = formState[dataSourceConfig.sourceElementId]?.fullObject;
-          if (sourceObject) {
-              displayValue = getNestedValue(sourceObject, dataSourceConfig.displayKey) || label;
+          const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
+          const sourceValue = formState[dataSourceConfig.sourceElementId];
+          if (sourceElement && sourceValue) {
+              if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
+                  displayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey) || label;
+              } else {
+                  displayValue = sourceValue.value || label;
+              }
           }
       }
       

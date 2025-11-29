@@ -104,9 +104,11 @@ export const getAllElements = (sections: Section[]): FormElementInstance[] => {
         });
     };
 
-    sections.forEach(section => {
-        findElementsRecursive(section.elements);
-    });
+    if (sections) {
+        sections.forEach(section => {
+            findElementsRecursive(section.elements);
+        });
+    }
 
     return allElements;
 };

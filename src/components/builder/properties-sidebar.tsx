@@ -248,7 +248,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const dependentFieldOptions = useMemo(() => 
       allElements.filter(el => 
-          el.id !== element.id && (el.type === 'Select' || el.type === 'RadioGroup')
+          el.id !== element.id
       )
   , [allElements, element.id]);
 
@@ -654,6 +654,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
              )
         case "Display":
             const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "" };
+            const selectedSourceElement = dependentFieldOptions.find(el => el.id === config.sourceElementId);
+            const sourceIsSelect = selectedSourceElement && selectedSourceElement.type === 'Select';
+
             return (
                  <Accordion type="multiple" defaultValue={["general", "link", "data"]} className="w-full">
                     <AccordionItem value="general">
@@ -717,7 +720,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Data Source (Optional)</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
-                                <Label>Source Dropdown</Label>
+                                <Label>Source Field</Label>
                                 <Select
                                     value={config.sourceElementId || "none"}
                                     onValueChange={(value) => {
@@ -726,17 +729,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     }}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder="Select a dropdown..." />
+                                        <SelectValue placeholder="Select a field..." />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">None</SelectItem>
-                                        {dependentFieldOptions.map(sel => (
-                                            <SelectItem key={sel.id} value={sel.id}>{sel.label}</SelectItem>
+                                        {dependentFieldOptions.map(el => (
+                                            <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                             </div>
-                            { config.sourceElementId && (
+                            { config.sourceElementId && sourceIsSelect && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="display-key">Display Key</Label>
                                     <Input 
@@ -745,6 +748,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         onChange={(e) => updateProperty('dataSourceConfig', { ...config, displayKey: e.target.value })}
                                         placeholder="e.g., 'email' or 'address.city'"
                                     />
+                                    <p className="text-xs text-muted-foreground">Key from the selected object to display.</p>
                                 </div>
                             )}
                         </AccordionContent>
