@@ -493,7 +493,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 <Select
                     value={props.valueKey || ''}
                     onValueChange={(value) => updateProperty('valueKey', value)}
-                    disabled={fetchedKeys.length === 0}
                 >
                     <SelectTrigger>
                         <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
@@ -508,7 +507,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 <Select
                     value={props.labelKey || ''}
                     onValueChange={(value) => updateProperty('labelKey', value)}
-                    disabled={fetchedKeys.length === 0}
                 >
                     <SelectTrigger>
                         <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
@@ -596,7 +594,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             </div>
         ))}
         <Button variant="outline" size="sm" onClick={() => {
-            const newCols = [...(columns || []), { id: crypto.randomUUID(), key: "", label: `Column ${(columns?.length || 0) + 1}`, visible: true }];
+            const newCol: DataGridColumn = { id: crypto.randomUUID(), key: "", label: `Column ${(columns?.length || 0) + 1}`, visible: true };
+            const newCols = [...(columns || []), newCol];
             onUpdate(newCols);
         }}>
             <Plus className="mr-2 h-4 w-4" />
@@ -1135,3 +1134,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 }
 
     
+
