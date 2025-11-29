@@ -135,8 +135,18 @@ export function FormPreview({ showSubmitButton = true }: Props) {
           />
       ));
   };
+  
+  const sectionsInPopups = useMemo(() => {
+    const allElements = getAllElements(sections);
+    const previewElements = allElements.filter(el => el.type === 'Preview') as FormElementInstance[];
+    return new Set(previewElements.flatMap(el => el.previewSectionIds || []));
+  }, [sections]);
 
   const isSectionVisible = (section: Section): boolean => {
+    if (sectionsInPopups.has(section.id)) {
+        return false;
+    }
+
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === section.id);
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === section.id);
 
