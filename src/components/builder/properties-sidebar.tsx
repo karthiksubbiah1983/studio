@@ -764,12 +764,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <Label htmlFor="link-icon">Icon</Label>
-                                        <Select value={props.linkIcon || ''} onValueChange={(value) => updateProperty('linkIcon', value)}>
+                                        <Select
+                                            value={props.linkIcon || 'none'}
+                                            onValueChange={(value) => updateProperty('linkIcon', value === 'none' ? undefined : value)}
+                                        >
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select an icon (optional)" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                 <SelectItem value="">None</SelectItem>
+                                                 <SelectItem value="none">None</SelectItem>
                                                 {iconNames.map(name => (
                                                     <SelectItem key={name} value={name}>{name}</SelectItem>
                                                 ))}
@@ -1135,3 +1138,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
     
 
+
+
+    
+
+    
