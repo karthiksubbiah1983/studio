@@ -248,7 +248,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
       const style = textStyle || 'p';
       const classes = {
-          p: 'text-sm',
+          p: 'text-muted-foreground text-sm',
           h1: 'text-4xl font-bold',
           h2: 'text-3xl font-bold',
           h3: 'text-2xl font-bold',

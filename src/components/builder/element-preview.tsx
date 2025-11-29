@@ -51,10 +51,10 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
 
         if (isLink) {
             return (
-                 <a className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
+                 <div className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     <Link className="h-4 w-4" />
                     <span className="text-sm">{text}</span>
-                </a>
+                </div>
             )
         }
         return renderStyledText(text);
