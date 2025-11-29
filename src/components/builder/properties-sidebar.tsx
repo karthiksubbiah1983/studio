@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash } from "lucide-react";
+import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
 import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, DataGridColumn, TableColumn } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -678,6 +678,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
                             {!props.isLink && (
+                                <>
                                 <div className="flex flex-col gap-2">
                                     <Label>Text Style</Label>
                                     <Select value={props.textStyle || 'p'} onValueChange={v => updateProperty('textStyle', v as any)}>
@@ -693,6 +694,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         </SelectContent>
                                     </Select>
                                 </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="text-color">Text Color</Label>
+                                    <Input
+                                        id="text-color"
+                                        type="color"
+                                        value={props.color || '#000000'}
+                                        onChange={(e) => updateProperty('color', e.target.value)}
+                                    />
+                                </div>
+                                </>
                             )}
                         </AccordionContent>
                     </AccordionItem>
@@ -722,8 +733,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                              <div className="flex flex-col gap-2">
                                 <Label>Source Dropdown</Label>
                                 <Select
-                                    value={config.sourceElementId || 'none'}
-                                    onValueChange={(value) => updateProperty('dataSourceConfig', { ...config, sourceElementId: value === 'none' ? '' : value })}
+                                    value={config.sourceElementId || "none"}
+                                    onValueChange={(value) => {
+                                        const newConfig = { ...config, sourceElementId: value === "none" ? "" : value };
+                                        updateProperty('dataSourceConfig', newConfig);
+                                    }}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select a dropdown..." />
@@ -1108,5 +1122,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 

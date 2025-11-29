@@ -171,7 +171,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     }
   }, [element, formState, allElements]);
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, textStyle } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, textStyle, color } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -259,7 +259,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
           h6: 'text-base font-bold',
       };
       const Tag = style === 'p' ? 'p' : style;
-      content = <Tag className={cn(classes[style], 'mt-1')} style={appliedStyles.style}>{displayValue}</Tag>;
+      content = <Tag className={cn(classes[style], 'mt-1')} style={{ ...appliedStyles.style, color }}>{displayValue}</Tag>;
       break;
     }
     case "Container": {

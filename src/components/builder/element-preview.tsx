@@ -15,7 +15,7 @@ import { Clock, Table, Table2, Link, icons } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
-  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink, linkUrl, textStyle } = element;
+  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink, linkUrl, textStyle, color } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -38,7 +38,7 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         h6: 'text-base font-bold',
     };
     const Tag = style === 'p' ? 'p' : style;
-    return <Tag className={cn(classes[style], 'mt-1')}>{text}</Tag>;
+    return <Tag className={cn(classes[style], 'mt-1')} style={{ color }}>{text}</Tag>;
   }
 
   switch (type) {

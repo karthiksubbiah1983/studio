@@ -100,6 +100,7 @@ export type FormElementInstance = {
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     textStyle?: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+    color?: string;
     isLink?: boolean;
     linkUrl?: string;
     // For Checkbox, RadioGroup
