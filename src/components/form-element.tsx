@@ -21,7 +21,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -32,6 +32,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DataGrid } from "@/components/ui/data-grid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { FormPreviewPopup } from "./form-preview-popup";
 
 
 type Props = {
@@ -60,6 +61,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
+  const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
 
    const isVisible = useMemo(() => {
     if (!formState) return true;
@@ -603,6 +605,23 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                         Add Row
                     </Button>
                 )}
+            </div>
+        );
+        break;
+    case "Preview":
+        content = (
+             <div>
+                {renderLabel()}
+                <Button variant="outline" className="w-full" onClick={() => setIsPreviewPopupOpen(true)}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    {label}
+                </Button>
+                <FormPreviewPopup
+                    isOpen={isPreviewPopupOpen}
+                    onOpenChange={setIsPreviewPopupOpen}
+                    sectionIds={element.previewSectionIds || []}
+                    formState={formState || {}}
+                />
             </div>
         );
         break;

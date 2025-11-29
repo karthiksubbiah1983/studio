@@ -11,8 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table, Table2, Link, icons } from "lucide-react";
+import { Clock, Table, Table2, Link, icons, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "../ui/button";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
   const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink, linkUrl, textStyle, color } = element;
@@ -162,6 +163,16 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                     <p className="text-sm text-muted-foreground">Editable Table</p>
                     <p className="text-xs text-muted-foreground/70">{element.tableColumns?.length || 0} columns configured</p>
                 </div>
+            </div>
+        )
+    case "Preview":
+        return (
+            <div>
+                {renderLabel()}
+                <Button variant="outline" className="w-full" disabled>
+                    <Eye className="mr-2 h-4 w-4" />
+                    {label}
+                </Button>
             </div>
         )
     default:

@@ -28,6 +28,7 @@ import { findFirstArray, flattenObject, getAllElements } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
 import { createNewElement } from "@/lib/form-elements";
 import { FetchedJsonDialog } from "./fetched-json-dialog";
+import { Checkbox } from "../ui/checkbox";
 
 
 export function PropertiesSidebar() {
@@ -60,7 +61,9 @@ export function PropertiesSidebar() {
   const getSelectedElementName = () => {
     if (!selected) return null;
     if ('type' in selected) {
-        return selected.type === 'Table' ? 'Editable Table' : selected.type;
+        if (selected.type === 'Table') return 'Editable Table';
+        if (selected.type === 'Preview') return 'Preview Button';
+        return selected.type;
     }
     return "Section";
   }
@@ -724,7 +727,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Select
                                     value={config.sourceElementId || "none"}
                                     onValueChange={(value) => {
-                                        const newConfig = { ...config, sourceElementId: value === "none" ? "" : value };
+                                        const newConfig = { ...config, sourceElementId: value === "none" ? "" : value, displayKey: "" };
                                         updateProperty('dataSourceConfig', newConfig);
                                     }}
                                 >
@@ -733,7 +736,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">None</SelectItem>
-                                        {dependentFieldOptions.map(el => (
+                                        {allElements.map(el => 'key' in el && el.key && (
                                             <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
                                         ))}
                                     </SelectContent>
@@ -741,7 +744,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                             { config.sourceElementId && sourceIsSelect && (
                                 <div className="flex flex-col gap-2">
-                                    <Label htmlFor="display-key">Display Key</Label>
+                                    <Label htmlFor="display-key">Display Key (for Select fields)</Label>
                                     <Input 
                                         id="display-key" 
                                         value={config.displayKey}
@@ -1088,6 +1091,47 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
             );
+        case "Preview":
+            const handleSectionToggle = (sectionId: string, checked: boolean) => {
+                const currentIds = props.previewSectionIds || [];
+                let newIds;
+                if (checked) {
+                    newIds = [...currentIds, sectionId];
+                } else {
+                    newIds = currentIds.filter(id => id !== sectionId);
+                }
+                updateProperty('previewSectionIds', newIds);
+            }
+            return (
+                <Accordion type="multiple" defaultValue={["general", "sections"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="label">Button Label</Label>
+                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="sections">
+                        <AccordionTrigger className="py-2">Sections to Preview</AccordionTrigger>
+                        <AccordionContent>
+                             <div className="flex flex-col gap-2">
+                                {sections.map(section => (
+                                    <div key={section.id} className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id={`section-preview-${section.id}`}
+                                            checked={(props.previewSectionIds || []).includes(section.id)}
+                                            onCheckedChange={(checked) => handleSectionToggle(section.id, !!checked)}
+                                        />
+                                        <Label htmlFor={`section-preview-${section.id}`}>{section.title}</Label>
+                                    </div>
+                                ))}
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            )
         default:
             return null;
       }
