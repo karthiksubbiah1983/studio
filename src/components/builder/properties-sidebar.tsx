@@ -722,12 +722,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label>Source Dropdown</Label>
                                 <Select
                                     value={config.sourceElementId}
-                                    onValueChange={(value) => updateProperty('dataSourceConfig', { ...config, sourceElementId: value })}
+                                    onValueChange={(value) => updateProperty('dataSourceConfig', { ...config, sourceElementId: value === 'none' ? '' : value })}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select a dropdown..." />
                                     </SelectTrigger>
                                     <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
                                         {dependentFieldOptions.map(sel => (
                                             <SelectItem key={sel.id} value={sel.id}>{sel.label}</SelectItem>
                                         ))}
@@ -1145,3 +1146,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
