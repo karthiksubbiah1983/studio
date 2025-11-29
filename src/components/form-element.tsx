@@ -62,21 +62,21 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
    const isVisible = useMemo(() => {
+    if (!formState) return true;
+
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === element.id);
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === element.id);
 
-    let visible = true;
+    let visible = true; 
 
-    // "Show" rules can make a previously hidden-by-rule element visible
+    // If there are "show" rules, the element is hidden unless a show rule is met
     if (showRules.length > 0) {
-      if (evaluateRule(showRules[0], formState || {})) {
-        visible = true;
-      }
+      visible = showRules.some(r => evaluateRule(r, formState));
     }
 
-    // "Hide" rules can make an element hidden
-    if (hideRules.length > 0) {
-      if (evaluateRule(hideRules[0], formState || {})) {
+    // If the element is visible so far, check if any "hide" rule should make it hidden
+    if (visible && hideRules.length > 0) {
+      if (hideRules.some(r => evaluateRule(r, formState))) {
         visible = false;
       }
     }
