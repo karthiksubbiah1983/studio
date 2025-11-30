@@ -59,10 +59,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         value: ""
       }],
       logicType: 'and',
-      action: {
+      actions: [{
         type: 'CREATE_TASK',
         payload: { taskType: taskTypes[0] }
-      }
+      }]
     };
     const newWorkflows = [...localWorkflows, newWorkflow];
     setLocalWorkflows(newWorkflows);
@@ -186,27 +186,41 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     )
   }
 
-  const ActionEditor = ({ workflow }: { workflow: Workflow }) => {
-    const handleUpdateActionType = (type: WorkflowAction['type']) => {
-        let payload: WorkflowAction['payload'];
-        if (type === 'CREATE_TASK') {
-            payload = { taskType: taskTypes[0] };
-        } else { // SET_TASK_STATUS
-            payload = { status: 'Open' };
-        }
-        handleUpdateWorkflow({ ...workflow, action: { type, payload } as WorkflowAction });
-    }
+  const ActionEditor = ({ action, workflow }: { action: WorkflowAction, workflow: Workflow }) => {
     
+    const handleUpdateAction = (updatedAction: Partial<WorkflowAction>) => {
+      const newActions = workflow.actions.map(a => a.id === action.id ? { ...a, ...updatedAction } : a);
+      handleUpdateWorkflow({ ...workflow, actions: newActions });
+    }
+
     const handleUpdateActionPayload = (updatedPayload: Partial<WorkflowAction['payload']>) => {
-        const newPayload = { ...workflow.action.payload, ...updatedPayload };
-        handleUpdateWorkflow({ ...workflow, action: { ...workflow.action, payload: newPayload } });
+        const newPayload = { ...action.payload, ...updatedPayload };
+        handleUpdateAction({ ...action, payload: newPayload });
+    }
+
+    const handleDeleteAction = () => {
+        const newActions = workflow.actions.filter(a => a.id !== action.id);
+        handleUpdateWorkflow({ ...workflow, actions: newActions });
     }
 
     return (
-        <div className="space-y-3 p-3 border rounded-lg bg-accent/20">
+        <div className="space-y-3 p-3 border rounded-lg bg-accent/20 relative">
+             {workflow.actions.length > 1 && (
+                <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-5 w-5" onClick={handleDeleteAction}>
+                    <X className="h-3 w-3 text-destructive/70" />
+                </Button>
+            )}
             <div className="space-y-2">
                 <Label className="text-xs">Action</Label>
-                <Select value={workflow.action.type} onValueChange={(value) => handleUpdateActionType(value as WorkflowAction['type'])}>
+                <Select value={action.type} onValueChange={(value) => {
+                     let payload: WorkflowAction['payload'];
+                    if (value === 'CREATE_TASK') {
+                        payload = { taskType: taskTypes[0] };
+                    } else { // SET_TASK_STATUS
+                        payload = { status: 'Open' };
+                    }
+                    handleUpdateAction({ type: value as WorkflowAction['type'], payload: payload as any });
+                }}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="CREATE_TASK">Create Follow-up Task</SelectItem>
@@ -215,10 +229,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                 </Select>
             </div>
 
-            {workflow.action.type === 'CREATE_TASK' && (
+            {action.type === 'CREATE_TASK' && (
                 <div className="space-y-2">
                     <Label className="text-xs">Task Type</Label>
-                    <Select value={workflow.action.payload.taskType} onValueChange={(value) => handleUpdateActionPayload({ taskType: value })}>
+                    <Select value={action.payload.taskType} onValueChange={(value) => handleUpdateActionPayload({ taskType: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             {taskTypes.map(type => (
@@ -228,10 +242,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     </Select>
                 </div>
             )}
-            {workflow.action.type === 'SET_TASK_STATUS' && (
+            {action.type === 'SET_TASK_STATUS' && (
                 <div className="space-y-2">
                      <Label className="text-xs">Status</Label>
-                     <Select value={workflow.action.payload.status} onValueChange={(value) => handleUpdateActionPayload({ status: value as TaskStatus })}>
+                     <Select value={action.payload.status} onValueChange={(value) => handleUpdateActionPayload({ status: value as TaskStatus })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             {taskStatuses.map(status => (
@@ -246,6 +260,16 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   }
 
   const WorkflowEditor = ({ workflow }: { workflow: Workflow }) => {
+
+    const handleAddAction = () => {
+        const newAction: WorkflowAction & { id: string } = {
+            id: crypto.randomUUID(),
+            type: 'CREATE_TASK',
+            payload: { taskType: taskTypes[0] }
+        };
+        handleUpdateWorkflow({ ...workflow, actions: [...workflow.actions, newAction] });
+    }
+
     return (
         <div className="p-4 space-y-4">
             <Input value={workflow.name} onChange={(e) => handleUpdateWorkflow({ ...workflow, name: e.target.value })} className="text-lg font-medium" />
@@ -264,8 +288,11 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                 handleUpdateWorkflow({ ...workflow, conditions: [...workflow.conditions, newCondition] });
             }}><Plus className="mr-1 h-4 w-4"/> Add Condition</Button>
             <Separator />
-            <h4 className="font-medium text-sm text-muted-foreground">THEN DO THIS:</h4>
-            <ActionEditor workflow={workflow} />
+            <h4 className="font-medium text-sm text-muted-foreground">THEN DO THESE ACTIONS:</h4>
+            <div className="space-y-3">
+                {workflow.actions.map((action, index) => <ActionEditor key={(action as any).id || index} action={action} workflow={workflow} />)}
+            </div>
+            <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddAction}><Plus className="mr-1 h-4 w-4"/> Add Action</Button>
         </div>
     )
   }

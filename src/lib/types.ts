@@ -49,7 +49,7 @@ export type Workflow = {
     name: string;
     conditions: Condition[];
     logicType: 'and' | 'or';
-    action: WorkflowAction;
+    actions: WorkflowAction[];
 }
 
 export type DisplayDataSourceConfig = {

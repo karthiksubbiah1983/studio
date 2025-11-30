@@ -60,24 +60,25 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
         const isTriggered = evaluateRule(workflow, stateForEval);
 
         if (isTriggered) {
-            const { type, payload } = workflow.action;
-            let toastTitle = '';
-            let toastDescription = '';
-            
-            if (type === 'CREATE_TASK') {
-                const taskType = payload.taskType;
-                toastTitle = `Workflow: Create Task`;
-                toastDescription = `A new task was created with type "${taskType}"`;
-            } else if (type === 'SET_TASK_STATUS') {
-                 toastTitle = `Workflow: Set Task Status to "${payload.status}"`;
-                 toastDescription = `The task status was set.`;
+             for (const action of workflow.actions) {
+                const { type, payload } = action;
+                let toastTitle = '';
+                let toastDescription = '';
+                
+                if (type === 'CREATE_TASK') {
+                    const taskType = payload.taskType;
+                    toastTitle = `Workflow: Create Task`;
+                    toastDescription = `A new task was created with type "${taskType}"`;
+                } else if (type === 'SET_TASK_STATUS') {
+                    toastTitle = `Workflow: Set Task Status to "${payload.status}"`;
+                    toastDescription = `The task status was set.`;
+                }
+                
+                toast({
+                    title: <div className="flex items-center gap-2"><Zap className="h-4 w-4" /> {toastTitle}</div>,
+                    description: toastDescription,
+                });
             }
-            
-            toast({
-                title: <div className="flex items-center gap-2"><Zap className="h-4 w-4" /> {toastTitle}</div>,
-                description: toastDescription,
-            });
-            break;
         }
     }
   }
