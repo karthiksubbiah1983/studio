@@ -44,7 +44,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
             setSelectedWorkflowId(initialWorkflows.length > 0 ? initialWorkflows[0].id : null);
         }
     }
-  }, [isOpen, workflows, selectedWorkflowId]);
+  }, [isOpen, workflows]);
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
   
