@@ -44,25 +44,21 @@ export function CanvasSection({ section }: { section: Section }) {
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsOver(false);
+    
+    // Only handle drops for new elements in empty sections.
+    // Drops in non-empty sections are handled by CanvasElement drop handlers.
+    if (section.elements.length > 0) {
+      return;
+    }
+
     const { draggedElement } = state;
     if (!draggedElement) return;
 
     // Dropping a new element from sidebar
     if ('type' in draggedElement) {
         dispatch({ type: "ADD_ELEMENT", payload: { sectionId: section.id, type: draggedElement.type } });
-    } else if ('element' in draggedElement) { // Moving an existing element
-        // If dropping on itself or its original section with only one element, do nothing.
-        if (draggedElement.sectionId === section.id && section.elements.length === 0) {
-            return;
-        }
-        dispatch({
-            type: "MOVE_ELEMENT",
-            payload: {
-                from: { sectionId: draggedElement.sectionId, elementId: draggedElement.element.id },
-                to: { sectionId: section.id, index: section.elements.length }
-            }
-        });
     }
   };
   
