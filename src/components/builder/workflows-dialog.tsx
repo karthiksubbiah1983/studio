@@ -40,6 +40,8 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         
         if (initialWorkflows.length > 0 && !stillExists) {
             setSelectedWorkflowId(initialWorkflows[0].id);
+        } else if (initialWorkflows.length === 0) {
+            setSelectedWorkflowId(null);
         }
     }
   }, [isOpen, workflows]);
@@ -95,6 +97,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
 
   const ConditionEditor = ({ condition, workflow }: { condition: Condition, workflow: Workflow }) => {
     const [sourceElement, setSourceElement] = useState<FormElementInstance | Section | null>(null);
+    const [comparisonElement, setComparisonElement] = useState<FormElementInstance | Section | null>(null);
     
     useEffect(() => {
         if (condition.sourceElementId) {
@@ -103,14 +106,20 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         } else {
             setSourceElement(null);
         }
-    }, [condition.sourceElementId]);
+        if (condition.comparisonElementId) {
+            const el = allElements.find(el => el.id === condition.comparisonElementId) || null;
+            setComparisonElement(el as FormElementInstance | null);
+        } else {
+            setComparisonElement(null);
+        }
+    }, [condition.sourceElementId, condition.comparisonElementId]);
 
     const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
-        const updatedWorkflow = {
+        const updatedRule = {
             ...workflow,
             conditions: workflow.conditions.map(c => c.id === condition.id ? { ...c, ...updatedCondition } : c)
         };
-        handleUpdateWorkflow(updatedWorkflow);
+        handleUpdateWorkflow(updatedRule);
     }
 
     const handleDeleteCondition = () => {
@@ -129,6 +138,16 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     }
 
     const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || sourceElement.type === 'Checkbox') && condition.comparisonType === 'static_value';
+    
+    const isDateRelated = (element: FormElementInstance | Section | null) => {
+        if (!element) return false;
+        if ('type' in element) return element.type === 'DatePicker';
+        return false;
+    }
+    const isSpecialDate = (id: string | undefined) => id && id.startsWith('_');
+
+    const shouldShowDateOffset = isSpecialDate(condition.sourceElementId) || isDateRelated(sourceElement) || (condition.comparisonType === 'another_field' && (isSpecialDate(condition.comparisonElementId) || isDateRelated(comparisonElement)));
+
 
     const specialDateOptions = (
         <>
@@ -151,6 +170,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                     <SelectContent>
                         {specialDateOptions}
+                        <Separator className="my-1"/>
                         {allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
@@ -192,12 +212,28 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
                             <SelectContent>
                                 {specialDateOptions}
+                                <Separator className="my-1"/>
                                 {allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     )}
                 </div>
             </div>
+             {shouldShowDateOffset && (
+                <div className="flex items-end gap-2">
+                    <div className="w-1/2 space-y-1">
+                        <Label className="text-xs">Offset (days)</Label>
+                        <Input
+                            type="number"
+                            placeholder="e.g., 2 or -2"
+                            value={condition.offsetDays || ''}
+                            onChange={(e) => handleUpdateCondition({ offsetDays: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                            className="h-8 text-xs"
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the comparison value.</p>
+                </div>
+            )}
         </div>
     )
   }
@@ -372,4 +408,3 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
-

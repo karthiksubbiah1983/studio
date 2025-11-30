@@ -1,6 +1,7 @@
 
 
 import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
+import { Workflow } from "@/lib/types";
 
 export const getAllElements = (sections: Section[]): (FormElementInstance | Section)[] => {
     let allElements: (FormElementInstance | Section)[] = [];
@@ -25,6 +26,10 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
     const getConditionValue = (id: string | undefined): any => {
         if (!id) return undefined;
         if (id === '_current_date' || id === '_due_date' || id === '_scheduled_date') return new Date().toISOString();
+        const element = getAllElements(Object.values(state).map(s => s.fullObject).filter(Boolean) as Section[]).find(el => el.id === id);
+        if (element && 'key' in element && element.key) {
+            return combinedState[element.id]?.value;
+        }
         return combinedState[id]?.value;
     }
     
@@ -62,18 +67,23 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
     const isDateComparison = 
         (sourceElement && 'type' in sourceElement && sourceElement.type === 'DatePicker') || 
         (comparisonElement && 'type' in comparisonElement && comparisonElement.type === 'DatePicker') || 
-        condition.sourceElementId.startsWith('_') ||
+        (condition.sourceElementId && condition.sourceElementId.startsWith('_')) ||
         (condition.comparisonElementId && condition.comparisonElementId.startsWith('_'));
 
 
     if (isDateComparison) {
         try {
             const dateSource = new Date(sourceValue);
-            const dateComparison = new Date(comparisonValue);
+            let dateComparison = new Date(comparisonValue);
 
             // Check if dates are valid
             if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) {
                 return false;
+            }
+
+            // Apply offset if it exists
+            if (condition.offsetDays) {
+                dateComparison.setDate(dateComparison.getDate() + condition.offsetDays);
             }
 
             switch(condition.operator) {

@@ -19,6 +19,7 @@ export type Condition = {
     comparisonType: 'static_value' | 'another_field';
     value: string; // Used for static_value
     comparisonElementId?: string; // Used for another_field
+    offsetDays?: number;
 };
 
 export type RuleBehavior = {
