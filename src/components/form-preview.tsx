@@ -128,8 +128,8 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
   };
 
   const isSectionVisible = (section: Section): boolean => {
-    const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === section.id));
-    const hideRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === section.id));
+    const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'show' && b.targetElementId === section.id));
+    const hideRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'hide' && b.targetElementId === section.id));
 
     let visible = !section.popupOnly;
 
