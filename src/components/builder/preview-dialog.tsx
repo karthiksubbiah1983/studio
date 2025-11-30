@@ -20,7 +20,7 @@ type Props = {
 export function PreviewDialog({ isOpen, onOpenChange }: Props) {
   const { sections } = useBuilder();
 
-  // Filter out sections that are designated for popups only.
+  // Filter out sections that are designated for popups only for the main preview.
   const sectionsForMainPreview = useMemo(() => {
     return sections.filter(section => !section.popupOnly);
   }, [sections]);

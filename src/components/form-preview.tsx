@@ -22,7 +22,7 @@ import { Zap } from "lucide-react";
 
 type Props = {
     showSubmitButton?: boolean;
-    sections: Section[]; // Allow sections to be passed as a prop
+    sections: Section[]; // This is now a required prop.
 }
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
