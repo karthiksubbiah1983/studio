@@ -38,10 +38,8 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
 
         const stillExists = initialWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
         
-        if (selectedWorkflowId === null && initialWorkflows.length > 0) {
+        if (initialWorkflows.length > 0 && !stillExists) {
             setSelectedWorkflowId(initialWorkflows[0].id);
-        } else if (!stillExists) {
-            setSelectedWorkflowId(initialWorkflows.length > 0 ? initialWorkflows[0].id : null);
         }
     }
   }, [isOpen, workflows]);
@@ -132,6 +130,14 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
 
     const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || sourceElement.type === 'Checkbox') && condition.comparisonType === 'static_value';
 
+    const specialDateOptions = (
+        <>
+            <SelectItem value="_current_date">Current Date</SelectItem>
+            <SelectItem value="_due_date">Due Date</SelectItem>
+            <SelectItem value="_scheduled_date">Scheduled Date</SelectItem>
+        </>
+    );
+
     return (
         <div className="border bg-background/50 p-3 rounded-md space-y-3 relative">
             {workflow.conditions.length > 1 && (
@@ -144,7 +150,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                 <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="_current_date">Current Date</SelectItem>
+                        {specialDateOptions}
                         {allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
@@ -185,7 +191,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                         <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
                             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="_current_date">Current Date</SelectItem>
+                                {specialDateOptions}
                                 {allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
                             </SelectContent>
                         </Select>
@@ -366,3 +372,4 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+

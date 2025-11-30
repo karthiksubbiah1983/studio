@@ -24,7 +24,7 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
     
     const getConditionValue = (id: string | undefined): any => {
         if (!id) return undefined;
-        if (id === '_current_date') return new Date().toISOString();
+        if (id === '_current_date' || id === '_due_date' || id === '_scheduled_date') return new Date().toISOString();
         return combinedState[id]?.value;
     }
     
@@ -58,7 +58,13 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
 
     const sourceElement = getAllElements(Object.values(state).map(s => s.fullObject).filter(Boolean) as Section[]).find(el => el.id === condition.sourceElementId);
     const comparisonElement = getAllElements(Object.values(state).map(s => s.fullObject).filter(Boolean) as Section[]).find(el => el.id === condition.comparisonElementId);
-    const isDateComparison = (sourceElement && 'type' in sourceElement && sourceElement.type === 'DatePicker') || (comparisonElement && 'type' in comparisonElement && comparisonElement.type === 'DatePicker') || condition.sourceElementId === '_current_date' || condition.comparisonElementId === '_current_date';
+    
+    const isDateComparison = 
+        (sourceElement && 'type' in sourceElement && sourceElement.type === 'DatePicker') || 
+        (comparisonElement && 'type' in comparisonElement && comparisonElement.type === 'DatePicker') || 
+        condition.sourceElementId.startsWith('_') ||
+        (condition.comparisonElementId && condition.comparisonElementId.startsWith('_'));
+
 
     if (isDateComparison) {
         try {
@@ -104,7 +110,7 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
     }
 }
 
-export const evaluateRule = (rule: Rule, state: { [key: string]: { value: any } }, rowContext?: { [key: string]: { value: any } }): boolean => {
+export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: { value: any } }, rowContext?: { [key: string]: { value: any } }): boolean => {
     if (!rule || !rule.conditions) return false;
     if (rule.conditions.length === 0) return false;
     
