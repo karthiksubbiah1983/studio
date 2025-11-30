@@ -168,7 +168,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
           .finally(() => setIsLoading(false));
       }
     }
-  }, [element, formState, allElements]);
+  }, [element.apiUrl, element.dependencyType, element.subKey, element.dependentFieldId, element.type, element.dataSource, formState?.[element.dependentFieldId!]?.value]);
+
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, textStyle, color } = element;
 
@@ -629,3 +630,4 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
