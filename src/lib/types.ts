@@ -37,9 +37,11 @@ export type Rule = {
     }
 }
 
+export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+
 export type WorkflowAction = 
     | { type: 'CREATE_TASK', payload: { title: string; notes: string; } }
-    | { type: 'CLOSE_TASK', payload: { notes: string } };
+    | { type: 'SET_TASK_STATUS', payload: { status: TaskStatus; notes: string } };
 
 export type Workflow = {
     id: string;

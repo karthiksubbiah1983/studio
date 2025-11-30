@@ -75,10 +75,10 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
                 const notes = interpolateString(payload.notes, submissionData);
                 toastTitle = `Workflow: Create Task`;
                 toastDescription = `A new task was created with title "${title}" and notes: "${notes}"`;
-            } else if (type === 'CLOSE_TASK') {
+            } else if (type === 'SET_TASK_STATUS') {
                  const notes = interpolateString(payload.notes, submissionData);
-                 toastTitle = `Workflow: Close Task`;
-                 toastDescription = `The task was automatically closed with notes: "${notes}"`;
+                 toastTitle = `Workflow: Set Task Status to "${payload.status}"`;
+                 toastDescription = `The task status was set with notes: "${notes}"`;
             }
             
             toast({
@@ -132,6 +132,9 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
   };
 
   const isSectionVisible = (section: Section): boolean => {
+    if (section.popupOnly) {
+        return false;
+    }
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === section.id);
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === section.id);
 

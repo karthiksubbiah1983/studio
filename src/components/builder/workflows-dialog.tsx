@@ -1,11 +1,12 @@
 
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { FormElementInstance, Workflow, Section, Condition, WorkflowAction } from "@/lib/types";
+import { FormElementInstance, Workflow, Section, Condition, WorkflowAction, TaskStatus } from "@/lib/types";
 import { Plus, Trash, X, Zap, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn, findElementRecursive, getAllElements } from "@/lib/utils";
@@ -21,6 +22,8 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
+const taskStatuses: TaskStatus[] = ['Open', 'In Progress', 'Resolved', 'Closed'];
+
 export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   const { sections, workflows, updateWorkflows } = useBuilder();
   const [localWorkflows, setLocalWorkflows] = useState<Workflow[]>([]);
@@ -29,7 +32,21 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   useEffect(() => {
     if (isOpen) {
         const initialWorkflows = JSON.parse(JSON.stringify(workflows || []));
-        setLocalWorkflows(initialWorkflows);
+        setLocalWorkflows(initialWorkflows.map((w: Workflow) => {
+            if ((w.action as any).type === 'CLOSE_TASK') {
+                return {
+                    ...w,
+                    action: {
+                        type: 'SET_TASK_STATUS',
+                        payload: {
+                            status: 'Closed',
+                            notes: (w.action.payload as any).notes || ''
+                        }
+                    }
+                }
+            }
+            return w;
+        }));
 
         const stillExists = initialWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
 
@@ -183,22 +200,30 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   }
 
   const ActionEditor = ({ workflow }: { workflow: Workflow }) => {
-    const handleUpdateAction = (updatedAction: Partial<Workflow['action']>) => {
-      handleUpdateWorkflow({ ...workflow, action: { ...workflow.action, ...updatedAction }});
+    const handleUpdateActionType = (type: WorkflowAction['type']) => {
+        let payload: WorkflowAction['payload'];
+        if (type === 'CREATE_TASK') {
+            payload = { title: '', notes: ''};
+        } else { // SET_TASK_STATUS
+            payload = { status: 'Open', notes: ''};
+        }
+        handleUpdateWorkflow({ ...workflow, action: { type, payload } as WorkflowAction });
     }
+    
     const handleUpdateActionPayload = (updatedPayload: Partial<WorkflowAction['payload']>) => {
-        handleUpdateAction({ payload: { ...workflow.action.payload, ...updatedPayload } as WorkflowAction['payload']});
+        const newPayload = { ...workflow.action.payload, ...updatedPayload };
+        handleUpdateWorkflow({ ...workflow, action: { ...workflow.action, payload: newPayload } });
     }
 
     return (
         <div className="space-y-3 p-3 border rounded-lg bg-accent/20">
             <div className="space-y-2">
                 <Label className="text-xs">Action</Label>
-                <Select value={workflow.action.type} onValueChange={(value) => handleUpdateAction({ type: value as WorkflowAction['type'] })}>
+                <Select value={workflow.action.type} onValueChange={(value) => handleUpdateActionType(value as WorkflowAction['type'])}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="CREATE_TASK">Create Follow-up Task</SelectItem>
-                        <SelectItem value="CLOSE_TASK">Close Task</SelectItem>
+                        <SelectItem value="SET_TASK_STATUS">Set Task Status</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -211,8 +236,17 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     <Textarea placeholder="Include details for the new task. You can use {field_key} to insert form values." value={workflow.action.payload.notes} onChange={(e) => handleUpdateActionPayload({ notes: e.target.value })} className="text-xs" />
                 </div>
             )}
-            {workflow.action.type === 'CLOSE_TASK' && (
+            {workflow.action.type === 'SET_TASK_STATUS' && (
                 <div className="space-y-2">
+                     <Label className="text-xs">Status</Label>
+                     <Select value={workflow.action.payload.status} onValueChange={(value) => handleUpdateActionPayload({ status: value as TaskStatus })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            {taskStatuses.map(status => (
+                                <SelectItem key={status} value={status}>{status}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                     <Label className="text-xs">Closing Notes</Label>
                     <Textarea placeholder="Add a closing note. You can use {field_key} to insert form values." value={workflow.action.payload.notes} onChange={(e) => handleUpdateActionPayload({ notes: e.target.value })} className="text-xs" />
                 </div>
