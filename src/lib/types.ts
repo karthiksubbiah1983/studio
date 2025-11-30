@@ -42,14 +42,15 @@ export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
 
 export type WorkflowAction = 
     | { type: 'CREATE_TASK', payload: { taskType: string; } }
-    | { type: 'SET_TASK_STATUS', payload: { status: TaskStatus; } };
+    | { type: 'SET_TASK_STATUS', payload: { status: TaskStatus; } }
+    | { type: 'CONFIGURE_MAIL', payload: { mailFormat: string; } };
 
 export type Workflow = {
     id: string;
     name: string;
     conditions: Condition[];
     logicType: 'and' | 'or';
-    actions: WorkflowAction[];
+    actions: (WorkflowAction & { id: string })[];
 }
 
 export type DisplayDataSourceConfig = {

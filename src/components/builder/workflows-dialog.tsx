@@ -24,6 +24,7 @@ type Props = {
 
 const taskStatuses: TaskStatus[] = ['Open', 'In Progress', 'Resolved', 'Closed'];
 const taskTypes: string[] = ['Follow-up Call', 'Send Email', 'Review Request'];
+const mailFormats: string[] = ['Welcome Email', 'Order Confirmation', 'Password Reset'];
 
 export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   const { sections, workflows, updateWorkflows } = useBuilder();
@@ -41,7 +42,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
             setSelectedWorkflowId(initialWorkflows.length > 0 ? initialWorkflows[0].id : null);
         }
     }
-  }, [isOpen, workflows]);
+  }, [isOpen, workflows, selectedWorkflowId]);
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
   
@@ -60,6 +61,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
       }],
       logicType: 'and',
       actions: [{
+        id: crypto.randomUUID(),
         type: 'CREATE_TASK',
         payload: { taskType: taskTypes[0] }
       }]
@@ -186,9 +188,9 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     )
   }
 
-  const ActionEditor = ({ action, workflow }: { action: WorkflowAction, workflow: Workflow }) => {
+  const ActionEditor = ({ action, workflow }: { action: (WorkflowAction & { id: string }), workflow: Workflow }) => {
     
-    const handleUpdateAction = (updatedAction: Partial<WorkflowAction>) => {
+    const handleUpdateAction = (updatedAction: Partial<WorkflowAction & { id: string }>) => {
       const newActions = workflow.actions.map(a => a.id === action.id ? { ...a, ...updatedAction } : a);
       handleUpdateWorkflow({ ...workflow, actions: newActions });
     }
@@ -216,8 +218,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                      let payload: WorkflowAction['payload'];
                     if (value === 'CREATE_TASK') {
                         payload = { taskType: taskTypes[0] };
-                    } else { // SET_TASK_STATUS
+                    } else if (value === 'SET_TASK_STATUS') {
                         payload = { status: 'Open' };
+                    } else { // CONFIGURE_MAIL
+                        payload = { mailFormat: mailFormats[0] }
                     }
                     handleUpdateAction({ type: value as WorkflowAction['type'], payload: payload as any });
                 }}>
@@ -225,6 +229,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     <SelectContent>
                         <SelectItem value="CREATE_TASK">Create Follow-up Task</SelectItem>
                         <SelectItem value="SET_TASK_STATUS">Set Task Status</SelectItem>
+                        <SelectItem value="CONFIGURE_MAIL">Configure Mail</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -255,6 +260,19 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     </Select>
                 </div>
             )}
+            {action.type === 'CONFIGURE_MAIL' && (
+                <div className="space-y-2">
+                     <Label className="text-xs">Mail Format</Label>
+                     <Select value={action.payload.mailFormat} onValueChange={(value) => handleUpdateActionPayload({ mailFormat: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            {mailFormats.map(format => (
+                                <SelectItem key={format} value={format}>{format}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
         </div>
     )
   }
@@ -270,6 +288,11 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         handleUpdateWorkflow({ ...workflow, actions: [...workflow.actions, newAction] });
     }
 
+    const handleAddCondition = () => {
+        const newCondition: Condition = { id: crypto.randomUUID(), sourceElementId: "", operator: 'equals', comparisonType: 'static_value', value: "" };
+        handleUpdateWorkflow({ ...workflow, conditions: [...workflow.conditions, newCondition] });
+    }
+
     return (
         <div className="p-4 space-y-4">
             <Input value={workflow.name} onChange={(e) => handleUpdateWorkflow({ ...workflow, name: e.target.value })} className="text-lg font-medium" />
@@ -283,14 +306,11 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                 OF THE FOLLOWING ARE MET:
             </h4>
             <div className="space-y-3">{workflow.conditions.map((cond) => <ConditionEditor key={cond.id} condition={cond} workflow={workflow} />)}</div>
-            <Button variant="outline" size="sm" className="h-8 text-sm" onClick={() => {
-                const newCondition: Condition = { id: crypto.randomUUID(), sourceElementId: "", operator: 'equals', comparisonType: 'static_value', value: "" };
-                handleUpdateWorkflow({ ...workflow, conditions: [...workflow.conditions, newCondition] });
-            }}><Plus className="mr-1 h-4 w-4"/> Add Condition</Button>
+            <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddCondition}><Plus className="mr-1 h-4 w-4"/> Add Condition</Button>
             <Separator />
             <h4 className="font-medium text-sm text-muted-foreground">THEN DO THESE ACTIONS:</h4>
             <div className="space-y-3">
-                {workflow.actions.map((action, index) => <ActionEditor key={(action as any).id || index} action={action} workflow={workflow} />)}
+                {workflow.actions.map((action, index) => <ActionEditor key={action.id || index} action={action} workflow={workflow} />)}
             </div>
             <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddAction}><Plus className="mr-1 h-4 w-4"/> Add Action</Button>
         </div>

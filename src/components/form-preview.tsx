@@ -72,6 +72,9 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
                 } else if (type === 'SET_TASK_STATUS') {
                     toastTitle = `Workflow: Set Task Status to "${payload.status}"`;
                     toastDescription = `The task status was set.`;
+                } else if (type === 'CONFIGURE_MAIL') {
+                    toastTitle = `Workflow: Mail Sent`;
+                    toastDescription = `Sent mail with format: "${payload.mailFormat}"`;
                 }
                 
                 toast({

@@ -95,6 +95,11 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
      if (obj.workflows && Array.isArray(obj.workflows)) obj.workflows.forEach((workflow: any) => {
         if (workflow.id) idMap[workflow.id] = crypto.randomUUID();
         processConditions(workflow.conditions);
+        if (workflow.actions && Array.isArray(workflow.actions)) {
+            workflow.actions.forEach((action: any) => {
+                if (action.id) idMap[action.id] = crypto.randomUUID();
+            });
+        }
     });
   }
   collectIds(itemClone);
@@ -126,6 +131,11 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
      if (obj.workflows && Array.isArray(obj.workflows)) obj.workflows.forEach((workflow: any) => {
         if (workflow.id && idMap[workflow.id]) workflow.id = idMap[workflow.id];
         updateConditions(workflow.conditions);
+        if (workflow.actions && Array.isArray(workflow.actions)) {
+            workflow.actions.forEach((action: any) => {
+                if (action.id && idMap[action.id]) action.id = idMap[action.id];
+            });
+        }
      });
      
      if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(updateIds);
@@ -643,7 +653,9 @@ const builderReducer = (state: State, action: Action): State => {
             name: action.payload.name,
             subCategories: [],
         };
-        return { ...state, categories: [...state.categories, newCategory] };
+        const newId = newCategory.id;
+        // This is a bit of a hack for the special dispatch, we return the ID via the state itself
+        return { ...state, categories: [...state.categories, newCategory], activeFormId: newId };
     }
     case "UPDATE_CATEGORY": {
         return {
@@ -813,11 +825,30 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const workflows = activeForm?.versions[0]?.workflows || [];
   
   const dispatch = (action: Action): string | void => {
+    let result: any;
+    if (action.type === 'ADD_FORM' || action.type === 'ADD_CATEGORY') {
+      // These are special cases where we want to return the new ID
+      const newState = builderReducer(state, action);
+      result = newState.activeFormId; // Hack to get the ID back
+      dispatchAction({type: "SET_STATE", payload: newState });
+    } else {
+      result = dispatchAction(action);
+    }
+    // For ADD_FORM, the new ID is now in state.activeFormId
     if (action.type === 'ADD_FORM') {
       const newState = builderReducer(state, action);
       dispatchAction({type: "SET_STATE", payload: newState });
       return newState.activeFormId;
     }
+    
+    if (action.type === 'ADD_CATEGORY') {
+        const newState = builderReducer(state, action);
+        const newId = newState.activeFormId; // The reducer temporarily stores the new ID here
+        // We need to dispatch again to reset activeFormId if needed, or just set the state
+        dispatchAction({ type: 'SET_STATE', payload: { ...newState, activeFormId: state.activeFormId } });
+        return newId; // Return the captured new category ID
+    }
+
     dispatchAction(action);
   }
   
