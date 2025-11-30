@@ -11,6 +11,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMemo } from "react";
 import { generateJsonSchema } from "@/lib/json-schema";
+import type { Workflow } from "@/lib/types";
 
 type Props = {
   isOpen: boolean;
@@ -18,14 +19,14 @@ type Props = {
 };
 
 export function JsonPreviewDialog({ isOpen, onOpenChange }: Props) {
-  const { activeForm, sections, rules } = useBuilder();
+  const { activeForm, sections, rules, workflows } = useBuilder();
 
   const jsonSchema = useMemo(() => {
     if (isOpen && activeForm) {
-      return generateJsonSchema(activeForm, sections, rules);
+      return generateJsonSchema(activeForm, sections, rules, workflows || []);
     }
     return {};
-  }, [activeForm, sections, rules, isOpen]);
+  }, [activeForm, sections, rules, workflows, isOpen]);
 
   const jsonString = useMemo(() => JSON.stringify(jsonSchema, null, 2), [jsonSchema]);
 

@@ -1,6 +1,6 @@
 
 
-import { Form, FormElementInstance, Rule, Section } from "./types";
+import { Form, FormElementInstance, Rule, Section, Workflow } from "./types";
 
 const mapElementToSchemaProperty = (element: FormElementInstance): Record<string, any> => {
     const { 
@@ -80,7 +80,7 @@ const mapElementToSchemaProperty = (element: FormElementInstance): Record<string
     return schemaProperty;
 }
 
-export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[]) => {
+export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[], workflows: Workflow[]) => {
   const latestVersion = form.versions[0];
   
   const schema: {
@@ -93,6 +93,7 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
     properties: { [key:string]: any };
     required: string[];
     'x-rules'?: Rule[];
+    'x-workflows'?: Workflow[];
     'x-ui-sections'?: any[];
   } = {
     title: form.title,
@@ -113,6 +114,10 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
 
   if (rules && rules.length > 0) {
     schema['x-rules'] = rules;
+  }
+  
+  if (workflows && workflows.length > 0) {
+    schema['x-workflows'] = workflows;
   }
   
   schema['x-ui-sections'] = sections.map(section => {
