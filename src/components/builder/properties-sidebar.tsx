@@ -818,7 +818,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                              <div className="flex flex-col gap-2 mb-1.5">
                                 <Label>Source Type</Label>
                                 <RadioGroup
-                                    defaultValue={props.dataSource || 'static'}
+                                    value={props.dataSource || 'static'}
                                     onValueChange={(val) => {
                                       const newDataSource = val as 'static' | 'dynamic';
                                       const newOptions = (newDataSource === 'static' && !props.options) ? ['Option 1'] : props.options;
@@ -1156,3 +1156,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
