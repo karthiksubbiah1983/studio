@@ -149,11 +149,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         let finalApiUrl = element.apiUrl;
 
         if (element.dependentFieldId && formState) {
-          const dependentField = allElements.find(el => el.id === element.dependentFieldId);
           const dependentValue = formState[element.dependentFieldId]?.value;
           
-          if (dependentField && 'key' in dependentField && dependentValue) {
-              finalApiUrl = finalApiUrl.replace(`{${dependentField.key}}`, encodeURIComponent(dependentValue));
+          if (dependentValue) {
+              const placeholder = finalApiUrl.match(/\{(.+?)\}/);
+              if (placeholder) {
+                  finalApiUrl = finalApiUrl.replace(placeholder[0], encodeURIComponent(dependentValue));
+              }
           } else {
               setDynamicOptions([]);
               return; // Don't fetch if dependent value is missing
