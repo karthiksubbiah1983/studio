@@ -128,6 +128,7 @@ export type Section = {
     id: string;
     title: string;
     displayMode?: 'default' | 'accordion';
+    popupOnly?: boolean;
     elements: FormElementInstance[];
 };
 

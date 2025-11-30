@@ -119,6 +119,14 @@ function SectionProperties({ section }: { section: Section }) {
                                 </div>
                             </RadioGroup>
                         </div>
+                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <Label htmlFor="popup-only">Popup Only</Label>
+                            <Switch
+                                id="popup-only"
+                                checked={section.popupOnly || false}
+                                onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, popupOnly: checked } })}
+                            />
+                        </div>
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
