@@ -23,6 +23,7 @@ type Props = {
 };
 
 const taskStatuses: TaskStatus[] = ['Open', 'In Progress', 'Resolved', 'Closed'];
+const taskTypes: string[] = ['Follow-up Call', 'Send Email', 'Review Request'];
 
 export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   const { sections, workflows, updateWorkflows } = useBuilder();
@@ -32,21 +33,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   useEffect(() => {
     if (isOpen) {
         const initialWorkflows = JSON.parse(JSON.stringify(workflows || []));
-        setLocalWorkflows(initialWorkflows.map((w: Workflow) => {
-            if ((w.action as any).type === 'CLOSE_TASK') {
-                return {
-                    ...w,
-                    action: {
-                        type: 'SET_TASK_STATUS',
-                        payload: {
-                            status: 'Closed',
-                            notes: (w.action.payload as any).notes || ''
-                        }
-                    }
-                }
-            }
-            return w;
-        }));
+        setLocalWorkflows(initialWorkflows);
 
         const stillExists = initialWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
 
@@ -74,7 +61,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
       logicType: 'and',
       action: {
         type: 'CREATE_TASK',
-        payload: { title: "", notes: "" }
+        payload: { taskType: taskTypes[0] }
       }
     };
     const newWorkflows = [...localWorkflows, newWorkflow];
@@ -203,9 +190,9 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     const handleUpdateActionType = (type: WorkflowAction['type']) => {
         let payload: WorkflowAction['payload'];
         if (type === 'CREATE_TASK') {
-            payload = { title: '', notes: ''};
+            payload = { taskType: taskTypes[0] };
         } else { // SET_TASK_STATUS
-            payload = { status: 'Open', notes: ''};
+            payload = { status: 'Open' };
         }
         handleUpdateWorkflow({ ...workflow, action: { type, payload } as WorkflowAction });
     }
@@ -230,10 +217,15 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
 
             {workflow.action.type === 'CREATE_TASK' && (
                 <div className="space-y-2">
-                    <Label className="text-xs">Task Title</Label>
-                    <Input placeholder="e.g., Follow up with customer" value={workflow.action.payload.title} onChange={(e) => handleUpdateActionPayload({ title: e.target.value })} className="h-8 text-xs" />
-                    <Label className="text-xs">Task Notes</Label>
-                    <Textarea placeholder="Include details for the new task. You can use {field_key} to insert form values." value={workflow.action.payload.notes} onChange={(e) => handleUpdateActionPayload({ notes: e.target.value })} className="text-xs" />
+                    <Label className="text-xs">Task Type</Label>
+                    <Select value={workflow.action.payload.taskType} onValueChange={(value) => handleUpdateActionPayload({ taskType: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            {taskTypes.map(type => (
+                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             )}
             {workflow.action.type === 'SET_TASK_STATUS' && (
@@ -247,8 +239,6 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                             ))}
                         </SelectContent>
                     </Select>
-                    <Label className="text-xs">Closing Notes</Label>
-                    <Textarea placeholder="Add a closing note. You can use {field_key} to insert form values." value={workflow.action.payload.notes} onChange={(e) => handleUpdateActionPayload({ notes: e.target.value })} className="text-xs" />
                 </div>
             )}
         </div>

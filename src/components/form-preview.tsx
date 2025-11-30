@@ -35,12 +35,6 @@ const generateSubmissionJson = (elements: (FormElementInstance | Section)[], for
     return submission;
 };
 
-const interpolateString = (template: string, data: Record<string, any>): string => {
-    return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
-        return data[key] || match;
-    });
-}
-
 export function FormPreview({ showSubmitButton = true, sections }: Props) {
   const { rules, workflows, dispatch, activeForm } = useBuilder();
 
@@ -71,14 +65,12 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
             let toastDescription = '';
             
             if (type === 'CREATE_TASK') {
-                const title = interpolateString(payload.title, submissionData);
-                const notes = interpolateString(payload.notes, submissionData);
+                const taskType = payload.taskType;
                 toastTitle = `Workflow: Create Task`;
-                toastDescription = `A new task was created with title "${title}" and notes: "${notes}"`;
+                toastDescription = `A new task was created with type "${taskType}"`;
             } else if (type === 'SET_TASK_STATUS') {
-                 const notes = interpolateString(payload.notes, submissionData);
                  toastTitle = `Workflow: Set Task Status to "${payload.status}"`;
-                 toastDescription = `The task status was set with notes: "${notes}"`;
+                 toastDescription = `The task status was set.`;
             }
             
             toast({
@@ -132,13 +124,10 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
   };
 
   const isSectionVisible = (section: Section): boolean => {
-    if (section.popupOnly) {
-        return false;
-    }
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === section.id);
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === section.id);
 
-    let visible = true;
+    let visible = !section.popupOnly;
 
     if (showRules.length > 0) {
         visible = showRules.some(r => evaluateRule(r, formState || {}));
