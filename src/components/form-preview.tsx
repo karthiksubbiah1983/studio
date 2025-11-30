@@ -21,6 +21,7 @@ import { Zap } from "lucide-react";
 
 type Props = {
     showSubmitButton?: boolean;
+    sections: Section[]; // Allow sections to be passed as a prop
 }
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
@@ -39,13 +40,15 @@ const interpolateString = (template: string, data: Record<string, any>): string 
     });
 }
 
-export function FormPreview({ showSubmitButton = true }: Props) {
-  const { activeForm, sections, rules, workflows, dispatch } = useBuilder();
+export function FormPreview({ showSubmitButton = true, sections: sectionsProp }: Props) {
+  const builder = useBuilder();
+  // Use passed-in sections if available, otherwise fall back to builder context
+  const sections = sectionsProp || builder.sections; 
+  const { rules, workflows, dispatch, activeForm } = builder;
+
   const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
   const { toast } = useToast();
   
-  const latestVersion = activeForm?.versions[0];
-
   const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
     setFormState((prev) => ({ ...prev, [elementId]: { value, fullObject } }));
   };
@@ -54,7 +57,6 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     if (!workflows || workflows.length === 0) return;
 
     for (const workflow of workflows) {
-        // Create a temporary state object with keys instead of IDs for evaluation
         const stateForEval: { [key: string]: { value: any } } = {};
         const allElements = getAllElements(sections);
         allElements.forEach(el => {
@@ -66,7 +68,6 @@ export function FormPreview({ showSubmitButton = true }: Props) {
         const isTriggered = evaluateRule(workflow, stateForEval);
 
         if (isTriggered) {
-            // If the workflow condition is met, execute the action
             const { type, payload } = workflow.action;
             let toastTitle = '';
             let toastDescription = '';
@@ -86,9 +87,6 @@ export function FormPreview({ showSubmitButton = true }: Props) {
                 title: <div className="flex items-center gap-2"><Zap className="h-4 w-4" /> {toastTitle}</div>,
                 description: toastDescription,
             });
-
-            // In a real application, you would only trigger one workflow per submission.
-            // For this simulation, we'll stop after the first one is triggered.
             break;
         }
     }
@@ -134,29 +132,17 @@ export function FormPreview({ showSubmitButton = true }: Props) {
           />
       ));
   };
-  
-  const sectionsInPopups = useMemo(() => {
-    const allElements = getAllElements(sections);
-    const previewElements = allElements.filter(el => el.type === 'Preview') as FormElementInstance[];
-    return new Set(previewElements.flatMap(el => el.previewSectionIds || []));
-  }, [sections]);
 
   const isSectionVisible = (section: Section): boolean => {
-    if (sectionsInPopups.has(section.id)) {
-        return false;
-    }
-
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === section.id);
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === section.id);
 
     let visible = true;
 
-    // "Show" rules can make a section visible
     if (showRules.length > 0) {
         visible = showRules.some(r => evaluateRule(r, formState || {}));
     }
 
-    // "Hide" rules can override the visible state and make it hidden
     if (visible && hideRules.length > 0) {
       if (hideRules.some(r => evaluateRule(r, formState || {}))) {
         visible = false;
@@ -217,6 +203,3 @@ export function FormPreview({ showSubmitButton = true }: Props) {
     </div>
   );
 }
-    
-
-    
