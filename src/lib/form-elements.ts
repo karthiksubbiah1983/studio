@@ -22,10 +22,10 @@ export const FormElements: {
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
 
-export const createNewElement = (type: ElementType): FormElementInstance => {
-    const id = crypto.randomUUID();
+export const createNewElement = (type: ElementType, id?: string): FormElementInstance => {
+    const newId = id || crypto.randomUUID();
     const key = `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 7)}`;
-    const baseElement = { id, type, label: type, key, required: false };
+    const baseElement = { id: newId, type, label: type, key, required: false };
     
     switch (type) {
         case "Separator":

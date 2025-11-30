@@ -58,7 +58,9 @@ export function CanvasSection({ section }: { section: Section }) {
 
     // Dropping a new element from sidebar
     if ('type' in draggedElement) {
-        dispatch({ type: "ADD_ELEMENT", payload: { sectionId: section.id, type: draggedElement.type } });
+        const newElementId = crypto.randomUUID();
+        dispatch({ type: 'SET_DRAGGED_ELEMENT', payload: { ...draggedElement, id: newElementId } });
+        dispatch({ type: "ADD_ELEMENT", payload: { sectionId: section.id, type: draggedElement.type, id: newElementId } });
     }
   };
   

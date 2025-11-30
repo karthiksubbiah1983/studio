@@ -12,7 +12,7 @@ type State = {
   submissions: Submission[];
   activeFormId: string | null;
   selectedElement: { elementId: string; sectionId: string } | null;
-  draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType } | { sectionId: string } | null;
+  draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null;
   clipboard: ClipboardItem | null;
 };
 
@@ -24,7 +24,7 @@ type Action =
   | { type: "SET_ACTIVE_FORM"; payload: { formId: string | null } }
   | { type: "UPDATE_FORM_METADATA", payload: { categoryId: string | undefined, subCategoryId: string | null | undefined } }
   | { type: "ADD_SECTION" }
-  | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number, parentId?: string } }
+  | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number, parentId?: string, id?: string } }
   | { type: "UPDATE_ELEMENT"; payload: { sectionId: string; element: FormElementInstance } }
   | { type: "UPDATE_SECTION"; payload: Section }
   | { type: "SELECT_ELEMENT"; payload: { elementId: string; sectionId: string } | null }
@@ -91,6 +91,9 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
     if (obj.rules && Array.isArray(obj.rules)) obj.rules.forEach((rule: any) => {
         if (rule.id) idMap[rule.id] = crypto.randomUUID();
         processConditions(rule.conditions);
+         rule.behaviors.forEach((behavior: any) => {
+            if (behavior.id) idMap[behavior.id] = crypto.randomUUID();
+        });
     });
      if (obj.workflows && Array.isArray(obj.workflows)) obj.workflows.forEach((workflow: any) => {
         if (workflow.id) idMap[workflow.id] = crypto.randomUUID();
@@ -123,9 +126,12 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
      if (obj.rules && Array.isArray(obj.rules)) obj.rules.forEach((rule: any) => {
         if (rule.id && idMap[rule.id]) rule.id = idMap[rule.id];
         updateConditions(rule.conditions);
-        if (rule.behavior && rule.behavior.targetElementId && idMap[rule.behavior.targetElementId]) {
-            rule.behavior.targetElementId = idMap[rule.behavior.targetElementId];
-        }
+        rule.behaviors.forEach((behavior: any) => {
+            if (behavior.id && idMap[behavior.id]) behavior.id = idMap[behavior.id];
+            if (behavior.targetElementId && idMap[behavior.targetElementId]) {
+                behavior.targetElementId = idMap[behavior.targetElementId];
+            }
+        });
      });
 
      if (obj.workflows && Array.isArray(obj.workflows)) obj.workflows.forEach((workflow: any) => {
@@ -152,11 +158,20 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
 const findAndModifyElement = (elements: FormElementInstance[], action: Action): FormElementInstance[] => {
     switch (action.type) {
         case "ADD_ELEMENT": {
-             const { parentId, type, index } = action.payload;
+            const { parentId, type, index, id: newElementId } = action.payload;
+
+            // Check if element with this ID already exists at any level to prevent duplicates from rapid events
+            const elementExists = (els: FormElementInstance[], elementId: string): boolean => {
+                return els.some(e => e.id === elementId || (e.elements && elementExists(e.elements, elementId)));
+            };
+            if (newElementId && elementExists(elements, newElementId)) {
+                return elements; // Prevent adding duplicate
+            }
+
              if (parentId) { // Add to container
                 return elements.map(el => {
                     if (el.id === parentId && el.type === 'Container') {
-                        const newElement = createNewElement(type);
+                        const newElement = createNewElement(type, newElementId);
                         const newElements = [...(el.elements || [])];
                         if (index !== undefined) {
                             newElements.splice(index, 0, newElement);
@@ -409,14 +424,18 @@ const builderReducer = (state: State, action: Action): State => {
 
     case "ADD_ELEMENT": {
       if (!activeForm) return state;
-      const { sectionId, type, index, parentId } = action.payload;
+      const { sectionId, type, index, parentId, id: newElementId } = action.payload;
       const newSectionsWithElement = activeFormSections.map((section) => {
           if (section.id === sectionId) {
             if (parentId) { // Add to container
                 const newElements = findAndModifyElement(section.elements, action);
                 return { ...section, elements: newElements };
             } else { // Add to section
-                const newElement = createNewElement(type);
+                // Check if element with this ID already exists to prevent duplicates from rapid events
+                if (newElementId && section.elements.some(e => e.id === newElementId)) {
+                    return section;
+                }
+                const newElement = createNewElement(type, newElementId);
                 const newElements = [...section.elements];
                 if (index !== undefined) {
                     newElements.splice(index, 0, newElement);

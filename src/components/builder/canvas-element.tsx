@@ -58,7 +58,11 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
     
     // Dropping a new element from sidebar
     if ('type' in draggedElement) {
-        dispatch({ type: "ADD_ELEMENT", payload: { sectionId, type: draggedElement.type, index: targetIndex } });
+        const newElementId = (draggedElement as any).id || crypto.randomUUID();
+        if (!(draggedElement as any).id) {
+            dispatch({ type: 'SET_DRAGGED_ELEMENT', payload: { ...draggedElement, id: newElementId } });
+        }
+        dispatch({ type: "ADD_ELEMENT", payload: { sectionId, type: draggedElement.type, index: targetIndex, id: newElementId } });
     } else if ('element' in draggedElement && draggedElement.element.id !== element.id) {
         // Moving an existing element
         dispatch({
@@ -81,7 +85,11 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
     if (!draggedElement) return;
 
     if ('type' in draggedElement) { // Dropping new element
-      dispatch({ type: 'ADD_ELEMENT', payload: { sectionId, type: draggedElement.type, parentId: element.id }})
+      const newElementId = (draggedElement as any).id || crypto.randomUUID();
+      if (!(draggedElement as any).id) {
+          dispatch({ type: 'SET_DRAGGED_ELEMENT', payload: { ...draggedElement, id: newElementId } });
+      }
+      dispatch({ type: 'ADD_ELEMENT', payload: { sectionId, type: draggedElement.type, parentId: element.id, id: newElementId }})
     } else if ('element' in draggedElement) { // Moving existing element
       dispatch({ type: 'MOVE_ELEMENT', payload: {
         from: { sectionId: draggedElement.sectionId, elementId: draggedElement.element.id },
