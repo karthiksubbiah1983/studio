@@ -22,7 +22,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
-const taskStatuses: TaskStatus[] = ['Open', 'In Progress', 'Resolved', 'Closed'];
+const taskStatuses: TaskStatus[] = ['Open', 'In Progress', 'Resolved', 'Closed', 'Escalated'];
 const taskTypes: string[] = ['Follow-up Call', 'Send Email', 'Review Request'];
 const mailFormats: string[] = ['Welcome Email', 'Order Confirmation', 'Password Reset'];
 
@@ -36,16 +36,15 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         const initialWorkflows = JSON.parse(JSON.stringify(workflows || []));
         setLocalWorkflows(initialWorkflows);
 
+        const stillExists = initialWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
+        
         if (selectedWorkflowId === null && initialWorkflows.length > 0) {
             setSelectedWorkflowId(initialWorkflows[0].id);
-        } else {
-            const stillExists = initialWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
-            if (!stillExists) {
-                setSelectedWorkflowId(initialWorkflows.length > 0 ? initialWorkflows[0].id : null);
-            }
+        } else if (!stillExists) {
+            setSelectedWorkflowId(initialWorkflows.length > 0 ? initialWorkflows[0].id : null);
         }
     }
-  }, [isOpen, workflows]);
+  }, [isOpen, workflows, selectedWorkflowId]);
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
   
@@ -144,7 +143,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                 <Label className="text-xs">Source Field</Label>
                 <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
-                    <SelectContent>{allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}</SelectContent>
+                    <SelectContent>
+                        <SelectItem value="_current_date">Current Date</SelectItem>
+                        {allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
+                    </SelectContent>
                 </Select>
             </div>
 
@@ -182,7 +184,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     ) : (
                         <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
                             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
-                            <SelectContent>{allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}</SelectContent>
+                            <SelectContent>
+                                <SelectItem value="_current_date">Current Date</SelectItem>
+                                {allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
+                            </SelectContent>
                         </Select>
                     )}
                 </div>

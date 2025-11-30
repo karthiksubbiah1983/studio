@@ -38,7 +38,7 @@ export type Rule = {
     behaviors: RuleBehavior[];
 }
 
-export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';
+export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Escalated';
 
 export type WorkflowAction = 
     | { type: 'CREATE_TASK', payload: { taskType: string; } }
