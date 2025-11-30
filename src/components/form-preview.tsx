@@ -135,11 +135,6 @@ export function FormPreview({ showSubmitButton = true, sections: sectionsProp }:
   };
 
   const isSectionVisible = (section: Section): boolean => {
-    // Hide sections meant only for popups
-    if (section.popupOnly) {
-      return false;
-    }
-
     const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === section.id);
     const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === section.id);
 

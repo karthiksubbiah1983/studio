@@ -4,8 +4,6 @@
 
 import { useMemo } from "react";
 import { useBuilder } from "@/hooks/use-builder";
-import { getAllElements } from "@/lib/utils";
-import type { FormElementInstance } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +20,7 @@ type Props = {
 export function PreviewDialog({ isOpen, onOpenChange }: Props) {
   const { sections } = useBuilder();
 
-  // The main preview dialog should NOT show popup-only sections.
+  // Filter out sections that are designated for popups only.
   const sectionsForMainPreview = useMemo(() => {
     return sections.filter(section => !section.popupOnly);
   }, [sections]);
