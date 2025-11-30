@@ -425,16 +425,22 @@ const builderReducer = (state: State, action: Action): State => {
     case "ADD_ELEMENT": {
       if (!activeForm) return state;
       const { sectionId, type, index, parentId, id: newElementId } = action.payload;
+      
       const newSectionsWithElement = activeFormSections.map((section) => {
           if (section.id === sectionId) {
+            
+             // Check if element with this ID already exists to prevent duplicates
+            const elementExists = (els: FormElementInstance[], elementId: string): boolean => {
+                return els.some(e => e.id === elementId || (e.elements && elementExists(e.elements, elementId)));
+            };
+            if (newElementId && elementExists(section.elements, newElementId)) {
+                return section; // Prevent adding duplicate
+            }
+
             if (parentId) { // Add to container
                 const newElements = findAndModifyElement(section.elements, action);
                 return { ...section, elements: newElements };
             } else { // Add to section
-                // Check if element with this ID already exists to prevent duplicates from rapid events
-                if (newElementId && section.elements.some(e => e.id === newElementId)) {
-                    return section;
-                }
                 const newElement = createNewElement(type, newElementId);
                 const newElements = [...section.elements];
                 if (index !== undefined) {
@@ -844,16 +850,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const workflows = activeForm?.versions[0]?.workflows || [];
   
   const dispatch = (action: Action): string | void => {
-    let result: any;
-    if (action.type === 'ADD_FORM' || action.type === 'ADD_CATEGORY') {
-      // These are special cases where we want to return the new ID
-      const newState = builderReducer(state, action);
-      result = newState.activeFormId; // Hack to get the ID back
-      dispatchAction({type: "SET_STATE", payload: newState });
-    } else {
-      result = dispatchAction(action);
-    }
-    // For ADD_FORM, the new ID is now in state.activeFormId
     if (action.type === 'ADD_FORM') {
       const newState = builderReducer(state, action);
       dispatchAction({type: "SET_STATE", payload: newState });
