@@ -41,11 +41,8 @@ const interpolateString = (template: string, data: Record<string, any>): string 
     });
 }
 
-export function FormPreview({ showSubmitButton = true, sections: sectionsProp }: Props) {
-  const builder = useBuilder();
-  // Use passed-in sections if available, otherwise fall back to builder context
-  const sections = sectionsProp || builder.sections; 
-  const { rules, workflows, dispatch, activeForm } = builder;
+export function FormPreview({ showSubmitButton = true, sections }: Props) {
+  const { rules, workflows, dispatch, activeForm } = useBuilder();
 
   const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
   const { toast } = useToast();
