@@ -22,7 +22,7 @@ import { Zap } from "lucide-react";
 
 type Props = {
     showSubmitButton?: boolean;
-    sections: Section[]; // This is now a required prop.
+    sections: Section[];
 }
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
@@ -124,8 +124,8 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
   };
 
   const isSectionVisible = (section: Section): boolean => {
-    const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === section.id);
-    const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === section.id);
+    const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === section.id));
+    const hideRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === section.id));
 
     let visible = !section.popupOnly;
 

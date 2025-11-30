@@ -66,17 +66,15 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
    const isVisible = useMemo(() => {
     if (!formState) return true;
 
-    const showRules = rules.filter(r => r.behavior.type === 'show' && r.behavior.targetElementId === element.id);
-    const hideRules = rules.filter(r => r.behavior.type === 'hide' && r.behavior.targetElementId === element.id);
-
+    const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
+    const hideRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
+    
     let visible = true; 
 
-    // If there are "show" rules, the element is hidden unless a show rule is met
     if (showRules.length > 0) {
       visible = showRules.some(r => evaluateRule(r, formState));
     }
 
-    // If the element is visible so far, check if any "hide" rule should make it hidden
     if (visible && hideRules.length > 0) {
       if (hideRules.some(r => evaluateRule(r, formState))) {
         visible = false;
@@ -88,13 +86,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   
  const isDisabled = useMemo(() => {
     if (!formState) return false;
-    
-    const disableRules = rules.filter(r => r.behavior.type === 'disable' && r.behavior.targetElementId === element.id);
+
+    const disableRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
     if (disableRules.some(r => evaluateRule(r, formState))) {
       return true;
     }
 
-    const enableRules = rules.filter(r => r.behavior.type === 'enable' && r.behavior.targetElementId === element.id);
+    const enableRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
       return !enableRules.some(r => evaluateRule(r, formState));
     }
@@ -108,19 +106,16 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     if (!formState) return { style, error };
     
     for (const rule of rules) {
-        if (rule.behavior.targetElementId === element.id) {
-            const isRuleMet = evaluateRule(rule, formState);
-
-            if (isRuleMet) {
-                switch(rule.behavior.type) {
-                    case 'change_color':
-                        if (rule.behavior.targetProperty && rule.behavior.color) {
-                            style[rule.behavior.targetProperty as any] = rule.behavior.color;
-                        }
-                        break;
-                    case 'set_error':
-                        error = rule.behavior.message || "Invalid input.";
-                        break;
+        const isRuleMet = evaluateRule(rule, formState);
+        if (isRuleMet) {
+            for (const behavior of rule.behaviors) {
+                if (behavior.targetElementId === element.id) {
+                    if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
+                        style[behavior.targetProperty as any] = behavior.color;
+                    }
+                    if (behavior.type === 'set_error') {
+                        error = behavior.message || "Invalid input.";
+                    }
                 }
             }
         }

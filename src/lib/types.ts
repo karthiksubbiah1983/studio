@@ -21,20 +21,21 @@ export type Condition = {
     comparisonElementId?: string; // Used for another_field
 };
 
+export type RuleBehavior = {
+    id: string;
+    type: RuleBehaviorType;
+    targetElementId?: string;
+    color?: string;
+    targetProperty?: 'color' | 'backgroundColor';
+    message?: string;
+}
+
 export type Rule = {
     id: string;
     name: string;
     conditions: Condition[];
-    logicType: 'and' | 'or'; // How to evaluate multiple conditions
-    behavior: {
-        type: RuleBehaviorType;
-        targetElementId?: string; // ID of the element to apply the behavior to
-        // For 'change_color'
-        color?: string;
-        targetProperty?: 'color' | 'backgroundColor';
-        // For 'set_error'
-        message?: string;
-    }
+    logicType: 'and' | 'or';
+    behaviors: RuleBehavior[];
 }
 
 export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed';

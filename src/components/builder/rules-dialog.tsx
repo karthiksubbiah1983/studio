@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType } from "@/lib/types";
+import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, RuleBehavior } from "@/lib/types";
 import { Plus, Trash, X, Settings2, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn, findElementRecursive, getAllElements } from "@/lib/utils";
@@ -60,10 +60,11 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         value: ""
       }],
       logicType: 'and',
-      behavior: {
+      behaviors: [{
+        id: crypto.randomUUID(),
         type: 'show',
         targetElementId: ""
-      }
+      }]
     };
     const newRules = [...localRules, newRule];
     setLocalRules(newRules);
@@ -247,6 +248,105 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         </div>
     )
   }
+  
+  const BehaviorEditor = ({ behavior, rule }: { behavior: RuleBehavior, rule: Rule }) => {
+    
+    const handleUpdateBehavior = (updatedBehavior: Partial<RuleBehavior>) => {
+      const newBehaviors = rule.behaviors.map(b => b.id === behavior.id ? { ...b, ...updatedBehavior } : b);
+      handleUpdateRule({ ...rule, behaviors: newBehaviors });
+    }
+
+    const handleDeleteBehavior = () => {
+        const newBehaviors = rule.behaviors.filter(b => b.id !== behavior.id);
+        handleUpdateRule({ ...rule, behaviors: newBehaviors });
+    }
+
+    return (
+        <div className="space-y-3 p-3 border rounded-lg bg-accent/20 relative">
+            {rule.behaviors.length > 1 && (
+                <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-5 w-5" onClick={handleDeleteBehavior}>
+                    <X className="h-3 w-3 text-destructive/70" />
+                </Button>
+            )}
+            <div className="space-y-2">
+                <Label className="text-xs">Behavior</Label>
+                <Select
+                    value={behavior.type}
+                    onValueChange={(value) => handleUpdateBehavior({ type: value as RuleBehaviorType })}
+                >
+                    <SelectTrigger className="h-8 text-xs">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="show">Show</SelectItem>
+                        <SelectItem value="hide">Hide</SelectItem>
+                        <SelectItem value="enable">Enable</SelectItem>
+                        <SelectItem value="disable">Disable</SelectItem>
+                        <SelectItem value="change_color">Change Color</SelectItem>
+                        <SelectItem value="set_error">Set Error</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+             <div className="space-y-2">
+                <Label className="text-xs">Target Field</Label>
+                <Select
+                    value={behavior.targetElementId || ""}
+                    onValueChange={(value) => handleUpdateBehavior({ targetElementId: value })}
+                >
+                    <SelectTrigger className="h-8 text-xs">
+                        <SelectValue placeholder="Select target field..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {allTargettableElements.map(el => (
+                            <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {behavior.type === 'change_color' && (
+                <div className="flex items-end gap-2">
+                    <div className="flex-1">
+                        <Label className="text-xs">Property</Label>
+                        <Select 
+                            value={behavior.targetProperty}
+                            onValueChange={(value) => handleUpdateBehavior({ targetProperty: value as 'color' | 'backgroundColor' })}
+                        >
+                            <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Target" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="color">Text Color</SelectItem>
+                                <SelectItem value="backgroundColor">Background Color</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex-1">
+                        <Label className="text-xs">Color</Label>
+                        <Input
+                            type="color"
+                            value={behavior.color || '#000000'}
+                            onChange={(e) => handleUpdateBehavior({ color: e.target.value })}
+                            className="p-1 h-8"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {behavior.type === 'set_error' && (
+                <div className="space-y-2">
+                        <Label className="text-xs">Error Message</Label>
+                        <Input
+                        placeholder="e.g. Value must be greater than 10"
+                        value={behavior.message}
+                        onChange={(e) => handleUpdateBehavior({ message: e.target.value })}
+                        className="h-8 text-xs"
+                    />
+                </div>
+            )}
+        </div>
+    )
+  }
 
   const RuleEditor = ({ rule }: { rule: Rule }) => {
     
@@ -270,8 +370,14 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         handleUpdateRule(updatedRule);
     };
 
-    const handleUpdateBehavior = (updatedBehavior: Partial<Rule['behavior']>) => {
-        handleUpdateRule({ ...rule, behavior: { ...rule.behavior, ...updatedBehavior }});
+    const handleAddBehavior = () => {
+        const newBehavior: RuleBehavior = {
+            id: crypto.randomUUID(),
+            type: 'show',
+            targetElementId: ""
+        };
+        const updatedRule = { ...rule, behaviors: [...rule.behaviors, newBehavior] };
+        handleUpdateRule(updatedRule);
     }
 
     return (
@@ -310,84 +416,14 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             </Button>
             <Separator />
             <h4 className="font-medium text-sm text-muted-foreground">THEN DO THIS:</h4>
-            <div className="space-y-3 p-3 border rounded-lg bg-accent/20">
-                <div className="space-y-2">
-                        <Label className="text-xs">Behavior</Label>
-                        <Select
-                        value={rule.behavior.type}
-                        onValueChange={(value) => handleUpdateBehavior({ type: value as RuleBehaviorType })}
-                    >
-                        <SelectTrigger className="h-8 text-xs">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="show">Show</SelectItem>
-                            <SelectItem value="hide">Hide</SelectItem>
-                            <SelectItem value="enable">Enable</SelectItem>
-                            <SelectItem value="disable">Disable</SelectItem>
-                            <SelectItem value="change_color">Change Color</SelectItem>
-                            <SelectItem value="set_error">Set Error</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                 <div className="space-y-2">
-                    <Label className="text-xs">Target Field</Label>
-                    <Select
-                        value={rule.behavior.targetElementId || ""}
-                        onValueChange={(value) => handleUpdateBehavior({ targetElementId: value })}
-                    >
-                        <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Select target field..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {allTargettableElements.map(el => (
-                                <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-
-                {rule.behavior.type === 'change_color' && (
-                    <div className="flex items-end gap-2">
-                        <div className="flex-1">
-                            <Label className="text-xs">Property</Label>
-                            <Select 
-                                value={rule.behavior.targetProperty}
-                                onValueChange={(value) => handleUpdateBehavior({ targetProperty: value as 'color' | 'backgroundColor' })}
-                            >
-                                <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="Target" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="color">Text Color</SelectItem>
-                                    <SelectItem value="backgroundColor">Background Color</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <div className="flex-1">
-                            <Label className="text-xs">Color</Label>
-                            <Input
-                                type="color"
-                                value={rule.behavior.color || '#000000'}
-                                onChange={(e) => handleUpdateBehavior({ color: e.target.value })}
-                                className="p-1 h-8"
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {rule.behavior.type === 'set_error' && (
-                    <div className="space-y-2">
-                            <Label className="text-xs">Error Message</Label>
-                            <Input
-                            placeholder="e.g. Value must be greater than 10"
-                            value={rule.behavior.message}
-                            onChange={(e) => handleUpdateBehavior({ message: e.target.value })}
-                            className="h-8 text-xs"
-                        />
-                    </div>
-                )}
+            <div className="space-y-3">
+                {rule.behaviors.map((behavior) => (
+                    <BehaviorEditor key={behavior.id} behavior={behavior} rule={rule} />
+                ))}
             </div>
+            <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddBehavior}>
+                <Plus className="mr-1 h-4 w-4"/> Add Behavior
+            </Button>
         </div>
     )
   }
