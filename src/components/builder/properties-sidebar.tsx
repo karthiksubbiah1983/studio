@@ -266,12 +266,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   useEffect(() => {
     setProps(element);
-    if (element.type === 'Select' || element.type === 'DataGrid') {
-        if(element.apiUrl && !element.dependentFieldId) {
-            handleFetchSchema(element.apiUrl, false);
-        } else {
-            setFetchedKeys([]);
-        }
+    if ((element.type === 'Select' || element.type === 'DataGrid') && element.apiUrl && !element.dependentFieldId) {
+        handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
 
@@ -321,11 +317,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         setFetchedKeys([]);
         return;
     };
-    // Don't try to fetch if it's a dependent URL template that still has a placeholder
+    
+    // Handle URL templates
     if (apiUrlToFetch.includes('{') && apiUrlToFetch.includes('}')) {
-        setFetchedKeys([]); // Clear keys as we can't fetch a sample
-        return;
+        const placeholder = apiUrlToFetch.match(/\{(.+?)\}/)?.[1];
+        const sampleValue = prompt(`The API URL is a template. Please provide a sample value for '{${placeholder}}' to fetch the schema:`);
+        if (!sampleValue) {
+            return;
+        }
+        apiUrlToFetch = apiUrlToFetch.replace(`{${placeholder}}`, encodeURIComponent(sampleValue));
     }
+
     setIsFetching(true);
     try {
         const rawData = await fetchFromApi(apiUrlToFetch);
@@ -462,7 +464,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 <Label htmlFor="apiUrl">API URL</Label>
                 <div className="flex gap-2">
                     <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                    <Button onClick={() => handleFetchSchema(props.apiUrl)} disabled={isFetching} size="sm">
+                    <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
                         {isFetching ? "Fetching..." : "Fetch"}
                     </Button>
                 </div>
@@ -860,7 +862,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="apiUrl">API URL</Label>
                                 <div className="flex gap-2">
                                     <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                                     <Button onClick={() => handleFetchSchema(props.apiUrl)} disabled={isFetching} size="sm">
+                                     <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
                                         {isFetching ? "Fetching..." : "Fetch"}
                                     </Button>
                                 </div>
