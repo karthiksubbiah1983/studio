@@ -29,6 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { createNewElement } from "@/lib/form-elements";
 import { FetchedJsonDialog } from "./fetched-json-dialog";
 import { Checkbox } from "../ui/checkbox";
+import { LexicalEditor } from "../lexical/lexical-editor";
 
 
 export function PropertiesSidebar() {
@@ -792,7 +793,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                  </Accordion>
             );
         case "Textarea":
-        case "RichText":
              return (
                  <Accordion type="multiple" defaultValue={["general"]} className="w-full">
                     <AccordionItem value="general">
@@ -800,6 +800,27 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                             {placeholderField}
+                        </AccordionContent>
+                    </AccordionItem>
+                 </Accordion>
+            );
+        case "RichText":
+            return (
+                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="label">Label</Label>
+                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="content">Content</Label>
+                                 <LexicalEditor
+                                    initialValue={props.content}
+                                    onChange={(html) => updateProperty('content', html)}
+                                />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>

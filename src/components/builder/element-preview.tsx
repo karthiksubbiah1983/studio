@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
-  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink, linkUrl, textStyle, color } = element;
+  const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink, linkUrl, textStyle, color, content } = element;
 
   const renderLabel = () => (
     <div className="flex justify-between items-center mb-2">
@@ -132,15 +132,15 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         </div>
       );
     case "RichText":
-      return (
-        <div>
-            {renderLabel()}
-            <div className="rounded-md border border-input bg-background min-h-[150px] p-4 text-sm">
-                Rich text content here...
+        return (
+            <div>
+                {renderLabel()}
+                <div 
+                    className="prose dark:prose-invert text-sm"
+                    dangerouslySetInnerHTML={{ __html: content || "<p>Rich text content goes here...</p>" }}
+                />
             </div>
-             {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
-        </div>
-      )
+        )
     case "Container":
       return null;
     case "DataGrid":

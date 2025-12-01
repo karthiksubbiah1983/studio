@@ -74,9 +74,27 @@ const config = {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+       typography: (theme: any) => ({
+        DEFAULT: {
+          css: {
+            h1: { color: theme('colors.foreground') },
+            h2: { color: theme('colors.foreground') },
+            h3: { color: theme('colors.foreground') },
+            h4: { color: theme('colors.foreground') },
+            h5: { color: theme('colors.foreground') },
+            h6: { color: theme('colors.foreground') },
+            strong: { color: theme('colors.foreground') },
+            a: { color: theme('colors.primary.DEFAULT') },
+            ul: { listStyleType: 'disc' },
+            ol: { listStyleType: 'decimal' },
+            'ul > li::before': { backgroundColor: theme('colors.foreground') },
+            'ol > li::before': { color: theme('colors.foreground') },
+          },
+        },
+      }),
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require('@tailwindcss/typography')],
 } satisfies Config;
 
 export default config;

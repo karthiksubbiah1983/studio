@@ -171,7 +171,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }, [element.apiUrl, element.dependencyType, element.subKey, element.dependentFieldId, element.type, element.dataSource, formState?.[element.dependentFieldId!]?.value]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, textStyle, color } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, textStyle, color, content: richTextContent } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -353,15 +353,11 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "RichText":
       content = (
         <div>
-          {renderLabel()}
-          <LexicalEditor
-            initialValue={value}
-            onChange={(html) => onValueChange(element.id, html)}
-          />
-          {helperText && (
-            <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
-          )}
-          {renderError()}
+            {renderLabel()}
+            <div 
+                className="prose dark:prose-invert text-sm w-full"
+                dangerouslySetInnerHTML={{ __html: richTextContent || "" }}
+            />
         </div>
       );
       break;
