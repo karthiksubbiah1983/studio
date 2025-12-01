@@ -81,6 +81,11 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
                 return false;
             }
 
+            // Normalize dates to the beginning of the day for consistent comparisons
+            dateSource.setHours(0, 0, 0, 0);
+            dateComparison.setHours(0, 0, 0, 0);
+
+
             // Apply offset if it exists
             if (condition.offsetDays) {
                 dateComparison.setDate(dateComparison.getDate() + condition.offsetDays);
@@ -132,3 +137,4 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: { va
         return conditionResults.some(res => res);
     }
 };
+
