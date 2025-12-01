@@ -12,12 +12,14 @@ export type RuleConditionOperator =
 
 export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_error';
 
+export type ConditionComparisonType = 'value' | 'field' | 'date' | 'status';
+
 export type Condition = {
     id: string;
     sourceElementId: string;
     operator: RuleConditionOperator;
-    comparisonType: 'static_value' | 'another_field';
-    value: string; // Used for static_value
+    comparisonType: ConditionComparisonType;
+    value: string; // Used for static_value, date, or status
     comparisonElementId?: string; // Used for another_field
     offsetDays?: number;
 };
@@ -134,6 +136,7 @@ export type Section = {
     title: string;
     displayMode?: 'default' | 'accordion';
     popupOnly?: boolean;
+    hidden?: boolean;
     elements: FormElementInstance[];
 };
 

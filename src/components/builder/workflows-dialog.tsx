@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { FormElementInstance, Workflow, Section, Condition, WorkflowAction, TaskStatus } from "@/lib/types";
+import { FormElementInstance, Workflow, Section, Condition, WorkflowAction, TaskStatus, ConditionComparisonType } from "@/lib/types";
 import { Plus, Trash, X, Zap, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn, findElementRecursive, getAllElements } from "@/lib/utils";
@@ -25,6 +25,13 @@ type Props = {
 const taskStatuses: TaskStatus[] = ['Open', 'In Progress', 'Resolved', 'Closed', 'Escalated'];
 const taskTypes: string[] = ['Follow-up Call', 'Send Email', 'Review Request'];
 const mailFormats: string[] = ['Welcome Email', 'Order Confirmation', 'Password Reset'];
+const specialDateOptions = [
+    { value: '_current_date', label: 'Current Date' },
+    { value: '_due_date', label: 'Due Date' },
+    { value: '_scheduled_date', label: 'Scheduled Date' },
+];
+const allStatuses: string[] = [...taskStatuses, 'Current Status'];
+
 
 export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   const { sections, workflows, updateWorkflows } = useBuilder();
@@ -58,7 +65,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         id: crypto.randomUUID(),
         sourceElementId: "",
         operator: 'equals',
-        comparisonType: 'static_value',
+        comparisonType: 'value',
         value: ""
       }],
       logicType: 'and',
@@ -137,7 +144,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         return [];
     }
 
-    const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || sourceElement.type === 'Checkbox') && condition.comparisonType === 'static_value';
+    const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || sourceElement.type === 'Checkbox') && condition.comparisonType === 'value';
     
     const isDateRelated = (element: FormElementInstance | Section | null) => {
         if (!element) return false;
@@ -146,16 +153,56 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     }
     const isSpecialDate = (id: string | undefined) => id && id.startsWith('_');
 
-    const shouldShowDateOffset = isSpecialDate(condition.sourceElementId) || isDateRelated(sourceElement) || (condition.comparisonType === 'another_field' && (isSpecialDate(condition.comparisonElementId) || isDateRelated(comparisonElement)));
+    const shouldShowDateOffset = isSpecialDate(condition.sourceElementId) || isDateRelated(sourceElement) || (condition.comparisonType === 'field' && (isSpecialDate(condition.comparisonElementId) || isDateRelated(comparisonElement)));
 
 
-    const specialDateOptions = (
-        <>
-            <SelectItem value="_current_date">Current Date</SelectItem>
-            <SelectItem value="_due_date">Due Date</SelectItem>
-            <SelectItem value="_scheduled_date">Scheduled Date</SelectItem>
-        </>
-    );
+    const renderComparisonInput = () => {
+        switch (condition.comparisonType) {
+            case 'value':
+                 if (showOptionsDropdown) {
+                    return (
+                        <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value: value })}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select an option..." /></SelectTrigger>
+                            <SelectContent>{getSourceElementOptions().map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
+                        </Select>
+                    )
+                 }
+                return <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} className="h-8 text-xs" />;
+            case 'date':
+                return (
+                    <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a date..." /></SelectTrigger>
+                        <SelectContent>
+                            {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
+            case 'field':
+                return (
+                     <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
+                        <SelectContent>
+                            {allElementsAndSections.map(el => ('key' in el && el.key) ? 
+                                <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> :
+                                <SelectItem key={el.id} value={el.id}>{el.title} (Section)</SelectItem>
+                            )}
+                        </SelectContent>
+                    </Select>
+                );
+            case 'status':
+                 return (
+                    <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a status..." /></SelectTrigger>
+                        <SelectContent>
+                            {allStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
+            default:
+                return null;
+        }
+    }
+
 
     return (
         <div className="border bg-background/50 p-3 rounded-md space-y-3 relative">
@@ -169,7 +216,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                 <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
                     <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                     <SelectContent>
-                        {specialDateOptions}
+                        {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                         <Separator className="my-1"/>
                         {allElementsAndSections.map(el => ('key' in el && el.key) ? 
                           <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> : 
@@ -198,33 +245,28 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                 <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
                         <Label className="text-xs">Compare To</Label>
-                        <RadioGroup value={condition.comparisonType} onValueChange={(value) => handleUpdateCondition({ comparisonType: value as 'static_value' | 'another_field', value: '', comparisonElementId: undefined })} className="flex">
-                            <div className="flex items-center space-x-1"><RadioGroupItem value="static_value" id={`static-${condition.id}`} className="h-3 w-3" /><Label htmlFor={`static-${condition.id}`} className="text-xs">Value</Label></div>
-                            <div className="flex items-center space-x-1"><RadioGroupItem value="another_field" id={`field-${condition.id}`} className="h-3 w-3" /><Label htmlFor={`field-${condition.id}`} className="text-xs">Field</Label></div>
-                        </RadioGroup>
                     </div>
-                    {condition.comparisonType === 'static_value' ? (
-                       showOptionsDropdown ? (
-                            <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value: value })}>
-                                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select an option..." /></SelectTrigger>
-                                <SelectContent>{getSourceElementOptions().map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
-                            </Select>
-                       ) : ( <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} className="h-8 text-xs" />)
-                    ) : (
-                        <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
-                            <SelectContent>
-                                {specialDateOptions}
-                                <Separator className="my-1"/>
-                                {allElementsAndSections.map(el => ('key' in el && el.key) ? 
-                                  <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> :
-                                  <SelectItem key={el.id} value={el.id}>{el.title} (Section)</SelectItem>
-                                )}
-                            </SelectContent>
-                        </Select>
-                    )}
+                    <Select 
+                        value={condition.comparisonType} 
+                        onValueChange={(value: ConditionComparisonType) => handleUpdateCondition({ comparisonType: value, value: '', comparisonElementId: undefined })}
+                    >
+                        <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select comparison type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="value">Value</SelectItem>
+                            <SelectItem value="date">Date</SelectItem>
+                            <SelectItem value="field">Field</SelectItem>
+                            <SelectItem value="status">Status</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
+            
+            <div className="space-y-1">
+                {renderComparisonInput()}
+            </div>
+
              {shouldShowDateOffset && (
                 <div className="flex items-end gap-2">
                     <div className="w-1/2 space-y-1">
@@ -345,7 +387,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     }
 
     const handleAddCondition = () => {
-        const newCondition: Condition = { id: crypto.randomUUID(), sourceElementId: "", operator: 'equals', comparisonType: 'static_value', value: "" };
+        const newCondition: Condition = { id: crypto.randomUUID(), sourceElementId: "", operator: 'equals', comparisonType: 'value', value: "" };
         handleUpdateWorkflow({ ...workflow, conditions: [...workflow.conditions, newCondition] });
     }
 
