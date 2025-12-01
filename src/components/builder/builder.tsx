@@ -180,7 +180,7 @@ export function Builder({ formId }: Props) {
 
             <div className="flex-1 flex flex-col overflow-hidden">
                 {titleBar}
-                <div className="flex flex-grow h-[calc(100%-100px)] overflow-hidden">
+                <div className="flex flex-1 min-h-0">
                     <div className="flex-grow h-full overflow-y-auto bg-background">
                         <Canvas />
                     </div>

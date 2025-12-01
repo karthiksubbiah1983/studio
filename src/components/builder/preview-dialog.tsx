@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FormPreview } from "./form-preview";
+import { Section } from "@/lib/types";
 
 type Props = {
   isOpen: boolean;
@@ -21,7 +22,7 @@ export function PreviewDialog({ isOpen, onOpenChange }: Props) {
   const { sections } = useBuilder();
 
   // Filter out sections that are designated for popups only for the main preview.
-  const sectionsForMainPreview = useMemo(() => {
+  const sectionsForMainPreview: Section[] = useMemo(() => {
     return sections.filter(section => !section.popupOnly);
   }, [sections]);
 
@@ -32,7 +33,7 @@ export function PreviewDialog({ isOpen, onOpenChange }: Props) {
         <DialogHeader>
           <DialogTitle>Form Preview</DialogTitle>
         </DialogHeader>
-        <div className="flex-grow overflow-y-auto">
+        <div className="flex-grow overflow-y-auto min-h-0">
           {/* The FormPreview component now receives the pre-filtered list of sections */}
           <FormPreview sections={sectionsForMainPreview} showSubmitButton={true} />
         </div>
