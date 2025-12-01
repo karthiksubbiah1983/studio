@@ -24,9 +24,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   } else if (pathname === '/categories') {
     title = 'Manage Categories';
     description = "Add, edit, or delete categories and their sub-categories to organize your form templates.";
-  } else if (pathname === '/emergency-plan') {
-    title = 'Emergency Action Plan';
-    description = "Static view of the LPG Storage Emergency Action Plan.";
   }
 
 

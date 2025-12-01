@@ -40,7 +40,6 @@ const menuItems: MenuItem[] = [
     children: [
         { href: "/", label: "Manage Templates", icon: Folder },
         { href: "/categories", label: "Categories", icon: Tags },
-        { href: "/emergency-plan", label: "Emergency Plan", icon: FileDigit },
     ],
   },
   {
