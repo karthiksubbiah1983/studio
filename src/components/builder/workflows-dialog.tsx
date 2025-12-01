@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -42,16 +41,20 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     if (isOpen) {
         const initialWorkflows = JSON.parse(JSON.stringify(workflows || []));
         setLocalWorkflows(initialWorkflows);
+    }
+  }, [isOpen, workflows]);
 
-        const stillExists = initialWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
+  useEffect(() => {
+    if (isOpen) {
+        const stillExists = localWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
         
-        if (initialWorkflows.length > 0 && !stillExists) {
-            setSelectedWorkflowId(initialWorkflows[0].id);
-        } else if (initialWorkflows.length === 0) {
+        if (localWorkflows.length > 0 && !stillExists) {
+            setSelectedWorkflowId(localWorkflows[0].id);
+        } else if (localWorkflows.length === 0) {
             setSelectedWorkflowId(null);
         }
     }
-  }, [isOpen, workflows, selectedWorkflowId]);
+  }, [isOpen, localWorkflows, selectedWorkflowId]);
 
   const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
   
@@ -182,9 +185,9 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                      <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
-                            {allElementsAndSections.map(el => ('key' in el && el.key) ? 
+                            {allElementsAndSections.map(el => 'key' in el && el.key ? 
                                 <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> :
-                                <SelectItem key={el.id} value={el.id}>{el.title} (Section)</SelectItem>
+                                <SelectItem key={el.id} value={el.id}>{(el as Section).title} (Section)</SelectItem>
                             )}
                         </SelectContent>
                     </Select>
@@ -220,7 +223,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                         <Separator className="my-1"/>
                         {allElementsAndSections.map(el => ('key' in el && el.key) ? 
                           <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> : 
-                          <SelectItem key={el.id} value={el.id}>{el.title} (Section)</SelectItem>
+                          <SelectItem key={el.id} value={el.id}>{(el as Section).title} (Section)</SelectItem>
                         )}
                     </SelectContent>
                 </Select>
@@ -458,3 +461,5 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
+    
