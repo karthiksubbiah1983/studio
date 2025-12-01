@@ -199,7 +199,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     </Select>
                 );
             default:
-                return null;
+                return <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} className="h-8 text-xs" />;
         }
     }
 
