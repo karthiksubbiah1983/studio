@@ -54,7 +54,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
             setSelectedWorkflowId(null);
         }
     }
-  }, [isOpen, localWorkflows, selectedWorkflowId]);
+  }, [isOpen, localWorkflows]);
 
   const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
   
@@ -461,5 +461,3 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
-
-    
