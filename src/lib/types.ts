@@ -12,15 +12,18 @@ export type RuleConditionOperator =
 
 export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_error';
 
+export type ConditionSourceType = 'field' | 'date' | 'status';
 export type ConditionComparisonType = 'value' | 'field' | 'date' | 'status';
 
 export type Condition = {
     id: string;
-    sourceElementId: string;
+    sourceType: ConditionSourceType;
+    sourceElementId?: string; // Used for sourceType 'field' or 'date'
+    sourceValue?: string; // Used for sourceType 'date' or 'status'
     operator: RuleConditionOperator;
     comparisonType: ConditionComparisonType;
-    value: string; // Used for static_value, date, or status
-    comparisonElementId?: string; // Used for another_field
+    value?: string; // Used for comparisonType 'value', 'date', or 'status'
+    comparisonElementId?: string; // Used for comparisonType 'field'
     offsetDays?: number;
 };
 

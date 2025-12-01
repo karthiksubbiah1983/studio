@@ -1,11 +1,12 @@
 
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { FormElementInstance, Workflow, Section, Condition, WorkflowAction, TaskStatus, ConditionComparisonType } from "@/lib/types";
+import { FormElementInstance, Workflow, Section, Condition, WorkflowAction, TaskStatus, ConditionComparisonType, ConditionSourceType } from "@/lib/types";
 import { Plus, Trash, X, Zap, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn, findElementRecursive, getAllElements } from "@/lib/utils";
@@ -66,7 +67,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
       name: `Workflow ${localWorkflows.length + 1}`,
       conditions: [{
         id: crypto.randomUUID(),
-        sourceElementId: "",
+        sourceType: 'field',
         operator: 'equals',
         comparisonType: 'value',
         value: ""
@@ -106,23 +107,20 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   }
 
   const ConditionEditor = ({ condition, workflow }: { condition: Condition, workflow: Workflow }) => {
-    const [sourceElement, setSourceElement] = useState<FormElementInstance | Section | null>(null);
-    const [comparisonElement, setComparisonElement] = useState<FormElementInstance | Section | null>(null);
-    
-    useEffect(() => {
-        if (condition.sourceElementId) {
-            const el = allElementsAndSections.find(el => el.id === condition.sourceElementId) || null;
-            setSourceElement(el as FormElementInstance | Section | null);
-        } else {
-            setSourceElement(null);
+    const sourceElement = useMemo(() => {
+        if (condition.sourceType === 'field' && condition.sourceElementId) {
+            return allElementsAndSections.find(el => el.id === condition.sourceElementId) || null;
         }
-        if (condition.comparisonElementId) {
-            const el = allElementsAndSections.find(el => el.id === condition.comparisonElementId) || null;
-            setComparisonElement(el as FormElementInstance | Section | null);
-        } else {
-            setComparisonElement(null);
+        return null;
+    }, [condition.sourceType, condition.sourceElementId, allElementsAndSections]);
+
+    const comparisonElement = useMemo(() => {
+        if (condition.comparisonType === 'field' && condition.comparisonElementId) {
+            return allElementsAndSections.find(el => el.id === condition.comparisonElementId) || null;
         }
-    }, [condition.sourceElementId, condition.comparisonElementId, allElementsAndSections]);
+        return null;
+    }, [condition.comparisonType, condition.comparisonElementId, allElementsAndSections]);
+
 
     const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
         const updatedRule = {
@@ -140,15 +138,13 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         handleUpdateWorkflow(updatedWorkflow);
     }
     
-    const getSourceElementOptions = (): string[] => {
-        if (!sourceElement || !('type' in sourceElement)) return [];
-        if (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup') return sourceElement.options || [];
-        if (sourceElement.type === 'Checkbox') return ['true', 'false'];
+    const getFieldOptions = (element: FormElementInstance | Section | null): string[] => {
+        if (!element || !('type' in element)) return [];
+        if (element.type === 'Select' || element.type === 'RadioGroup') return element.options || [];
+        if (element.type === 'Checkbox') return ['true', 'false'];
         return [];
     }
 
-    const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || sourceElement.type === 'Checkbox') && condition.comparisonType === 'value';
-    
     const isDateRelated = (element: FormElementInstance | Section | null) => {
         if (!element) return false;
         if ('type' in element) return element.type === 'DatePicker';
@@ -156,17 +152,55 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     }
     const isSpecialDate = (id: string | undefined) => id && id.startsWith('_');
 
-    const shouldShowDateOffset = isSpecialDate(condition.sourceElementId) || isDateRelated(sourceElement) || (condition.comparisonType === 'field' && (isSpecialDate(condition.comparisonElementId) || isDateRelated(comparisonElement)));
+    const shouldShowDateOffset = 
+        (condition.sourceType === 'date' || isDateRelated(sourceElement)) || 
+        (condition.comparisonType === 'date' || isDateRelated(comparisonElement));
+
+    const renderSourceInput = () => {
+        switch(condition.sourceType) {
+            case 'field':
+                return (
+                    <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
+                        <SelectContent>
+                             {allElementsAndSections.map(el => (
+                                <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label || (el as Section).title}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                );
+            case 'date':
+                 return (
+                    <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a date..." /></SelectTrigger>
+                        <SelectContent>
+                            {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
+            case 'status':
+                return (
+                    <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a status..." /></SelectTrigger>
+                        <SelectContent>
+                            {allStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
+            default: return null;
+        }
+    }
 
 
     const renderComparisonInput = () => {
         switch (condition.comparisonType) {
             case 'value':
-                 if (showOptionsDropdown) {
+                const sourceFieldOptions = getFieldOptions(sourceElement);
+                 if (sourceFieldOptions.length > 0) {
                     return (
                         <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value: value })}>
                             <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select an option..." /></SelectTrigger>
-                            <SelectContent>{getSourceElementOptions().map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
+                            <SelectContent>{sourceFieldOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
                         </Select>
                     )
                  }
@@ -215,18 +249,19 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
             </Button>
             )}
             <div className="space-y-1">
-                <Label className="text-xs">Source Field</Label>
-                <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
+                <Label className="text-xs">Source Type</Label>
+                <Select value={condition.sourceType} onValueChange={(value: ConditionSourceType) => handleUpdateCondition({ sourceType: value, sourceElementId: undefined, sourceValue: '' })}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                        <Separator className="my-1"/>
-                        {allElementsAndSections.map(el => ('key' in el && el.key) ? 
-                          <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> : 
-                          <SelectItem key={el.id} value={el.id}>{(el as Section).title} (Section)</SelectItem>
-                        )}
+                        <SelectItem value="field">Field</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="status">Status</SelectItem>
                     </SelectContent>
                 </Select>
+            </div>
+             <div className="space-y-1">
+                <Label className="text-xs">Source Value</Label>
+                {renderSourceInput()}
             </div>
 
             <div className="flex items-center gap-2">
@@ -390,7 +425,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     }
 
     const handleAddCondition = () => {
-        const newCondition: Condition = { id: crypto.randomUUID(), sourceElementId: "", operator: 'equals', comparisonType: 'value', value: "" };
+        const newCondition: Condition = { id: crypto.randomUUID(), sourceType: 'field', operator: 'equals', comparisonType: 'value' };
         handleUpdateWorkflow({ ...workflow, conditions: [...workflow.conditions, newCondition] });
     }
 
