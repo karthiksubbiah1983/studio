@@ -43,8 +43,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
   }, [isOpen, rules]);
 
-  const allElements = useMemo(() => getAllElements(sections), [sections]);
-  const allTargettableElements = useMemo(() => [...getAllElements(sections), ...sections], [sections]);
+  const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
@@ -98,8 +97,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
     useEffect(() => {
         if (condition.sourceElementId) {
-            const el = allElements.find(el => el.id === condition.sourceElementId) || null;
-            setSourceElement(el as FormElementInstance | null);
+            const el = allElementsAndSections.find(el => el.id === condition.sourceElementId) || null;
+            setSourceElement(el as FormElementInstance | Section | null);
         } else {
             setSourceElement(null);
         }
@@ -157,7 +156,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <SelectValue placeholder="Select a source field..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {allElements.map(el => (
+                        {allElementsAndSections.map(el => (
                             <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
                         ))}
                     </SelectContent>
@@ -237,7 +236,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                                 <SelectValue placeholder="Select a field..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {allElements.map(el => (
+                                {allElementsAndSections.map(el => (
                                     <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
                                 ))}
                             </SelectContent>
@@ -297,7 +296,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <SelectValue placeholder="Select target field..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {allTargettableElements.map(el => (
+                        {allElementsAndSections.map(el => (
                             <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
                         ))}
                     </SelectContent>

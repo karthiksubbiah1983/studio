@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -45,7 +46,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     }
   }, [isOpen, workflows]);
 
-  const allElements = useMemo(() => getAllElements(sections), [sections]);
+  const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
   
   const selectedWorkflow = localWorkflows.find(w => w.id === selectedWorkflowId);
 
@@ -100,14 +101,14 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     
     useEffect(() => {
         if (condition.sourceElementId) {
-            const el = allElements.find(el => el.id === condition.sourceElementId) || null;
-            setSourceElement(el as FormElementInstance | null);
+            const el = allElementsAndSections.find(el => el.id === condition.sourceElementId) || null;
+            setSourceElement(el as FormElementInstance | Section | null);
         } else {
             setSourceElement(null);
         }
         if (condition.comparisonElementId) {
-            const el = allElements.find(el => el.id === condition.comparisonElementId) || null;
-            setComparisonElement(el as FormElementInstance | null);
+            const el = allElementsAndSections.find(el => el.id === condition.comparisonElementId) || null;
+            setComparisonElement(el as FormElementInstance | Section | null);
         } else {
             setComparisonElement(null);
         }
@@ -170,7 +171,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     <SelectContent>
                         {specialDateOptions}
                         <Separator className="my-1"/>
-                        {allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
+                        {allElementsAndSections.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -212,7 +213,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                             <SelectContent>
                                 {specialDateOptions}
                                 <Separator className="my-1"/>
-                                {allElements.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
+                                {allElementsAndSections.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     )}

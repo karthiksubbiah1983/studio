@@ -77,15 +77,15 @@ export const findElementRecursive = (sections: Section[], elementId: string): Fo
     return null;
 }
 
-export const getAllElements = (sections: Section[]): FormElementInstance[] => {
-    const allElements: FormElementInstance[] = [];
+export const getAllElements = (sections: Section[]): (FormElementInstance | Section)[] => {
+    const allElementsAndSections: (FormElementInstance | Section)[] = [];
     const processedElements = new Set<string>();
 
     const findElementsRecursive = (els: FormElementInstance[]): void => {
         els.forEach(element => {
             if (processedElements.has(element.id)) return;
             
-            allElements.push(element);
+            allElementsAndSections.push(element);
             processedElements.add(element.id);
 
             if (element.type === 'Container' && element.elements) {
@@ -93,10 +93,8 @@ export const getAllElements = (sections: Section[]): FormElementInstance[] => {
             }
             if (element.type === 'Table' && element.tableColumns) {
                 element.tableColumns.forEach(col => {
-                    // This is a template element, it should be included for rule configuration
-                    // but we need to avoid processing it in a way that causes infinite recursion if it's nested.
                     if (!processedElements.has(col.element.id)) {
-                        allElements.push(col.element);
+                        allElementsAndSections.push(col.element);
                         processedElements.add(col.element.id);
                     }
                 });
@@ -106,9 +104,10 @@ export const getAllElements = (sections: Section[]): FormElementInstance[] => {
 
     if (sections) {
         sections.forEach(section => {
+            allElementsAndSections.push({ ...section, label: section.title }); // Add section itself
             findElementsRecursive(section.elements);
         });
     }
 
-    return allElements;
+    return allElementsAndSections;
 };
