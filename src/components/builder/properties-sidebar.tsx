@@ -31,6 +31,7 @@ import { FetchedJsonDialog } from "./fetched-json-dialog";
 import { Checkbox } from "../ui/checkbox";
 import { LexicalEditor } from "../lexical/lexical-editor";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
+import { ScrollArea } from "../ui/scroll-area";
 
 
 export function PropertiesSidebar() {
@@ -991,75 +992,77 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </Accordion>
 
                 <Dialog open={!!editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
-                    <DialogContent className="max-w-2xl">
+                    <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
                         <DialogHeader>
                             <DialogTitle>Edit Column</DialogTitle>
                             <DialogDescription>
                                 Configure the properties for this table column.
                             </DialogDescription>
                         </DialogHeader>
-                        {editingColumn && (
-                            <div className="py-4 flex flex-col gap-4">
-                                <div className="flex flex-col gap-2">
-                                    <Label>Column Header</Label>
-                                    <Input value={editingColumn.label} onChange={(e) => setEditingColumn({...editingColumn, label: e.target.value })} />
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <Label>Column Key</Label>
-                                    <Input value={editingColumn.key} onChange={(e) => setEditingColumn({...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
-                                </div>
+                        <ScrollArea className="flex-grow -mx-6 px-6">
+                            {editingColumn && (
+                                <div className="py-4 flex flex-col gap-4">
+                                    <div className="flex flex-col gap-2">
+                                        <Label>Column Header</Label>
+                                        <Input value={editingColumn.label} onChange={(e) => setEditingColumn({...editingColumn, label: e.target.value })} />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label>Column Key</Label>
+                                        <Input value={editingColumn.key} onChange={(e) => setEditingColumn({...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
+                                    </div>
 
-                                <Separator />
+                                    <Separator />
 
-                                <div className="flex flex-col gap-2">
-                                    <Label>Formula (Optional)</Label>
-                                    <Input 
-                                        placeholder="e.g. {col_1} * {col_2}"
-                                        value={editingColumn.formula || ''}
-                                        onChange={(e) => setEditingColumn({ ...editingColumn, formula: e.target.value })}
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
-                                    </p>
-                                </div>
-                                
-                                {!(editingColumn.formula) && (
-                                    <>
-                                        <Separator />
-                                        <h3 className="text-lg font-medium">Field Properties</h3>
-                                        <div className="flex flex-col gap-2">
-                                            <Label>Field Type</Label>
-                                            <Select 
-                                                value={editingColumn.element.type}
-                                                onValueChange={(type) => {
-                                                    const newElement = createNewElement(type as ElementType);
-                                                    setEditingColumn({...editingColumn, element: newElement });
-                                                }}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a field type" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Input">Input</SelectItem>
-                                                    <SelectItem value="Select">Select</SelectItem>
-                                                    <SelectItem value="Checkbox">Checkbox</SelectItem>
-                                                    <SelectItem value="RadioGroup">Radio Group</SelectItem>
-                                                    <SelectItem value="DatePicker">Date Picker</SelectItem>
-                                                    <SelectItem value="Display">Display Text</SelectItem>
-                                                    <SelectItem value="RichText">Rich Text</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        
-                                        <ElementProperties
-                                            element={editingColumn.element}
-                                            onUpdate={(updatedElement) => setEditingColumn({ ...editingColumn, element: updatedElement })}
-                                            isColumnElement={true}
+                                    <div className="flex flex-col gap-2">
+                                        <Label>Formula (Optional)</Label>
+                                        <Input 
+                                            placeholder="e.g. {col_1} * {col_2}"
+                                            value={editingColumn.formula || ''}
+                                            onChange={(e) => setEditingColumn({ ...editingColumn, formula: e.target.value })}
                                         />
-                                    </>
-                                )}
-                            </div>
-                        )}
+                                        <p className="text-xs text-muted-foreground">
+                                            If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
+                                        </p>
+                                    </div>
+                                    
+                                    {!(editingColumn.formula) && (
+                                        <>
+                                            <Separator />
+                                            <h3 className="text-lg font-medium">Field Properties</h3>
+                                            <div className="flex flex-col gap-2">
+                                                <Label>Field Type</Label>
+                                                <Select 
+                                                    value={editingColumn.element.type}
+                                                    onValueChange={(type) => {
+                                                        const newElement = createNewElement(type as ElementType);
+                                                        setEditingColumn({...editingColumn, element: newElement });
+                                                    }}
+                                                >
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a field type" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Input">Input</SelectItem>
+                                                        <SelectItem value="Select">Select</SelectItem>
+                                                        <SelectItem value="Checkbox">Checkbox</SelectItem>
+                                                        <SelectItem value="RadioGroup">Radio Group</SelectItem>
+                                                        <SelectItem value="DatePicker">Date Picker</SelectItem>
+                                                        <SelectItem value="Display">Display Text</SelectItem>
+                                                        <SelectItem value="RichText">Rich Text</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            
+                                            <ElementProperties
+                                                element={editingColumn.element}
+                                                onUpdate={(updatedElement) => setEditingColumn({ ...editingColumn, element: updatedElement })}
+                                                isColumnElement={true}
+                                            />
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                        </ScrollArea>
                         <DialogFooter>
                              <Button variant="outline" onClick={() => setEditingColumn(null)}>Cancel</Button>
                              <Button onClick={() => {
@@ -1191,3 +1194,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
