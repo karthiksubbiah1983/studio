@@ -30,6 +30,7 @@ import { createNewElement } from "@/lib/form-elements";
 import { FetchedJsonDialog } from "./fetched-json-dialog";
 import { Checkbox } from "../ui/checkbox";
 import { LexicalEditor } from "../lexical/lexical-editor";
+import { LexicalComposer } from "@lexical/react/LexicalComposer";
 
 
 export function PropertiesSidebar() {
@@ -816,9 +817,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="content">Content</Label>
-                                 <LexicalEditor
-                                    initialValue={props.content}
-                                    onChange={(html) => updateProperty('content', html)}
+                                <LexicalEditor
+                                  initialValue={props.content}
+                                  onChange={(html) => updateProperty('content', html)}
                                 />
                             </div>
                         </AccordionContent>
@@ -1123,16 +1124,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </Accordion>
             );
         case "Preview":
-            const handleSectionToggle = (sectionId: string, checked: boolean) => {
-                const currentIds = props.previewSectionIds || [];
-                let newIds;
-                if (checked) {
-                    newIds = [...currentIds, sectionId];
-                } else {
-                    newIds = currentIds.filter(id => id !== sectionId);
-                }
-                updateProperty('previewSectionIds', newIds);
-            }
             return (
                 <Accordion type="multiple" defaultValue={["general", "sections"]} className="w-full">
                     <AccordionItem value="general">
@@ -1153,7 +1144,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <Checkbox 
                                             id={`section-preview-${section.id}`}
                                             checked={(props.previewSectionIds || []).includes(section.id)}
-                                            onCheckedChange={(checked) => handleSectionToggle(section.id, !!checked)}
+                                            onCheckedChange={(checked) => {
+                                                const currentIds = props.previewSectionIds || [];
+                                                let newIds;
+                                                if (checked) {
+                                                    newIds = [...currentIds, section.id];
+                                                } else {
+                                                    newIds = currentIds.filter(id => id !== section.id);
+                                                }
+                                                updateProperty('previewSectionIds', newIds);
+                                            }}
                                         />
                                         <Label htmlFor={`section-preview-${section.id}`}>{section.title}</Label>
                                     </div>
@@ -1179,5 +1179,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
 
     
