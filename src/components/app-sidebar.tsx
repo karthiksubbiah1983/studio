@@ -17,6 +17,7 @@ import {
   ChevronDown,
   LayoutGrid,
   Folder,
+  FileDigit,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -39,6 +40,7 @@ const menuItems: MenuItem[] = [
     children: [
         { href: "/", label: "Manage Templates", icon: Folder },
         { href: "/categories", label: "Categories", icon: Tags },
+        { href: "/emergency-plan", label: "Emergency Plan", icon: FileDigit },
     ],
   },
   {
@@ -66,7 +68,7 @@ const menuItems: MenuItem[] = [
 
 const SidebarMenuEntry = ({ item, level = 1 }: { item: MenuItem, level?: number }) => {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const hasChildren = item.children && item.children.length > 0;
   const isActive = (pathname === item.href && item.href !== '#') || (hasChildren && isOpen && level === 1);
 
