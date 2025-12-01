@@ -1,5 +1,5 @@
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2, Eye } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2, Eye, Rows4 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -18,6 +18,7 @@ export const FormElements: {
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'DataGrid', icon: Grid, label: 'Data Grid'},
     { type: 'Table', icon: Table2, label: 'Editable Table' },
+    { type: 'Repeater', icon: Rows4, label: 'Repeater' },
     { type: 'Preview', icon: Eye, label: 'Preview Button' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
@@ -82,6 +83,8 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
             }
         case "Preview":
             return { ...baseElement, label: "Preview Data", previewSectionIds: [] };
+        case "Repeater":
+             return { ...baseElement, label: "Repeater Field", rowTemplates: [] };
         default:
             throw new Error("Invalid element type");
     }

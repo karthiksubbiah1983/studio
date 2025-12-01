@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview" | "Repeater";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -82,6 +82,12 @@ export type TableColumn = {
     formula?: string;
 }
 
+export type RowTemplate = {
+    id: string;
+    name: string;
+    elements: FormElementInstance[];
+};
+
 export type FormElementInstance = {
     id: string;
     type: ElementType;
@@ -127,6 +133,9 @@ export type FormElementInstance = {
     defaultRows?: number;
     // For Preview
     previewSectionIds?: string[];
+    // For Repeater
+    rowTemplates?: RowTemplate[];
+    defaultRowsRepeater?: { templateId: string }[];
 };
 
 export type Section = {

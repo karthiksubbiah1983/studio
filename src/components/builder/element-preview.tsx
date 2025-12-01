@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table, Table2, Link, icons, Eye } from "lucide-react";
+import { Clock, Table, Table2, Link, icons, Eye, Rows4 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 
@@ -162,6 +162,17 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                     <Table2 className="h-12 w-12 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">Editable Table</p>
                     <p className="text-xs text-muted-foreground/70">{element.tableColumns?.length || 0} columns configured</p>
+                </div>
+            </div>
+        )
+    case "Repeater":
+        return (
+            <div>
+                {renderLabel()}
+                <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
+                    <Rows4 className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Repeater</p>
+                    <p className="text-xs text-muted-foreground/70">{element.rowTemplates?.length || 0} templates configured</p>
                 </div>
             </div>
         )
