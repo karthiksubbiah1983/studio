@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section, TableColumn, RowTemplate } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, TableColumn } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -600,76 +600,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                     </Button>
                 )}
             </div>
-        );
-        break;
-    case "Repeater":
-        const repeaterValue = (value || []) as { templateId: string, values: { [key: string]: any } }[];
-        const templates = element.rowTemplates || [];
-
-        const handleRepeaterRowValueChange = (rowIndex: number, fieldId: string, fieldValue: any) => {
-            const newRepeaterValue = [...repeaterValue];
-            if (!newRepeaterValue[rowIndex]) return;
-            newRepeaterValue[rowIndex].values[fieldId] = fieldValue;
-            onValueChange(element.id, newRepeaterValue);
-        }
-
-        const handleAddRepeaterRow = (templateId: string) => {
-            const newRow = { templateId, values: {} };
-            const newRepeaterValue = [...repeaterValue, newRow];
-            onValueChange(element.id, newRepeaterValue);
-        }
-
-        const handleDeleteRepeaterRow = (rowIndex: number) => {
-            const newRepeaterValue = repeaterValue.filter((_, i) => i !== rowIndex);
-            onValueChange(element.id, newRepeaterValue);
-        }
-        
-        content = (
-             <div>
-                {renderLabel()}
-                 <div className="space-y-4">
-                    {repeaterValue.map((row, rowIndex) => {
-                        const template = templates.find(t => t.id === row.templateId);
-                        if (!template) return <div key={rowIndex} className="text-destructive text-sm">Error: Template not found.</div>
-
-                        return (
-                            <Card key={rowIndex} className="bg-muted/30">
-                                <CardHeader className="flex flex-row items-center justify-between p-4">
-                                    <CardTitle className="text-sm font-medium">{template.name}</CardTitle>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteRepeaterRow(rowIndex)}>
-                                        <Trash className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </CardHeader>
-                                <CardContent className="p-4 pt-0 space-y-4">
-                                    {template.elements.map(el => (
-                                        <FormElementRenderer 
-                                            key={el.id}
-                                            element={el}
-                                            value={row.values[el.id]}
-                                            onValueChange={(id, val) => handleRepeaterRowValueChange(rowIndex, id, val)}
-                                            formState={formState}
-                                        />
-                                    ))}
-                                </CardContent>
-                            </Card>
-                        )
-                    })}
-                 </div>
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="mt-2">
-                           <Plus className="h-4 w-4 mr-2"/> Add Row
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        {templates.map(template => (
-                             <DropdownMenuCheckboxItem key={template.id} onSelect={() => handleAddRepeaterRow(template.id)}>
-                                {template.name}
-                            </DropdownMenuCheckboxItem>
-                        ))}
-                    </DropdownMenuContent>
-                 </DropdownMenu>
-             </div>
         );
         break;
     case "Preview":

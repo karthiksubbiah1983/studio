@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, DataGridColumn, TableColumn, RowTemplate } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, DataGridColumn, TableColumn } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -66,7 +66,6 @@ export function PropertiesSidebar() {
     if ('type' in selected) {
         if (selected.type === 'Table') return 'Editable Table';
         if (selected.type === 'Preview') return 'Preview Button';
-        if (selected.type === 'Repeater') return 'Repeater';
         return selected.type;
     }
     return "Section";
@@ -258,7 +257,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [editingColumn, setEditingColumn] = useState<TableColumn | null>(null);
   const [isFetchedJsonDialogOpen, setIsFetchedJsonDialogOpen] = useState(false);
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
-  const [editingTemplate, setEditingTemplate] = useState<RowTemplate | null>(null);
 
   const allElements = getAllElements(sections);
 
@@ -1177,131 +1175,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
             );
-        case "Repeater":
-             return (
-                <>
-                <Accordion type="multiple" defaultValue={["general", "templates"]} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                     <AccordionItem value="templates">
-                        <AccordionTrigger className="py-2">Row Templates</AccordionTrigger>
-                        <AccordionContent>
-                            <div className="flex flex-col gap-2">
-                                <Label>Templates</Label>
-                                {props.rowTemplates?.map((template) => (
-                                    <div key={template.id} className="flex items-center gap-2 p-2 border rounded-md">
-                                        <div className="flex-1 text-sm">{template.name} ({template.elements.length} fields)</div>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingTemplate(template)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                                            const newTemplates = props.rowTemplates?.filter(t => t.id !== template.id);
-                                            updateProperty('rowTemplates', newTemplates);
-                                        }}>
-                                            <Trash className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                ))}
-                                <Button variant="outline" size="sm" onClick={() => {
-                                    const newTemplate: RowTemplate = {
-                                        id: crypto.randomUUID(),
-                                        name: `Template ${(props.rowTemplates?.length || 0) + 1}`,
-                                        elements: []
-                                    };
-                                    setEditingTemplate(newTemplate);
-                                }}>
-                                    <Plus className="mr-2 h-4 w-4" /> Add Template
-                                </Button>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-
-                <Dialog open={!!editingTemplate} onOpenChange={(isOpen) => !isOpen && setEditingTemplate(null)}>
-                    <DialogContent className="max-w-4xl h-screen max-h-[80vh] flex flex-col">
-                        <DialogHeader>
-                            <DialogTitle>Edit Row Template</DialogTitle>
-                            <DialogDescription>Define the name and fields for this reusable row layout.</DialogDescription>
-                        </DialogHeader>
-                        <ScrollArea className="flex-grow -mx-6 px-6">
-                             {editingTemplate && (
-                                <div className="py-4 flex flex-col gap-4">
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Template Name</Label>
-                                        <Input value={editingTemplate.name} onChange={(e) => setEditingTemplate({...editingTemplate, name: e.target.value })} />
-                                    </div>
-                                    <Separator />
-                                    <h3 className="text-lg font-medium">Fields in this Template</h3>
-                                    {editingTemplate.elements.map(el => (
-                                        <Accordion key={el.id} type="single" collapsible className="w-full border rounded-md px-4">
-                                            <AccordionItem value={el.id} className="border-b-0">
-                                                <AccordionTrigger className="py-3">
-                                                    <div className="flex justify-between w-full pr-2">
-                                                        <span>{el.label} ({el.type})</span>
-                                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const newElements = editingTemplate.elements.filter(e => e.id !== el.id);
-                                                            setEditingTemplate({...editingTemplate, elements: newElements });
-                                                        }}>
-                                                            <Trash className="h-3 w-3 text-destructive"/>
-                                                        </Button>
-                                                    </div>
-                                                </AccordionTrigger>
-                                                <AccordionContent>
-                                                    <ElementProperties 
-                                                        element={el}
-                                                        isColumnElement={true}
-                                                        onUpdate={(updatedEl) => {
-                                                            const newElements = editingTemplate.elements.map(e => e.id === updatedEl.id ? updatedEl : e);
-                                                            setEditingTemplate({...editingTemplate, elements: newElements });
-                                                        }}
-                                                    />
-                                                </AccordionContent>
-                                            </AccordionItem>
-                                        </Accordion>
-                                    ))}
-                                    <Select onValueChange={(type) => {
-                                        const newEl = createNewElement(type as ElementType);
-                                        const newElements = [...editingTemplate.elements, newEl];
-                                        setEditingTemplate({ ...editingTemplate, elements: newElements });
-                                    }}>
-                                        <SelectTrigger><SelectValue placeholder="Add a new field..." /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Input">Input</SelectItem>
-                                            <SelectItem value="Select">Select</SelectItem>
-                                            <SelectItem value="Checkbox">Checkbox</SelectItem>
-                                            <SelectItem value="RadioGroup">Radio Group</SelectItem>
-                                            <SelectItem value="DatePicker">Date Picker</SelectItem>
-                                            <SelectItem value="Display">Display Text</SelectItem>
-                                            <SelectItem value="RichText">Rich Text</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                             )}
-                        </ScrollArea>
-                        <DialogFooter>
-                             <Button variant="outline" onClick={() => setEditingTemplate(null)}>Cancel</Button>
-                             <Button onClick={() => {
-                                if (!editingTemplate) return;
-                                const existing = props.rowTemplates?.find(t => t.id === editingTemplate.id);
-                                let newTemplates: RowTemplate[];
-                                if (existing) {
-                                    newTemplates = (props.rowTemplates || []).map(t => t.id === editingTemplate.id ? editingTemplate : t);
-                                } else {
-                                    newTemplates = [...(props.rowTemplates || []), editingTemplate];
-                                }
-                                updateProperty('rowTemplates', newTemplates);
-                                setEditingTemplate(null);
-                             }}>Save Template</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-                </>
-             );
         default:
             return null;
       }
