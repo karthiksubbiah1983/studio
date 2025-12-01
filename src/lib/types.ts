@@ -18,8 +18,8 @@ export type ConditionComparisonType = 'value' | 'field' | 'date' | 'status';
 export type Condition = {
     id: string;
     sourceType: ConditionSourceType;
-    sourceElementId?: string; // Used for sourceType 'field' or 'date'
-    sourceValue?: string; // Used for sourceType 'date' or 'status'
+    sourceElementId?: string; // Used for sourceType 'field'
+    sourceValue?: string; // Used for sourceType 'date'
     operator: RuleConditionOperator;
     comparisonType: ConditionComparisonType;
     value?: string; // Used for comparisonType 'value', 'date', or 'status'

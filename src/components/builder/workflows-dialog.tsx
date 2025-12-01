@@ -55,7 +55,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
             setSelectedWorkflowId(null);
         }
     }
-  }, [isOpen, localWorkflows]);
+  }, [isOpen, localWorkflows, selectedWorkflowId]);
 
   const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
   
@@ -163,6 +163,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                         <SelectContent>
+                             <SelectValue placeholder="Select a date..." />
+                             <Separator />
+                             {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                             <Separator />
                              {allElementsAndSections.map(el => (
                                 <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label || (el as Section).title}</SelectItem>
                             ))}
@@ -179,14 +183,8 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     </Select>
                 );
             case 'status':
-                return (
-                    <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a status..." /></SelectTrigger>
-                        <SelectContent>
-                            {allStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                );
+                // No input needed for status, it's implicitly "Current Status"
+                return null;
             default: return null;
         }
     }
@@ -255,12 +253,12 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     <SelectContent>
                         <SelectItem value="field">Field</SelectItem>
                         <SelectItem value="date">Date</SelectItem>
-                        <SelectItem value="status">Status</SelectItem>
+                        <SelectItem value="status">Current Status</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
              <div className="space-y-1">
-                <Label className="text-xs">Source Value</Label>
+                {condition.sourceType !== 'status' && <Label className="text-xs">Source Value</Label>}
                 {renderSourceInput()}
             </div>
 
