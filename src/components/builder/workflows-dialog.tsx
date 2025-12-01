@@ -15,8 +15,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Input } from "../ui/input";
 import { Separator } from "../ui/separator";
 import { Textarea } from "../ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { StateMachineEditor } from "./state-machine-editor";
 
 type Props = {
   isOpen: boolean;
@@ -368,55 +366,41 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     )
   }
 
-  const SimpleWorkflowEditor = () => (
-      <div className="flex-1 flex overflow-hidden">
-        <aside className="w-1/3 border-r overflow-y-auto">
-            <div className="p-4"><Button variant="outline" className="w-full" onClick={handleAddWorkflow}><Plus className="mr-2 h-4 w-4" /> Add New Workflow</Button></div>
-            <div className="p-2 space-y-1">
-                {localWorkflows.map(workflow => (
-                    <div key={workflow.id} className="relative group/workflow">
-                        <button onClick={() => handleSelectWorkflow(workflow.id)} className={cn("w-full text-left p-2 rounded-md flex justify-between items-center", selectedWorkflowId === workflow.id ? 'bg-accent' : 'hover:bg-accent/50')}>
-                            <span className="text-sm truncate">{workflow.name || "Untitled Workflow"}</span>
-                        </button>
-                            <Button variant="ghost" size="icon" className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/workflow:opacity-100" onClick={(e) => {e.stopPropagation(); handleDeleteWorkflow(workflow.id)}}>
-                            <Trash className="h-4 w-4 text-destructive" />
-                            </Button>
-                    </div>
-                ))}
-            </div>
-        </aside>
-        <main className="flex-1 overflow-y-auto">
-            {selectedWorkflow ? ( <WorkflowEditor workflow={selectedWorkflow} />) : (
-                <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                    <Zap className="h-12 w-12 mb-4" />
-                    <h3 className="text-lg font-semibold">No Workflow Selected</h3>
-                    <p className="text-sm">Select a workflow from the left panel, or add a new one.</p>
-                </div>
-            )}
-        </main>
-    </div>
-  )
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>Workflow Editor</DialogTitle>
           <DialogDescription>Define automated actions that run after a form is submitted.</DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="simple" className="w-full flex-grow flex flex-col px-6">
-            <TabsList className="grid w-full grid-cols-2 max-w-sm">
-                <TabsTrigger value="simple">Simple Workflows</TabsTrigger>
-                <TabsTrigger value="state-machine">State Machine</TabsTrigger>
-            </TabsList>
-            <TabsContent value="simple" className="flex-grow flex flex-col -mx-6">
-                <SimpleWorkflowEditor />
-            </TabsContent>
-            <TabsContent value="state-machine" className="flex-grow">
-               <StateMachineEditor />
-            </TabsContent>
-        </Tabs>
-
+        
+        <div className="flex-1 flex overflow-hidden">
+            <aside className="w-1/3 border-r overflow-y-auto">
+                <div className="p-4"><Button variant="outline" className="w-full" onClick={handleAddWorkflow}><Plus className="mr-2 h-4 w-4" /> Add New Workflow</Button></div>
+                <div className="p-2 space-y-1">
+                    {localWorkflows.map(workflow => (
+                        <div key={workflow.id} className="relative group/workflow">
+                            <button onClick={() => handleSelectWorkflow(workflow.id)} className={cn("w-full text-left p-2 rounded-md flex justify-between items-center", selectedWorkflowId === workflow.id ? 'bg-accent' : 'hover:bg-accent/50')}>
+                                <span className="text-sm truncate">{workflow.name || "Untitled Workflow"}</span>
+                            </button>
+                                <Button variant="ghost" size="icon" className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/workflow:opacity-100" onClick={(e) => {e.stopPropagation(); handleDeleteWorkflow(workflow.id)}}>
+                                <Trash className="h-4 w-4 text-destructive" />
+                                </Button>
+                        </div>
+                    ))}
+                </div>
+            </aside>
+            <main className="flex-1 overflow-y-auto">
+                {selectedWorkflow ? ( <WorkflowEditor workflow={selectedWorkflow} />) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+                        <Zap className="h-12 w-12 mb-4" />
+                        <h3 className="text-lg font-semibold">No Workflow Selected</h3>
+                        <p className="text-sm">Select a workflow from the left panel, or add a new one.</p>
+                    </div>
+                )}
+            </main>
+        </div>
+        
         <DialogFooter className="p-4 border-t">
             <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
             <Button onClick={handleSaveChanges}>Save Changes</Button>
