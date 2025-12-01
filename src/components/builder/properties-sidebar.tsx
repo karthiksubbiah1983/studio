@@ -817,10 +817,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="content">Content</Label>
-                                <LexicalEditor
-                                  initialValue={props.content}
-                                  onChange={(html) => updateProperty('content', html)}
-                                />
+                                <LexicalComposer initialConfig={{
+                                    namespace: 'FormBuilder-Properties',
+                                    nodes: [],
+                                    onError: console.error,
+                                }}>
+                                    <LexicalEditor
+                                    initialValue={props.content}
+                                    onChange={(html) => updateProperty('content', html)}
+                                    />
+                                </LexicalComposer>
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1039,6 +1045,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                     <SelectItem value="Checkbox">Checkbox</SelectItem>
                                                     <SelectItem value="RadioGroup">Radio Group</SelectItem>
                                                     <SelectItem value="DatePicker">Date Picker</SelectItem>
+                                                    <SelectItem value="Display">Display Text</SelectItem>
+                                                    <SelectItem value="RichText">Rich Text</SelectItem>
                                                 </SelectContent>
                                             </Select>
                                         </div>
