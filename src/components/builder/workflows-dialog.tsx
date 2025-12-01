@@ -44,7 +44,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
             setSelectedWorkflowId(null);
         }
     }
-  }, [isOpen, workflows]);
+  }, [isOpen, workflows, selectedWorkflowId]);
 
   const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
   
@@ -112,7 +112,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         } else {
             setComparisonElement(null);
         }
-    }, [condition.sourceElementId, condition.comparisonElementId]);
+    }, [condition.sourceElementId, condition.comparisonElementId, allElementsAndSections]);
 
     const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
         const updatedRule = {
@@ -171,7 +171,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     <SelectContent>
                         {specialDateOptions}
                         <Separator className="my-1"/>
-                        {allElementsAndSections.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
+                        {allElementsAndSections.map(el => ('key' in el && el.key) ? 
+                          <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> : 
+                          <SelectItem key={el.id} value={el.id}>{el.title} (Section)</SelectItem>
+                        )}
                     </SelectContent>
                 </Select>
             </div>
@@ -213,7 +216,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                             <SelectContent>
                                 {specialDateOptions}
                                 <Separator className="my-1"/>
-                                {allElementsAndSections.map(el => ('key' in el && el.key) && <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>)}
+                                {allElementsAndSections.map(el => ('key' in el && el.key) ? 
+                                  <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> :
+                                  <SelectItem key={el.id} value={el.id}>{el.title} (Section)</SelectItem>
+                                )}
                             </SelectContent>
                         </Select>
                     )}
