@@ -6,10 +6,10 @@ import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, RuleBehavior } from "@/lib/types";
+import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus } from "@/lib/types";
 import { Plus, Trash, X, Settings2, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
-import { cn, findElementRecursive, getAllElements } from "@/lib/utils";
+import { cn, findElementRecursive, getAllElements, getNestedValue } from "@/lib/utils";
 import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -20,6 +20,15 @@ type Props = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 };
+
+const taskStatuses: TaskStatus[] = ['Open', 'In Progress', 'Resolved', 'Closed', 'Escalated'];
+const specialDateOptions = [
+    { value: '_current_date', label: 'Current Date' },
+    { value: '_due_date', label: 'Due Date' },
+    { value: '_scheduled_date', label: 'Scheduled Date' },
+];
+const allStatuses: string[] = [...taskStatuses, 'Current Status'];
+
 
 export function RulesDialog({ isOpen, onOpenChange }: Props) {
   const { sections, rules, updateRules } = useBuilder();
@@ -43,6 +52,18 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
   }, [isOpen, rules]);
 
+  useEffect(() => {
+    if (isOpen) {
+        const stillExists = localRules.some((r: Rule) => r.id === selectedRuleId);
+        
+        if (localRules.length > 0 && !stillExists) {
+            setSelectedRuleId(localRules[0].id);
+        } else if (localRules.length === 0) {
+            setSelectedRuleId(null);
+        }
+    }
+  }, [isOpen, localRules, selectedRuleId]);
+
   const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
@@ -53,9 +74,9 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
       name: `Rule ${localRules.length + 1}`,
       conditions: [{
         id: crypto.randomUUID(),
-        sourceElementId: "",
+        sourceType: 'field',
         operator: 'equals',
-        comparisonType: 'static_value',
+        comparisonType: 'value',
         value: ""
       }],
       logicType: 'and',
@@ -93,24 +114,24 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   }
 
   const ConditionEditor = ({ condition, rule }: { condition: Condition, rule: Rule }) => {
-    const [sourceElement, setSourceElement] = useState<FormElementInstance | Section | null>(null);
-    
-    useEffect(() => {
-        if (condition.sourceElementId) {
-            const el = allElementsAndSections.find(el => el.id === condition.sourceElementId) || null;
-            setSourceElement(el as FormElementInstance | Section | null);
-        } else {
-            setSourceElement(null);
+    const sourceElement = useMemo(() => {
+        if (condition.sourceType === 'field' && condition.sourceElementId) {
+            return allElementsAndSections.find(el => el.id === condition.sourceElementId) || null;
         }
-    }, [condition.sourceElementId]);
+        return null;
+    }, [condition.sourceType, condition.sourceElementId]);
+
+    const comparisonElement = useMemo(() => {
+        if (condition.comparisonType === 'field' && condition.comparisonElementId) {
+            return allElementsAndSections.find(el => el.id === condition.comparisonElementId) || null;
+        }
+        return null;
+    }, [condition.comparisonType, condition.comparisonElementId]);
 
 
     const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
-        const updatedRule = {
-            ...rule,
-            conditions: rule.conditions.map(c => c.id === condition.id ? { ...c, ...updatedCondition } : c)
-        };
-        handleUpdateRule(updatedRule);
+        const newConditions = rule.conditions.map(c => c.id === condition.id ? { ...c, ...updatedCondition } : c);
+        handleUpdateRule({ ...rule, conditions: newConditions });
     }
 
     const handleDeleteCondition = () => {
@@ -121,23 +142,102 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         handleUpdateRule(updatedRule);
     }
     
-    const getSourceElementOptions = (): string[] => {
-        if (!sourceElement || !('type' in sourceElement)) return [];
-        
-        let options: string[] | undefined = [];
-        
-        if (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup') {
-            options = sourceElement.options;
-        }
-        
-        if (sourceElement.type === 'Checkbox') {
-            return ['true', 'false'];
-        }
-
-        return options || [];
+    const getFieldOptions = (element: FormElementInstance | Section | null): string[] => {
+        if (!element || !('type' in element)) return [];
+        if (element.type === 'Select' || element.type === 'RadioGroup') return element.options || [];
+        if (element.type === 'Checkbox') return ['true', 'false'];
+        return [];
+    }
+    
+    const isDateRelated = (element: FormElementInstance | Section | null) => {
+        if (!element) return false;
+        if ('type' in element) return element.type === 'DatePicker';
+        return false;
     }
 
-    const showOptionsDropdown = sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'RadioGroup' || sourceElement.type === 'Checkbox') && condition.comparisonType === 'static_value';
+    const shouldShowDateOffset = 
+        (condition.sourceType === 'date' || isDateRelated(sourceElement)) || 
+        (condition.comparisonType === 'date' || isDateRelated(comparisonElement));
+    
+    const renderSourceInput = () => {
+        switch(condition.sourceType) {
+            case 'field':
+                return (
+                    <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
+                        <SelectContent>
+                             {allElementsAndSections.map(el => (
+                                <SelectItem key={el.id} value={el.id}>{el.label || el.id}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                );
+            case 'date':
+                 return (
+                    <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a date..." /></SelectTrigger>
+                        <SelectContent>
+                            {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
+            case 'status':
+                return (
+                    <div className="h-8 text-xs px-3 py-2 text-muted-foreground">Current Status</div>
+                );
+            default: return null;
+        }
+    }
+
+
+    const renderComparisonInput = () => {
+        switch (condition.comparisonType) {
+            case 'value':
+                const sourceFieldOptions = getFieldOptions(sourceElement);
+                 if (sourceFieldOptions.length > 0) {
+                    return (
+                        <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value: value })}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select an option..." /></SelectTrigger>
+                            <SelectContent>{sourceFieldOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
+                        </Select>
+                    )
+                 }
+                return <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} className="h-8 text-xs" />;
+            case 'date':
+                return (
+                    <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a date..." /></SelectTrigger>
+                        <SelectContent>
+                            {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
+            case 'field':
+                return (
+                     <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
+                        <SelectContent>
+                            {allElementsAndSections.map(el => 'key' in el && el.key ? 
+                                <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> :
+                                <SelectItem key={el.id} value={el.id}>{(el as Section).title} (Section)</SelectItem>
+                            )}
+                        </SelectContent>
+                    </Select>
+                );
+            case 'status':
+                 return (
+                    <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a status..." /></SelectTrigger>
+                        <SelectContent>
+                            {allStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
+            default:
+                return <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} className="h-8 text-xs" />;
+        }
+    }
+
 
     return (
         <div className="border bg-background/50 p-3 rounded-md space-y-3 relative">
@@ -147,32 +247,26 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             </Button>
             )}
             <div className="space-y-1">
-                <Label className="text-xs">Source Field</Label>
-                <Select
-                    value={condition.sourceElementId}
-                    onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}
-                >
-                    <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select a source field..." />
-                    </SelectTrigger>
+                <Label className="text-xs">Source Type</Label>
+                <Select value={condition.sourceType} onValueChange={(value: ConditionSourceType) => handleUpdateCondition({ sourceType: value, sourceElementId: undefined, sourceValue: '' })}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                        {allElementsAndSections.map(el => (
-                            <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
-                        ))}
+                        <SelectItem value="field">Field</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="status">Current Status</SelectItem>
                     </SelectContent>
                 </Select>
+            </div>
+             <div className="space-y-1">
+                {condition.sourceType !== 'status' && <Label className="text-xs">Source</Label>}
+                {renderSourceInput()}
             </div>
 
             <div className="flex items-center gap-2">
                 <div className="flex-1 space-y-1">
                     <Label className="text-xs">Operator</Label>
-                    <Select
-                        value={condition.operator}
-                        onValueChange={(value) => handleUpdateCondition({ operator: value as Rule['conditions'][0]['operator'] })}
-                    >
-                        <SelectTrigger className="h-8 text-xs">
-                            <SelectValue />
-                        </SelectTrigger>
+                    <Select value={condition.operator} onValueChange={(value) => handleUpdateCondition({ operator: value as Condition['operator'] })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="equals">Equals</SelectItem>
                             <SelectItem value="not_equals">Not Equals</SelectItem>
@@ -183,67 +277,47 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         </SelectContent>
                     </Select>
                 </div>
-                <div className="pt-5">
-                    <GitCommitHorizontal className="h-4 w-4 text-muted-foreground" />
-                </div>
+                <div className="pt-5"><GitCommitHorizontal className="h-4 w-4 text-muted-foreground" /></div>
                 <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between">
                         <Label className="text-xs">Compare To</Label>
-                            <RadioGroup
-                            value={condition.comparisonType}
-                            onValueChange={(value) => handleUpdateCondition({ comparisonType: value as 'static_value' | 'another_field', value: '', comparisonElementId: undefined })}
-                            className="flex"
-                        >
-                            <div className="flex items-center space-x-1">
-                                <RadioGroupItem value="static_value" id={`static-${condition.id}`} className="h-3 w-3" />
-                                <Label htmlFor={`static-${condition.id}`} className="text-xs">Value</Label>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                                <RadioGroupItem value="another_field" id={`field-${condition.id}`} className="h-3 w-3" />
-                                <Label htmlFor={`field-${condition.id}`} className="text-xs">Field</Label>
-                            </div>
-                        </RadioGroup>
                     </div>
-                    {condition.comparisonType === 'static_value' ? (
-                       showOptionsDropdown ? (
-                            <Select
-                                value={condition.value}
-                                onValueChange={(value) => handleUpdateCondition({ value: value })}
-                            >
-                                <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="Select an option..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {getSourceElementOptions().map(opt => (
-                                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                       ) : (
-                         <Input
-                            placeholder="Value"
-                            value={condition.value}
-                            onChange={(e) => handleUpdateCondition({ value: e.target.value })}
-                            className="h-8 text-xs"
-                        />
-                       )
-                    ) : (
-                        <Select
-                            value={condition.comparisonElementId}
-                            onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}
-                        >
-                            <SelectTrigger className="h-8 text-xs">
-                                <SelectValue placeholder="Select a field..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {allElementsAndSections.map(el => (
-                                    <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    )}
+                    <Select 
+                        value={condition.comparisonType} 
+                        onValueChange={(value: ConditionComparisonType) => handleUpdateCondition({ comparisonType: value, value: '', comparisonElementId: undefined })}
+                    >
+                        <SelectTrigger className="h-8 text-xs">
+                            <SelectValue placeholder="Select comparison type..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="value">Value</SelectItem>
+                            <SelectItem value="date">Date</SelectItem>
+                            <SelectItem value="field">Field</SelectItem>
+                            <SelectItem value="status">Status</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
+            
+            <div className="space-y-1">
+                {renderComparisonInput()}
+            </div>
+
+             {shouldShowDateOffset && (
+                <div className="flex items-end gap-2">
+                    <div className="w-1/2 space-y-1">
+                        <Label className="text-xs">Offset (days)</Label>
+                        <Input
+                            type="number"
+                            placeholder="e.g., 2 or -2"
+                            value={condition.offsetDays || ''}
+                            onChange={(e) => handleUpdateCondition({ offsetDays: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                            className="h-8 text-xs"
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the comparison value.</p>
+                </div>
+            )}
         </div>
     )
   }
@@ -360,9 +434,9 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     const handleAddCondition = () => {
         const newCondition: Condition = {
             id: crypto.randomUUID(),
-            sourceElementId: "",
+            sourceType: 'field',
             operator: 'equals',
-            comparisonType: 'static_value',
+            comparisonType: 'value',
             value: ""
         };
         const updatedRule = { ...rule, conditions: [...rule.conditions, newCondition] };

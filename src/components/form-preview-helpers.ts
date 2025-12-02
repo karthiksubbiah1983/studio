@@ -2,93 +2,81 @@
 
 import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
 import { Workflow } from "@/lib/types";
+import { getAllElements, getNestedValue } from "@/lib/utils";
 
-export const getAllElements = (sections: Section[]): (FormElementInstance | Section)[] => {
-    let allElements: (FormElementInstance | Section)[] = [];
-    sections.forEach(section => {
-        const findElementsRecursive = (els: FormElementInstance[]): void => {
-            els.forEach(element => {
-                allElements.push(element);
-                if (element.type === 'Container' && element.elements) {
-                    findElementsRecursive(element.elements);
-                }
-            });
-        };
-        findElementsRecursive(section.elements);
-    });
-    return allElements;
-};
-
-const evaluateSingleCondition = (condition: Condition, state: { [key: string]: { value: any } }, rowContext: { [key: string]: { value: any } } = {}) => {
-    
-    const combinedState = { ...state, ...rowContext };
+export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: { value: any, fullObject?: any } }) => {
     
     const getConditionValue = (id: string | undefined): any => {
         if (!id) return undefined;
-        if (id === '_current_date' || id === '_due_date' || id === '_scheduled_date') return new Date().toISOString();
-        const element = getAllElements(Object.values(state).map(s => s.fullObject).filter(Boolean) as Section[]).find(el => el.id === id);
-        if (element && 'key' in element && element.key) {
-            return combinedState[element.id]?.value;
+
+        if (id.startsWith('_')) {
+            switch(id) {
+                case '_current_date':
+                case '_due_date':
+                case '_scheduled_date':
+                    return new Date().toISOString();
+                default:
+                    return undefined;
+            }
         }
-        return combinedState[id]?.value;
+        
+        return getNestedValue(state, `${id}.value`);
+    }
+
+    let sourceValue: any;
+    if (condition.sourceType === 'field') {
+        sourceValue = getConditionValue(condition.sourceElementId);
+    } else if (condition.sourceType === 'date') {
+        sourceValue = getConditionValue(condition.sourceValue);
+    } else { // status
+        // This part needs to be connected to the actual task status in a real app.
+        // For now, we'll assume it's a value that can be passed in or is static.
+        // Let's make it 'Open' for demonstration.
+        sourceValue = 'Open'; 
     }
     
-    const sourceValue = getConditionValue(condition.sourceElementId);
-    
-    // If sourceValue is undefined, it can only satisfy 'not_equals' if the comparison value is not also undefined-like.
     if (sourceValue === undefined || sourceValue === null || sourceValue === "") {
         if (condition.operator === 'equals') {
-             const comparisonValue = condition.comparisonType === 'static_value' ? condition.value : getConditionValue(condition.comparisonElementId);
+             const comparisonValue = condition.comparisonType === 'value' ? condition.value : getConditionValue(condition.comparisonElementId);
              return comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
         }
         if (condition.operator === 'not_equals') {
-             const comparisonValue = condition.comparisonType === 'static_value' ? condition.value : getConditionValue(condition.comparisonElementId);
+             const comparisonValue = condition.comparisonType === 'value' ? condition.value : getConditionValue(condition.comparisonElementId);
              return !(comparisonValue === undefined || comparisonValue === null || comparisonValue === "");
         }
         return false;
     }
     
     let comparisonValue: any;
-    if (condition.comparisonType === 'another_field') {
+    if (condition.comparisonType === 'field') {
         comparisonValue = getConditionValue(condition.comparisonElementId);
-    } else {
+    } else if (condition.comparisonType === 'date') {
+        comparisonValue = getConditionValue(condition.value);
+    } else { // 'value' or 'status'
         comparisonValue = condition.value;
     }
 
-    // Comparison value might be undefined if the target field isn't filled out yet
     if (comparisonValue === undefined || comparisonValue === null) {
         if(condition.operator === 'not_equals') return true;
         return false;
     }
 
-    const sourceElement = getAllElements(Object.values(state).map(s => s.fullObject).filter(Boolean) as Section[]).find(el => el.id === condition.sourceElementId);
-    const comparisonElement = getAllElements(Object.values(state).map(s => s.fullObject).filter(Boolean) as Section[]).find(el => el.id === condition.comparisonElementId);
-    
-    const isDateComparison = 
-        (sourceElement && 'type' in sourceElement && sourceElement.type === 'DatePicker') || 
-        (comparisonElement && 'type' in comparisonElement && comparisonElement.type === 'DatePicker') || 
-        (condition.sourceElementId && condition.sourceElementId.startsWith('_')) ||
-        (condition.comparisonElementId && condition.comparisonElementId.startsWith('_'));
-
+    const isDateComparison = condition.sourceType === 'date' || condition.comparisonType === 'date';
 
     if (isDateComparison) {
         try {
             const dateSource = new Date(sourceValue);
             let dateComparison = new Date(comparisonValue);
 
-            // Check if dates are valid
-            if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) {
-                return false;
-            }
+            if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) return false;
 
-            // Normalize dates to the beginning of the day for consistent comparisons
             dateSource.setHours(0, 0, 0, 0);
             dateComparison.setHours(0, 0, 0, 0);
 
-
-            // Apply offset if it exists
             if (condition.offsetDays) {
-                dateComparison.setDate(dateComparison.getDate() + condition.offsetDays);
+                // The offset is applied to the *source* to compare against the *target*.
+                // "If (Source + 2 days) is greater than (Target)"
+                dateSource.setDate(dateSource.getDate() + condition.offsetDays);
             }
 
             switch(condition.operator) {
@@ -96,10 +84,10 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
                 case 'not_equals': return dateSource.getTime() !== dateComparison.getTime();
                 case 'is_greater_than': return dateSource > dateComparison;
                 case 'is_less_than': return dateSource < dateComparison;
-                default: return false; // Contains/not_contains not applicable for dates
+                default: return false;
             }
         } catch (e) {
-            return false; // Invalid date format
+            return false;
         }
     }
 
@@ -125,11 +113,10 @@ const evaluateSingleCondition = (condition: Condition, state: { [key: string]: {
     }
 }
 
-export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: { value: any } }, rowContext?: { [key: string]: { value: any } }): boolean => {
-    if (!rule || !rule.conditions) return false;
-    if (rule.conditions.length === 0) return false;
+export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: { value: any } }): boolean => {
+    if (!rule || !rule.conditions || rule.conditions.length === 0) return false;
     
-    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, rowContext));
+    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state));
 
     if (rule.logicType === 'and') {
         return conditionResults.every(res => res);
@@ -137,4 +124,3 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: { va
         return conditionResults.some(res => res);
     }
 };
-
