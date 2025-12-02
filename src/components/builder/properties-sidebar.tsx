@@ -1175,6 +1175,37 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
             );
+        case "FileUpload":
+            return (
+                <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           {commonFields}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="allowedFileTypes">Allowed File Types</Label>
+                                <Input
+                                    id="allowedFileTypes"
+                                    placeholder="e.g., image/png, application/pdf"
+                                    value={props.allowedFileTypes?.join(', ') || ''}
+                                    onChange={(e) => updateProperty('allowedFileTypes', e.target.value.split(',').map(s => s.trim()))}
+                                />
+                                <p className="text-xs text-muted-foreground">Comma-separated MIME types.</p>
+                            </div>
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="maxFileSize">Max File Size (MB)</Label>
+                                <Input
+                                    id="maxFileSize"
+                                    type="number"
+                                    min="1"
+                                    value={props.maxFileSize || 5}
+                                    onChange={(e) => updateProperty('maxFileSize', parseInt(e.target.value))}
+                                />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
         default:
             return null;
       }

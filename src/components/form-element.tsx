@@ -17,11 +17,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -618,6 +618,90 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 />
             </div>
         );
+        break;
+    case "FileUpload":
+        const fileInputRef = useRef<HTMLInputElement>(null);
+        const [fileError, setFileError] = useState<string | null>(null);
+        const currentFile = value as File | null;
+        
+        const handleFileChange = (files: FileList | null) => {
+            if (!files || files.length === 0) return;
+            const file = files[0];
+            setFileError(null);
+
+            // Validation
+            if (element.allowedFileTypes && element.allowedFileTypes.length > 0) {
+                if (!element.allowedFileTypes.includes(file.type)) {
+                    setFileError(`Invalid file type. Allowed: ${element.allowedFileTypes.join(', ')}`);
+                    return;
+                }
+            }
+            if (element.maxFileSize && file.size > element.maxFileSize * 1024 * 1024) {
+                 setFileError(`File is too large. Max size: ${element.maxFileSize}MB`);
+                 return;
+            }
+
+            onValueChange(element.id, file);
+        };
+        const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleFileChange(e.dataTransfer.files);
+        }
+        
+        content = (
+            <div>
+                {renderLabel()}
+                <div 
+                    className="relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-accent/50"
+                    onClick={() => fileInputRef.current?.click()}
+                    onDrop={handleDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                >
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => handleFileChange(e.target.files)}
+                        accept={element.allowedFileTypes?.join(',')}
+                    />
+                    {currentFile ? (
+                        <div className="flex flex-col items-center text-center p-4">
+                            <FileIcon className="w-8 h-8 mb-2 text-primary" />
+                            <p className="font-semibold text-sm truncate max-w-full">{currentFile.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                                {(currentFile.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                            <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="mt-2 text-destructive hover:text-destructive"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onValueChange(element.id, null);
+                                }}
+                            >
+                                <X className="h-4 w-4 mr-1"/> Remove
+                            </Button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                            <p className="mb-2 text-sm text-muted-foreground">
+                                <span className="font-semibold">Click to upload</span> or drag and drop
+                            </p>
+                            {element.allowedFileTypes && element.allowedFileTypes.length > 0 && (
+                                <p className="text-xs text-muted-foreground">
+                                   {element.allowedFileTypes.map(t => t.split('/')[1]).join(', ').toUpperCase()} up to {element.maxFileSize || 5}MB
+                                </p>
+                            )}
+                        </div>
+                    )}
+                </div>
+                 {fileError && <p className="text-sm text-destructive mt-1">{fileError}</p>}
+                 {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+            </div>
+        )
         break;
     default:
       content = <div>Unsupported element type: {type}</div>;

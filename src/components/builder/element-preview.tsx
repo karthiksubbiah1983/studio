@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table, Table2, Link, icons, Eye } from "lucide-react";
+import { Clock, Table, Table2, Link, icons, Eye, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 
@@ -175,6 +175,23 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                 </Button>
             </div>
         )
+    case "FileUpload":
+        return (
+             <div>
+                {renderLabel()}
+                <div className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-accent/50">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                        <p className="mb-2 text-sm text-muted-foreground">
+                            <span className="font-semibold">Click to upload</span> or drag and drop
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {element.allowedFileTypes?.join(', ').toUpperCase() || 'Any file type'}
+                        </p>
+                    </div>
+                </div>
+             </div>
+        );
     default:
       return <div>Unsupported element type</div>;
   }

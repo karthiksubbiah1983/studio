@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview" | "FileUpload";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -132,6 +132,9 @@ export type FormElementInstance = {
     defaultRows?: number;
     // For Preview
     previewSectionIds?: string[];
+    // For FileUpload
+    allowedFileTypes?: string[];
+    maxFileSize?: number; // in MB
 };
 
 export type Section = {
