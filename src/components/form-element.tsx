@@ -632,7 +632,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                 if (element.allowedFileTypes && element.allowedFileTypes.length > 0) {
+                 if (element.allowedFileTypes && element.allowedFileTypes.length > 0 && element.allowedFileTypes[0] !== '') {
                     if (!element.allowedFileTypes.includes(file.type)) {
                         error = `Invalid file type: ${file.name}. Allowed: ${element.allowedFileTypes.join(', ')}`;
                         continue;
@@ -716,7 +716,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                             <p className="mb-2 text-sm text-muted-foreground">
                                 <span className="font-semibold">Click to upload</span> or drag and drop
                             </p>
-                            {element.allowedFileTypes && element.allowedFileTypes.length > 0 && (
+                            {element.allowedFileTypes && element.allowedFileTypes.length > 0 && element.allowedFileTypes[0] !== '' && (
                                 <p className="text-xs text-muted-foreground">
                                    {element.allowedFileTypes.map(t => t.split('/')[1]).join(', ').toUpperCase()} up to {element.maxFileSize || 5}MB
                                 </p>
