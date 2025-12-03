@@ -1040,7 +1040,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <Input value={editingColumn.label} onChange={(e) => setEditingColumn({...editingColumn, label: e.target.value })} />
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <Label>Column Key</Label>
+                                        <Label>Column Key (Optional)</Label>
                                         {props.dataSource === 'dynamic' && fetchedKeys.length > 0 ? (
                                             <Select
                                                 value={editingColumn.key}
@@ -1050,12 +1050,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                     <SelectValue placeholder="Select data key..." />
                                                 </SelectTrigger>
                                                 <SelectContent>
+                                                    <SelectItem value="">None (Manual Entry)</SelectItem>
                                                     {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         ) : (
                                             <Input value={editingColumn.key} onChange={(e) => setEditingColumn({...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
                                         )}
+                                        <p className="text-xs text-muted-foreground">Map this column to a key in your API data source. Leave blank for manual entry.</p>
                                     </div>
 
                                     <Separator />
@@ -1272,4 +1274,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
 
