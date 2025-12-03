@@ -1038,14 +1038,20 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                         </AccordionContent>
                     </AccordionItem>
-                    {props.dataSource !== 'dynamic' && (
-                        <AccordionItem value="rows">
-                            <AccordionTrigger className="py-2">Rows</AccordionTrigger>
-                            <AccordionContent className="flex flex-col gap-4">
+                    <AccordionItem value="features">
+                        <AccordionTrigger className="py-2">Features</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="enable-search">Enable Search</Label>
+                                <Switch id="enable-search" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
+                            </div>
+                             {props.dataSource !== 'dynamic' && (
                                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                     <Label htmlFor="can-add-rows">User can add rows</Label>
                                     <Switch id="can-add-rows" checked={props.canAddRows} onCheckedChange={(checked) => updateProperty('canAddRows', checked)} />
                                 </div>
+                            )}
+                             {props.dataSource !== 'dynamic' && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="default-rows">Default Rows</Label>
                                     <Input
@@ -1056,9 +1062,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value) || 0)}
                                     />
                                 </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    )}
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
                 </Accordion>
 
                 <Dialog open={!!editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
@@ -1314,6 +1320,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
 
 
 

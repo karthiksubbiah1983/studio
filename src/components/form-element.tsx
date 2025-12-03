@@ -21,7 +21,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -507,6 +507,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "Table":
         const [tableData, setTableData] = useState<any[]>([]);
         const [isTableLoading, setIsTableLoading] = useState(false);
+        const [searchTerm, setSearchTerm] = useState("");
 
         useEffect(() => {
           if (element.dataSource === 'dynamic' && element.apiUrl) {
@@ -536,6 +537,15 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 setTableData(value);
             }
         }, [value]);
+        
+        const filteredTableData = useMemo(() => {
+            if (!searchTerm) return tableData;
+            return tableData.filter(row => 
+                Object.values(row).some(cellValue => 
+                    String(cellValue).toLowerCase().includes(searchTerm.toLowerCase())
+                )
+            );
+        }, [tableData, searchTerm]);
 
         const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
             let newRows = [...tableData];
@@ -576,6 +586,17 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         content = (
             <div>
                 {renderLabel()}
+                {element.enableSearch && (
+                    <div className="relative mb-4">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search table..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-8"
+                        />
+                    </div>
+                )}
                 <div className="rounded-md border">
                     <Table>
                         <TableHeader>
@@ -585,7 +606,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {tableData.map((row, rowIndex) => {
+                            {filteredTableData.map((row, rowIndex) => {
                                 const rowFormState: { [key: string]: any } = {};
                                 // Create a formState for this specific row for rule evaluation
                                 element.tableColumns?.forEach(col => {
@@ -777,4 +798,5 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 

@@ -131,6 +131,7 @@ export type FormElementInstance = {
     tableColumns?: TableColumn[];
     canAddRows?: boolean;
     defaultRows?: number;
+    enableSearch?: boolean;
     // For Preview
     previewSectionIds?: string[];
     // For FileUpload

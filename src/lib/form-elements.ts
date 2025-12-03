@@ -50,11 +50,11 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
         case "DatePicker":
             return { ...baseElement, label: "Date Picker" };
         case "Display":
-            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "" } };
+            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "" }, exposeForValidation: false };
         case "RichText":
-            return { ...baseElement, label: "Rich Text Editor", content: "" };
+            return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false };
         case "Container":
-            return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch' };
+            return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch', exposeForValidation: false };
         case "DataGrid":
             return {
                 ...baseElement,
@@ -76,6 +76,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 label: "Editable Table",
                 canAddRows: true,
                 defaultRows: 1,
+                enableSearch: false,
                 tableColumns: [
                     { id: crypto.randomUUID(), key: 'col_1', label: 'Column 1', element: { ...inputColumnElement, label: 'Input in Table' } },
                     { id: crypto.randomUUID(), key: 'col_2', label: 'Column 2', element: { ...selectColumnElement, label: 'Select in Table' } },
