@@ -49,7 +49,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     if (isOpen) {
         const stillExists = localWorkflows.some((w: Workflow) => w.id === selectedWorkflowId);
         
-        if (localWorkflows.length > 0 && !stillExists) {
+        if (localWorkflows.length > 0 && !stillExists && !selectedWorkflowId) {
             setSelectedWorkflowId(localWorkflows[0].id);
         } else if (localWorkflows.length === 0) {
             setSelectedWorkflowId(null);
@@ -163,10 +163,6 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                         <SelectContent>
-                             <SelectValue placeholder="Select a date..." />
-                             <Separator />
-                             {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                             <Separator />
                              {allElementsAndSections.map(el => (
                                 <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label || (el as Section).title}</SelectItem>
                             ))}
@@ -183,8 +179,9 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     </Select>
                 );
             case 'status':
-                // No input needed for status, it's implicitly "Current Status"
-                return null;
+                return (
+                    <div className="h-8 text-xs px-3 py-2 text-muted-foreground">Current Status</div>
+                );
             default: return null;
         }
     }
