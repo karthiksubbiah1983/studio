@@ -59,6 +59,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
 
   const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
   
+  const selectableFields = useMemo(() => 
+    allElementsAndSections.filter(el => 'type' in el && el.type !== 'Container' && el.type !== 'Separator')
+  , [allElementsAndSections]);
+
   const selectedWorkflow = localWorkflows.find(w => w.id === selectedWorkflowId);
 
   const handleAddWorkflow = () => {
@@ -163,7 +167,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                     <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                         <SelectContent>
-                             {allElementsAndSections.map(el => (
+                             {selectableFields.map(el => (
                                 <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label || (el as Section).title}</SelectItem>
                             ))}
                         </SelectContent>
@@ -214,7 +218,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                      <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
-                            {allElementsAndSections.map(el => 'key' in el && el.key ? 
+                            {selectableFields.map(el => 'key' in el && el.key ? 
                                 <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> :
                                 <SelectItem key={el.id} value={el.id}>{(el as Section).title} (Section)</SelectItem>
                             )}
