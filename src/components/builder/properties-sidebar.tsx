@@ -1043,14 +1043,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <Label>Column Key (Optional)</Label>
                                         {props.dataSource === 'dynamic' && fetchedKeys.length > 0 ? (
                                             <Select
-                                                value={editingColumn.key}
-                                                onValueChange={(value) => setEditingColumn({ ...editingColumn, key: value })}
+                                                value={editingColumn.key || '__manual__'}
+                                                onValueChange={(value) => {
+                                                    const newKey = value === '__manual__' ? '' : value;
+                                                    setEditingColumn({ ...editingColumn, key: newKey });
+                                                }}
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select data key..." />
                                                 </SelectTrigger>
                                                 <SelectContent>
-                                                    <SelectItem value="">None (Manual Entry)</SelectItem>
+                                                    <SelectItem value="__manual__">None (Manual Entry)</SelectItem>
                                                     {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
@@ -1274,5 +1277,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
 
 
