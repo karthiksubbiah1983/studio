@@ -269,7 +269,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'DataGrid') && element.apiUrl && !element.dependentFieldId) {
+    if ((element.type === 'Select' || element.type === 'DataGrid' || element.type === 'Table') && element.apiUrl && !element.dependentFieldId) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -315,7 +315,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' ? props.apiUrl : undefined);
+    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'Table' ? props.apiUrl : undefined);
     if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
@@ -931,11 +931,41 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         case "Table":
             return (
                 <>
-                <Accordion type="multiple" defaultValue={["general", "columns", "rows"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "data", "columns", "rows"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <RadioGroup
+                                value={props.dataSource || 'static'}
+                                onValueChange={(v) => updateProperty('dataSource', v as 'static' | 'dynamic')}
+                                className="flex"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="static" id="table-source-static" />
+                                    <Label htmlFor="table-source-static">Static Rows</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="dynamic" id="table-source-dynamic" />
+                                    <Label htmlFor="table-source-dynamic">Dynamic Data</Label>
+                                </div>
+                            </RadioGroup>
+                            {props.dataSource === 'dynamic' && (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="table-apiUrl">API URL</Label>
+                                    <div className="flex gap-2">
+                                        <Input id="table-apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
+                                        <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
+                                            {isFetching ? "Fetching..." : "Fetch"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="columns">
@@ -971,25 +1001,27 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="rows">
-                        <AccordionTrigger className="py-2">Rows</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="can-add-rows">User can add rows</Label>
-                                <Switch id="can-add-rows" checked={props.canAddRows} onCheckedChange={(checked) => updateProperty('canAddRows', checked)} />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="default-rows">Default Rows</Label>
-                                <Input
-                                    id="default-rows"
-                                    type="number"
-                                    min="0"
-                                    value={props.defaultRows || 0}
-                                    onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value) || 0)}
-                                />
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
+                    {props.dataSource !== 'dynamic' && (
+                        <AccordionItem value="rows">
+                            <AccordionTrigger className="py-2">Rows</AccordionTrigger>
+                            <AccordionContent className="flex flex-col gap-4">
+                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <Label htmlFor="can-add-rows">User can add rows</Label>
+                                    <Switch id="can-add-rows" checked={props.canAddRows} onCheckedChange={(checked) => updateProperty('canAddRows', checked)} />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="default-rows">Default Rows</Label>
+                                    <Input
+                                        id="default-rows"
+                                        type="number"
+                                        min="0"
+                                        value={props.defaultRows || 0}
+                                        onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value) || 0)}
+                                    />
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    )}
                 </Accordion>
 
                 <Dialog open={!!editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
@@ -1009,7 +1041,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <Label>Column Key</Label>
-                                        <Input value={editingColumn.key} onChange={(e) => setEditingColumn({...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
+                                        {props.dataSource === 'dynamic' ? (
+                                            <Select
+                                                value={editingColumn.key}
+                                                onValueChange={(value) => setEditingColumn({ ...editingColumn, key: value })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select data key..." />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <Input value={editingColumn.key} onChange={(e) => setEditingColumn({...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
+                                        )}
                                     </div>
 
                                     <Separator />

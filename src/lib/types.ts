@@ -97,10 +97,10 @@ export type FormElementInstance = {
     helperText?: string;
     // For Input
     inputFormat?: 'text' | 'number' | 'alphanumeric';
-    // For Select, RadioGroup
+    // For Select, RadioGroup, Table
     dataSource?: 'static' | 'dynamic';
     options?: string[];
-    // For dynamic data source (Select, DataGrid)
+    // For dynamic data source (Select, DataGrid, Table)
     apiUrl?: string;
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label

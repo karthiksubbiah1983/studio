@@ -25,7 +25,7 @@ import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye,
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn, getAllElements, getNestedValue } from "@/lib/utils";
+import { cn, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
 import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -500,12 +500,40 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         );
         break;
     case "Table":
-        const tableValue = value as any[] || [];
-        const numDefaultRows = element.defaultRows || 0;
-        const tableRows = tableValue.length > 0 ? tableValue : Array(numDefaultRows).fill({});
-        
+        const [tableData, setTableData] = useState<any[]>([]);
+        const [isTableLoading, setIsTableLoading] = useState(false);
+
+        useEffect(() => {
+          if (element.dataSource === 'dynamic' && element.apiUrl) {
+            setIsTableLoading(true);
+            fetchFromApi(element.apiUrl)
+              .then(data => {
+                const arrayData = findFirstArray(data);
+                if (arrayData) {
+                  onValueChange(element.id, arrayData);
+                  setTableData(arrayData);
+                }
+              })
+              .finally(() => setIsTableLoading(false));
+          } else {
+             const staticRows = value as any[] || [];
+             const numDefaultRows = element.defaultRows || 0;
+             const initialData = staticRows.length > 0 ? staticRows : Array(numDefaultRows).fill({});
+             setTableData(initialData);
+             if(staticRows.length === 0 && numDefaultRows > 0) {
+                onValueChange(element.id, initialData);
+             }
+          }
+        }, [element.dataSource, element.apiUrl, element.defaultRows]);
+
+        useEffect(() => {
+            if (value) {
+                setTableData(value);
+            }
+        }, [value]);
+
         const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
-            let newRows = [...tableRows];
+            let newRows = [...tableData];
             if (!newRows[rowIndex]) {
                 newRows[rowIndex] = {};
             }
@@ -520,14 +548,24 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             })
 
             onValueChange(element.id, newRows);
+            setTableData(newRows);
         }
+
         const handleAddRow = () => {
             const newRow = {};
-            onValueChange(element.id, [...tableRows, newRow]);
-        }
-        const handleDeleteRow = (rowIndex: number) => {
-            const newRows = tableRows.filter((_, i) => i !== rowIndex);
+            const newRows = [...tableData, newRow];
             onValueChange(element.id, newRows);
+            setTableData(newRows);
+        }
+
+        const handleDeleteRow = (rowIndex: number) => {
+            const newRows = tableData.filter((_, i) => i !== rowIndex);
+            onValueChange(element.id, newRows);
+            setTableData(newRows);
+        }
+
+        if (isTableLoading) {
+            return <div><Loader2 className="animate-spin" /> Loading table data...</div>
         }
 
         content = (
@@ -538,24 +576,21 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                         <TableHeader>
                             <TableRow>
                                 {element.tableColumns?.map(col => <TableHead key={col.id}>{col.label}</TableHead>)}
-                                {element.canAddRows && <TableHead className="w-[50px]"></TableHead>}
+                                {element.canAddRows && element.dataSource !== 'dynamic' && <TableHead className="w-[50px]"></TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {tableRows.map((row, rowIndex) => (
+                            {tableData.map((row, rowIndex) => (
                                 <TableRow key={rowIndex}>
                                     {element.tableColumns?.map(col => {
                                         const cellId = `${element.id}-${rowIndex}-${col.key}`;
-                                        let cellValue = row[col.key];
+                                        let cellValue = getNestedValue(row, col.key);
 
                                         if (col.formula) {
                                           const calculatedValue = evaluate(col.formula, row);
                                           cellValue = calculatedValue;
-                                          // Note: We are not calling onValueChange here to prevent potential infinite loops.
-                                          // The value is directly used for rendering. The state update will consolidate all changes.
                                         }
 
-                                        // create a sub-state for the row to pass to rule engine
                                         const rowFormState = { ...formState };
                                         element.tableColumns?.forEach(c => {
                                           if (row[c.key]) {
@@ -581,7 +616,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                             />
                                         </TableCell>
                                     )})}
-                                     {element.canAddRows && (
+                                     {element.canAddRows && element.dataSource !== 'dynamic' && (
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
                                                 <Trash className="h-4 w-4 text-destructive" />
@@ -593,7 +628,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                         </TableBody>
                     </Table>
                 </div>
-                 {element.canAddRows && (
+                 {element.canAddRows && element.dataSource !== 'dynamic' && (
                     <Button variant="outline" size="sm" className="mt-2" onClick={handleAddRow}>
                         <Plus className="h-4 w-4 mr-2"/>
                         Add Row
