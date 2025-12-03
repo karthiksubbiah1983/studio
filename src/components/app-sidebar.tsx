@@ -5,6 +5,7 @@ import {
   SidebarContent,
   SidebarMenu,
   SidebarMenuItem,
+  SidebarMenuSub,
 } from "@/components/ui/sidebar";
 import {
   Home,
@@ -123,11 +124,11 @@ const SidebarMenuEntry = ({ item, level = 1 }: { item: MenuItem, level?: number 
         </SidebarMenuButton>
       </Link>
       {hasChildren && isOpen && (
-        <div className={cn("flex flex-col", currentLevelStyle.bg)}>
+        <SidebarMenuSub className={cn("flex flex-col", currentLevelStyle.bg)}>
             {item.children?.map((child) => (
                 <SidebarMenuEntry key={child.label} item={child} level={level + 1} />
             ))}
-        </div>
+        </SidebarMenuSub>
       )}
     </SidebarMenuItem>
   );
