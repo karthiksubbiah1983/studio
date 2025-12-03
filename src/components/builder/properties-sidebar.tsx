@@ -1182,6 +1182,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                            {commonFields}
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="multiple-files">Allow Multiple Files</Label>
+                                <Switch id="multiple-files" checked={props.multiple} onCheckedChange={(checked) => updateProperty('multiple', checked)} />
+                            </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="allowedFileTypes">Allowed File Types</Label>
                                 <Input

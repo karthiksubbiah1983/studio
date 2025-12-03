@@ -89,6 +89,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 label: 'File Upload',
                 allowedFileTypes: ['image/jpeg', 'image/png', 'application/pdf'],
                 maxFileSize: 5, // 5MB
+                multiple: false,
              }
         default:
             throw new Error("Invalid element type");

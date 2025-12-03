@@ -622,38 +622,52 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "FileUpload":
         const fileInputRef = useRef<HTMLInputElement>(null);
         const [fileError, setFileError] = useState<string | null>(null);
-        const currentFile = value as File | null;
+        const currentFiles: File[] = (value || []) as File[];
         
         const handleFileChange = (files: FileList | null) => {
             if (!files || files.length === 0) return;
-            const file = files[0];
-            setFileError(null);
+            
+            let allFiles: File[] = element.multiple ? [...currentFiles] : [];
+            let error = null;
 
-            // Validation
-            if (element.allowedFileTypes && element.allowedFileTypes.length > 0) {
-                if (!element.allowedFileTypes.includes(file.type)) {
-                    setFileError(`Invalid file type. Allowed: ${element.allowedFileTypes.join(', ')}`);
-                    return;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                 if (element.allowedFileTypes && element.allowedFileTypes.length > 0) {
+                    if (!element.allowedFileTypes.includes(file.type)) {
+                        error = `Invalid file type: ${file.name}. Allowed: ${element.allowedFileTypes.join(', ')}`;
+                        continue;
+                    }
                 }
+                if (element.maxFileSize && file.size > element.maxFileSize * 1024 * 1024) {
+                    error = `File is too large: ${file.name}. Max size: ${element.maxFileSize}MB`;
+                    continue;
+                }
+                allFiles.push(file);
             }
-            if (element.maxFileSize && file.size > element.maxFileSize * 1024 * 1024) {
-                 setFileError(`File is too large. Max size: ${element.maxFileSize}MB`);
-                 return;
-            }
-
-            onValueChange(element.id, file);
+            setFileError(error);
+            onValueChange(element.id, allFiles);
         };
+        
         const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
             e.preventDefault();
             e.stopPropagation();
             handleFileChange(e.dataTransfer.files);
+        }
+
+        const removeFile = (index: number) => {
+            const newFiles = [...currentFiles];
+            newFiles.splice(index, 1);
+            onValueChange(element.id, newFiles);
         }
         
         content = (
             <div>
                 {renderLabel()}
                 <div 
-                    className="relative flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-accent/50"
+                    className={cn(
+                        "relative flex flex-col items-center justify-center w-full border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-accent/50",
+                        currentFiles.length === 0 ? "h-32" : "min-h-32 p-4"
+                    )}
                     onClick={() => fileInputRef.current?.click()}
                     onDrop={handleDrop}
                     onDragOver={(e) => e.preventDefault()}
@@ -664,25 +678,37 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                         className="hidden"
                         onChange={(e) => handleFileChange(e.target.files)}
                         accept={element.allowedFileTypes?.join(',')}
+                        multiple={element.multiple}
                     />
-                    {currentFile ? (
-                        <div className="flex flex-col items-center text-center p-4">
-                            <FileIcon className="w-8 h-8 mb-2 text-primary" />
-                            <p className="font-semibold text-sm truncate max-w-full">{currentFile.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                                {(currentFile.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                            <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="mt-2 text-destructive hover:text-destructive"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onValueChange(element.id, null);
-                                }}
-                            >
-                                <X className="h-4 w-4 mr-1"/> Remove
-                            </Button>
+                    {currentFiles.length > 0 ? (
+                        <div className="w-full space-y-2">
+                             {currentFiles.map((file, index) => (
+                                <div key={index} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <FileIcon className="h-5 w-5 text-muted-foreground" />
+                                        <div className="flex flex-col overflow-hidden">
+                                            <p className="font-semibold text-sm truncate">{file.name}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                                {(file.size / 1024 / 1024).toFixed(2)} MB
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button 
+                                        variant="ghost" 
+                                        size="icon" 
+                                        className="h-7 w-7 text-destructive hover:text-destructive"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeFile(index);
+                                        }}
+                                    >
+                                        <X className="h-4 w-4"/>
+                                    </Button>
+                                </div>
+                             ))}
+                             {element.multiple && (
+                                <Button variant="outline" size="sm" className="w-full mt-2">Add more files...</Button>
+                             )}
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">

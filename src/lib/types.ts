@@ -135,6 +135,7 @@ export type FormElementInstance = {
     // For FileUpload
     allowedFileTypes?: string[];
     maxFileSize?: number; // in MB
+    multiple?: boolean;
 };
 
 export type Section = {
