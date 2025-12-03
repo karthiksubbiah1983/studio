@@ -59,9 +59,15 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
 
   const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
   
-  const selectableFields = useMemo(() => 
-    allElementsAndSections.filter(el => 'type' in el && el.type !== 'Container' && el.type !== 'Separator')
-  , [allElementsAndSections]);
+  const selectableFields = useMemo(() => {
+    return allElementsAndSections.filter(el => {
+        if ('type' in el) { // It's a FormElementInstance
+            return el.required || el.exposeForValidation;
+        }
+        // It's a Section
+        return el.exposeForValidation;
+    });
+  }, [allElementsAndSections]);
 
   const selectedWorkflow = localWorkflows.find(w => w.id === selectedWorkflowId);
 

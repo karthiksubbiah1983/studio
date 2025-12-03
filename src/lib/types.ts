@@ -95,6 +95,7 @@ export type FormElementInstance = {
     required: boolean;
     description?: string; // Corresponds to JSON Schema description
     helperText?: string;
+    exposeForValidation?: boolean; // New property
     // For Input
     inputFormat?: 'text' | 'number' | 'alphanumeric';
     // For Select, RadioGroup, Table
@@ -145,6 +146,7 @@ export type Section = {
     popupOnly?: boolean;
     hidden?: boolean;
     elements: FormElementInstance[];
+    exposeForValidation?: boolean; // New property
 };
 
 export type FormVersion = {

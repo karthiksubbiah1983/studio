@@ -100,6 +100,14 @@ function SectionProperties({ section }: { section: Section }) {
                             <Label htmlFor="section-title">Title</Label>
                             <Input id="section-title" value={section.title} onChange={(e) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, title: e.target.value } })} />
                         </div>
+                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <Label htmlFor="expose-for-validation">Expose for validation</Label>
+                            <Switch
+                                id="expose-for-validation"
+                                checked={section.exposeForValidation || false}
+                                onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, exposeForValidation: checked } })}
+                            />
+                        </div>
                     </AccordionContent>
                 </AccordionItem>
                  <AccordionItem value="layout">
@@ -620,6 +628,19 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         case "Container":
              return (
                 <Accordion type="multiple" defaultValue={["general", "layout"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="expose-for-validation">Expose for validation</Label>
+                                <Switch
+                                    id="expose-for-validation"
+                                    checked={props.exposeForValidation || false}
+                                    onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
+                                />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
                     <AccordionItem value="layout">
                         <AccordionTrigger className="py-2">Layout</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -681,6 +702,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Text / Label</Label>
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="expose-for-validation">Expose for validation</Label>
+                                <Switch
+                                    id="expose-for-validation"
+                                    checked={props.exposeForValidation || false}
+                                    onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
+                                />
                             </div>
                             {!props.isLink && (
                                 <>
@@ -815,6 +844,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Label</Label>
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="expose-for-validation">Expose for validation</Label>
+                                <Switch
+                                    id="expose-for-validation"
+                                    checked={props.exposeForValidation || false}
+                                    onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
+                                />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="content">Content</Label>
@@ -1277,6 +1314,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
 
 
 
