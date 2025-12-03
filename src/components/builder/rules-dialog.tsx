@@ -65,6 +65,9 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   }, [isOpen, localRules, selectedRuleId]);
 
   const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
+  const selectableFields = useMemo(() => 
+    allElementsAndSections.filter(el => 'type' in el && el.type !== 'Container' && el.type !== 'Separator')
+  , [allElementsAndSections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
@@ -116,14 +119,14 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   const ConditionEditor = ({ condition, rule }: { condition: Condition, rule: Rule }) => {
     const sourceElement = useMemo(() => {
         if (condition.sourceType === 'field' && condition.sourceElementId) {
-            return allElementsAndSections.find(el => el.id === condition.sourceElementId) || null;
+            return selectableFields.find(el => el.id === condition.sourceElementId) || null;
         }
         return null;
     }, [condition.sourceType, condition.sourceElementId]);
 
     const comparisonElement = useMemo(() => {
         if (condition.comparisonType === 'field' && condition.comparisonElementId) {
-            return allElementsAndSections.find(el => el.id === condition.comparisonElementId) || null;
+            return selectableFields.find(el => el.id === condition.comparisonElementId) || null;
         }
         return null;
     }, [condition.comparisonType, condition.comparisonElementId]);
@@ -166,8 +169,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                         <SelectContent>
-                             {allElementsAndSections.map(el => (
-                                <SelectItem key={el.id} value={el.id}>{el.label || el.id}</SelectItem>
+                             {selectableFields.map(el => (
+                                <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label || (el as Section).title}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -217,9 +220,9 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                      <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
-                            {allElementsAndSections.map(el => 'key' in el && el.key ? 
-                                <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> :
-                                <SelectItem key={el.id} value={el.id}>{(el as Section).title} (Section)</SelectItem>
+                            {selectableFields.map(el => 'key' in el && el.key ? 
+                                <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label}</SelectItem> :
+                                null
                             )}
                         </SelectContent>
                     </Select>
@@ -371,7 +374,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     </SelectTrigger>
                     <SelectContent>
                         {allElementsAndSections.map(el => (
-                            <SelectItem key={el.id} value={el.id}>{el.label} ({'type' in el ? el.type : 'Section'})</SelectItem>
+                            <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label || (el as Section).title} ({'type' in el ? el.type : 'Section'})</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
