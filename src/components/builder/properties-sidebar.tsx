@@ -1063,6 +1063,22 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     />
                                 </div>
                             )}
+                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="pagination-enabled">Enable Pagination</Label>
+                                <Switch id="pagination-enabled" checked={props.paginationEnabled} onCheckedChange={(checked) => updateProperty('paginationEnabled', checked)} />
+                            </div>
+                            {props.paginationEnabled && (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="page-size">Page Size</Label>
+                                    <Input 
+                                        id="page-size" 
+                                        type="number" 
+                                        value={props.pageSize || 5} 
+                                        onChange={(e) => updateProperty('pageSize', parseInt(e.target.value))}
+                                        min={1}
+                                    />
+                                </div>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

@@ -77,6 +77,8 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 canAddRows: true,
                 defaultRows: 1,
                 enableSearch: false,
+                paginationEnabled: false,
+                pageSize: 5,
                 tableColumns: [
                     { id: crypto.randomUUID(), key: 'col_1', label: 'Column 1', element: { ...inputColumnElement, label: 'Input in Table' } },
                     { id: crypto.randomUUID(), key: 'col_2', label: 'Column 2', element: { ...selectColumnElement, label: 'Select in Table' } },

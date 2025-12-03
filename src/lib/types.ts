@@ -123,7 +123,7 @@ export type FormElementInstance = {
     direction?: 'horizontal' | 'vertical';
     justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
-    // For DataGrid
+    // For DataGrid, Table
     columns?: DataGridColumn[];
     paginationEnabled?: boolean;
     pageSize?: number;

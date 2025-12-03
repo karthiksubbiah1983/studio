@@ -21,7 +21,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -508,6 +508,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         const [tableData, setTableData] = useState<any[]>([]);
         const [isTableLoading, setIsTableLoading] = useState(false);
         const [searchTerm, setSearchTerm] = useState("");
+        const [currentPage, setCurrentPage] = useState(1);
+        const pageSize = element.pageSize || 5;
 
         useEffect(() => {
           if (element.dataSource === 'dynamic' && element.apiUrl) {
@@ -546,6 +548,17 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                 )
             );
         }, [tableData, searchTerm]);
+
+        const totalPages = element.paginationEnabled ? Math.ceil(filteredTableData.length / pageSize) : 1;
+        const paginatedData = element.paginationEnabled ? filteredTableData.slice((currentPage - 1) * pageSize, currentPage * pageSize) : filteredTableData;
+
+        const handlePrevPage = () => setCurrentPage(p => Math.max(1, p - 1));
+        const handleNextPage = () => setCurrentPage(p => Math.min(totalPages, p + 1));
+
+        useEffect(() => {
+            // Reset to page 1 when search term changes
+            setCurrentPage(1);
+        }, [searchTerm]);
 
         const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
             let newRows = [...tableData];
@@ -606,7 +619,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredTableData.map((row, rowIndex) => {
+                            {paginatedData.map((row, paginatedIndex) => {
+                                const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
                                 const rowFormState: { [key: string]: any } = {};
                                 // Create a formState for this specific row for rule evaluation
                                 element.tableColumns?.forEach(col => {
@@ -614,9 +628,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                 });
 
                                 return (
-                                <TableRow key={rowIndex}>
+                                <TableRow key={originalIndex}>
                                     {element.tableColumns?.map(col => {
-                                        const cellId = `${element.id}-${rowIndex}-${col.key}`;
+                                        const cellId = `${element.id}-${originalIndex}-${col.key}`;
                                         let cellValue = getNestedValue(row, col.key);
 
                                         if (col.formula) {
@@ -637,7 +651,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                             <FormElementRenderer 
                                                 element={{...col.element, id: col.element.id}} // Use the template element ID for rules
                                                 value={cellValue}
-                                                onValueChange={(_id, val) => handleRowValueChange(rowIndex, col.key, val)}
+                                                onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
                                                 formState={rowFormState}
                                                 isTableCell={true}
                                             />
@@ -645,7 +659,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                     )})}
                                      {element.canAddRows && element.dataSource !== 'dynamic' && (
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(originalIndex)}>
                                                 <Trash className="h-4 w-4 text-destructive" />
                                             </Button>
                                         </TableCell>
@@ -660,6 +674,31 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                         <Plus className="h-4 w-4 mr-2"/>
                         Add Row
                     </Button>
+                )}
+                {element.paginationEnabled && totalPages > 1 && (
+                    <div className="flex items-center justify-end space-x-2 py-4">
+                        <div className="text-sm text-muted-foreground">
+                            Page {currentPage} of {totalPages}
+                        </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handlePrevPage}
+                            disabled={currentPage === 1}
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                            Previous
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleNextPage}
+                            disabled={currentPage === totalPages}
+                        >
+                            Next
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
                 )}
             </div>
         );
