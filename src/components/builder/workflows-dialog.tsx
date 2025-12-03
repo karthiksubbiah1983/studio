@@ -62,9 +62,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   const selectableFields = useMemo(() => {
     return allElementsAndSections.filter(el => {
         if ('type' in el) { // It's a FormElementInstance
+            if (el.type === 'Container') return false;
             return el.required || el.exposeForValidation;
         }
-        // It's a Section
+        // It's a Section, check exposeForValidation
         return el.exposeForValidation;
     });
   }, [allElementsAndSections]);
@@ -155,17 +156,6 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         return [];
     }
 
-    const isDateRelated = (element: FormElementInstance | Section | null) => {
-        if (!element) return false;
-        if ('type' in element) return element.type === 'DatePicker';
-        return false;
-    }
-    const isSpecialDate = (id: string | undefined) => id && id.startsWith('_');
-
-    const shouldShowDateOffset = 
-        (condition.sourceType === 'date' || isDateRelated(sourceElement)) || 
-        (condition.comparisonType === 'date' || isDateRelated(comparisonElement));
-
     const renderSourceInput = () => {
         switch(condition.sourceType) {
             case 'field':
@@ -225,7 +215,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
                             {selectableFields.map(el => 'key' in el && el.key ? 
-                                <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem> :
+                                <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label}</SelectItem> :
                                 <SelectItem key={el.id} value={el.id}>{(el as Section).title} (Section)</SelectItem>
                             )}
                         </SelectContent>
@@ -310,21 +300,6 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                 {renderComparisonInput()}
             </div>
 
-             {shouldShowDateOffset && (
-                <div className="flex items-end gap-2">
-                    <div className="w-1/2 space-y-1">
-                        <Label className="text-xs">Offset (days)</Label>
-                        <Input
-                            type="number"
-                            placeholder="e.g., 2 or -2"
-                            value={condition.offsetDays || ''}
-                            onChange={(e) => handleUpdateCondition({ offsetDays: e.target.value ? parseInt(e.target.value, 10) : undefined })}
-                            className="h-8 text-xs"
-                        />
-                    </div>
-                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the comparison value.</p>
-                </div>
-            )}
         </div>
     )
   }
