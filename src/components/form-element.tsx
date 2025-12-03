@@ -585,7 +585,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {tableData.map((row, rowIndex) => (
+                            {tableData.map((row, rowIndex) => {
+                                const rowFormState: { [key: string]: any } = {};
+                                // Create a formState for this specific row for rule evaluation
+                                element.tableColumns?.forEach(col => {
+                                    rowFormState[col.element.id] = { value: getNestedValue(row, col.key) };
+                                });
+
+                                return (
                                 <TableRow key={rowIndex}>
                                     {element.tableColumns?.map(col => {
                                         const cellId = `${element.id}-${rowIndex}-${col.key}`;
@@ -595,13 +602,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                           const calculatedValue = evaluate(col.formula, row);
                                           cellValue = calculatedValue;
                                         }
-
-                                        const rowFormState = { ...formState };
-                                        element.tableColumns?.forEach(c => {
-                                          if (row[c.key]) {
-                                            rowFormState[c.element.id] = { value: row[c.key] };
-                                          }
-                                        });
 
                                         if (col.formula) {
                                             return (
@@ -614,7 +614,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                         return (
                                         <TableCell key={cellId}>
                                             <FormElementRenderer 
-                                                element={{...col.element, id: cellId}} // Unique ID for each cell
+                                                element={{...col.element, id: col.element.id}} // Use the template element ID for rules
                                                 value={cellValue}
                                                 onValueChange={(_id, val) => handleRowValueChange(rowIndex, col.key, val)}
                                                 formState={rowFormState}
@@ -630,7 +630,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                         </TableCell>
                                     )}
                                 </TableRow>
-                            ))}
+                            )})}
                         </TableBody>
                     </Table>
                 </div>
