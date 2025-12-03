@@ -41,6 +41,7 @@ type Props = {
   onValueChange: (id: string, value: any, fullObject?: any) => void;
   formState?: { [key: string]: any };
   isParentHorizontal?: boolean;
+  isTableCell?: boolean;
 };
 
 const interpolateString = (template: string, data: { sections: Section[], formState: { [key: string]: any } }): string => {
@@ -56,7 +57,7 @@ const interpolateString = (template: string, data: { sections: Section[], formSt
 }
 
 
-export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal }: Props) {
+export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal, isTableCell }: Props) {
   const { rules, sections } = useBuilder();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -228,7 +229,11 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       break;
     case "Display": {
       let displayValue = label;
-      if (dataSourceConfig?.sourceElementId && formState) {
+      if (isTableCell) {
+          // In a table, the 'value' prop directly contains the value to display.
+          displayValue = value !== undefined && value !== null ? String(value) : "";
+      } else if (dataSourceConfig?.sourceElementId && formState) {
+          // For standalone Display elements with a configured data source.
           const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
           const sourceValue = formState[dataSourceConfig.sourceElementId];
           if (sourceElement && sourceValue) {
@@ -261,7 +266,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
           h6: 'text-base font-bold',
       };
       const Tag = style === 'p' ? 'p' : style;
-      content = <Tag className={cn(classes[style], 'mt-1')} style={{ ...appliedStyles.style, color }}>{displayValue}</Tag>;
+      content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={{ ...appliedStyles.style, color }}>{displayValue}</Tag>;
       break;
     }
     case "Container": {
@@ -613,6 +618,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                                 value={cellValue}
                                                 onValueChange={(_id, val) => handleRowValueChange(rowIndex, col.key, val)}
                                                 formState={rowFormState}
+                                                isTableCell={true}
                                             />
                                         </TableCell>
                                     )})}
@@ -657,7 +663,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "FileUpload":
         const fileInputRef = useRef<HTMLInputElement>(null);
         const [fileError, setFileError] = useState<string | null>(null);
-        const currentFiles: File[] = (value || []) as File[];
+        const currentFiles: File[] = (value?.value || []) as File[];
         
         const handleFileChange = (files: FileList | null) => {
             if (!files || files.length === 0) return;
