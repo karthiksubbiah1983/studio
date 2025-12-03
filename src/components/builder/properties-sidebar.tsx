@@ -422,7 +422,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 
-  const dynamicDataSourceFields = (
+  const dynamicDataSourceFields = (availableKeys: string[]) => (
     <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
             <Label htmlFor="dependent-field">Dependent Field (Optional)</Label>
@@ -502,10 +502,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     onValueChange={(value) => updateProperty('valueKey', value)}
                 >
                     <SelectTrigger>
-                        <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                        <SelectValue placeholder={availableKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
                     </SelectTrigger>
                     <SelectContent>
-                        {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        {availableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -516,10 +516,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     onValueChange={(value) => updateProperty('labelKey', value)}
                 >
                     <SelectTrigger>
-                        <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                        <SelectValue placeholder={availableKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
                     </SelectTrigger>
                     <SelectContent>
-                        {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        {availableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -871,7 +871,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                 </RadioGroup>
                             </div>
-                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields(fetchedKeys) : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1041,7 +1041,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <Label>Column Key</Label>
-                                        {props.dataSource === 'dynamic' ? (
+                                        {props.dataSource === 'dynamic' && fetchedKeys.length > 0 ? (
                                             <Select
                                                 value={editingColumn.key}
                                                 onValueChange={(value) => setEditingColumn({ ...editingColumn, key: value })}
