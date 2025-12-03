@@ -14,6 +14,7 @@ import {
 import { Bell, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { SidebarTrigger } from "./ui/sidebar";
+import { useAuth } from "@/hooks/use-auth";
 
 type AppHeaderProps = {
   title?: string;
@@ -21,6 +22,8 @@ type AppHeaderProps = {
 };
 
 export function AppHeader({ title, description }: AppHeaderProps) {
+  const { user, logout } = useAuth();
+  
   return (
     <header
       className="flex items-center justify-between bg-primary text-primary-foreground"
@@ -70,16 +73,16 @@ export function AppHeader({ title, description }: AppHeaderProps) {
             <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-primary/90">
               <Avatar className="h-9 w-9">
                 <AvatarImage src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="User Avatar" />
-                <AvatarFallback>U</AvatarFallback>
+                <AvatarFallback>{user?.username?.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">User Name</p>
+                <p className="text-sm font-medium leading-none">{user?.username}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  user@example.com
+                  {user?.username}@example.com
                 </p>
               </div>
             </DropdownMenuLabel>
@@ -87,7 +90,7 @@ export function AppHeader({ title, description }: AppHeaderProps) {
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Log out</DropdownMenuItem>
+            <DropdownMenuItem onClick={logout}>Log out</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

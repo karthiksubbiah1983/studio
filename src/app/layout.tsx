@@ -9,6 +9,7 @@ import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppLayout } from "@/components/app-layout";
+import { AuthProvider } from "@/hooks/use-auth";
 
 config.autoAddCss = false;
 
@@ -32,13 +33,15 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <BuilderProvider>
-          <SidebarProvider>
-            <AppLayout>
-              {children}
-            </AppLayout>
-          </SidebarProvider>
-        </BuilderProvider>
+        <AuthProvider>
+            <BuilderProvider>
+            <SidebarProvider>
+                <AppLayout>
+                {children}
+                </AppLayout>
+            </SidebarProvider>
+            </BuilderProvider>
+        </AuthProvider>
         <Toaster />
       </body>
     </html>
