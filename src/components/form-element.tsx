@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn } from "@/lib/types";
@@ -96,11 +95,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, context);
         if (isRuleMet) {
-            const applicableBehavior = rule.behaviors.find(b => b.type === 'set_value' && b.targetElementId === element.id);
-            if (applicableBehavior && applicableBehavior.value !== undefined) {
-                finalValue = applicableBehavior.value;
-                readOnly = true; // Make field read-only when value is set by a rule
-                break; // First matching rule wins for setting value
+            for (const behavior of rule.behaviors) {
+                if (behavior.type === 'set_value' && behavior.targetElementId === element.id && behavior.value !== undefined) {
+                    finalValue = behavior.value;
+                    readOnly = true; // Make field read-only when value is set by a rule
+                }
             }
         }
     }
@@ -871,3 +870,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 }
 
 
+
+    
