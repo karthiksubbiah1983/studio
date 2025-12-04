@@ -289,7 +289,11 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
           h6: 'text-base font-bold',
       };
       const Tag = style === 'p' ? 'p' : style;
-      content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={{ ...appliedStyles.style, color }}>{String(displayValue)}</Tag>;
+      const finalStyle = { ...appliedStyles.style };
+      if (!finalStyle.color) {
+        finalStyle.color = color;
+      }
+      content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(displayValue)}</Tag>;
       break;
     }
     case "Container": {
@@ -856,6 +860,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
 
