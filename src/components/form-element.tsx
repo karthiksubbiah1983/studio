@@ -256,8 +256,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "Display": {
       let displayValue = label;
       if (isTableCell) {
-          // In a table, the 'value' prop directly contains the value to display.
-          displayValue = value !== undefined && value !== null ? String(value) : "";
+          // In a table, the 'value' prop might contain dynamic data. If not, fall back to label.
+          displayValue = (value !== undefined && value !== null && value !== '') ? String(value) : label;
       } else if (dataSourceConfig?.sourceElementId && formState) {
           // For standalone Display elements with a configured data source.
           const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
@@ -859,3 +859,4 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
