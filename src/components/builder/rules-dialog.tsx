@@ -65,15 +65,35 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   }, [isOpen, localRules, selectedRuleId]);
 
   const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
+  
   const selectableFields = useMemo(() => {
-    return allElementsAndSections.filter(el => {
+    const fields: (FormElementInstance | Section)[] = [];
+    const allElements = getAllElements(sections);
+
+    allElements.forEach(el => {
         if ('type' in el) { // It's a FormElementInstance
-            return el.required || el.exposeForValidation;
+            if (el.type === 'Container' || el.type === 'Table') {
+                // Don't add container or table itself, but process its children for Table
+                if (el.type === 'Table' && el.tableColumns) {
+                    el.tableColumns.forEach(col => {
+                        // Include the *template* element from the column definition
+                        if (col.element.required || col.element.exposeForValidation) {
+                            fields.push(col.element);
+                        }
+                    });
+                }
+            } else if (el.required || el.exposeForValidation) {
+                fields.push(el);
+            }
+        } else { // It's a Section
+            if (el.exposeForValidation) {
+                fields.push(el);
+            }
         }
-        // It's a Section
-        return el.exposeForValidation;
     });
-  }, [allElementsAndSections]);
+
+    return fields;
+  }, [sections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
