@@ -276,37 +276,40 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       content = <Separator />;
       break;
     case "Display": {
-      let displayValue: any;
-      if (isTableCell) {
-          const colKey = key; // The key for a table cell is just its column key
-          displayValue = (rowContext && colKey) ? getNestedValue(rowContext, colKey) : label;
-          if (displayValue === undefined || displayValue === null || displayValue === '') {
-            displayValue = label;
-          }
-      } else if (dataSourceConfig?.sourceElementId && formState) {
-          const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
-          const sourceValue = formState[dataSourceConfig.sourceElementId];
-          if (sourceElement && sourceValue) {
-              if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
-                  displayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey) || label;
-              } else {
-                  displayValue = sourceValue.value || label;
-              }
-          } else {
-            displayValue = label;
-          }
-      } else {
-          displayValue = label;
+      let finalDisplayValue;
+
+      // Priority 1: Value from a 'set_value' rule
+      if (value !== undefined && value !== null) {
+        finalDisplayValue = value;
+      }
+      // Priority 2: Value from this component's own data source config
+      else if (dataSourceConfig?.sourceElementId && formState) {
+        const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
+        const sourceValue = formState[dataSourceConfig.sourceElementId];
+        if (sourceElement && sourceValue) {
+            if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
+                finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
+            } else {
+                finalDisplayValue = sourceValue.value;
+            }
+        }
+      }
+      // Priority 3: Value from table row context (if applicable)
+      else if (isTableCell && rowContext && key) {
+        finalDisplayValue = getNestedValue(rowContext, key);
       }
       
-      const finalDisplayValue = value !== undefined ? value : displayValue;
-
+      // Fallback to the component's label
+      if (finalDisplayValue === undefined || finalDisplayValue === null) {
+          finalDisplayValue = label;
+      }
+      
       if (isLink && linkUrl) {
           const finalUrl = interpolateString(linkUrl, { formState: formState || {}, sections });
           return (
                  <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     <Link className="h-4 w-4" />
-                    <span className="text-sm">{finalDisplayValue}</span>
+                    <span className="text-sm">{String(finalDisplayValue)}</span>
                 </a>
           )
       }
@@ -323,7 +326,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       };
       const Tag = style === 'p' ? 'p' : style;
       const finalStyle = { ...appliedStyles.style };
-      if (!finalStyle.color) {
+      if (!finalStyle.color) { // Only apply default color if rule doesn't set one
         finalStyle.color = color;
       }
       content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
