@@ -58,14 +58,14 @@ const interpolateString = (template: string, data: { sections: Section[], formSt
 }
 
 
-export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal, isTableCell, rowContext }: Props) {
+export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext }: Props) {
   const { rules, sections } = useBuilder();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
 
-   const isVisible = useMemo(() => {
+  const isVisible = useMemo(() => {
     if (!formState || isTableCell) return true;
 
     const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
@@ -85,6 +85,38 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     
     return visible;
   }, [element.id, formState, rules, isTableCell]);
+
+  const { value, isReadOnly } = useMemo(() => {
+    const context = isTableCell ? rowContext : formState;
+    if (!context) return { value: initialValue, isReadOnly: false };
+
+    let finalValue = initialValue;
+    let readOnly = false;
+
+    const setValueRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id));
+    
+    for (const rule of setValueRules) {
+        let isRuleMet = false;
+        const hasTableCondition = rule.conditions.some(c => c.sourceElementId?.includes('::'));
+
+        if (isTableCell && hasTableCondition) {
+            isRuleMet = evaluateRule(rule, context);
+        } else if (!isTableCell && !hasTableCondition) {
+            isRuleMet = evaluateRule(rule, context);
+        }
+        
+        if (isRuleMet) {
+            const behavior = rule.behaviors.find(b => b.type === 'set_value' && b.targetElementId === element.id);
+            if (behavior && behavior.value !== undefined) {
+                finalValue = behavior.value;
+                readOnly = true; // Make field read-only when value is set by a rule
+                break; // First matching rule wins
+            }
+        }
+    }
+    
+    return { value: finalValue, isReadOnly: readOnly };
+  }, [element.id, initialValue, rules, formState, rowContext, isTableCell]);
   
  const isDisabled = useMemo(() => {
     if (!formState || isTableCell) return false;
@@ -111,15 +143,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     for (const rule of rules) {
         let isRuleMet = false;
         
-        const hasTableCondition = rule.conditions.some(c => c.sourceElementId?.includes('::'));
-        
-        if (isTableCell && hasTableCondition) {
-            // Per-row evaluation for table-specific rules
-            const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, context));
-            isRuleMet = rule.logicType === 'and' ? conditionResults.every(res => res) : conditionResults.some(res => res);
-        } else if (!isTableCell && !hasTableCondition) {
+        if (isTableCell) {
+             isRuleMet = evaluateRule(rule, context);
+        } else {
             // Standard form-level evaluation for non-table rules
-            isRuleMet = evaluateRule(rule, context);
+            const hasTableCondition = rule.conditions.some(c => c.sourceElementId?.includes('::'));
+            if (!hasTableCondition) {
+                isRuleMet = evaluateRule(rule, context);
+            }
         }
 
         if (isRuleMet) {
@@ -268,12 +299,14 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
           displayValue = label;
       }
       
+      const finalDisplayValue = value !== undefined ? value : displayValue;
+
       if (isLink && linkUrl) {
           const finalUrl = interpolateString(linkUrl, { formState: formState || {}, sections });
           return (
                  <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     <Link className="h-4 w-4" />
-                    <span className="text-sm">{displayValue}</span>
+                    <span className="text-sm">{finalDisplayValue}</span>
                 </a>
           )
       }
@@ -293,7 +326,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       if (!finalStyle.color) {
         finalStyle.color = color;
       }
-      content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(displayValue)}</Tag>;
+      content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
       break;
     }
     case "Container": {
@@ -354,7 +387,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             onChange={handleInputChange}
             style={appliedStyles.style}
             className={cn(appliedStyles.error && "border-destructive")}
-            disabled={isDisabled}
+            disabled={isDisabled || isReadOnly}
+            readOnly={isReadOnly}
           />
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
@@ -860,8 +894,3 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-
-
-
-

@@ -65,13 +65,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   }, [isOpen, localRules, selectedRuleId]);
 
   const selectableFields = useMemo(() => {
-    return getAllElements(sections).filter(el => {
-        if ('type' in el) { // It's a FormElementInstance
-            return el.type !== 'Container' && el.type !== 'Separator' && el.type !== 'Preview';
-        }
-        // It's a Section
-        return true;
-    });
+    return getAllElements(sections);
   }, [sections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
@@ -341,6 +335,15 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         handleUpdateRule({ ...rule, behaviors: newBehaviors });
     }
 
+    const valueSettingFields = useMemo(() => 
+        selectableFields.filter(el => 'type' in el && (el.type === 'Input' || el.type === 'Display'))
+    , [selectableFields]);
+
+    const targetField = selectableFields.find(f => f.id === behavior.targetElementId);
+
+    const selectedTargetFieldLabel = targetField ? `${(targetField as any).label || (targetField as Section).title} (${'type' in targetField ? targetField.type : 'Section'})` : "Select target field...";
+
+
     return (
         <div className="space-y-3 p-3 border rounded-lg bg-accent/20 relative">
             {rule.behaviors.length > 1 && (
@@ -352,7 +355,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 <Label className="text-xs">Behavior</Label>
                 <Select
                     value={behavior.type}
-                    onValueChange={(value) => handleUpdateBehavior({ type: value as RuleBehaviorType })}
+                    onValueChange={(value) => handleUpdateBehavior({ type: value as RuleBehaviorType, targetElementId: '' })}
                 >
                     <SelectTrigger className="h-8 text-xs">
                         <SelectValue />
@@ -364,6 +367,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <SelectItem value="disable">Disable</SelectItem>
                         <SelectItem value="change_color">Change Color</SelectItem>
                         <SelectItem value="set_error">Set Error</SelectItem>
+                        <SelectItem value="set_value">Set Value</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -374,10 +378,10 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     onValueChange={(value) => handleUpdateBehavior({ targetElementId: value })}
                 >
                     <SelectTrigger className="h-8 text-xs">
-                        <SelectValue placeholder="Select target field..." />
+                        <SelectValue >{selectedTargetFieldLabel}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
-                        {selectableFields.map(el => (
+                        {(behavior.type === 'set_value' ? valueSettingFields : selectableFields).map(el => (
                             <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title} ({'type' in el ? el.type : 'Section'})</SelectItem>
                         ))}
                     </SelectContent>
@@ -420,6 +424,18 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         placeholder="e.g. Value must be greater than 10"
                         value={behavior.message}
                         onChange={(e) => handleUpdateBehavior({ message: e.target.value })}
+                        className="h-8 text-xs"
+                    />
+                </div>
+            )}
+
+            {behavior.type === 'set_value' && (
+                <div className="space-y-2">
+                    <Label className="text-xs">Value to Set</Label>
+                    <Input
+                        placeholder="Enter the value to set"
+                        value={behavior.value || ''}
+                        onChange={(e) => handleUpdateBehavior({ value: e.target.value })}
                         className="h-8 text-xs"
                     />
                 </div>
@@ -570,5 +586,3 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
-
-    
