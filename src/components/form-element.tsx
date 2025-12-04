@@ -276,33 +276,32 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       content = <Separator />;
       break;
     case "Display": {
-      let finalDisplayValue;
+        let finalDisplayValue: any;
 
-      // Priority 1: Value from a 'set_value' rule
-      if (value !== undefined && value !== null) {
-        finalDisplayValue = value;
-      }
-      // Priority 2: Value from this component's own data source config
-      else if (dataSourceConfig?.sourceElementId && formState) {
-        const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
-        const sourceValue = formState[dataSourceConfig.sourceElementId];
-        if (sourceElement && sourceValue) {
-            if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
-                finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
-            } else {
-                finalDisplayValue = sourceValue.value;
+        // Strict priority order for determining the value
+        if (isReadOnly) {
+            // If isReadOnly is true, it means a `set_value` rule is active. Use its value.
+            finalDisplayValue = value;
+        } else if (dataSourceConfig?.sourceElementId && formState) {
+            // If not rule-driven, check for data source configuration.
+            const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
+            const sourceValue = formState[dataSourceConfig.sourceElementId];
+            if (sourceElement && sourceValue) {
+                if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
+                    finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
+                } else {
+                    finalDisplayValue = sourceValue.value;
+                }
             }
+        } else if (isTableCell && rowContext && key) {
+            // Fallback for table cells without other configurations.
+            finalDisplayValue = getNestedValue(rowContext, key);
         }
-      }
-      // Priority 3: Value from table row context (if applicable)
-      else if (isTableCell && rowContext && key) {
-        finalDisplayValue = getNestedValue(rowContext, key);
-      }
-      
-      // Fallback to the component's label
-      if (finalDisplayValue === undefined || finalDisplayValue === null) {
-          finalDisplayValue = label;
-      }
+
+        // Final fallback to the component's label if no other value was determined.
+        if (finalDisplayValue === undefined || finalDisplayValue === null) {
+            finalDisplayValue = label;
+        }
       
       if (isLink && linkUrl) {
           const finalUrl = interpolateString(linkUrl, { formState: formState || {}, sections });
@@ -326,7 +325,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       };
       const Tag = style === 'p' ? 'p' : style;
       const finalStyle = { ...appliedStyles.style };
-      if (!finalStyle.color) { // Only apply default color if rule doesn't set one
+      if (!finalStyle.color) { // Only apply default color if a rule doesn't set one
         finalStyle.color = color;
       }
       content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
