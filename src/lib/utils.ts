@@ -93,6 +93,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
             }
             if (element.type === 'Table' && element.tableColumns) {
                 element.tableColumns.forEach(col => {
+                    // The element inside a column is a template. We add it so it can be targeted by rules.
                     if (!processedElements.has(col.element.id)) {
                         allElementsAndSections.push(col.element);
                         processedElements.add(col.element.id);
