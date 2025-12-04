@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn } from "@/lib/types";
@@ -65,7 +66,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
 
   const isVisible = useMemo(() => {
-    if (!formState || isTableCell) return true;
+    const context = isTableCell ? rowContext : formState;
+    if (!context) return true;
 
     const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
     const hideRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
@@ -73,35 +75,36 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let visible = true; 
 
     if (showRules.length > 0) {
-      visible = showRules.some(r => evaluateRule(r, formState));
+      visible = showRules.some(r => evaluateRule(r, context));
     }
 
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, formState))) {
+      if (hideRules.some(r => evaluateRule(r, context))) {
         visible = false;
       }
     }
     
     return visible;
-  }, [element.id, formState, rules, isTableCell]);
+  }, [element.id, formState, rules, isTableCell, rowContext]);
 
   const { value, isReadOnly } = useMemo(() => {
     const context = isTableCell ? rowContext : formState;
-    if (!context) return { value: initialValue, isReadOnly: false };
-
     let finalValue = initialValue;
     let readOnly = false;
+    if (!context || !rules) return { value: finalValue, isReadOnly };
     
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, context);
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
-                if (behavior.type === 'set_value' && behavior.targetElementId === element.id && behavior.value !== undefined) {
+                if (behavior.type === 'set_value' && behavior.targetElementId === element.id) {
                     finalValue = behavior.value;
-                    readOnly = true; // Make field read-only when value is set by a rule
+                    readOnly = true; 
+                    break;
                 }
             }
         }
+        if (readOnly) break;
     }
     
     return { value: finalValue, isReadOnly: readOnly };
