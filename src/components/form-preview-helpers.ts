@@ -21,23 +21,22 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
                     return undefined;
             }
         }
-
-        // Check if we are in a table row context by checking for '::' in the source ID
-        if (condition.sourceElementId?.includes('::')) {
-            // The `state` is the row object. The idOrKey is the column key.
-             return getNestedValue(state, idOrKey);
+        
+        // When evaluating for a table row, `state` is the row object itself.
+        // We look for a direct key match.
+        if (state && !state.hasOwnProperty(idOrKey) && !idOrKey.includes('::')) {
+            const value = getNestedValue(state, `${idOrKey}.value`);
+            if (value !== undefined) return value;
         }
 
-        // Standard form state evaluation
-        return getNestedValue(state, `${idOrKey}.value`);
+        // Standard form state evaluation, or row context evaluation
+        return getNestedValue(state, idOrKey.includes('::') ? idOrKey.split('::')[1] : `${idOrKey}.value`) ?? getNestedValue(state, idOrKey);
     }
 
     let sourceValue: any;
     if (condition.sourceType === 'field') {
         const sourceId = condition.sourceElementId || '';
-        // If it's a table column proxy, extract the actual key to look up in the row context (state)
-        const keyToUse = sourceId.includes('::') ? sourceId.split('::')[1] : sourceId;
-        sourceValue = getConditionValue(keyToUse);
+        sourceValue = getConditionValue(sourceId);
     } else if (condition.sourceType === 'date') {
         sourceValue = getConditionValue(condition.sourceValue);
     } else { // status
@@ -50,8 +49,7 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
         const comparisonId = condition.comparisonElementId || '';
-        const keyToUse = comparisonId.includes('::') ? comparisonId.split('::')[1] : comparisonId;
-        comparisonValue = getConditionValue(keyToUse);
+        comparisonValue = getConditionValue(comparisonId);
     } else if (condition.comparisonType === 'date') {
         comparisonValue = getConditionValue(condition.value);
     } else { // 'value' or 'status'
