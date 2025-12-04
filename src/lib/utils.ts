@@ -85,8 +85,10 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
         els.forEach(element => {
             if (processedElements.has(element.id)) return;
             
+            const isExposed = element.exposeForValidation || element.required;
+
             if (element.type === 'Container' && element.elements) {
-                if (element.exposeForValidation) {
+                if (isExposed) {
                     allElementsAndSections.push(element);
                     processedElements.add(element.id);
                 }
@@ -110,7 +112,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                         // We don't add these to processedElements since they are proxies with unique IDs
                     }
                 });
-            } else if (element.required || element.exposeForValidation) {
+            } else if (isExposed) {
                 allElementsAndSections.push(element);
                 processedElements.add(element.id);
             }
