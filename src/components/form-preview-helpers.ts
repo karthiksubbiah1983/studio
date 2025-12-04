@@ -6,63 +6,72 @@ import { getAllElements, getNestedValue } from "@/lib/utils";
 
 export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: any }) => {
     
-    // For table rule evaluation, the 'state' is the row object itself.
-    // For normal rules, the state is the full form state { [elementId]: { value, ... } }
-    const getConditionValue = (id: string | undefined): any => {
-        if (!id) return undefined;
+    const getConditionValue = (idOrKey: string | undefined): any => {
+        if (!idOrKey) return undefined;
         
-        // Handle special date values
-        if (id.startsWith('_')) {
-            switch(id) {
+        // Handle special date values first
+        if (idOrKey.startsWith('_')) {
+            switch(idOrKey) {
                 case '_current_date':
                 case '_due_date':
                 case '_scheduled_date':
-                    return new Date().toISOString();
+                    // This is a placeholder for actual date logic if needed.
+                    // For now, we'll treat them as comparable strings.
+                    return new Date().toISOString(); 
                 default:
                     return undefined;
             }
         }
-        
-        // Handle values from table rows (context is the row)
-        if (!id.includes('::') && !state[id]) { // It's likely a column key
-             return getNestedValue(state, id);
+
+        // Check if we are in a table row context by checking for '::' in the source ID
+        if (condition.sourceElementId?.includes('::')) {
+            // The `state` is the row object. The idOrKey is the column key.
+             return getNestedValue(state, idOrKey);
         }
-        
-        // Handle standard form state values
-        return getNestedValue(state, `${id}.value`);
+
+        // Standard form state evaluation
+        return getNestedValue(state, `${idOrKey}.value`);
     }
 
     let sourceValue: any;
     if (condition.sourceType === 'field') {
-        sourceValue = getConditionValue(condition.sourceElementId);
+        const sourceId = condition.sourceElementId || '';
+        // If it's a table column proxy, extract the actual key to look up in the row context (state)
+        const keyToUse = sourceId.includes('::') ? sourceId.split('::')[1] : sourceId;
+        sourceValue = getConditionValue(keyToUse);
     } else if (condition.sourceType === 'date') {
         sourceValue = getConditionValue(condition.sourceValue);
     } else { // status
-        sourceValue = 'Open'; 
+        sourceValue = 'Open'; // Placeholder for actual status logic
     }
     
-    if (sourceValue === undefined || sourceValue === null || sourceValue === "") {
-        const comparisonValue = condition.comparisonType === 'value' ? condition.value : getConditionValue(condition.comparisonElementId);
-        if (condition.operator === 'equals') {
-             return comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
-        }
-        if (condition.operator === 'not_equals') {
-             return !(comparisonValue === undefined || comparisonValue === null || comparisonValue === "");
-        }
-        return false;
-    }
-    
+    // Treat undefined, null, or empty string as equivalent for comparison purposes
+    const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
+
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
-        comparisonValue = getConditionValue(condition.comparisonElementId);
+        const comparisonId = condition.comparisonElementId || '';
+        const keyToUse = comparisonId.includes('::') ? comparisonId.split('::')[1] : comparisonId;
+        comparisonValue = getConditionValue(keyToUse);
     } else if (condition.comparisonType === 'date') {
         comparisonValue = getConditionValue(condition.value);
     } else { // 'value' or 'status'
         comparisonValue = condition.value;
     }
 
-    if (comparisonValue === undefined || comparisonValue === null) {
-        if(condition.operator === 'not_equals') return true;
+    const isComparisonValueEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
+
+    if (condition.operator === 'equals') {
+        if (isSourceValueEmpty && isComparisonValueEmpty) return true;
+        return String(sourceValue) === String(comparisonValue);
+    }
+    if (condition.operator === 'not_equals') {
+        if (isSourceValueEmpty && isComparisonValueEmpty) return false;
+        return String(sourceValue) !== String(comparisonValue);
+    }
+
+    // For other operators, if source is empty, it's false.
+    if (isSourceValueEmpty) {
         return false;
     }
 
@@ -79,36 +88,31 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             dateComparison.setHours(0, 0, 0, 0);
 
             if (condition.offsetDays) {
+                // Apply offset to the source date for comparison
                 dateSource.setDate(dateSource.getDate() + condition.offsetDays);
             }
 
             switch(condition.operator) {
-                case 'equals': return dateSource.getTime() === dateComparison.getTime();
-                case 'not_equals': return dateSource.getTime() !== dateComparison.getTime();
                 case 'is_greater_than': return dateSource > dateComparison;
                 case 'is_less_than': return dateSource < dateComparison;
-                default: return false;
+                default: return false; // Other operators already handled
             }
         } catch (e) {
             return false;
         }
     }
 
-
-    const normalizedSourceValue = typeof sourceValue === 'boolean' ? String(sourceValue) : sourceValue;
-
+    // Standard string/number comparison for remaining operators
     switch (condition.operator) {
-       case 'equals': return String(normalizedSourceValue) === String(comparisonValue);
-       case 'not_equals': return String(normalizedSourceValue) !== String(comparisonValue);
-       case 'contains': return String(normalizedSourceValue).includes(String(comparisonValue));
-       case 'not_contains': return !String(normalizedSourceValue).includes(String(comparisonValue));
+       case 'contains': return String(sourceValue).includes(String(comparisonValue));
+       case 'not_contains': return !String(sourceValue).includes(String(comparisonValue));
        case 'is_greater_than': {
-            const numSource = parseFloat(normalizedSourceValue);
+            const numSource = parseFloat(sourceValue);
             const numComparison = parseFloat(comparisonValue);
             return !isNaN(numSource) && !isNaN(numComparison) && numSource > numComparison;
        }
        case 'is_less_than': {
-            const numSource = parseFloat(normalizedSourceValue);
+            const numSource = parseFloat(sourceValue);
             const numComparison = parseFloat(comparisonValue);
             return !isNaN(numSource) && !isNaN(numComparison) && numSource < numComparison;
        }

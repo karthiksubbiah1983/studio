@@ -109,16 +109,16 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     if (!context) return { style, error };
     
     for (const rule of rules) {
-        // Find the rule that targets the current element
         let isRuleMet = false;
         
-        const tableRuleConditions = rule.conditions.filter(c => c.sourceElementId?.includes('::'));
-        if (isTableCell && tableRuleConditions.length > 0) {
-            // Per-row evaluation
+        const hasTableCondition = rule.conditions.some(c => c.sourceElementId?.includes('::'));
+        
+        if (isTableCell && hasTableCondition) {
+            // Per-row evaluation for table-specific rules
             const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, context));
             isRuleMet = rule.logicType === 'and' ? conditionResults.every(res => res) : conditionResults.some(res => res);
-        } else if (!isTableCell && tableRuleConditions.length === 0) {
-            // Standard form-level evaluation, only if not a table cell and not a table rule
+        } else if (!isTableCell && !hasTableCondition) {
+            // Standard form-level evaluation for non-table rules
             isRuleMet = evaluateRule(rule, context);
         }
 
@@ -126,18 +126,9 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
             for (const behavior of rule.behaviors) {
                 let targetId = behavior.targetElementId || '';
                 
-                // For table cells, match the behavior to the specific column proxy ID
-                if (isTableCell && targetId.includes('::')) {
-                    if (targetId === element.id) { // The element ID is already the proxy ID
-                        if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
-                            style[behavior.targetProperty as any] = behavior.color;
-                        }
-                        if (behavior.type === 'set_error') {
-                            error = behavior.message || "Invalid input.";
-                        }
-                    }
-                } else if (!isTableCell && targetId === element.id) { // For non-table elements
-                     if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
+                // Match behavior to the specific column proxy ID or standard element ID
+                if (targetId === element.id) {
+                    if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
                         style[behavior.targetProperty as any] = behavior.color;
                     }
                     if (behavior.type === 'set_error') {
@@ -198,7 +189,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   }, [element.apiUrl, element.dependencyType, element.subKey, element.dependentFieldId, element.type, element.dataSource, formState?.[element.dependentFieldId!]?.value]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, textStyle, color, content: richTextContent } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, textStyle, color, content: richTextContent, key } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -254,9 +245,13 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       content = <Separator />;
       break;
     case "Display": {
-      let displayValue = label;
+      let displayValue: any;
       if (isTableCell) {
-          displayValue = (value !== undefined && value !== null && value !== '') ? String(value) : label;
+          const colKey = key; // The key for a table cell is just its column key
+          displayValue = (rowContext && colKey) ? getNestedValue(rowContext, colKey) : label;
+          if (displayValue === undefined || displayValue === null || displayValue === '') {
+            displayValue = label;
+          }
       } else if (dataSourceConfig?.sourceElementId && formState) {
           const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
           const sourceValue = formState[dataSourceConfig.sourceElementId];
@@ -266,7 +261,11 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
               } else {
                   displayValue = sourceValue.value || label;
               }
+          } else {
+            displayValue = label;
           }
+      } else {
+          displayValue = label;
       }
       
       if (isLink && linkUrl) {
@@ -290,7 +289,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
           h6: 'text-base font-bold',
       };
       const Tag = style === 'p' ? 'p' : style;
-      content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={{ ...appliedStyles.style, color }}>{displayValue}</Tag>;
+      content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={{ ...appliedStyles.style, color }}>{String(displayValue)}</Tag>;
       break;
     }
     case "Container": {
@@ -668,7 +667,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                         return (
                                         <TableCell key={proxyId}>
                                             <FormElementRenderer 
-                                                element={{...col.element, id: proxyId}}
+                                                element={{...col.element, id: proxyId, key: col.key}}
                                                 value={cellValue}
                                                 onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
                                                 formState={formState}
@@ -857,5 +856,6 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
