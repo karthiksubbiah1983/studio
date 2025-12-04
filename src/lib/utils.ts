@@ -96,15 +96,18 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                  processedElements.add(element.id);
                 // Create "proxy" elements for each valid column to be used in rules
                 element.tableColumns.forEach(col => {
+                    // Use the column's element template to check for validation properties
                     if ((col.element.required || col.element.exposeForValidation) && col.key) {
                         const proxyElement: FormElementInstance = {
                             ...col.element,
-                            id: `${element.id}::${col.key}`, // Special ID format: tableId::columnKey
+                            // CRITICAL: The ID must be unique for the rule engine to distinguish between columns.
+                            // Use the table's ID and the column's unique key.
+                            id: `${element.id}::${col.key}`, 
                             label: `${col.label} (in ${element.label})`,
                             key: col.key, // The key within the row object
                         };
                         allElementsAndSections.push(proxyElement);
-                        // We don't add these to processedElements since they are proxies
+                        // We don't add these to processedElements since they are proxies with unique IDs
                     }
                 });
             } else if (element.required || element.exposeForValidation) {
@@ -117,7 +120,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
     if (sections) {
         sections.forEach(section => {
             if (section.exposeForValidation) {
-                allElementsAndSections.push({ ...section, label: section.title }); // Add section itself
+                allElementsAndSections.push({ ...section, label: section.title } as unknown as Section); // Add section itself
             }
             findElementsRecursive(section.elements);
         });
