@@ -16,9 +16,11 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "../ui/badge";
-import { getAllElements, evaluateRule } from "./form-preview-helpers";
+import { evaluateRule } from "./form-preview-helpers";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Zap } from "lucide-react";
+import { getAllElements } from "@/lib/utils";
+
 
 type Props = {
     showSubmitButton?: boolean;
@@ -27,7 +29,8 @@ type Props = {
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
     const submission: Record<string, any> = {};
-    elements.forEach(element => {
+    const allElements = getAllElements(elements as Section[]);
+    allElements.forEach(element => {
         if ('key' in element && element.key) {
             submission[element.key] = formState[element.id]?.value;
         }
