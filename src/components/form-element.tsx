@@ -258,27 +258,28 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       content = <Separator />;
       break;
     case "Display": {
-        let finalDisplayValue: any;
+      let finalDisplayValue;
 
-        if (isReadOnly) {
-            finalDisplayValue = value;
-        } else if (dataSourceConfig?.sourceElementId && formState) {
-            const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
-            const sourceValue = formState[dataSourceConfig.sourceElementId];
-            if (sourceElement && sourceValue) {
-                if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
-                    finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
-                } else {
-                    finalDisplayValue = sourceValue.value;
-                }
-            }
-        } else if (isTableCell && rowContext && key) {
-            finalDisplayValue = getNestedValue(rowContext, key);
-        }
-
-        if (finalDisplayValue === undefined || finalDisplayValue === null) {
-            finalDisplayValue = label;
-        }
+      if (isReadOnly) { // Value from a rule takes highest priority
+          finalDisplayValue = value;
+      } else if (dataSourceConfig?.sourceElementId && formState) { // Then check for data source config
+          const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
+          const sourceValue = formState[dataSourceConfig.sourceElementId];
+          if (sourceElement && sourceValue) {
+              if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
+                  finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
+              } else {
+                  finalDisplayValue = sourceValue.value;
+              }
+          }
+      } else if (isTableCell && rowContext && key) { // Then check for table cell context
+          finalDisplayValue = getNestedValue(rowContext, key);
+      }
+      
+      // Fallback to the label if no other value is determined
+      if (finalDisplayValue === undefined || finalDisplayValue === null) {
+          finalDisplayValue = label;
+      }
       
       if (isLink && linkUrl) {
           const finalUrl = interpolateString(linkUrl, { formState: formState || {}, sections });
