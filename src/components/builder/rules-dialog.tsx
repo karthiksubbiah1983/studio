@@ -64,7 +64,15 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
   }, [isOpen, localRules, selectedRuleId]);
 
-  const selectableFields = useMemo(() => getAllElements(sections), [sections]);
+  const selectableFields = useMemo(() => {
+    return getAllElements(sections).filter(el => {
+        if ('type' in el) { // It's a FormElementInstance
+            return el.type !== 'Container' && el.type !== 'Separator' && el.type !== 'Preview';
+        }
+        // It's a Section
+        return true;
+    });
+  }, [sections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
@@ -362,7 +370,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
              <div className="space-y-2">
                 <Label className="text-xs">Target Field</Label>
                 <Select
-                    value={behavior.targetElementId || ""}
+                    value={behavior.targetElementId}
                     onValueChange={(value) => handleUpdateBehavior({ targetElementId: value })}
                 >
                     <SelectTrigger className="h-8 text-xs">
