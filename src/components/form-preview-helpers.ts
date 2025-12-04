@@ -4,11 +4,14 @@ import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
 import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue } from "@/lib/utils";
 
-export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: { value: any, fullObject?: any } }) => {
+export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: any }) => {
     
+    // For table rule evaluation, the 'state' is the row object itself.
+    // For normal rules, the state is the full form state { [elementId]: { value, ... } }
     const getConditionValue = (id: string | undefined): any => {
         if (!id) return undefined;
-
+        
+        // Handle special date values
         if (id.startsWith('_')) {
             switch(id) {
                 case '_current_date':
@@ -20,6 +23,12 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             }
         }
         
+        // Handle values from table rows (context is the row)
+        if (!id.includes('::') && !state[id]) { // It's likely a column key
+             return getNestedValue(state, id);
+        }
+        
+        // Handle standard form state values
         return getNestedValue(state, `${id}.value`);
     }
 
@@ -29,19 +38,15 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     } else if (condition.sourceType === 'date') {
         sourceValue = getConditionValue(condition.sourceValue);
     } else { // status
-        // This part needs to be connected to the actual task status in a real app.
-        // For now, we'll assume it's a value that can be passed in or is static.
-        // Let's make it 'Open' for demonstration.
         sourceValue = 'Open'; 
     }
     
     if (sourceValue === undefined || sourceValue === null || sourceValue === "") {
+        const comparisonValue = condition.comparisonType === 'value' ? condition.value : getConditionValue(condition.comparisonElementId);
         if (condition.operator === 'equals') {
-             const comparisonValue = condition.comparisonType === 'value' ? condition.value : getConditionValue(condition.comparisonElementId);
              return comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
         }
         if (condition.operator === 'not_equals') {
-             const comparisonValue = condition.comparisonType === 'value' ? condition.value : getConditionValue(condition.comparisonElementId);
              return !(comparisonValue === undefined || comparisonValue === null || comparisonValue === "");
         }
         return false;
@@ -74,8 +79,6 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             dateComparison.setHours(0, 0, 0, 0);
 
             if (condition.offsetDays) {
-                // The offset is applied to the *source* to compare against the *target*.
-                // "If (Source + 2 days) is greater than (Target)"
                 dateSource.setDate(dateSource.getDate() + condition.offsetDays);
             }
 
@@ -113,9 +116,14 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     }
 }
 
-export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: { value: any } }): boolean => {
+export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any }): boolean => {
     if (!rule || !rule.conditions || rule.conditions.length === 0) return false;
     
+    // If any condition targets a table column, defer evaluation to the per-row logic
+    if (rule.conditions.some(c => c.sourceElementId?.includes('::'))) {
+        return false;
+    }
+
     const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state));
 
     if (rule.logicType === 'and') {

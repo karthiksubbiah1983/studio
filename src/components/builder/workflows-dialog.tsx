@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { FormElementInstance, Workflow, Section, Condition, WorkflowAction, TaskStatus, ConditionComparisonType, ConditionSourceType } from "@/lib/types";
 import { Plus, Trash, X, Zap, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
-import { cn, findElementRecursive, getAllElements } from "@/lib/utils";
+import { cn, getAllElements } from "@/lib/utils";
 import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -57,36 +57,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     }
   }, [isOpen, localWorkflows, selectedWorkflowId]);
 
-  const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
-  
-  const selectableFields = useMemo(() => {
-    const fields: (FormElementInstance | Section)[] = [];
-    const allElements = getAllElements(sections);
-
-    allElements.forEach(el => {
-        if ('type' in el) { // It's a FormElementInstance
-            if (el.type === 'Container' || el.type === 'Table') {
-                // Don't add container or table itself, but process its children for Table
-                if (el.type === 'Table' && el.tableColumns) {
-                    el.tableColumns.forEach(col => {
-                        // Include the *template* element from the column definition
-                        if (col.element.required || col.element.exposeForValidation) {
-                            fields.push(col.element);
-                        }
-                    });
-                }
-            } else if (el.required || el.exposeForValidation) {
-                fields.push(el);
-            }
-        } else { // It's a Section
-            if (el.exposeForValidation) {
-                fields.push(el);
-            }
-        }
-    });
-
-    return fields;
-  }, [sections]);
+  const selectableFields = useMemo(() => getAllElements(sections), [sections]);
 
   const selectedWorkflow = localWorkflows.find(w => w.id === selectedWorkflowId);
 
@@ -138,17 +109,17 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
   const ConditionEditor = ({ condition, workflow }: { condition: Condition, workflow: Workflow }) => {
     const sourceElement = useMemo(() => {
         if (condition.sourceType === 'field' && condition.sourceElementId) {
-            return allElementsAndSections.find(el => el.id === condition.sourceElementId) || null;
+            return selectableFields.find(el => el.id === condition.sourceElementId) || null;
         }
         return null;
-    }, [condition.sourceType, condition.sourceElementId, allElementsAndSections]);
+    }, [condition.sourceType, condition.sourceElementId]);
 
     const comparisonElement = useMemo(() => {
         if (condition.comparisonType === 'field' && condition.comparisonElementId) {
-            return allElementsAndSections.find(el => el.id === condition.comparisonElementId) || null;
+            return selectableFields.find(el => el.id === condition.comparisonElementId) || null;
         }
         return null;
-    }, [condition.comparisonType, condition.comparisonElementId, allElementsAndSections]);
+    }, [condition.comparisonType, condition.comparisonElementId]);
 
 
     const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
@@ -182,7 +153,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                         <SelectContent>
                              {selectableFields.map(el => (
-                                <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label || (el as Section).title}</SelectItem>
+                                <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -232,10 +203,9 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                      <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
-                            {selectableFields.map(el => 'key' in el && el.key ? 
-                                <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label}</SelectItem> :
-                                <SelectItem key={el.id} value={el.id}>{(el as Section).title} (Section)</SelectItem>
-                            )}
+                            {selectableFields.map(el => (
+                                <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 );

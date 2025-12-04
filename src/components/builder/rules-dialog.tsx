@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus } from "@/lib/types";
 import { Plus, Trash, X, Settings2, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
-import { cn, findElementRecursive, getAllElements, getNestedValue } from "@/lib/utils";
+import { cn, getAllElements } from "@/lib/utils";
 import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
@@ -64,36 +64,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
   }, [isOpen, localRules, selectedRuleId]);
 
-  const allElementsAndSections = useMemo(() => getAllElements(sections), [sections]);
-  
-  const selectableFields = useMemo(() => {
-    const fields: (FormElementInstance | Section)[] = [];
-    const allElements = getAllElements(sections);
-
-    allElements.forEach(el => {
-        if ('type' in el) { // It's a FormElementInstance
-            if (el.type === 'Container' || el.type === 'Table') {
-                // Don't add container or table itself, but process its children for Table
-                if (el.type === 'Table' && el.tableColumns) {
-                    el.tableColumns.forEach(col => {
-                        // Include the *template* element from the column definition
-                        if (col.element.required || col.element.exposeForValidation) {
-                            fields.push(col.element);
-                        }
-                    });
-                }
-            } else if (el.required || el.exposeForValidation) {
-                fields.push(el);
-            }
-        } else { // It's a Section
-            if (el.exposeForValidation) {
-                fields.push(el);
-            }
-        }
-    });
-
-    return fields;
-  }, [sections]);
+  const selectableFields = useMemo(() => getAllElements(sections), [sections]);
   
   const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
@@ -196,7 +167,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                         <SelectContent>
                              {selectableFields.map(el => (
-                                <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label || (el as Section).title}</SelectItem>
+                                <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -246,10 +217,9 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                      <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
                         <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
-                            {selectableFields.map(el => 'key' in el && el.key ? 
-                                <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label}</SelectItem> :
-                                null
-                            )}
+                            {selectableFields.map(el => (
+                                <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 );
@@ -399,8 +369,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <SelectValue placeholder="Select target field..." />
                     </SelectTrigger>
                     <SelectContent>
-                        {allElementsAndSections.map(el => (
-                            <SelectItem key={el.id} value={el.id}>{(el as FormElementInstance).label || (el as Section).title} ({'type' in el ? el.type : 'Section'})</SelectItem>
+                        {selectableFields.map(el => (
+                            <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title} ({'type' in el ? el.type : 'Section'})</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>

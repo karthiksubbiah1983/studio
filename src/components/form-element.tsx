@@ -27,7 +27,7 @@ import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
 import { cn, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
-import { evaluateRule } from "@/components/form-preview-helpers";
+import { evaluateRule, evaluateSingleCondition } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DataGrid } from "@/components/ui/data-grid";
@@ -42,6 +42,7 @@ type Props = {
   formState?: { [key: string]: any };
   isParentHorizontal?: boolean;
   isTableCell?: boolean;
+  rowContext?: any;
 };
 
 const interpolateString = (template: string, data: { sections: Section[], formState: { [key: string]: any } }): string => {
@@ -57,7 +58,7 @@ const interpolateString = (template: string, data: { sections: Section[], formSt
 }
 
 
-export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal, isTableCell }: Props) {
+export function FormElementRenderer({ element, value, onValueChange, formState, isParentHorizontal, isTableCell, rowContext }: Props) {
   const { rules, sections } = useBuilder();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +66,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
 
    const isVisible = useMemo(() => {
-    if (!formState) return true;
+    if (!formState || isTableCell) return true;
 
     const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
     const hideRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
@@ -83,10 +84,10 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     }
     
     return visible;
-  }, [element.id, formState, rules]);
+  }, [element.id, formState, rules, isTableCell]);
   
  const isDisabled = useMemo(() => {
-    if (!formState) return false;
+    if (!formState || isTableCell) return false;
 
     const disableRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
     if (disableRules.some(r => evaluateRule(r, formState))) {
@@ -99,18 +100,43 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     }
 
     return false;
-  }, [element.id, formState, rules]);
+  }, [element.id, formState, rules, isTableCell]);
 
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
     let error: string | null = null;
-    if (!formState) return { style, error };
+    const context = isTableCell ? rowContext : formState;
+    if (!context) return { style, error };
     
     for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, formState);
+        // Find the rule that targets the current element
+        let isRuleMet = false;
+        if (isTableCell) {
+            // Per-row evaluation
+            const tableRuleConditions = rule.conditions.filter(c => c.sourceElementId?.includes('::'));
+            if (tableRuleConditions.length > 0) {
+                const conditionResults = tableRuleConditions.map(cond => evaluateSingleCondition(cond, context));
+                isRuleMet = rule.logicType === 'and' ? conditionResults.every(res => res) : conditionResults.some(res => res);
+            }
+        } else {
+            // Standard form-level evaluation
+            isRuleMet = evaluateRule(rule, context);
+        }
+
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
-                if (behavior.targetElementId === element.id) {
+                let targetId = behavior.targetElementId || '';
+                // For table cells, the element ID is the template ID. The behavior target ID will be tableId::columnKey
+                if (isTableCell && targetId.includes('::')) {
+                    const [tableId, colKey] = targetId.split('::');
+                    // element.id here is the template element's id. We need to match the column key.
+                    const parentTable = allElements.find(el => el.id === tableId);
+                    if (parentTable && parentTable.type === 'Table' && parentTable.tableColumns?.some(c => c.key === colKey && c.element.id === element.id)) {
+                         targetId = element.id; // Match!
+                    }
+                }
+
+                if (targetId === element.id) {
                     if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
                         style[behavior.targetProperty as any] = behavior.color;
                     }
@@ -122,7 +148,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
         }
     }
     return { style, error };
-  }, [element.id, formState, rules]);
+  }, [element.id, formState, rules, isTableCell, rowContext]);
   
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
@@ -320,7 +346,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
       };
       content = (
         <div>
-          {renderLabel()}
+          {!isTableCell && renderLabel()}
           <Input 
             placeholder={placeholder}
             value={value || ""}
@@ -339,7 +365,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "Textarea":
       content = (
         <div>
-          {renderLabel()}
+          {!isTableCell && renderLabel()}
           <Textarea 
             placeholder={placeholder}
             value={value || ""}
@@ -380,7 +406,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
       content = (
         <div>
-          {renderLabel()}
+          {!isTableCell && renderLabel()}
           <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled || isDependentAndParentNotSelected}>
             <SelectTrigger style={appliedStyles.style} className={cn(appliedStyles.error && "border-destructive")}>
               <SelectValue placeholder={isLoading ? "Loading..." : (isDependentAndParentNotSelected ? "Select parent first" : placeholder)} />
@@ -469,7 +495,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
       content = (
         <div className={cn(isDisabled && 'pointer-events-none opacity-50')}>
-          {renderLabel()}
+          {!isTableCell && renderLabel()}
           <div className="flex gap-2">
             <Calendar 
               mode="single"
@@ -621,12 +647,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                         <TableBody>
                             {paginatedData.map((row, paginatedIndex) => {
                                 const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
-                                const rowFormState: { [key: string]: any } = {};
-                                // Create a formState for this specific row for rule evaluation
-                                element.tableColumns?.forEach(col => {
-                                    rowFormState[col.element.id] = { value: getNestedValue(row, col.key) };
-                                });
-
+                                
                                 return (
                                 <TableRow key={originalIndex}>
                                     {element.tableColumns?.map(col => {
@@ -649,10 +670,11 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                         return (
                                         <TableCell key={cellId}>
                                             <FormElementRenderer 
-                                                element={{...col.element, id: col.element.id}} // Use the template element ID for rules
+                                                element={{...col.element, id: col.element.id}}
                                                 value={cellValue}
                                                 onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
-                                                formState={rowFormState}
+                                                formState={formState}
+                                                rowContext={row}
                                                 isTableCell={true}
                                             />
                                         </TableCell>

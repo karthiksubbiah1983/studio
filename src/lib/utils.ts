@@ -85,27 +85,40 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
         els.forEach(element => {
             if (processedElements.has(element.id)) return;
             
-            allElementsAndSections.push(element);
-            processedElements.add(element.id);
-
             if (element.type === 'Container' && element.elements) {
+                if (element.exposeForValidation) {
+                    allElementsAndSections.push(element);
+                    processedElements.add(element.id);
+                }
                 findElementsRecursive(element.elements);
-            }
-            if (element.type === 'Table' && element.tableColumns) {
+            } else if (element.type === 'Table' && element.tableColumns) {
+                 allElementsAndSections.push(element); // Add the table itself
+                 processedElements.add(element.id);
+                // Create "proxy" elements for each valid column to be used in rules
                 element.tableColumns.forEach(col => {
-                    // The element inside a column is a template. We add it so it can be targeted by rules.
-                    if (!processedElements.has(col.element.id)) {
-                        allElementsAndSections.push(col.element);
-                        processedElements.add(col.element.id);
+                    if ((col.element.required || col.element.exposeForValidation) && col.key) {
+                        const proxyElement: FormElementInstance = {
+                            ...col.element,
+                            id: `${element.id}::${col.key}`, // Special ID format: tableId::columnKey
+                            label: `${col.label} (in ${element.label})`,
+                            key: col.key, // The key within the row object
+                        };
+                        allElementsAndSections.push(proxyElement);
+                        // We don't add these to processedElements since they are proxies
                     }
                 });
+            } else if (element.required || element.exposeForValidation) {
+                allElementsAndSections.push(element);
+                processedElements.add(element.id);
             }
         });
     };
 
     if (sections) {
         sections.forEach(section => {
-            allElementsAndSections.push({ ...section, label: section.title }); // Add section itself
+            if (section.exposeForValidation) {
+                allElementsAndSections.push({ ...section, label: section.title }); // Add section itself
+            }
             findElementsRecursive(section.elements);
         });
     }
