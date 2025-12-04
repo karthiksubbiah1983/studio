@@ -111,33 +111,33 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     for (const rule of rules) {
         // Find the rule that targets the current element
         let isRuleMet = false;
-        if (isTableCell) {
+        
+        const tableRuleConditions = rule.conditions.filter(c => c.sourceElementId?.includes('::'));
+        if (isTableCell && tableRuleConditions.length > 0) {
             // Per-row evaluation
-            const tableRuleConditions = rule.conditions.filter(c => c.sourceElementId?.includes('::'));
-            if (tableRuleConditions.length > 0) {
-                const conditionResults = tableRuleConditions.map(cond => evaluateSingleCondition(cond, context));
-                isRuleMet = rule.logicType === 'and' ? conditionResults.every(res => res) : conditionResults.some(res => res);
-            }
-        } else {
-            // Standard form-level evaluation
+            const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, context));
+            isRuleMet = rule.logicType === 'and' ? conditionResults.every(res => res) : conditionResults.some(res => res);
+        } else if (!isTableCell && tableRuleConditions.length === 0) {
+            // Standard form-level evaluation, only if not a table cell and not a table rule
             isRuleMet = evaluateRule(rule, context);
         }
 
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
                 let targetId = behavior.targetElementId || '';
-                // For table cells, the element ID is the template ID. The behavior target ID will be tableId::columnKey
+                
+                // For table cells, match the behavior to the specific column proxy ID
                 if (isTableCell && targetId.includes('::')) {
-                    const [tableId, colKey] = targetId.split('::');
-                    // element.id here is the template element's id. We need to match the column key.
-                    const parentTable = allElements.find(el => el.id === tableId);
-                    if (parentTable && parentTable.type === 'Table' && parentTable.tableColumns?.some(c => c.key === colKey && c.element.id === element.id)) {
-                         targetId = element.id; // Match!
+                    if (targetId === element.id) { // The element ID is already the proxy ID
+                        if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
+                            style[behavior.targetProperty as any] = behavior.color;
+                        }
+                        if (behavior.type === 'set_error') {
+                            error = behavior.message || "Invalid input.";
+                        }
                     }
-                }
-
-                if (targetId === element.id) {
-                    if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
+                } else if (!isTableCell && targetId === element.id) { // For non-table elements
+                     if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
                         style[behavior.targetProperty as any] = behavior.color;
                     }
                     if (behavior.type === 'set_error') {
@@ -256,10 +256,8 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
     case "Display": {
       let displayValue = label;
       if (isTableCell) {
-          // In a table, the 'value' prop might contain dynamic data. If not, fall back to label.
           displayValue = (value !== undefined && value !== null && value !== '') ? String(value) : label;
       } else if (dataSourceConfig?.sourceElementId && formState) {
-          // For standalone Display elements with a configured data source.
           const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
           const sourceValue = formState[dataSourceConfig.sourceElementId];
           if (sourceElement && sourceValue) {
@@ -651,7 +649,7 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
                                 return (
                                 <TableRow key={originalIndex}>
                                     {element.tableColumns?.map(col => {
-                                        const cellId = `${element.id}-${originalIndex}-${col.key}`;
+                                        const proxyId = `${element.id}::${col.key}`;
                                         let cellValue = getNestedValue(row, col.key);
 
                                         if (col.formula) {
@@ -661,16 +659,16 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
                                         if (col.formula) {
                                             return (
-                                                <TableCell key={cellId}>
+                                                <TableCell key={proxyId}>
                                                     <Input readOnly value={cellValue} className="border-none bg-transparent" />
                                                 </TableCell>
                                             )
                                         }
 
                                         return (
-                                        <TableCell key={cellId}>
+                                        <TableCell key={proxyId}>
                                             <FormElementRenderer 
-                                                element={{...col.element, id: col.element.id}}
+                                                element={{...col.element, id: proxyId}}
                                                 value={cellValue}
                                                 onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
                                                 formState={formState}
@@ -859,4 +857,5 @@ export function FormElementRenderer({ element, value, onValueChange, formState, 
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
