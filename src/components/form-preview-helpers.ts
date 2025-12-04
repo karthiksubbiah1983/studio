@@ -1,5 +1,4 @@
 
-
 import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
 import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue } from "@/lib/utils";
@@ -61,6 +60,23 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
 
     const isComparisonValueEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
 
+    const isNumericComparison = condition.operator === 'is_greater_than' || condition.operator === 'is_less_than';
+    
+    if (isNumericComparison) {
+        const numSource = parseFloat(sourceValue);
+        const numComparison = parseFloat(comparisonValue);
+        if (isNaN(numSource) || isNaN(numComparison)) {
+            return false; // Cannot perform numeric comparison
+        }
+        if (condition.operator === 'is_greater_than') {
+            return numSource > numComparison;
+        }
+        if (condition.operator === 'is_less_than') {
+            return numSource < numComparison;
+        }
+    }
+
+
     if (condition.operator === 'equals') {
         if (isSourceValueEmpty && isComparisonValueEmpty) return true;
         return String(sourceValue) === String(comparisonValue);
@@ -106,16 +122,6 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     switch (condition.operator) {
        case 'contains': return String(sourceValue).includes(String(comparisonValue));
        case 'not_contains': return !String(sourceValue).includes(String(comparisonValue));
-       case 'is_greater_than': {
-            const numSource = parseFloat(sourceValue);
-            const numComparison = parseFloat(comparisonValue);
-            return !isNaN(numSource) && !isNaN(numComparison) && numSource > numComparison;
-       }
-       case 'is_less_than': {
-            const numSource = parseFloat(sourceValue);
-            const numComparison = parseFloat(comparisonValue);
-            return !isNaN(numSource) && !isNaN(numComparison) && numSource < numComparison;
-       }
        default: return false;
     }
 }
@@ -123,11 +129,6 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
 export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any }): boolean => {
     if (!rule || !rule.conditions || rule.conditions.length === 0) return false;
     
-    // If any condition targets a table column, defer evaluation to the per-row logic
-    if (rule.conditions.some(c => c.sourceElementId?.includes('::'))) {
-        return false;
-    }
-
     const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state));
 
     if (rule.logicType === 'and') {

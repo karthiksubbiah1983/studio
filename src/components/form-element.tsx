@@ -27,7 +27,7 @@ import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
 import { cn, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
-import { evaluateRule, evaluateSingleCondition } from "@/components/form-preview-helpers";
+import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DataGrid } from "@/components/ui/data-grid";
@@ -94,16 +94,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let readOnly = false;
 
     const setValueRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id));
-    
-    for (const rule of setValueRules) {
-        let isRuleMet = false;
-        const hasTableCondition = rule.conditions.some(c => c.sourceElementId?.includes('::'));
 
-        if (isTableCell && hasTableCondition) {
-            isRuleMet = evaluateRule(rule, context);
-        } else if (!isTableCell && !hasTableCondition) {
-            isRuleMet = evaluateRule(rule, context);
-        }
+    for (const rule of setValueRules) {
+        const isRuleMet = evaluateRule(rule, context);
         
         if (isRuleMet) {
             const behavior = rule.behaviors.find(b => b.type === 'set_value' && b.targetElementId === element.id);
@@ -141,17 +134,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if (!context) return { style, error };
     
     for (const rule of rules) {
-        let isRuleMet = false;
-        
-        if (isTableCell) {
-             isRuleMet = evaluateRule(rule, context);
-        } else {
-            // Standard form-level evaluation for non-table rules
-            const hasTableCondition = rule.conditions.some(c => c.sourceElementId?.includes('::'));
-            if (!hasTableCondition) {
-                isRuleMet = evaluateRule(rule, context);
-            }
-        }
+        const isRuleMet = evaluateRule(rule, context);
 
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
