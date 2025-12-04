@@ -340,8 +340,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     , [selectableFields]);
 
     const targetField = selectableFields.find(f => f.id === behavior.targetElementId);
-
-    const selectedTargetFieldLabel = targetField ? `${(targetField as any).label || (targetField as Section).title} (${'type' in targetField ? targetField.type : 'Section'})` : "Select target field...";
+    
+    const selectedTargetFieldLabel = targetField ? `${(targetField as any).label || (targetField as Section).title}` : "Select target field...";
 
 
     return (
@@ -378,11 +378,11 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     onValueChange={(value) => handleUpdateBehavior({ targetElementId: value })}
                 >
                     <SelectTrigger className="h-8 text-xs">
-                        <SelectValue >{selectedTargetFieldLabel}</SelectValue>
+                        <SelectValue>{selectedTargetFieldLabel}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                         {(behavior.type === 'set_value' ? valueSettingFields : selectableFields).map(el => (
-                            <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title} ({'type' in el ? el.type : 'Section'})</SelectItem>
+                            <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
