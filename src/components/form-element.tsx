@@ -94,15 +94,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let readOnly = false;
     
     for (const rule of rules) {
-        // Find a behavior in this rule that specifically targets the current element with a 'set_value' action.
-        const applicableBehavior = rule.behaviors.find(b => b.type === 'set_value' && b.targetElementId === element.id);
-        
-        if (applicableBehavior) {
-            const isRuleMet = evaluateRule(rule, context);
-            if (isRuleMet && applicableBehavior.value !== undefined) {
+        const isRuleMet = evaluateRule(rule, context);
+        if (isRuleMet) {
+            const applicableBehavior = rule.behaviors.find(b => b.type === 'set_value' && b.targetElementId === element.id);
+            if (applicableBehavior && applicableBehavior.value !== undefined) {
                 finalValue = applicableBehavior.value;
                 readOnly = true; // Make field read-only when value is set by a rule
-                break; // First matching rule wins
+                break; // First matching rule wins for setting value
             }
         }
     }
@@ -130,17 +128,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const style: React.CSSProperties = {};
     let error: string | null = null;
     const context = isTableCell ? rowContext : formState;
-    if (!context) return { style, error };
+    if (!context || !rules) return { style, error };
     
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, context);
 
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
-                let targetId = behavior.targetElementId || '';
-                
-                // Match behavior to the specific column proxy ID or standard element ID
-                if (targetId === element.id) {
+                if (behavior.targetElementId === element.id) {
                     if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
                         style[behavior.targetProperty as any] = behavior.color;
                     }
@@ -303,7 +298,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       };
       const Tag = style === 'p' ? 'p' : style;
       const finalStyle = { ...appliedStyles.style };
-      if (!finalStyle.color) { 
+      if (!finalStyle.color && color) { 
         finalStyle.color = color;
       }
       content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
@@ -874,4 +869,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
