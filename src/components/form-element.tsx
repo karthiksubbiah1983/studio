@@ -92,16 +92,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
     let finalValue = initialValue;
     let readOnly = false;
-
-    const setValueRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id));
-
-    for (const rule of setValueRules) {
-        const isRuleMet = evaluateRule(rule, context);
+    
+    for (const rule of rules) {
+        // Find a behavior in this rule that specifically targets the current element with a 'set_value' action.
+        const applicableBehavior = rule.behaviors.find(b => b.type === 'set_value' && b.targetElementId === element.id);
         
-        if (isRuleMet) {
-            const behavior = rule.behaviors.find(b => b.type === 'set_value' && b.targetElementId === element.id);
-            if (behavior && behavior.value !== undefined) {
-                finalValue = behavior.value;
+        if (applicableBehavior) {
+            const isRuleMet = evaluateRule(rule, context);
+            if (isRuleMet && applicableBehavior.value !== undefined) {
+                finalValue = applicableBehavior.value;
                 readOnly = true; // Make field read-only when value is set by a rule
                 break; // First matching rule wins
             }
@@ -261,12 +260,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Display": {
         let finalDisplayValue: any;
 
-        // Strict priority order for determining the value
         if (isReadOnly) {
-            // If isReadOnly is true, it means a `set_value` rule is active. Use its value.
             finalDisplayValue = value;
         } else if (dataSourceConfig?.sourceElementId && formState) {
-            // If not rule-driven, check for data source configuration.
             const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
             const sourceValue = formState[dataSourceConfig.sourceElementId];
             if (sourceElement && sourceValue) {
@@ -277,11 +273,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 }
             }
         } else if (isTableCell && rowContext && key) {
-            // Fallback for table cells without other configurations.
             finalDisplayValue = getNestedValue(rowContext, key);
         }
 
-        // Final fallback to the component's label if no other value was determined.
         if (finalDisplayValue === undefined || finalDisplayValue === null) {
             finalDisplayValue = label;
         }
@@ -308,7 +302,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       };
       const Tag = style === 'p' ? 'p' : style;
       const finalStyle = { ...appliedStyles.style };
-      if (!finalStyle.color) { // Only apply default color if a rule doesn't set one
+      if (!finalStyle.color) { 
         finalStyle.color = color;
       }
       content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
@@ -879,3 +873,4 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
