@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { Edit, PlusCircle, Trash, Search, Copy } from "lucide-react";
+import { Edit, PlusCircle, Trash, Search, Copy, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
@@ -37,6 +37,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Link from "next/link";
 import type { Form } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
+import { useToast } from "@/hooks/use-toast";
 
 function FormattedDate({ timestamp }: { timestamp: string }) {
     const [formattedDate, setFormattedDate] = useState('');
@@ -58,9 +59,10 @@ function FormattedDate({ timestamp }: { timestamp: string }) {
 
 export default function Home() {
   const { state, dispatch } = useBuilder();
-  const { forms, categories } = state;
+  const { forms, categories, sites } = state;
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
   
   // New Template Dialog State
   const [isNewTemplateDialogOpen, setIsNewTemplateDialogOpen] = useState(false);
@@ -73,6 +75,11 @@ export default function Home() {
   const [isCloneDialogOpen, setIsCloneDialogOpen] = useState(false);
   const [cloningFormId, setCloningFormId] = useState<string | null>(null);
   const [newCloneName, setNewCloneName] = useState("");
+
+  // Assign Task Dialog State
+  const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
+  const [assigningFormId, setAssigningFormId] = useState<string | null>(null);
+  const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
   const filteredForms = forms.filter(form => 
     form.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -128,6 +135,35 @@ export default function Home() {
     setNewCloneName(`Copy of ${formToClone.title}`);
     setIsCloneDialogOpen(true);
   };
+
+  const handleOpenAssignDialog = (formId: string) => {
+    setAssigningFormId(formId);
+    setIsAssignTaskOpen(true);
+  }
+
+  const handleAssignTask = () => {
+    if (!assigningFormId || !selectedSiteId) return;
+    const form = forms.find(f => f.id === assigningFormId);
+    if (!form || !form.versions[0]) return;
+
+    dispatch({
+      type: 'ADD_TASK',
+      payload: {
+        formId: assigningFormId,
+        versionId: form.versions[0].id,
+        siteId: selectedSiteId,
+      }
+    });
+
+    toast({
+      title: "Task Assigned!",
+      description: `Assigned "${form.title}" to site.`,
+    });
+
+    setIsAssignTaskOpen(false);
+    setAssigningFormId(null);
+    setSelectedSiteId(null);
+  }
 
   const handleClone = () => {
     if (!cloningFormId || !newCloneName.trim()) return;
@@ -269,6 +305,9 @@ export default function Home() {
                             <FormattedDate timestamp={latestVersion.timestamp} />
                         </div>
                         <div className="flex justify-end gap-0">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenAssignDialog(form.id)}>
+                              <Send className="h-4 w-4" />
+                            </Button>
                              <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>
                               <Copy className="h-4 w-4" />
                             </Button>
@@ -313,6 +352,7 @@ export default function Home() {
         </CardContent>
       </Card>
 
+      {/* Clone Dialog */}
       <Dialog open={isCloneDialogOpen} onOpenChange={setIsCloneDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -340,6 +380,41 @@ export default function Home() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Assign Task Dialog */}
+      <Dialog open={isAssignTaskOpen} onOpenChange={setIsAssignTaskOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign Task</DialogTitle>
+            <DialogDescription>
+              Select a site to assign this form to.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="site" className="text-right">
+                Site
+              </Label>
+              <Select value={selectedSiteId || ""} onValueChange={setSelectedSiteId}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a site" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sites.map(site => (
+                    <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                  ))}
+                  {sites.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No sites found. <Link href="/sites" className="text-primary underline">Create one?</Link></div>}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setIsAssignTaskOpen(false)}>Cancel</Button>
+            <Button onClick={handleAssignTask} disabled={!selectedSiteId}>Assign</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

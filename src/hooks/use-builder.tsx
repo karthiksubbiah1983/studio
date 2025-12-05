@@ -3,12 +3,14 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 
 type State = {
   forms: Form[];
   categories: Category[];
+  sites: Site[];
+  tasks: Task[];
   submissions: Submission[];
   activeFormId: string | null;
   selectedElement: { elementId: string; sectionId: string } | null;
@@ -38,7 +40,7 @@ type Action =
   | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[], rules: Rule[], workflows: Workflow[] } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
-  | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any> } }
+  | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any>, taskId?: string } }
   | { type: "SET_STATE"; payload: Partial<State> }
   | { type: "SET_SECTIONS"; payload: { sections: Section[] } }
   | { type: "UPDATE_RULES"; payload: { rules: Rule[] } }
@@ -49,6 +51,9 @@ type Action =
   | { type: "ADD_SUBCATEGORY", payload: { categoryId: string, name: string } }
   | { type: "UPDATE_SUBCATEGORY", payload: { categoryId: string, subCategory: SubCategory } }
   | { type: "DELETE_SUBCATEGORY", payload: { categoryId: string, subCategoryId: string } }
+  | { type: "ADD_SITE", payload: { name: string } }
+  | { type: "DELETE_SITE", payload: { siteId: string } }
+  | { type: "ADD_TASK", payload: { formId: string, versionId: string, siteId: string } }
   | { type: "COPY_TO_CLIPBOARD", payload: ClipboardItem }
   | { type: "PASTE_FROM_CLIPBOARD", payload: { sectionId?: string, index?: number } };
 
@@ -56,6 +61,8 @@ type Action =
 const initialState: State = {
   forms: [],
   categories: [],
+  sites: [],
+  tasks: [],
   submissions: [],
   activeFormId: null,
   selectedElement: null,
@@ -233,6 +240,25 @@ const builderReducer = (state: State, action: Action): State => {
   const activeFormSections = activeForm?.versions[0]?.sections || [];
 
   switch (action.type) {
+    case "ADD_SITE": {
+      const newSite: Site = { id: crypto.randomUUID(), name: action.payload.name };
+      return { ...state, sites: [...state.sites, newSite] };
+    }
+    case "DELETE_SITE": {
+      return { ...state, sites: state.sites.filter(s => s.id !== action.payload.siteId) };
+    }
+    case "ADD_TASK": {
+      const { formId, versionId, siteId } = action.payload;
+      const newTask: Task = {
+        id: crypto.randomUUID(),
+        formId,
+        versionId,
+        siteId,
+        status: 'Assigned',
+        assignedAt: new Date().toISOString(),
+      };
+      return { ...state, tasks: [...state.tasks, newTask] };
+    }
     case "COPY_TO_CLIPBOARD": {
         return { ...state, clipboard: action.payload };
     }
@@ -660,16 +686,24 @@ const builderReducer = (state: State, action: Action): State => {
       return { ...state, forms: newForms };
     }
     case "ADD_SUBMISSION": {
-        const { formId, data } = action.payload;
+        const { formId, data, taskId } = action.payload;
         const newSubmission: Submission = {
             id: crypto.randomUUID(),
             formId,
+            taskId,
             timestamp: new Date().toISOString(),
             data,
         };
+        const newTasks = state.tasks.map(task => {
+          if (task.id === taskId) {
+            return { ...task, status: 'Submitted' as 'Submitted', submissionId: newSubmission.id, submittedAt: newSubmission.timestamp };
+          }
+          return task;
+        });
         return {
             ...state,
             submissions: [newSubmission, ...(state.submissions || [])],
+            tasks: newTasks,
         }
     }
     case "ADD_CATEGORY": {
@@ -752,6 +786,8 @@ type BuilderContextType = {
   dispatch: (action: Action) => string | void;
   forms: Form[];
   categories: Category[];
+  sites: Site[];
+  tasks: Task[];
   activeForm: Form | null;
   sections: Section[];
   setSections: (sections: Section[]) => void;
@@ -760,6 +796,7 @@ type BuilderContextType = {
   workflows: Workflow[];
   updateWorkflows: (workflows: Workflow[]) => void;
   clipboard: ClipboardItem | null;
+  submissions: Submission[];
 };
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
@@ -793,6 +830,8 @@ const defaultState: State = {
         name: 'General',
         subCategories: []
     }],
+    sites: [],
+    tasks: [],
     submissions: [],
     activeFormId: defaultFormId,
     selectedElement: null,
@@ -891,7 +930,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, clipboard: state.clipboard }}>
+    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, clipboard: state.clipboard }}>
       {children}
     </BuilderContext.Provider>
   );

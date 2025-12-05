@@ -20,11 +20,13 @@ import { evaluateRule } from "./form-preview-helpers";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Zap } from "lucide-react";
 import { getAllElements } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 
 type Props = {
     showSubmitButton?: boolean;
     sections: Section[];
+    taskId?: string;
 }
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
@@ -38,9 +40,9 @@ const generateSubmissionJson = (elements: (FormElementInstance | Section)[], for
     return submission;
 };
 
-export function FormPreview({ showSubmitButton = true, sections }: Props) {
-  const { rules, workflows, dispatch, activeForm } = useBuilder();
-
+export function FormPreview({ showSubmitButton = true, sections, taskId }: Props) {
+  const { rules, workflows, dispatch, activeForm, state } = useBuilder();
+  const router = useRouter();
   const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
   const { toast } = useToast();
   
@@ -90,7 +92,8 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
   }
   
   const handleSubmit = () => {
-    if (!activeForm) return;
+    const formId = taskId ? state.tasks.find(t => t.id === taskId)?.formId : activeForm?.id;
+    if (!formId) return;
 
     const allElements = getAllElements(sections);
     const submissionData = generateSubmissionJson(allElements, formState);
@@ -98,8 +101,9 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
     dispatch({
         type: 'ADD_SUBMISSION',
         payload: {
-            formId: activeForm.id,
+            formId: formId,
             data: submissionData,
+            taskId
         }
     });
 
@@ -107,12 +111,12 @@ export function FormPreview({ showSubmitButton = true, sections }: Props) {
     
     toast({
         title: "Submission Saved!",
-        description: (
-            <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-                <code className="text-white">{JSON.stringify(submissionData, null, 2)}</code>
-            </pre>
-        )
+        description: "Your form has been successfully submitted."
     });
+
+    if (taskId) {
+        router.push('/my-tasks');
+    }
 
     setFormState({});
   }

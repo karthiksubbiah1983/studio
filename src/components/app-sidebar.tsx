@@ -19,6 +19,8 @@ import {
   LayoutGrid,
   Folder,
   FileDigit,
+  Building,
+  ClipboardList
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -41,7 +43,13 @@ const menuItems: MenuItem[] = [
     children: [
         { href: "/", label: "Manage Templates", icon: Folder },
         { href: "/categories", label: "Categories", icon: Tags },
+        { href: "/sites", label: "Manage Sites", icon: Building },
     ],
+  },
+  {
+    href: "/all-tasks",
+    label: "All Tasks",
+    icon: ClipboardList,
   },
   {
     href: "#",

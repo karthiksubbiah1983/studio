@@ -45,7 +45,7 @@ export type Rule = {
     behaviors: RuleBehavior[];
 }
 
-export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Escalated';
+export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Escalated' | 'Assigned' | 'Submitted';
 
 export type WorkflowAction = 
     | { type: 'CREATE_TASK', payload: { taskType: string; } }
@@ -184,6 +184,7 @@ export type Form = {
 export type Submission = {
     id: string;
     formId: string;
+    taskId?: string; // Link to the task
     timestamp: string;
     data: Record<string, any>;
 };
@@ -191,3 +192,19 @@ export type Submission = {
 export type ClipboardItem = 
     | { type: 'section', content: Section }
     | { type: 'element', content: FormElementInstance };
+
+export type Site = {
+    id: string;
+    name: string;
+};
+
+export type Task = {
+    id: string;
+    formId: string;
+    versionId: string;
+    siteId: string;
+    status: 'Assigned' | 'Submitted';
+    submissionId?: string;
+    assignedAt: string;
+    submittedAt?: string;
+};

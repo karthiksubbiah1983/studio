@@ -8,15 +8,17 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useBuilder } from "@/hooks/use-builder";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
+import { FormPreview } from "./builder/form-preview";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { activeForm } = useBuilder();
+  const { activeForm, tasks, state } = useBuilder();
   const { user, isLoading } = useAuth();
   const isBuilderPage = pathname.startsWith('/builder');
   const isLoginPage = pathname === '/login';
-
+  const isMyTasksPage = pathname.startsWith('/my-tasks/');
+  
   useEffect(() => {
     if (isLoading) return;
 
@@ -26,6 +28,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       router.replace('/');
     }
   }, [user, isLoading, isLoginPage, router, pathname]);
+  
+  if (isMyTasksPage) {
+      const taskId = pathname.split('/')[2];
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) {
+          return <div>Task not found</div>
+      }
+      const form = state.forms.find(f => f.id === task.formId);
+      const version = form?.versions.find(v => v.id === task.versionId);
+      if (!form || !version) {
+          return <div>Form or version not found</div>;
+      }
+      return <FormPreview sections={version.sections} showSubmitButton={true} taskId={taskId} />;
+  }
 
   if (isLoading || (!user && !isLoginPage)) {
     return (
@@ -51,8 +67,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   } else if (pathname === '/categories') {
     title = 'Manage Categories';
     description = "Add, edit, or delete categories and their sub-categories to organize your form templates.";
+  } else if (pathname === '/sites') {
+    title = 'Manage Sites';
+    description = 'Add, edit, or delete sites where tasks can be assigned.';
+  } else if (pathname === '/my-tasks') {
+    title = 'My Assigned Tasks';
+    description = 'View and complete tasks that have been assigned to you.';
+  } else if (pathname === '/all-tasks') {
+    title = 'All Tasks';
+    description = 'View and track all assigned and submitted tasks across all sites.';
   }
-
 
   return (
     <div className="flex flex-col h-screen">
