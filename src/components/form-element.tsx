@@ -102,11 +102,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 if (behavior.type === 'set_value' && behavior.targetElementId === element.id) {
                     finalValue = behavior.value;
                     readOnly = true; 
-                    break;
+                    // Do not break here, allow multiple rules to set values, last one wins.
                 }
             }
         }
-        if (readOnly) break;
     }
     
     return { value: finalValue, isReadOnly: readOnly };
@@ -571,33 +570,35 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const pageSize = element.pageSize || 5;
 
         useEffect(() => {
-          if (element.dataSource === 'dynamic' && element.apiUrl) {
-            setIsTableLoading(true);
-            fetchFromApi(element.apiUrl)
-              .then(data => {
-                const arrayData = findFirstArray(data);
-                if (arrayData) {
-                  onValueChange(element.id, arrayData);
-                  setTableData(arrayData);
+            if (element.dataSource === 'dynamic' && element.apiUrl) {
+                setIsTableLoading(true);
+                fetchFromApi(element.apiUrl)
+                    .then(data => {
+                        const arrayData = findFirstArray(data);
+                        if (arrayData) {
+                            onValueChange(element.id, arrayData);
+                            setTableData(arrayData);
+                        }
+                    })
+                    .finally(() => setIsTableLoading(false));
+            } else {
+                const staticRows = (initialValue || []) as any[];
+                const numDefaultRows = element.defaultRows || 0;
+                if (staticRows.length === 0 && numDefaultRows > 0) {
+                    const initialData = Array(numDefaultRows).fill({});
+                    setTableData(initialData);
+                    onValueChange(element.id, initialData); // Immediately update central state
+                } else {
+                    setTableData(staticRows);
                 }
-              })
-              .finally(() => setIsTableLoading(false));
-          } else {
-             const staticRows = value as any[] || [];
-             const numDefaultRows = element.defaultRows || 0;
-             const initialData = staticRows.length > 0 ? staticRows : Array(numDefaultRows).fill({});
-             setTableData(initialData);
-             if(staticRows.length === 0 && numDefaultRows > 0) {
-                onValueChange(element.id, initialData);
-             }
-          }
-        }, [element.dataSource, element.apiUrl, element.defaultRows]);
-
-        useEffect(() => {
-            if (value) {
-                setTableData(value);
             }
-        }, [value]);
+        }, [element.dataSource, element.apiUrl, element.defaultRows]);
+        
+        useEffect(() => {
+            if (initialValue) {
+                setTableData(initialValue);
+            }
+        }, [initialValue]);
         
         const filteredTableData = useMemo(() => {
             if (!searchTerm) return tableData;
