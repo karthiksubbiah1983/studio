@@ -24,13 +24,18 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         }
         
         let value;
-        // For table cell evaluation, state is the row object, keys are direct
-        if (state && !idOrKey.includes('::') && state.hasOwnProperty(idOrKey)) {
-             value = state[idOrKey];
+        // If state is a row object (isTableCell context), get value directly by key.
+        if (state && typeof state === 'object' && !state.hasOwnProperty(idOrKey) && idOrKey.includes('::')) {
+            // This is a proxy ID from a table, but the context is the whole form.
+            // We can't evaluate this without the row context.
+            // This case should be handled by the caller passing the correct row context.
+            return undefined;
+        } else if (state && typeof state === 'object' && state.hasOwnProperty(idOrKey.split('::').pop()!)) {
+             const key = idOrKey.split('::').pop()!;
+             value = getNestedValue(state, key);
         } else {
-             // For main form state, or proxy IDs like 'tableId::colKey'
-             const effectiveId = idOrKey.includes('::') ? idOrKey : `${idOrKey}.value`;
-             value = getNestedValue(state, effectiveId);
+             // For main form state, get from the nested value property.
+             value = getNestedValue(state, `${idOrKey}.value`);
         }
 
         return value;

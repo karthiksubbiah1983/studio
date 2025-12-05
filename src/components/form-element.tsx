@@ -67,7 +67,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
 
-  const isVisible = useMemo(() => {
+   const isVisible = useMemo(() => {
     const context = isTableCell ? rowContext : formState;
     if (!context) return true;
 
@@ -113,20 +113,21 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.id, initialValue, rules, formState, rowContext, isTableCell]);
   
  const isDisabled = useMemo(() => {
-    if (!formState || isTableCell) return false;
+    const context = isTableCell ? rowContext : formState;
+    if (!context) return false;
 
     const disableRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
-    if (disableRules.some(r => evaluateRule(r, formState))) {
+    if (disableRules.some(r => evaluateRule(r, context))) {
       return true;
     }
 
     const enableRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
-      return !enableRules.some(r => evaluateRule(r, formState));
+      return !enableRules.some(r => evaluateRule(r, context));
     }
 
     return false;
-  }, [element.id, formState, rules, isTableCell]);
+  }, [element.id, formState, rules, isTableCell, rowContext]);
 
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
