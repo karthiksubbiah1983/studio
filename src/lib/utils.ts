@@ -85,10 +85,11 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
         els.forEach(element => {
             if (processedElements.has(element.id)) return;
             
-            const isExposed = element.exposeForValidation || element.required;
+            // Any element with a key, required status, or validation exposure should be included
+            const isSelectable = element.key || element.required || element.exposeForValidation;
 
             if (element.type === 'Container' && element.elements) {
-                if (isExposed) {
+                if (isSelectable) {
                     allElementsAndSections.push(element);
                     processedElements.add(element.id);
                 }
@@ -98,21 +99,17 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                  processedElements.add(element.id);
                 // Create "proxy" elements for each valid column to be used in rules
                 element.tableColumns.forEach(col => {
-                    // Use the column's element template to check for validation properties
-                    if ((col.element.required || col.element.exposeForValidation) && col.key) {
+                    if ((col.element.required || col.element.exposeForValidation || col.key) && col.key) {
                         const proxyElement: FormElementInstance = {
                             ...col.element,
-                            // CRITICAL: The ID must be unique for the rule engine to distinguish between columns.
-                            // Use the table's ID and the column's unique key.
                             id: `${element.id}::${col.key}`, 
                             label: `${col.label} (in ${element.label})`,
-                            key: col.key, // The key within the row object
+                            key: col.key,
                         };
                         allElementsAndSections.push(proxyElement);
-                        // We don't add these to processedElements since they are proxies with unique IDs
                     }
                 });
-            } else if (isExposed) {
+            } else if (isSelectable) {
                 allElementsAndSections.push(element);
                 processedElements.add(element.id);
             }

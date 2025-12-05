@@ -1,4 +1,5 @@
 
+
 import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
 import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue } from "@/lib/utils";
@@ -22,15 +23,17 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             }
         }
         
-        // When evaluating for a table row, `state` is the row object itself.
-        // We look for a direct key match.
-        if (state && !state.hasOwnProperty(idOrKey) && !idOrKey.includes('::')) {
-            const value = getNestedValue(state, `${idOrKey}.value`);
-            if (value !== undefined) return value;
+        let value;
+        // For table cell evaluation, state is the row object, keys are direct
+        if (state && !idOrKey.includes('::') && state.hasOwnProperty(idOrKey)) {
+             value = state[idOrKey];
+        } else {
+             // For main form state, or proxy IDs like 'tableId::colKey'
+             const effectiveId = idOrKey.includes('::') ? idOrKey : `${idOrKey}.value`;
+             value = getNestedValue(state, effectiveId);
         }
 
-        // Standard form state evaluation, or row context evaluation
-        return getNestedValue(state, idOrKey.includes('::') ? idOrKey.split('::')[1] : `${idOrKey}.value`) ?? getNestedValue(state, idOrKey);
+        return value;
     }
 
     let sourceValue: any;

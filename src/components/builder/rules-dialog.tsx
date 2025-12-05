@@ -336,7 +336,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     const valueSettingFields = useMemo(() => 
-        selectableFields.filter(el => 'type' in el && (el.type === 'Input' || el.type === 'Display'))
+        selectableFields.filter(el => 'type' in el && (el.type === 'Input' || el.type === 'Display' || (el.id.includes("::"))))
     , [selectableFields]);
 
     const targetField = selectableFields.find(f => f.id === behavior.targetElementId);
