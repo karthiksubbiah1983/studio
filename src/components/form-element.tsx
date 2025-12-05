@@ -21,7 +21,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -33,6 +33,8 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { DataGrid } from "@/components/ui/data-grid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FormPreviewPopup } from "./form-preview-popup";
+import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { format } from "date-fns";
 
 
 type Props = {
@@ -508,20 +510,38 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       content = (
         <div className={cn(isDisabled && 'pointer-events-none opacity-50')}>
           {!isTableCell && renderLabel()}
-          <div className="flex gap-2">
-            <Calendar 
-              mode="single"
-              selected={dateValue}
-              onSelect={handleDateChange}
-              className={cn("p-0 border rounded-md", appliedStyles.error && "border-destructive")}
-            />
-            <Input 
-              type="time"
-              value={timeValue}
-              onChange={handleTimeChange}
-              className={cn("w-32", appliedStyles.error && "border-destructive")}
-            />
-          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant={"outline"}
+                    className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !value && "text-muted-foreground",
+                        appliedStyles.error && "border-destructive"
+                    )}
+                    style={appliedStyles.style}
+                >
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {value ? format(new Date(value), "PPP p") : (<span>{placeholder || "Pick a date"}</span>)}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+                 <Calendar 
+                    mode="single"
+                    selected={dateValue}
+                    onSelect={handleDateChange}
+                    initialFocus
+                    className={cn("p-0 border-b rounded-md")}
+                 />
+                 <div className="p-2 border-t">
+                    <Input 
+                        type="time"
+                        value={timeValue}
+                        onChange={handleTimeChange}
+                    />
+                 </div>
+            </PopoverContent>
+          </Popover>
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
           )}

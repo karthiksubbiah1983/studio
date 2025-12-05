@@ -9,9 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table, Table2, Link, icons, Eye, Upload } from "lucide-react";
+import { Clock, Table, Table2, Link, icons, Eye, Upload, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 
@@ -122,12 +121,16 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
       return (
         <div>
           {renderLabel()}
-          <div className="flex gap-2">
-            <Calendar mode="single" className="p-0 rounded-md border w-auto"/>
-            <div className="flex items-center justify-center border rounded-md w-32">
-                <Clock className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </div>
+           <Button
+              variant={"outline"}
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !placeholder && "text-muted-foreground"
+              )}
+            >
+              <CalendarDays className="mr-2 h-4 w-4" />
+              {placeholder || <span>Pick a date</span>}
+            </Button>
           {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
         </div>
       );
