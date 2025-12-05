@@ -9,6 +9,10 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
+    serverComponentsExternalPackages: ["@genkit-ai/googleai"],
+  },
+  watchOptions: {
+    ignored: ["**/.genkit/**"],
   },
   allowedDevOrigins: [
      "https://9000-firebase-studio-1758224949257.cluster-ikslh4rdsnbqsvu5nw3v4dqjj2.cloudworkstations.dev",
