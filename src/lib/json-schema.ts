@@ -2,41 +2,32 @@
 
 import { Form, FormElementInstance, Rule, Section, Workflow } from "./types";
 
-const mapElementToSchemaProperty = (element: FormElementInstance): Record<string, any> => {
+const mapElementToSchemaProperty = (element: FormElementInstance): Record<string, any> | null => {
+    // Only create properties for elements that have a key and are not purely for display
+    if (!element.key || element.type === 'Separator' || element.type === 'Display' || element.type === 'Container') {
+        return null;
+    }
+
     const { 
         type, 
         label, 
-        helperText, 
+        helperText,
         ...rest 
     } = element;
 
-    // Base schema structure
     const schemaProperty: Record<string, any> = {
         title: label,
         description: helperText || '',
-        ui: {
-            component: type
-        }
+        'x-ui-component': type,
+        'x-ui-configuration': { ...rest }
     };
     
-    // Add all other properties from the element to the 'ui' object
-    for (const key in rest) {
-        if (Object.prototype.hasOwnProperty.call(rest, key)) {
-            const propKey = key as keyof typeof rest;
-            if (propKey !== 'id' && propKey !== 'key' && propKey !== 'label' && propKey !== 'helperText') {
-                 // @ts-ignore
-                schemaProperty.ui[propKey] = rest[propKey];
-            }
-        }
-    }
-
-
     switch (type) {
         case "Input":
         case "Textarea":
         case "RichText":
             schemaProperty.type = "string";
-            schemaProperty.default = rest.placeholder || "";
+            if(rest.placeholder) schemaProperty.default = rest.placeholder;
             break;
         case "DatePicker":
             schemaProperty.type = "string";
@@ -47,34 +38,48 @@ const mapElementToSchemaProperty = (element: FormElementInstance): Record<string
             schemaProperty.default = false;
             break;
         case "RadioGroup":
+        case "Select":
             schemaProperty.type = "string";
             if (rest.options) {
                 schemaProperty.enum = rest.options;
             }
             break;
-        case "Select":
-            schemaProperty.type = "string";
-             if (rest.dataSource === 'static' && rest.options) {
-                schemaProperty.enum = rest.options;
-            }
-            break;
-        case "Container":
-            schemaProperty.type = "object";
-            schemaProperty.properties = {};
-            schemaProperty.required = [];
-             if (rest.elements) {
-                rest.elements.forEach(el => {
-                    if (el.key) {
-                        schemaProperty.properties[el.key] = mapElementToSchemaProperty(el);
-                        if (el.required) {
-                            schemaProperty.required.push(el.key);
+        case "Table":
+            schemaProperty.type = "array";
+            schemaProperty.items = {
+                type: "object",
+                properties: {},
+                required: [],
+            };
+            if (rest.tableColumns) {
+                rest.tableColumns.forEach(col => {
+                    const colProp = mapElementToSchemaProperty(col.element);
+                    if (col.key && colProp) {
+                        schemaProperty.items.properties[col.key] = colProp;
+                        if (col.element.required) {
+                             schemaProperty.items.required.push(col.key);
                         }
                     }
                 });
             }
             break;
+        case "FileUpload":
+             schemaProperty.type = "array";
+             schemaProperty.items = {
+                 type: "object",
+                 properties: {
+                     name: { type: "string" },
+                     type: { type: "string" },
+                     size: { type: "number" },
+                 }
+             }
+             if (!rest.multiple) {
+                 schemaProperty.maxItems = 1;
+             }
+            break;
         default:
-            return {};
+            // For other types like Preview, they don't map to a data property
+            return null;
     }
 
     return schemaProperty;
@@ -87,28 +92,39 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
     title: string;
     description: string;
     type: "object";
-    version?: string;
+    formId: string;
+    versionId: string;
     versionName?: string;
     versionNumber?: number;
     properties: { [key:string]: any };
     required: string[];
     'x-rules'?: Rule[];
     'x-workflows'?: Workflow[];
-    'x-ui-sections'?: any[];
+    'x-ui-layout': {
+        sections: Section[]
+    };
   } = {
     title: form.title,
     description: "JSON schema for the generated form",
     type: "object",
+    formId: form.id,
+    versionId: latestVersion.id,
     properties: {},
     required: [],
+    'x-ui-layout': {
+        sections: sections,
+    }
   };
 
   if (latestVersion) {
     if (latestVersion.type === 'published') {
         schema.versionName = latestVersion.name;
-        schema.versionNumber = form.versions.filter(v => v.type === 'published').length;
+        const publishedCount = form.versions.filter(v => v.type === 'published').length;
+        const publishedIndex = form.versions.filter(v => v.type === 'published').findIndex(v => v.id === latestVersion.id);
+        schema.versionNumber = publishedCount - publishedIndex;
+
     } else {
-        schema.version = 'draft';
+        schema.versionName = 'draft';
     }
   }
 
@@ -120,27 +136,6 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
     schema['x-workflows'] = workflows;
   }
   
-  schema['x-ui-sections'] = sections.map(section => {
-      const getElementKeysRecursive = (elements: FormElementInstance[]): string[] => {
-          let keys: string[] = [];
-          elements.forEach(el => {
-              if (el.key) {
-                keys.push(el.key);
-              }
-              if (el.type === 'Container' && el.elements) {
-                  // For containers, we don't add the container key itself, just its children.
-                  keys = keys.concat(getElementKeysRecursive(el.elements));
-              }
-          });
-          return keys;
-      }
-      return {
-          id: section.id,
-          title: section.title,
-          elementKeys: getElementKeysRecursive(section.elements)
-      }
-  })
-
   const processElements = (elements: FormElementInstance[]) => {
     for (const element of elements) {
         // Recurse into containers
@@ -148,14 +143,13 @@ export const generateJsonSchema = (form: Form, sections: Section[], rules: Rule[
              processElements(element.elements);
         }
         
-        // Skip elements that don't have a key or are purely presentational
-        if (!element.key || element.type === 'Separator' || element.type === 'Display') {
+        if (!element.key) {
             continue;
         }
 
         const propertySchema = mapElementToSchemaProperty(element);
         
-        if (Object.keys(propertySchema).length > 0) {
+        if (propertySchema) {
             schema.properties[element.key] = propertySchema;
 
             if (element.required) {
