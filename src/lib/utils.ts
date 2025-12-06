@@ -109,6 +109,20 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                         allElementsAndSections.push(proxyElement);
                     }
                 });
+            } else if (element.type === 'DataGrid' && element.dataGridColumns) {
+                allElementsAndSections.push(element); // Add the grid itself
+                processedElements.add(element.id);
+                element.dataGridColumns.forEach(col => {
+                    if (col.key) {
+                        const proxyElement: FormElementInstance = {
+                            ...col.element,
+                            id: `${element.id}::${col.key}`,
+                            label: `${col.label} (in ${element.label})`,
+                            key: col.key,
+                        };
+                        allElementsAndSections.push(proxyElement);
+                    }
+                });
             } else if (isSelectable) {
                 allElementsAndSections.push(element);
                 processedElements.add(element.id);

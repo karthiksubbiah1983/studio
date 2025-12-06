@@ -26,13 +26,19 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         let value;
         // If state is a row object (isTableCell context), get value directly by key.
         if (state && typeof state === 'object' && !state.hasOwnProperty(idOrKey) && idOrKey.includes('::')) {
-            // This is a proxy ID from a table, but the context is the whole form.
-            // We can't evaluate this without the row context.
-            // This case should be handled by the caller passing the correct row context.
-            return undefined;
+            const [tableId, columnKey] = idOrKey.split('::');
+            if (state[tableId] && Array.isArray(state[tableId].value) && state[tableId].value.length > 0) {
+                // For DataGrids/Tables in general form state, we check the first row for rule evaluation.
+                const firstRow = state[tableId].value[0];
+                value = getNestedValue(firstRow, columnKey);
+            } else {
+                 value = undefined;
+            }
         } else if (state && typeof state === 'object' && state.hasOwnProperty(idOrKey.split('::').pop()!)) {
              const key = idOrKey.split('::').pop()!;
-             value = getNestedValue(state, key);
+             const stateValue = getNestedValue(state, key);
+             // In row context, the value is direct, not in a .value property
+             value = stateValue;
         } else {
              // For main form state, get from the nested value property.
              value = getNestedValue(state, `${idOrKey}.value`);
