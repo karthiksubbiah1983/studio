@@ -677,12 +677,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             } else {
                 const staticRows = (initialValue || []) as any[];
                 const numDefaultRows = element.defaultRows || 0;
-                if (staticRows.length === 0 && numDefaultRows > 0) {
+                if (staticRows.length < numDefaultRows) {
                     const initialData = Array(numDefaultRows).fill({}).map(() => ({})); // Ensure new object references
                     onValueChange(element.id, initialData); // Immediately update central state
                     setTableData(initialData);
+                } else if (staticRows.length > 0) {
+                     setTableData(staticRows);
                 } else {
-                    setTableData(staticRows);
+                    setTableData([]);
                 }
             }
         }, [element.dataSource, element.apiUrl, element.defaultRows]);
@@ -1032,3 +1034,4 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
