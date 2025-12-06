@@ -26,11 +26,12 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         let value;
         const isProxyId = idOrKey.includes("::");
 
-        // If the state context itself is a simple row object (from a Table or DataGrid), not the full formState.
-        if (state && typeof state === 'object' && !state.hasOwnProperty(idOrKey) && !isProxyId) {
-             const key = idOrKey.split('::').pop()!;
-             const stateValue = getNestedValue(state, key);
-             value = stateValue;
+        // If the state context is a simple row object (from a Table or DataGrid), not the full formState.
+        const isRowContext = state && typeof state === 'object' && !state.hasOwnProperty(idOrKey) && !Object.values(state).some(v => typeof v === 'object' && v !== null && v.hasOwnProperty('value'));
+
+        if (isRowContext) {
+            const key = isProxyId ? idOrKey.split('::').pop()! : idOrKey;
+            value = getNestedValue(state, key);
         } else if (isProxyId) {
             const [containerId, fieldKey] = idOrKey.split('::');
             const containerValue = state[containerId]?.value;
@@ -41,8 +42,7 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             } else {
                 value = undefined;
             }
-        }
-        else {
+        } else {
              // For main form state, get from the nested value property.
              value = getNestedValue(state, `${idOrKey}.value`);
         }
@@ -152,4 +152,5 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         return conditionResults.some(res => res);
     }
 };
+
 

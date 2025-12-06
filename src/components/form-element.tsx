@@ -562,7 +562,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const openForm = (index: number | null = null) => {
             if (index !== null) {
                 setEditingIndex(index);
-                setCurrentFormData(gridData[index]);
+                const formDataForEditing: Record<string, any> = {};
+                const rowData = gridData[index];
+                element.dataGridColumns?.forEach(col => {
+                    formDataForEditing[col.key] = { value: getNestedValue(rowData, col.key) };
+                })
+                setCurrentFormData(formDataForEditing);
             } else {
                 setEditingIndex(null);
                 setCurrentFormData({});
@@ -668,6 +673,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                     value={currentFormData[col.key]?.value}
                                     onValueChange={handleFormValueChange}
                                     formState={currentFormData}
+                                    rowContext={currentFormData}
                                 />
                             ))}
                         </div>
@@ -703,7 +709,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 const staticRows = (initialValue || []) as any[];
                 const numDefaultRows = element.defaultRows || 0;
                 if (staticRows.length < numDefaultRows) {
-                    const initialData = Array(numDefaultRows).fill({}).map(() => ({})); // Ensure new object references
+                    const newRows = Array(numDefaultRows - staticRows.length).fill({}).map(() => ({}));
+                    const initialData = [...staticRows, ...newRows];
                     onValueChange(element.id, initialData); // Immediately update central state
                     setTableData(initialData);
                 } else if (staticRows.length > 0) {
@@ -1059,5 +1066,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
