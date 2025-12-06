@@ -71,8 +71,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const context = isTableCell ? rowContext : formState;
     if (!context) return true;
 
-    const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
-    const hideRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
+    const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
+    const hideRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
     
     let visible = true; 
 
@@ -115,12 +115,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const context = isTableCell ? rowContext : formState;
     if (!context) return false;
 
-    const disableRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
+    const disableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
     if (disableRules.some(r => evaluateRule(r, context))) {
       return true;
     }
 
-    const enableRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'enable' && b.targetElementId === element.id));
+    const enableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
       return !enableRules.some(r => evaluateRule(r, context));
     }
@@ -585,9 +585,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 const staticRows = (initialValue || []) as any[];
                 const numDefaultRows = element.defaultRows || 0;
                 if (staticRows.length === 0 && numDefaultRows > 0) {
-                    const initialData = Array(numDefaultRows).fill({});
-                    setTableData(initialData);
+                    const initialData = Array(numDefaultRows).fill({}).map(() => ({})); // Ensure new object references
                     onValueChange(element.id, initialData); // Immediately update central state
+                    setTableData(initialData);
                 } else {
                     setTableData(staticRows);
                 }
@@ -670,7 +670,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         />
                     </div>
                 )}
-                <div className="rounded-md border">
+                {/* Desktop Table View */}
+                <div className="rounded-md border hidden md:block">
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -681,7 +682,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         <TableBody>
                             {paginatedData.map((row, paginatedIndex) => {
                                 const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
-                                
                                 return (
                                 <TableRow key={originalIndex}>
                                     {element.tableColumns?.map(col => {
@@ -725,8 +725,54 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         </TableBody>
                     </Table>
                 </div>
+                 {/* Mobile Card View */}
+                 <div className="grid grid-cols-1 gap-4 md:hidden">
+                    {paginatedData.map((row, paginatedIndex) => {
+                        const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
+                        return (
+                            <div key={originalIndex} className="border rounded-lg p-4 space-y-4">
+                                {element.tableColumns?.map(col => {
+                                    const proxyId = `${element.id}::${col.key}`;
+                                    let cellValue = getNestedValue(row, col.key);
+
+                                    if (col.formula) {
+                                        const calculatedValue = evaluate(col.formula, row);
+                                        cellValue = calculatedValue;
+                                    }
+
+                                    return (
+                                        <div key={proxyId} className="space-y-1">
+                                            <Label className="text-muted-foreground">{col.label}</Label>
+                                            {col.formula ? (
+                                                <Input readOnly value={cellValue} className="border-none bg-transparent p-0 h-auto" />
+                                            ) : (
+                                                <FormElementRenderer
+                                                    element={{...col.element, id: proxyId, key: col.key }}
+                                                    value={cellValue}
+                                                    onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
+                                                    formState={formState}
+                                                    rowContext={row}
+                                                    isTableCell={true}
+                                                />
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                                {element.canAddRows && element.dataSource !== 'dynamic' && (
+                                    <div className="pt-2 border-t">
+                                        <Button variant="ghost" size="sm" className="w-full justify-center text-destructive" onClick={() => handleDeleteRow(originalIndex)}>
+                                            <Trash className="h-4 w-4 mr-2" />
+                                            Delete Row
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        )
+                    })}
+                 </div>
+
                  {element.canAddRows && element.dataSource !== 'dynamic' && (
-                    <Button variant="outline" size="sm" className="mt-2" onClick={handleAddRow}>
+                    <Button variant="outline" size="sm" className="mt-4 w-full md:w-auto" onClick={handleAddRow}>
                         <Plus className="h-4 w-4 mr-2"/>
                         Add Row
                     </Button>
