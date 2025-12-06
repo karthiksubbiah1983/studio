@@ -68,13 +68,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
 
   const context = useMemo(() => {
-    // For DataGrid and Table rows, the context is the row itself.
-    if (isTableCell || (rowContext && typeof rowContext === 'object' && Object.keys(rowContext).length > 0)) {
+    if (rowContext) {
         return rowContext;
     }
-    // Otherwise, it's the full form state.
     return formState;
-  }, [isTableCell, rowContext, formState]);
+  }, [rowContext, formState]);
 
    const isVisible = useMemo(() => {
     if (!context) return true;
@@ -124,7 +122,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.id, initialValue, rules, context]);
 
   useEffect(() => {
-    // When a 'set_value' rule changes the value, we need to inform the parent form.
     if (calculatedValue !== undefined && calculatedValue !== initialValue) {
         onValueChange(element.id, calculatedValue);
     }
@@ -175,7 +172,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   useEffect(() => {
     if (element.type === 'Select' && element.dataSource === 'dynamic') {
       
-      // Handle 'parent' dependency type
       if (element.dependencyType === 'parent' && element.dependentFieldId && element.subKey) {
         const parentValue = formState?.[element.dependentFieldId];
         if (parentValue?.fullObject) {
@@ -188,10 +184,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         } else {
             setDynamicOptions([]);
         }
-        return; // Stop here for 'parent' dependency type
+        return; 
       }
       
-      // Handle 'api' dependency type or no dependency
       if (element.apiUrl) {
         let finalApiUrl = element.apiUrl;
 
@@ -205,7 +200,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
               }
           } else {
               setDynamicOptions([]);
-              return; // Don't fetch if dependent value is missing
+              return; 
           }
         }
 
@@ -276,9 +271,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Display": {
       let finalDisplayValue;
 
-      if (isReadOnly) { // Value from a rule takes highest priority
+      if (isReadOnly) {
           finalDisplayValue = value;
-      } else if (dataSourceConfig?.sourceElementId && formState) { // Then check for data source config
+      } else if (dataSourceConfig?.sourceElementId && formState) { 
           const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
           const sourceValue = formState[dataSourceConfig.sourceElementId];
           if (sourceElement && sourceValue) {
@@ -288,11 +283,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                   finalDisplayValue = sourceValue.value;
               }
           }
-      } else if (isTableCell && rowContext && key) { // Then check for table cell context
+      } else if (isTableCell && rowContext && key) { 
           finalDisplayValue = getNestedValue(rowContext, key);
       }
       
-      // Fallback to the label if no other value is determined
       if (finalDisplayValue === undefined || finalDisplayValue === null) {
           finalDisplayValue = label;
       }
@@ -376,7 +370,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       };
       content = (
         <div>
-          {!isTableCell && renderLabel()}
+          {renderLabel()}
           <Input 
             placeholder={placeholder}
             value={value || ""}
@@ -396,7 +390,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Textarea":
       content = (
         <div>
-          {!isTableCell && renderLabel()}
+          {renderLabel()}
           <Textarea 
             placeholder={placeholder}
             value={value || ""}
@@ -437,7 +431,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
       content = (
         <div>
-          {!isTableCell && renderLabel()}
+          {renderLabel()}
           <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled || isDependentAndParentNotSelected}>
             <SelectTrigger style={appliedStyles.style} className={cn(appliedStyles.error && "border-destructive")}>
               <SelectValue placeholder={isLoading ? "Loading..." : (isDependentAndParentNotSelected ? "Select parent first" : placeholder)} />
@@ -526,7 +520,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
       content = (
         <div className={cn(isDisabled && 'pointer-events-none opacity-50')}>
-          {!isTableCell && renderLabel()}
+          {renderLabel()}
           <Popover>
             <PopoverTrigger asChild>
                 <Button
@@ -582,19 +576,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             if (index !== null) {
                 setEditingIndex(index);
                 const rowData = gridData[index];
-                // The form state for the popup should be flat, mapping column key to value
                 const formDataForEditing: Record<string, any> = {};
                  element.dataGridColumns?.forEach(col => {
-                    const elId = col.key; // Use key as the identifier inside the form
+                    const elId = `${element.id}::${col.key}`;
                     formDataForEditing[elId] = { value: getNestedValue(rowData, col.key) };
                 })
                 setCurrentFormData(formDataForEditing);
             } else {
                 setEditingIndex(null);
-                 // Initialize form state for a new entry
                 const initialFormData: Record<string, any> = {};
                 element.dataGridColumns?.forEach(col => {
-                    initialFormData[col.key] = { value: undefined };
+                    initialFormData[`${element.id}::${col.key}`] = { value: undefined };
                 });
                 setCurrentFormData(initialFormData);
             }
@@ -602,14 +594,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         };
         
         const handleFormValueChange = (id: string, val: any, fullObject?: any) => {
-             // id here is the column key
             setCurrentFormData(prev => ({...prev, [id]: { value: val, fullObject }}));
         }
 
         const handleSave = () => {
             let newData = [...gridData];
-            const finalDataToSave = Object.keys(currentFormData).reduce((acc, key) => {
-                acc[key] = currentFormData[key].value;
+            const finalDataToSave = (element.dataGridColumns || []).reduce((acc, col) => {
+                const proxyId = `${element.id}::${col.key}`;
+                if(currentFormData[proxyId]) {
+                    acc[col.key] = currentFormData[proxyId].value;
+                }
                 return acc;
             }, {} as Record<string, any>);
 
@@ -696,14 +690,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                             {element.dataGridColumns?.map(col => (
                                 <FormElementRenderer 
                                     key={col.id}
-                                    element={{ ...col.element, id: col.key, key: col.key }}
-                                    value={currentFormData[col.key]?.value}
+                                    element={{ ...col.element, id: `${element.id}::${col.key}` }}
+                                    value={currentFormData[`${element.id}::${col.key}`]?.value}
                                     onValueChange={handleFormValueChange}
-                                    rowContext={Object.keys(currentFormData).reduce((acc, key) => {
-                                        acc[key] = currentFormData[key]?.value;
+                                    rowContext={(element.dataGridColumns || []).reduce((acc, c) => {
+                                        const proxyId = `${element.id}::${c.key}`;
+                                        acc[c.key] = currentFormData[proxyId]?.value;
                                         return acc;
                                     }, {} as Record<string, any>)}
-                                    isTableCell={true}
                                 />
                             ))}
                         </div>
@@ -736,12 +730,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     })
                     .finally(() => setIsTableLoading(false));
             } else {
-                const staticRows = (initialValue || []) as any[];
+                 const staticRows = (initialValue || []) as any[];
                 const numDefaultRows = element.defaultRows || 0;
                 if (staticRows.length < numDefaultRows) {
                     const newRows = Array(numDefaultRows - staticRows.length).fill({}).map(() => ({}));
                     const initialData = [...staticRows, ...newRows];
-                    onValueChange(element.id, initialData); // Immediately update central state
+                    onValueChange(element.id, initialData);
                     setTableData(initialData);
                 } else if (staticRows.length > 0) {
                      setTableData(staticRows);
@@ -749,7 +743,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     setTableData([]);
                 }
             }
-        }, [element.dataSource, element.apiUrl, element.defaultRows]);
+        }, [element.dataSource, element.apiUrl]);
         
         useEffect(() => {
             if (initialValue) {
@@ -773,7 +767,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const handleNextPage = () => setCurrentPage(p => Math.min(totalPages, p + 1));
 
         useEffect(() => {
-            // Reset to page 1 when search term changes
             setCurrentPage(1);
         }, [searchTerm]);
 
@@ -784,7 +777,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             }
             newRows[rowIndex][columnKey] = cellValue;
 
-            // Recalculate formula fields in the same row
             element.tableColumns?.forEach(col => {
                 if (col.formula) {
                     const formulaResult = evaluate(col.formula, newRows[rowIndex]);
@@ -1100,3 +1092,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
 
 
+
+
+    

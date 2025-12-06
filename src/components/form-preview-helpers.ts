@@ -9,14 +9,11 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     const getConditionValue = (idOrKey: string | undefined): any => {
         if (!idOrKey) return undefined;
         
-        // Handle special date values first
         if (idOrKey.startsWith('_')) {
             switch(idOrKey) {
                 case '_current_date':
                 case '_due_date':
                 case '_scheduled_date':
-                    // This is a placeholder for actual date logic if needed.
-                    // For now, we'll treat them as comparable strings.
                     return new Date().toISOString(); 
                 default:
                     return undefined;
@@ -25,9 +22,8 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         
         let value;
         const isProxyId = idOrKey.includes("::");
-
-        // If the state context is a simple row object (from a Table or DataGrid), not the full formState.
-        const isRowContext = state && typeof state === 'object' && !state.hasOwnProperty(idOrKey) && !Object.values(state).some(v => typeof v === 'object' && v !== null && v.hasOwnProperty('value'));
+        
+        const isRowContext = state && typeof state === 'object' && !Object.values(state).some(v => typeof v === 'object' && v !== null && 'value' in v);
 
         if (isRowContext) {
             const key = isProxyId ? idOrKey.split('::').pop()! : idOrKey;
@@ -36,14 +32,12 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             const [containerId, fieldKey] = idOrKey.split('::');
             const containerValue = state[containerId]?.value;
             if (Array.isArray(containerValue) && containerValue.length > 0) {
-                 // For rules on the main form, we check the first row of the table/grid.
                  const firstRow = containerValue[0];
                  value = getNestedValue(firstRow, fieldKey);
             } else {
                 value = undefined;
             }
         } else {
-             // For main form state, get from the nested value property.
              value = getNestedValue(state, `${idOrKey}.value`);
         }
 
@@ -52,24 +46,21 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
 
     let sourceValue: any;
     if (condition.sourceType === 'field') {
-        const sourceId = condition.sourceElementId || '';
-        sourceValue = getConditionValue(sourceId);
+        sourceValue = getConditionValue(condition.sourceElementId || '');
     } else if (condition.sourceType === 'date') {
         sourceValue = getConditionValue(condition.sourceValue);
     } else { // status
-        sourceValue = 'Open'; // Placeholder for actual status logic
+        sourceValue = 'Open'; // Placeholder
     }
     
-    // Treat undefined, null, or empty string as equivalent for comparison purposes
     const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
 
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
-        const comparisonId = condition.comparisonElementId || '';
-        comparisonValue = getConditionValue(comparisonId);
+        comparisonValue = getConditionValue(condition.comparisonElementId || '');
     } else if (condition.comparisonType === 'date') {
         comparisonValue = getConditionValue(condition.value);
-    } else { // 'value' or 'status'
+    } else { 
         comparisonValue = condition.value;
     }
 
@@ -81,7 +72,7 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         const numSource = parseFloat(sourceValue);
         const numComparison = parseFloat(comparisonValue);
         if (isNaN(numSource) || isNaN(numComparison)) {
-            return false; // Cannot perform numeric comparison
+            return false;
         }
         if (condition.operator === 'is_greater_than') {
             return numSource > numComparison;
@@ -101,7 +92,6 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         return String(sourceValue) !== String(comparisonValue);
     }
 
-    // For other operators, if source is empty, it's false.
     if (isSourceValueEmpty) {
         return false;
     }
@@ -119,21 +109,19 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             dateComparison.setHours(0, 0, 0, 0);
 
             if (condition.offsetDays) {
-                // Apply offset to the source date for comparison
                 dateSource.setDate(dateSource.getDate() + condition.offsetDays);
             }
 
             switch(condition.operator) {
                 case 'is_greater_than': return dateSource > dateComparison;
                 case 'is_less_than': return dateSource < dateComparison;
-                default: return false; // Other operators already handled
+                default: return false; 
             }
         } catch (e) {
             return false;
         }
     }
 
-    // Standard string/number comparison for remaining operators
     switch (condition.operator) {
        case 'contains': return String(sourceValue).includes(String(comparisonValue));
        case 'not_contains': return !String(sourceValue).includes(String(comparisonValue));
@@ -154,3 +142,5 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
 };
 
 
+
+    
