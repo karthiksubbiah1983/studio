@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table, Table2, Link, icons, Eye, Upload, CalendarDays } from "lucide-react";
+import { Clock, Table, Table2, Link, icons, Eye, Upload, CalendarDays, Grid } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { format } from "date-fns";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
   const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink, linkUrl, textStyle, color, content } = element;
@@ -121,16 +123,27 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
       return (
         <div>
           {renderLabel()}
-           <Button
-              variant={"outline"}
-              className={cn(
-                "w-full justify-start text-left font-normal",
-                !placeholder && "text-muted-foreground"
-              )}
-            >
-              <CalendarDays className="mr-2 h-4 w-4" />
-              {placeholder || <span>Pick a date</span>}
-            </Button>
+           <Popover>
+            <PopoverTrigger asChild>
+                <Button
+                    variant={"outline"}
+                    className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !placeholder && "text-muted-foreground"
+                    )}
+                    >
+                    <CalendarDays className="mr-2 h-4 w-4" />
+                    {placeholder ? <span>{placeholder}</span> : <span>Pick a date</span>}
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+                 <Calendar 
+                    mode="single"
+                    initialFocus
+                    className="p-0"
+                 />
+            </PopoverContent>
+          </Popover>
           {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
         </div>
       );
@@ -151,9 +164,9 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
          <div>
           {renderLabel()}
           <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
-            <Table className="h-12 w-12 text-muted-foreground" />
+            <Grid className="h-12 w-12 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Data Grid</p>
-            <p className="text-xs text-muted-foreground/70">Data will be fetched from API</p>
+            <p className="text-xs text-muted-foreground/70">{element.dataGridColumns?.length || 0} columns configured</p>
           </div>
         </div>
        );

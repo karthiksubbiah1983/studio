@@ -77,7 +77,7 @@ export type DataGridColumn = {
     id: string;
     key: string;
     label: string;
-    visible?: boolean;
+    element: FormElementInstance;
 };
 
 export type TableColumn = {
@@ -124,7 +124,9 @@ export type FormElementInstance = {
     direction?: 'horizontal' | 'vertical';
     justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
-    // For DataGrid, Table
+    // For DataGrid
+    dataGridColumns?: DataGridColumn[];
+    // For Table
     columns?: DataGridColumn[];
     paginationEnabled?: boolean;
     pageSize?: number;

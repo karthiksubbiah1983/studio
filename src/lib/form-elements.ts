@@ -59,14 +59,10 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
             return {
                 ...baseElement,
                 label: "Data Grid",
-                apiUrl: "https://jsonplaceholder.typicode.com/users",
-                columns: [
-                    { id: '1', key: 'name', label: 'Name', visible: true },
-                    { id: '2', key: 'email', label: 'Email', visible: true },
-                    { id: '3', key: 'phone', label: 'Phone', visible: true },
+                dataGridColumns: [
+                    { id: crypto.randomUUID(), key: 'name', label: 'Name', element: createNewElement('Input') },
+                    { id: crypto.randomUUID(), key: 'email', label: 'Email', element: createNewElement('Input') },
                 ],
-                paginationEnabled: true,
-                pageSize: 5,
             }
         case "Table":
             const inputColumnElement = createNewElement('Input');
