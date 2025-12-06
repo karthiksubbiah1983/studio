@@ -24,22 +24,25 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         }
         
         let value;
-        // If state is a row object (isTableCell context), get value directly by key.
-        if (state && typeof state === 'object' && !state.hasOwnProperty(idOrKey) && idOrKey.includes('::')) {
-            const [tableId, columnKey] = idOrKey.split('::');
-            if (state[tableId] && Array.isArray(state[tableId].value) && state[tableId].value.length > 0) {
-                // For DataGrids/Tables in general form state, we check the first row for rule evaluation.
-                const firstRow = state[tableId].value[0];
-                value = getNestedValue(firstRow, columnKey);
-            } else {
-                 value = undefined;
-            }
-        } else if (state && typeof state === 'object' && state.hasOwnProperty(idOrKey.split('::').pop()!)) {
+        const isProxyId = idOrKey.includes("::");
+
+        // If the state context itself is a simple row object (from a Table or DataGrid), not the full formState.
+        if (state && typeof state === 'object' && !state.hasOwnProperty(idOrKey) && !isProxyId) {
              const key = idOrKey.split('::').pop()!;
              const stateValue = getNestedValue(state, key);
-             // In row context, the value is direct, not in a .value property
              value = stateValue;
-        } else {
+        } else if (isProxyId) {
+            const [containerId, fieldKey] = idOrKey.split('::');
+            const containerValue = state[containerId]?.value;
+            if (Array.isArray(containerValue) && containerValue.length > 0) {
+                 // For rules on the main form, we check the first row of the table/grid.
+                 const firstRow = containerValue[0];
+                 value = getNestedValue(firstRow, fieldKey);
+            } else {
+                value = undefined;
+            }
+        }
+        else {
              // For main form state, get from the nested value property.
              value = getNestedValue(state, `${idOrKey}.value`);
         }
@@ -149,3 +152,4 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         return conditionResults.some(res => res);
     }
 };
+

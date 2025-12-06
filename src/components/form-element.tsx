@@ -67,8 +67,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
 
+  const context = useMemo(() => isTableCell ? rowContext : formState, [isTableCell, rowContext, formState]);
+
    const isVisible = useMemo(() => {
-    const context = isTableCell ? rowContext : formState;
     if (!context) return true;
 
     const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
@@ -87,13 +88,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     
     return visible;
-  }, [element.id, formState, rules, isTableCell, rowContext]);
+  }, [element.id, context, rules]);
 
   const { value, isReadOnly } = useMemo(() => {
-    const context = isTableCell ? rowContext : formState;
     let finalValue = initialValue;
     let readOnly = false;
-    if (!context || !rules) return { value: finalValue, isReadOnly };
+    if (!context || !rules) return { value: finalValue, isReadOnly: readOnly };
     
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, context);
@@ -109,10 +109,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     
     return { value: finalValue, isReadOnly: readOnly };
-  }, [element.id, initialValue, rules, formState, rowContext, isTableCell]);
+  }, [element.id, initialValue, rules, context]);
   
  const isDisabled = useMemo(() => {
-    const context = isTableCell ? rowContext : formState;
     if (!context) return false;
 
     const disableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
@@ -126,12 +125,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
 
     return false;
-  }, [element.id, formState, rules, isTableCell, rowContext]);
+  }, [element.id, context, rules]);
 
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
     let error: string | null = null;
-    const context = isTableCell ? rowContext : formState;
     if (!context || !rules) return { style, error };
     
     for (const rule of rules) {
@@ -151,7 +149,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
     }
     return { style, error };
-  }, [element.id, formState, rules, isTableCell, rowContext]);
+  }, [element.id, context, rules]);
   
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
@@ -555,6 +553,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const [editingIndex, setEditingIndex] = useState<number | null>(null);
         const [currentFormData, setCurrentFormData] = useState<Record<string, any>>({});
 
+        useEffect(() => {
+            if(initialValue) {
+                setGridData(initialValue);
+            }
+        }, [initialValue]);
+
         const openForm = (index: number | null = null) => {
             if (index !== null) {
                 setEditingIndex(index);
@@ -566,16 +570,21 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             setIsFormOpen(true);
         };
         
-        const handleFormValueChange = (id: string, val: any) => {
-            setCurrentFormData(prev => ({...prev, [id]: val}));
+        const handleFormValueChange = (id: string, val: any, fullObject?: any) => {
+            setCurrentFormData(prev => ({...prev, [id]: { value: val, fullObject }}));
         }
 
         const handleSave = () => {
             let newData = [...gridData];
+            const finalDataToSave = Object.keys(currentFormData).reduce((acc, key) => {
+                acc[key] = currentFormData[key].value;
+                return acc;
+            }, {} as Record<string, any>);
+
             if (editingIndex !== null) {
-                newData[editingIndex] = currentFormData;
+                newData[editingIndex] = finalDataToSave;
             } else {
-                newData.push(currentFormData);
+                newData.push(finalDataToSave);
             }
             setGridData(newData);
             onValueChange(element.id, newData);
@@ -586,6 +595,22 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             const newData = gridData.filter((_, i) => i !== index);
             setGridData(newData);
             onValueChange(element.id, newData);
+        }
+        
+        const getColumnStyle = (col: DataGridColumn, row: any) => {
+            const proxyId = `${element.id}::${col.key}`;
+            const styles: React.CSSProperties = {};
+             for (const rule of rules) {
+                const isRuleMet = evaluateRule(rule, row);
+                if (isRuleMet) {
+                    for (const behavior of rule.behaviors) {
+                        if (behavior.targetElementId === proxyId && behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
+                            styles[behavior.targetProperty as any] = behavior.color;
+                        }
+                    }
+                }
+            }
+            return styles;
         }
 
         content = (
@@ -603,7 +628,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                             {gridData.map((row, rowIndex) => (
                                 <TableRow key={rowIndex}>
                                     {element.dataGridColumns?.map(col => (
-                                        <TableCell key={col.id}>
+                                        <TableCell key={col.id} style={getColumnStyle(col, row)}>
                                             {getNestedValue(row, col.key)}
                                         </TableCell>
                                     ))}
@@ -640,7 +665,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 <FormElementRenderer 
                                     key={col.id}
                                     element={{ ...col.element, id: col.key, key: col.key }}
-                                    value={currentFormData[col.key]}
+                                    value={currentFormData[col.key]?.value}
                                     onValueChange={handleFormValueChange}
                                     formState={currentFormData}
                                 />
@@ -1034,4 +1059,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
