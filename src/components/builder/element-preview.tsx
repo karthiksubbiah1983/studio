@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { format } from "date-fns";
+import { Calendar } from "../ui/calendar";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
   const { type, label, required, placeholder, helperText, options, dataSource, dataSourceConfig, elements, direction, isLink, linkUrl, textStyle, color, content } = element;
