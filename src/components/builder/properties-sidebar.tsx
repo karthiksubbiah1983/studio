@@ -870,20 +870,94 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "DataGrid":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "columns"]} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="columns">
-                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
-                        <AccordionContent>
-                            {dataGridColumnsField(props.dataGridColumns, (newColumns) => updateProperty('dataGridColumns', newColumns))}
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
+                 <>
+                    <Accordion type="multiple" defaultValue={["general", "columns"]} className="w-full">
+                        <AccordionItem value="general">
+                            <AccordionTrigger className="py-2">General</AccordionTrigger>
+                            <AccordionContent className="flex flex-col gap-4">
+                                {commonFields}
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="columns">
+                            <AccordionTrigger className="py-2">Columns</AccordionTrigger>
+                            <AccordionContent>
+                                {dataGridColumnsField(props.dataGridColumns, (newColumns) => updateProperty('dataGridColumns', newColumns))}
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                     <Dialog open={!!editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
+                        <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
+                            <DialogHeader>
+                                <DialogTitle>Edit Column</DialogTitle>
+                                <DialogDescription>
+                                    Configure the properties for this data grid column.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <ScrollArea className="flex-grow -mx-6 px-6">
+                                {editingColumn && (
+                                    <div className="py-4 flex flex-col gap-4">
+                                        <div className="flex flex-col gap-2">
+                                            <Label>Column Header</Label>
+                                            <Input value={editingColumn.label} onChange={(e) => setEditingColumn({...editingColumn, label: e.target.value })} />
+                                        </div>
+                                        <div className="flex flex-col gap-2">
+                                            <Label>Column Key</Label>
+                                            <Input value={editingColumn.key} onChange={(e) => setEditingColumn({...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
+                                        </div>
+
+                                        <Separator />
+                                        
+                                        <h3 className="text-lg font-medium">Field Properties</h3>
+                                        <div className="flex flex-col gap-2">
+                                            <Label>Field Type</Label>
+                                            <Select 
+                                                value={editingColumn.element.type}
+                                                onValueChange={(type) => {
+                                                    const newElement = createNewElement(type as ElementType);
+                                                    setEditingColumn({...editingColumn, element: newElement });
+                                                }}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a field type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Input">Input</SelectItem>
+                                                    <SelectItem value="Select">Select</SelectItem>
+                                                    <SelectItem value="Checkbox">Checkbox</SelectItem>
+                                                    <SelectItem value="RadioGroup">Radio Group</SelectItem>
+                                                    <SelectItem value="DatePicker">Date Picker</SelectItem>
+                                                    <SelectItem value="Display">Display Text</SelectItem>
+                                                    <SelectItem value="RichText">Rich Text</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        
+                                        <ElementProperties
+                                            element={editingColumn.element}
+                                            onUpdate={(updatedElement) => setEditingColumn({ ...editingColumn, element: updatedElement })}
+                                            isColumnElement={true}
+                                        />
+                                    </div>
+                                )}
+                            </ScrollArea>
+                            <DialogFooter>
+                                 <Button variant="outline" onClick={() => setEditingColumn(null)}>Cancel</Button>
+                                 <Button onClick={() => {
+                                    if (!editingColumn) return;
+                                    const existing = props.dataGridColumns?.find(c => c.id === editingColumn.id);
+                                    let newColumns: DataGridColumn[];
+                                    if (existing) {
+                                        newColumns = (props.dataGridColumns || []).map(c => c.id === editingColumn.id ? editingColumn as DataGridColumn : c);
+                                    } else {
+                                        newColumns = [...(props.dataGridColumns || []), editingColumn as DataGridColumn];
+                                    }
+                                    updateProperty('dataGridColumns', newColumns);
+                                    setEditingColumn(null);
+                                 }}>Save Column</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                 </>
             )
         case "Table":
             return (
