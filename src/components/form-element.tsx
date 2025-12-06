@@ -67,7 +67,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
 
-  const context = useMemo(() => isTableCell ? rowContext : formState, [isTableCell, rowContext, formState]);
+  const context = useMemo(() => {
+    // For DataGrid and Table rows, the context is the row itself.
+    if (isTableCell || (rowContext && typeof rowContext === 'object' && Object.keys(rowContext).length > 0)) {
+        return rowContext;
+    }
+    // Otherwise, it's the full form state.
+    return formState;
+  }, [isTableCell, rowContext, formState]);
 
    const isVisible = useMemo(() => {
     if (!context) return true;
@@ -90,26 +97,38 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     return visible;
   }, [element.id, context, rules]);
 
-  const { value, isReadOnly } = useMemo(() => {
+  const { value, isReadOnly, calculatedValue } = useMemo(() => {
     let finalValue = initialValue;
     let readOnly = false;
-    if (!context || !rules) return { value: finalValue, isReadOnly: readOnly };
+    let newCalculatedValue: string | undefined = undefined;
+
+    if (!context || !rules) return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
     
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, context);
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
                 if (behavior.type === 'set_value' && behavior.targetElementId === element.id) {
-                    finalValue = behavior.value;
+                    newCalculatedValue = behavior.value;
                     readOnly = true; 
-                    // Do not break here, allow multiple rules to set values, last one wins.
                 }
             }
         }
     }
     
-    return { value: finalValue, isReadOnly: readOnly };
+    if (newCalculatedValue !== undefined) {
+      finalValue = newCalculatedValue;
+    }
+
+    return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
   }, [element.id, initialValue, rules, context]);
+
+  useEffect(() => {
+    // When a 'set_value' rule changes the value, we need to inform the parent form.
+    if (calculatedValue !== undefined && calculatedValue !== initialValue) {
+        onValueChange(element.id, calculatedValue);
+    }
+  }, [calculatedValue, initialValue, onValueChange, element.id]);
   
  const isDisabled = useMemo(() => {
     if (!context) return false;
@@ -562,20 +581,28 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const openForm = (index: number | null = null) => {
             if (index !== null) {
                 setEditingIndex(index);
-                const formDataForEditing: Record<string, any> = {};
                 const rowData = gridData[index];
-                element.dataGridColumns?.forEach(col => {
-                    formDataForEditing[col.key] = { value: getNestedValue(rowData, col.key) };
+                // The form state for the popup should be flat, mapping column key to value
+                const formDataForEditing: Record<string, any> = {};
+                 element.dataGridColumns?.forEach(col => {
+                    const elId = col.key; // Use key as the identifier inside the form
+                    formDataForEditing[elId] = { value: getNestedValue(rowData, col.key) };
                 })
                 setCurrentFormData(formDataForEditing);
             } else {
                 setEditingIndex(null);
-                setCurrentFormData({});
+                 // Initialize form state for a new entry
+                const initialFormData: Record<string, any> = {};
+                element.dataGridColumns?.forEach(col => {
+                    initialFormData[col.key] = { value: undefined };
+                });
+                setCurrentFormData(initialFormData);
             }
             setIsFormOpen(true);
         };
         
         const handleFormValueChange = (id: string, val: any, fullObject?: any) => {
+             // id here is the column key
             setCurrentFormData(prev => ({...prev, [id]: { value: val, fullObject }}));
         }
 
@@ -634,7 +661,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 <TableRow key={rowIndex}>
                                     {element.dataGridColumns?.map(col => (
                                         <TableCell key={col.id} style={getColumnStyle(col, row)}>
-                                            {getNestedValue(row, col.key)}
+                                            {String(getNestedValue(row, col.key) ?? '')}
                                         </TableCell>
                                     ))}
                                     <TableCell className="text-right">
@@ -672,8 +699,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                     element={{ ...col.element, id: col.key, key: col.key }}
                                     value={currentFormData[col.key]?.value}
                                     onValueChange={handleFormValueChange}
-                                    formState={currentFormData}
-                                    rowContext={currentFormData}
+                                    rowContext={Object.keys(currentFormData).reduce((acc, key) => {
+                                        acc[key] = currentFormData[key]?.value;
+                                        return acc;
+                                    }, {} as Record<string, any>)}
+                                    isTableCell={true}
                                 />
                             ))}
                         </div>
@@ -1066,6 +1096,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
 
