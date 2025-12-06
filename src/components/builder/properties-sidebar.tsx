@@ -315,7 +315,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         apiUrl: newUrl,
         valueKey: undefined,
         labelKey: undefined,
-        columns: props.type === 'DataGrid' ? props.columns?.map(c => ({...c, key: ''})) : props.columns,
+        dataGridColumns: props.type === 'DataGrid' ? props.dataGridColumns?.map(c => ({...c, key: ''})) : props.dataGridColumns,
     };
     setProps(newProps);
     onUpdate(newProps);
@@ -535,7 +535,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 
-  const dataGridColumnsField = (columns: DataGridColumn[] | undefined, onUpdate: (columns: DataGridColumn[]) => void, availableKeys: string[]) => {
+  const dataGridColumnsField = (columns: DataGridColumn[] | undefined, onUpdate: (columns: DataGridColumn[]) => void) => {
     return (
     <div className="flex flex-col gap-2">
         <Label>Columns</Label>
@@ -557,48 +557,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </div>
                      <div className="space-y-1">
                         <Label htmlFor={`col-key-${col.id}`} className="text-xs">Data Key</Label>
-                        {availableKeys.length > 0 ? (
-                            <Select
-                                value={col.key}
-                                onValueChange={(value) => {
-                                    const newCols = [...columns];
-                                    newCols[index].key = value;
-                                    onUpdate(newCols);
-                                }}
-                            >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select data key..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {availableKeys.map(key => (
-                                        <SelectItem key={key} value={key}>{key}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        ) : (
-                            <Input 
-                                id={`col-key-${col.id}`}
-                                placeholder="e.g., user.name"
-                                value={col.key}
-                                onChange={(e) => {
-                                    const newCols = [...columns];
-                                    newCols[index].key = e.target.value;
-                                    onUpdate(newCols);
-                                }}
-                            />
-                        )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <Switch 
-                            id={`col-visible-${col.id}`}
-                            checked={col.visible ?? true}
-                            onCheckedChange={(checked) => {
+                        <Input 
+                            id={`col-key-${col.id}`}
+                            placeholder="e.g., user.name"
+                            value={col.key}
+                            onChange={(e) => {
                                 const newCols = [...columns];
-                                newCols[index].visible = checked;
+                                newCols[index].key = e.target.value;
                                 onUpdate(newCols);
                             }}
                         />
-                        <Label htmlFor={`col-visible-${col.id}`} className="text-xs">Visible</Label>
                     </div>
                 </div>
                 <Button variant="ghost" size="icon" onClick={() => {
@@ -610,7 +578,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             </div>
         ))}
         <Button variant="outline" size="sm" onClick={() => {
-             const newCol: DataGridColumn = { id: crypto.randomUUID(), key: "", label: `Column ${(columns?.length || 0) + 1}`, visible: true };
+             const newCol: DataGridColumn = { id: crypto.randomUUID(), key: "", label: `Column ${(columns?.length || 0) + 1}`, element: createNewElement('Input') };
             const newCols = [...(columns || []), newCol];
             onUpdate(newCols);
         }}>
@@ -915,52 +883,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "DataGrid":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "columns", "pagination"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "columns"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                         </AccordionContent>
                     </AccordionItem>
-                     <AccordionItem value="data">
-                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="apiUrl">API URL</Label>
-                                <div className="flex gap-2">
-                                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                                     <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
-                                        {isFetching ? "Fetching..." : "Fetch"}
-                                    </Button>
-                                </div>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
                     <AccordionItem value="columns">
                         <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                         <AccordionContent>
-                            {dataGridColumnsField(props.columns, (newColumns) => updateProperty('columns', newColumns), fetchedKeys)}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="pagination">
-                        <AccordionTrigger className="py-2">Pagination</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="pagination-enabled">Enable Pagination</Label>
-                                <Switch id="pagination-enabled" checked={props.paginationEnabled} onCheckedChange={(checked) => updateProperty('paginationEnabled', checked)} />
-                            </div>
-                            {props.paginationEnabled && (
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="page-size">Page Size</Label>
-                                    <Input 
-                                        id="page-size" 
-                                        type="number" 
-                                        value={props.pageSize || 5} 
-                                        onChange={(e) => updateProperty('pageSize', parseInt(e.target.value))}
-                                        min={1}
-                                    />
-                                </div>
-                            )}
+                            {dataGridColumnsField(props.dataGridColumns, (newColumns) => updateProperty('dataGridColumns', newColumns))}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

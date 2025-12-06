@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section, TableColumn } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,7 +21,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -30,11 +30,11 @@ import { useBuilder } from "@/hooks/use-builder";
 import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { DataGrid } from "@/components/ui/data-grid";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FormPreviewPopup } from "./form-preview-popup";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 
 
 type Props = {
@@ -550,15 +550,108 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       );
       break;
     case "DataGrid":
+        const [gridData, setGridData] = useState<any[]>(initialValue || []);
+        const [isFormOpen, setIsFormOpen] = useState(false);
+        const [editingIndex, setEditingIndex] = useState<number | null>(null);
+        const [currentFormData, setCurrentFormData] = useState<Record<string, any>>({});
+
+        const openForm = (index: number | null = null) => {
+            if (index !== null) {
+                setEditingIndex(index);
+                setCurrentFormData(gridData[index]);
+            } else {
+                setEditingIndex(null);
+                setCurrentFormData({});
+            }
+            setIsFormOpen(true);
+        };
+        
+        const handleFormValueChange = (id: string, val: any) => {
+            setCurrentFormData(prev => ({...prev, [id]: val}));
+        }
+
+        const handleSave = () => {
+            let newData = [...gridData];
+            if (editingIndex !== null) {
+                newData[editingIndex] = currentFormData;
+            } else {
+                newData.push(currentFormData);
+            }
+            setGridData(newData);
+            onValueChange(element.id, newData);
+            setIsFormOpen(false);
+        }
+        
+        const handleDelete = (index: number) => {
+            const newData = gridData.filter((_, i) => i !== index);
+            setGridData(newData);
+            onValueChange(element.id, newData);
+        }
+
         content = (
             <div>
                 {renderLabel()}
-                <DataGrid
-                    apiUrl={element.apiUrl || ""}
-                    columns={element.columns || []}
-                    paginationEnabled={element.paginationEnabled}
-                    pageSize={element.pageSize}
-                />
+                <div className="rounded-md border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {element.dataGridColumns?.map(col => <TableHead key={col.id}>{col.label}</TableHead>)}
+                                <TableHead className="w-[100px] text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {gridData.map((row, rowIndex) => (
+                                <TableRow key={rowIndex}>
+                                    {element.dataGridColumns?.map(col => (
+                                        <TableCell key={col.id}>
+                                            {getNestedValue(row, col.key)}
+                                        </TableCell>
+                                    ))}
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => openForm(rowIndex)}>
+                                            <Edit className="h-4 w-4"/>
+                                        </Button>
+                                         <Button variant="ghost" size="icon" onClick={() => handleDelete(rowIndex)}>
+                                            <Trash className="h-4 w-4 text-destructive"/>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                            {gridData.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={(element.dataGridColumns?.length || 0) + 1} className="text-center text-muted-foreground">
+                                        No entries yet.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </div>
+                <Button variant="outline" className="mt-4" onClick={() => openForm()}>
+                    <Plus className="mr-2 h-4 w-4"/> Add Entry
+                </Button>
+                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{editingIndex !== null ? 'Edit Entry' : 'Add New Entry'}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                            {element.dataGridColumns?.map(col => (
+                                <FormElementRenderer 
+                                    key={col.id}
+                                    element={{ ...col.element, id: col.key, key: col.key }}
+                                    value={currentFormData[col.key]}
+                                    onValueChange={handleFormValueChange}
+                                    formState={currentFormData}
+                                />
+                            ))}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
+                            <Button onClick={handleSave}>Save</Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
         );
         break;
@@ -939,7 +1032,3 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-
-
-    
