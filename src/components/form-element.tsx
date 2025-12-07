@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn } from "@/lib/types";
@@ -106,7 +107,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.id, context, rules]);
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
-    let finalValue = initialValue ?? ('defaultValue' in element ? element.defaultValue : undefined);
     let readOnly = false;
     let newCalculatedValue: any = undefined;
     
@@ -126,7 +126,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         newCalculatedValue = String(evaluate(element.formula, formulaContext));
         readOnly = true;
     }
-    else if (!contextForEval || !rules) return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
+    else if (!contextForEval || !rules) return { value: initialValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
     
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, contextForEval);
@@ -140,12 +140,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
     }
     
-    if (newCalculatedValue !== undefined) {
-      finalValue = newCalculatedValue;
-    }
+    let finalValue = newCalculatedValue !== undefined ? newCalculatedValue : (initialValue ?? ('defaultValue' in element ? element.defaultValue : undefined));
 
     return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
   }, [element, initialValue, rules, context, formState, sections, rowContext]);
+
 
   useEffect(() => {
     if (calculatedValue !== undefined && calculatedValue !== initialValue) {
@@ -270,7 +269,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   )
 
   const renderLabel = () => {
-    if (!label || isTableCell) return null;
+    if (!label) return null;
     return (
         <div className="flex justify-between items-center mb-2">
         <Label className="text-[0.9rem]" style={appliedStyles.style}>
