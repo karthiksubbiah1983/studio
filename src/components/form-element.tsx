@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn } from "@/lib/types";
@@ -107,7 +106,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.id, context, rules]);
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
-    let finalValue = initialValue;
+    let finalValue = initialValue ?? ('defaultValue' in element ? element.defaultValue : undefined);
     let readOnly = false;
     let newCalculatedValue: any = undefined;
     
@@ -146,7 +145,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
 
     return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
-  }, [element.id, element.type, element.formula, initialValue, rules, context, formState, sections, rowContext]);
+  }, [element, initialValue, rules, context, formState, sections, rowContext]);
 
   useEffect(() => {
     if (calculatedValue !== undefined && calculatedValue !== initialValue) {
