@@ -240,6 +240,19 @@ const findAndModifyElement = (elements: FormElementInstance[], action: Action): 
     return elements;
 };
 
+const getInitialFormState = (sections: Section[]): { [key: string]: { value: any, fullObject?: any } } => {
+    const initialState: { [key: string]: { value: any, fullObject?: any } } = {};
+    if (!sections) return initialState;
+    
+    const allElements = getAllElements(sections);
+    allElements.forEach(element => {
+        if ('defaultValue' in element && element.defaultValue !== undefined && 'id' in element) {
+            initialState[element.id] = { value: element.defaultValue };
+        }
+    });
+    return initialState;
+}
+
 const builderReducer = (state: State, action: Action): State => {
   const activeForm = state.forms.find(f => f.id === state.activeFormId);
   const activeFormSections = activeForm?.versions[0]?.sections || [];
@@ -864,19 +877,6 @@ const defaultState: State = {
     clipboard: null,
     formState: {},
 };
-
-const getInitialFormState = (sections: Section[]): { [key: string]: { value: any, fullObject?: any } } => {
-    const initialState: { [key: string]: { value: any, fullObject?: any } } = {};
-    if (!sections) return initialState;
-    
-    const allElements = getAllElements(sections);
-    allElements.forEach(element => {
-        if ('defaultValue' in element && element.defaultValue !== undefined && 'id' in element) {
-            initialState[element.id] = { value: element.defaultValue };
-        }
-    });
-    return initialState;
-}
 
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
