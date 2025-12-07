@@ -77,10 +77,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   const context = useMemo(() => {
     if (rowContext) {
-        return rowContext;
+        // If we have row context, enrich it with the main form state for broader rule evaluation
+        const fullContext = { ...formState, ...rowContext };
+        return fullContext;
     }
     return formState;
   }, [rowContext, formState]);
+
 
    const isVisible = useMemo(() => {
     if (!context) return true;
@@ -106,23 +109,28 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
     let finalValue = initialValue;
     let readOnly = false;
-    let newCalculatedValue: string | undefined = undefined;
+    let newCalculatedValue: any = undefined;
+    
+    const contextForEval = rowContext || formState;
 
-    if (element.type === 'Input' && element.formula && formState) {
-        const contextForEval = Object.keys(formState).reduce((acc, key) => {
+    if (element.type === 'Input' && element.formula && contextForEval) {
+        const formulaContext = Object.keys(contextForEval).reduce((acc, key) => {
             const elKey = getAllElements(sections).find(e => e.id === key)?.key;
             if (elKey) {
-                 acc[elKey] = formState[key]?.value;
+                 acc[elKey] = contextForEval[key]?.value;
+            } else {
+                 acc[key] = contextForEval[key]; // For rowContext which has direct keys
             }
             return acc;
         }, {} as Record<string, any>);
-        newCalculatedValue = String(evaluate(element.formula, contextForEval));
+
+        newCalculatedValue = String(evaluate(element.formula, formulaContext));
         readOnly = true;
     }
-    else if (!context || !rules) return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
+    else if (!contextForEval || !rules) return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
     
     for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, context);
+        const isRuleMet = evaluateRule(rule, contextForEval);
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
                 if (behavior.type === 'set_value' && behavior.targetElementId === element.id) {
@@ -138,7 +146,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
 
     return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
-  }, [element.id, element.type, element.formula, initialValue, rules, context, formState, sections]);
+  }, [element.id, element.type, element.formula, initialValue, rules, context, formState, sections, rowContext]);
 
   useEffect(() => {
     if (calculatedValue !== undefined && calculatedValue !== initialValue) {
@@ -263,7 +271,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   )
 
   const renderLabel = () => {
-    if (!label) return null;
+    if (!label || isTableCell) return null;
     return (
         <div className="flex justify-between items-center mb-2">
         <Label className="text-[0.9rem]" style={appliedStyles.style}>
@@ -627,8 +635,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             let newData = [...gridData];
             const finalDataToSave = (element.dataGridColumns || []).reduce((acc, col) => {
                 const proxyId = `${element.id}::${col.key}`;
-                if(currentFormData[proxyId]) {
+                if(currentFormData[proxyId] && currentFormData[proxyId].value !== undefined) {
                     acc[col.key] = currentFormData[proxyId].value;
+                } else if (col.element.type === 'Display') {
+                    if (col.element.dataSourceConfig?.sourceType === 'currentUser') {
+                         acc[col.key] = user?.username || 'Guest';
+                    } else if (col.element.dataSourceConfig?.sourceType === 'currentDateTime') {
+                         acc[col.key] = new Date().toISOString();
+                    }
                 }
                 return acc;
             }, {} as Record<string, any>);
@@ -713,19 +727,22 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                             <DialogTitle>{editingIndex !== null ? 'Edit Entry' : 'Add New Entry'}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                            {element.dataGridColumns?.map(col => (
+                            {element.dataGridColumns?.map(col => {
+                                const proxyId = `${element.id}::${col.key}`;
+                                const rowContextForPopup = (element.dataGridColumns || []).reduce((acc, c) => {
+                                        const currentId = `${element.id}::${c.key}`;
+                                        acc[c.key] = currentFormData[currentId]?.value;
+                                        return acc;
+                                    }, {} as Record<string, any>);
+                                return (
                                 <FormElementRenderer 
                                     key={col.id}
-                                    element={{ ...col.element, id: `${element.id}::${col.key}` }}
-                                    value={currentFormData[`${element.id}::${col.key}`]?.value}
+                                    element={{ ...col.element, id: proxyId, label: col.label }}
+                                    value={currentFormData[proxyId]?.value}
                                     onValueChange={handleFormValueChange}
-                                    rowContext={(element.dataGridColumns || []).reduce((acc, c) => {
-                                        const proxyId = `${element.id}::${c.key}`;
-                                        acc[c.key] = currentFormData[proxyId]?.value;
-                                        return acc;
-                                    }, {} as Record<string, any>)}
+                                    rowContext={rowContextForPopup}
                                 />
-                            ))}
+                            )})}
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
@@ -769,7 +786,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     setTableData([]);
                 }
             }
-        }, [element.dataSource, element.apiUrl]);
+        }, [element.dataSource, element.apiUrl, element.defaultRows]);
         
         useEffect(() => {
             if (initialValue) {
@@ -846,7 +863,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     </div>
                 )}
                 {/* Desktop Table View */}
-                <div className="rounded-md border hidden md:block">
+                 <div className="rounded-md border hidden md:block">
                     <Table>
                         <TableHeader>
                             <TableRow>
