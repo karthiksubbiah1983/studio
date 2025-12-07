@@ -32,7 +32,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
         case "Separator":
             return { ...baseElement, label: "" };
         case "Input":
-            return { ...baseElement, label: "Text Field", placeholder: "Enter text...", inputFormat: 'text' };
+            return { ...baseElement, label: "Text Field", placeholder: "Enter text...", inputFormat: 'text', defaultValue: "" };
         case "Textarea":
             return { ...baseElement, label: "Textarea Field", placeholder: "Enter more text..." };
         case "Select":

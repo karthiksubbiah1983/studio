@@ -785,6 +785,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                             {placeholderField}
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="defaultValue">Default Value</Label>
+                                <Input id="defaultValue" value={props.defaultValue || ''} onChange={(e) => updateProperty('defaultValue', e.target.value)} />
+                            </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="input-format">Format</Label>
                                 <Select value={props.inputFormat || 'text'} onValueChange={(v) => updateProperty('inputFormat', v as 'text' | 'number' | 'alphanumeric')}>
@@ -1001,7 +1005,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         case "Table":
             return (
                 <>
-                <Accordion type="multiple" defaultValue={["general", "data", "columns", "rows"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">

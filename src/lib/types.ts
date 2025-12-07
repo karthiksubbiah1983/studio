@@ -101,6 +101,7 @@ export type FormElementInstance = {
     // For Input
     inputFormat?: 'text' | 'number' | 'alphanumeric';
     formula?: string;
+    defaultValue?: string;
     // For Select, RadioGroup, Table
     dataSource?: 'static' | 'dynamic';
     options?: string[];
