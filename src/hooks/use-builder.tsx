@@ -387,9 +387,12 @@ const builderReducer = (state: State, action: Action): State => {
             forms: newForms,
         };
     }
-    case "SET_ACTIVE_FORM":
-      return { ...state, activeFormId: action.payload.formId, selectedElement: null };
-
+    case "SET_ACTIVE_FORM": {
+      const form = state.forms.find(f => f.id === action.payload.formId);
+      const sections = form?.versions[0]?.sections || [];
+      const formState = getInitialFormState(sections);
+      return { ...state, activeFormId: action.payload.formId, selectedElement: null, formState };
+    }
     case "UPDATE_FORM_METADATA": {
       if (!activeForm) return state;
       const { categoryId, subCategoryId } = action.payload;
@@ -679,17 +682,19 @@ const builderReducer = (state: State, action: Action): State => {
           if (form.id === state.activeFormId) {
               const otherVersions = form.versions.filter(v => v.id !== action.payload.versionId);
               // Make the loaded version the new active draft by placing it at the top.
-              // This is a direct state manipulation, so the original version becomes the draft.
               const newVersions = [versionToLoad, ...otherVersions];
               return { ...form, versions: newVersions };
           }
           return form;
       });
+      
+      const formState = getInitialFormState(versionToLoad.sections || []);
 
       return {
           ...state,
           forms: newForms,
           selectedElement: null,
+          formState,
       };
     }
     case "DELETE_VERSION": {
@@ -862,9 +867,11 @@ const defaultState: State = {
 
 const getInitialFormState = (sections: Section[]): { [key: string]: { value: any, fullObject?: any } } => {
     const initialState: { [key: string]: { value: any, fullObject?: any } } = {};
+    if (!sections) return initialState;
+    
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
-        if ('defaultValue' in element && element.defaultValue && 'id' in element) {
+        if ('defaultValue' in element && element.defaultValue !== undefined && 'id' in element) {
             initialState[element.id] = { value: element.defaultValue };
         }
     });
@@ -892,7 +899,11 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
           const parsed = JSON.parse(storedState);
           // Simple validation to ensure we have a valid-looking state
           if (parsed && Array.isArray(parsed.forms)) {
-            parsedState = { ...initialState, ...parsed, formState: {} }; // Reset formState on load
+            // Re-initialize formState based on the loaded active form
+            const activeForm = parsed.forms.find((f: Form) => f.id === parsed.activeFormId);
+            const sections = activeForm?.versions[0]?.sections || [];
+            const formState = getInitialFormState(sections);
+            parsedState = { ...initialState, ...parsed, formState };
           }
         } catch (error) {
            console.error("Failed to parse state from localStorage, initializing with default.", error);
@@ -919,13 +930,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const sections = activeForm?.versions[0]?.sections || [];
   const rules = activeForm?.versions[0]?.rules || [];
   const workflows = activeForm?.versions[0]?.workflows || [];
-
-   useEffect(() => {
-    if (activeForm) {
-      const initialFormState = getInitialFormState(sections);
-      dispatchAction({ type: "SET_FORM_STATE", payload: initialFormState });
-    }
-  }, [activeForm?.id, activeForm?.versions[0]?.id]); // Depend on form and version ID
   
   const dispatch = (action: Action): string | void => {
     if (action.type === 'ADD_FORM') {
