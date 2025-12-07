@@ -262,14 +262,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     </div>
   )
 
-  const renderLabel = () => (
-    <div className="flex justify-between items-center mb-2">
-      <Label className="text-[0.9rem]" style={appliedStyles.style}>
-        {label}
-        {required && <span className="text-destructive"> *</span>}
-      </Label>
-    </div>
-  );
+  const renderLabel = () => {
+    if (!label) return null;
+    return (
+        <div className="flex justify-between items-center mb-2">
+        <Label className="text-[0.9rem]" style={appliedStyles.style}>
+            {label}
+            {required && <span className="text-destructive"> *</span>}
+        </Label>
+        </div>
+    );
+  }
 
   const renderError = () => {
     if (!appliedStyles.error) return null;
