@@ -5,6 +5,7 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
+import { getAllElements } from "@/lib/utils";
 
 type State = {
   forms: Form[];
@@ -16,6 +17,7 @@ type State = {
   selectedElement: { elementId: string; sectionId: string } | null;
   draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null;
   clipboard: ClipboardItem | null;
+  formState: { [key: string]: { value: any, fullObject?: any } };
 };
 
 type Action =
@@ -55,7 +57,9 @@ type Action =
   | { type: "DELETE_SITE", payload: { siteId: string } }
   | { type: "ADD_TASK", payload: { formId: string, versionId: string, siteId: string } }
   | { type: "COPY_TO_CLIPBOARD", payload: ClipboardItem }
-  | { type: "PASTE_FROM_CLIPBOARD", payload: { sectionId?: string, index?: number } };
+  | { type: "PASTE_FROM_CLIPBOARD", payload: { sectionId?: string, index?: number } }
+  | { type: "SET_FORM_STATE", payload: { [key: string]: { value: any, fullObject?: any } } }
+  | { type: "UPDATE_FORM_STATE", payload: { elementId: string, value: any, fullObject?: any } };
 
 
 const initialState: State = {
@@ -68,6 +72,7 @@ const initialState: State = {
   selectedElement: null,
   draggedElement: null,
   clipboard: null,
+  formState: {},
 };
 
 // Helper function to deep clone and assign new IDs
@@ -240,6 +245,18 @@ const builderReducer = (state: State, action: Action): State => {
   const activeFormSections = activeForm?.versions[0]?.sections || [];
 
   switch (action.type) {
+    case "SET_FORM_STATE":
+        return { ...state, formState: action.payload };
+    case "UPDATE_FORM_STATE": {
+        const { elementId, value, fullObject } = action.payload;
+        return {
+            ...state,
+            formState: {
+                ...state.formState,
+                [elementId]: { value, fullObject }
+            }
+        };
+    }
     case "ADD_SITE": {
       const newSite: Site = { id: crypto.randomUUID(), name: action.payload.name };
       return { ...state, sites: [...state.sites, newSite] };
@@ -797,6 +814,9 @@ type BuilderContextType = {
   updateWorkflows: (workflows: Workflow[]) => void;
   clipboard: ClipboardItem | null;
   submissions: Submission[];
+  formState: { [key: string]: { value: any, fullObject?: any } };
+  setFormState: (state: { [key: string]: { value: any, fullObject?: any } }) => void;
+  updateFormState: (elementId: string, value: any, fullObject?: any) => void;
 };
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
@@ -837,7 +857,19 @@ const defaultState: State = {
     selectedElement: null,
     draggedElement: null,
     clipboard: null,
+    formState: {},
 };
+
+const getInitialFormState = (sections: Section[]): { [key: string]: { value: any, fullObject?: any } } => {
+    const initialState: { [key: string]: { value: any, fullObject?: any } } = {};
+    const allElements = getAllElements(sections);
+    allElements.forEach(element => {
+        if ('defaultValue' in element && element.defaultValue && 'id' in element) {
+            initialState[element.id] = { value: element.defaultValue };
+        }
+    });
+    return initialState;
+}
 
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
@@ -860,7 +892,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
           const parsed = JSON.parse(storedState);
           // Simple validation to ensure we have a valid-looking state
           if (parsed && Array.isArray(parsed.forms)) {
-            parsedState = parsed;
+            parsedState = { ...initialState, ...parsed, formState: {} }; // Reset formState on load
           }
         } catch (error) {
            console.error("Failed to parse state from localStorage, initializing with default.", error);
@@ -887,6 +919,13 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const sections = activeForm?.versions[0]?.sections || [];
   const rules = activeForm?.versions[0]?.rules || [];
   const workflows = activeForm?.versions[0]?.workflows || [];
+
+   useEffect(() => {
+    if (activeForm) {
+      const initialFormState = getInitialFormState(sections);
+      dispatchAction({ type: "SET_FORM_STATE", payload: initialFormState });
+    }
+  }, [activeForm?.id, activeForm?.versions[0]?.id]); // Depend on form and version ID
   
   const dispatch = (action: Action): string | void => {
     if (action.type === 'ADD_FORM') {
@@ -918,6 +957,14 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatchAction({ type: 'UPDATE_WORKFLOWS', payload: { workflows: newWorkflows }});
   }
 
+  const setFormState = (newState: { [key: string]: { value: any, fullObject?: any } }) => {
+    dispatchAction({ type: 'SET_FORM_STATE', payload: newState });
+  }
+
+  const updateFormState = (elementId: string, value: any, fullObject?: any) => {
+    dispatchAction({ type: 'UPDATE_FORM_STATE', payload: { elementId, value, fullObject } });
+  }
+
   if (!isLoaded) {
     return (
         <main className="flex flex-col items-center justify-center w-full min-h-screen bg-background p-4 md:p-8">
@@ -930,7 +977,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, clipboard: state.clipboard }}>
+    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState }}>
       {children}
     </BuilderContext.Provider>
   );
@@ -943,3 +990,4 @@ export const useBuilder = () => {
   }
   return context;
 };
+

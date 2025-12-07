@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -40,26 +41,12 @@ const generateSubmissionJson = (elements: (FormElementInstance | Section)[], for
 };
 
 export function FormPreview({ showSubmitButton = true, sections, taskId }: Props) {
-  const { rules, workflows, dispatch, activeForm, state } = useBuilder();
+  const { rules, workflows, dispatch, activeForm, state, formState, setFormState, updateFormState } = useBuilder();
   const router = useRouter();
-  const [formState, setFormState] = useState<{ [key: string]: { value: any, fullObject?: any } }>({});
   const { toast } = useToast();
-  
-  useEffect(() => {
-    // Initialize form state with default values
-    const allElements = getAllElements(sections);
-    const initialFormState: { [key: string]: { value: any, fullObject?: any } } = {};
-    allElements.forEach(element => {
-      if ('defaultValue' in element && element.defaultValue) {
-        initialFormState[element.id] = { value: element.defaultValue };
-      }
-    });
-    setFormState(initialFormState);
-  }, [sections]);
-
 
   const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
-    setFormState((prev) => ({ ...prev, [elementId]: { value, fullObject } }));
+    updateFormState(elementId, value, fullObject);
   };
 
   const processWorkflows = (submissionData: Record<string, any>) => {
@@ -129,8 +116,6 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     if (taskId) {
         router.push('/my-tasks');
     }
-
-    setFormState({});
   }
 
   const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
@@ -216,3 +201,4 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     </div>
   );
 }
+
