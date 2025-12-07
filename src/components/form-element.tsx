@@ -35,6 +35,7 @@ import { FormPreviewPopup } from "./form-preview-popup";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
+import { useAuth } from "@/hooks/use-auth";
 
 
 type Props = {
@@ -62,10 +63,17 @@ const interpolateString = (template: string, data: { sections: Section[], formSt
 
 export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext }: Props) {
   const { rules, sections } = useBuilder();
+  const { user } = useAuth();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
 
   const context = useMemo(() => {
     if (rowContext) {
@@ -100,7 +108,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let readOnly = false;
     let newCalculatedValue: string | undefined = undefined;
 
-    if (!context || !rules) return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
+    if (element.type === 'Input' && element.formula && formState) {
+        const contextForEval = Object.keys(formState).reduce((acc, key) => {
+            const elKey = getAllElements(sections).find(e => e.id === key)?.key;
+            if (elKey) {
+                 acc[elKey] = formState[key]?.value;
+            }
+            return acc;
+        }, {} as Record<string, any>);
+        newCalculatedValue = String(evaluate(element.formula, contextForEval));
+        readOnly = true;
+    }
+    else if (!context || !rules) return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
     
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, context);
@@ -119,7 +138,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
 
     return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
-  }, [element.id, initialValue, rules, context]);
+  }, [element.id, element.type, element.formula, initialValue, rules, context, formState, sections]);
 
   useEffect(() => {
     if (calculatedValue !== undefined && calculatedValue !== initialValue) {
@@ -271,7 +290,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Display": {
       let finalDisplayValue;
 
-      if (isReadOnly) {
+      if (dataSourceConfig?.sourceType === 'currentUser') {
+          finalDisplayValue = user?.username || 'Guest';
+      } else if (dataSourceConfig?.sourceType === 'currentDateTime') {
+          finalDisplayValue = format(currentDateTime, 'PPP p');
+      } else if (isReadOnly) {
           finalDisplayValue = value;
       } else if (dataSourceConfig?.sourceElementId && formState) { 
           const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
@@ -362,7 +385,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let val = e.target.value;
         if (inputFormat === 'number') {
-            val = val.replace(/[^0-9]/g, '');
+            val = val.replace(/[^0-9.]/g, '');
         } else if (inputFormat === 'alphanumeric') {
             val = val.replace(/[^a-zA-Z0-9]/g, '');
         }
@@ -1088,10 +1111,3 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-
-
-
-
-
-    

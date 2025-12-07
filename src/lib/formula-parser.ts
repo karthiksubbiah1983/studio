@@ -4,14 +4,21 @@
 // Variables in the formula should be enclosed in curly braces, e.g., {varName}.
 
 export function evaluate(formula: string, context: Record<string, any>): number | string {
+  if (!formula) return '';
   try {
     // Replace {key} with context[key]
     const sanitizedFormula = formula.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
       const value = context[key];
-      // Ensure the value is a number, default to 0 if not.
+      // Ensure the value is a number or 0 if not present/valid
       const numValue = parseFloat(value);
       return isNaN(numValue) ? '0' : String(numValue);
     });
+
+    // Basic validation to prevent arbitrary code execution
+    if (/[^0-9.+\-*/\s()]/.test(sanitizedFormula)) {
+      console.error("Invalid characters in formula:", sanitizedFormula);
+      return "#FORMULA!";
+    }
 
     // Create a new Function to evaluate the sanitized string.
     // This is safer than a direct eval() because it runs in a local scope.

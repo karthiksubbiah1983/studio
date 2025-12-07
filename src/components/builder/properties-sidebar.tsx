@@ -645,7 +645,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </Accordion>
              )
         case "Display":
-            const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "" };
+            const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "", sourceType: "field" };
             const selectedSourceElement = dependentFieldOptions.find(el => el.id === config.sourceElementId);
             const sourceIsSelect = selectedSourceElement && selectedSourceElement.type === 'Select';
 
@@ -717,39 +717,61 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
-                        <AccordionTrigger className="py-2">Data Source (Optional)</AccordionTrigger>
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
-                             <div className="flex flex-col gap-2">
-                                <Label>Source Field</Label>
+                            <div className="flex flex-col gap-2">
+                                <Label>Source Type</Label>
                                 <Select
-                                    value={config.sourceElementId || "none"}
+                                    value={config.sourceType || "field"}
                                     onValueChange={(value) => {
-                                        const newConfig = { ...config, sourceElementId: value === "none" ? "" : value, displayKey: "" };
+                                        const newConfig = { ...config, sourceType: value as any, sourceElementId: "", displayKey: "" };
                                         updateProperty('dataSourceConfig', newConfig);
                                     }}
                                 >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a field..." />
-                                    </SelectTrigger>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        {allElements.map(el => 'key' in el && el.key && (
-                                            <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
-                                        ))}
+                                        <SelectItem value="field">Form Field</SelectItem>
+                                        <SelectItem value="currentUser">Current User</SelectItem>
+                                        <SelectItem value="currentDateTime">Current Date/Time</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
-                            { config.sourceElementId && sourceIsSelect && (
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="display-key">Display Key (for Select fields)</Label>
-                                    <Input 
-                                        id="display-key" 
-                                        value={config.displayKey}
-                                        onChange={(e) => updateProperty('dataSourceConfig', { ...config, displayKey: e.target.value })}
-                                        placeholder="e.g., 'email' or 'address.city'"
-                                    />
-                                    <p className="text-xs text-muted-foreground">Key from the selected object to display.</p>
-                                </div>
+
+                            {config.sourceType === "field" && (
+                                <>
+                                    <div className="flex flex-col gap-2">
+                                        <Label>Source Field</Label>
+                                        <Select
+                                            value={config.sourceElementId || "none"}
+                                            onValueChange={(value) => {
+                                                const newConfig = { ...config, sourceElementId: value === "none" ? "" : value, displayKey: "" };
+                                                updateProperty('dataSourceConfig', newConfig);
+                                            }}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a field..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">None</SelectItem>
+                                                {allElements.map(el => 'key' in el && el.key && (
+                                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    { config.sourceElementId && sourceIsSelect && (
+                                        <div className="flex flex-col gap-2">
+                                            <Label htmlFor="display-key">Display Key (for Select fields)</Label>
+                                            <Input 
+                                                id="display-key" 
+                                                value={config.displayKey}
+                                                onChange={(e) => updateProperty('dataSourceConfig', { ...config, displayKey: e.target.value })}
+                                                placeholder="e.g., 'email' or 'address.city'"
+                                            />
+                                            <p className="text-xs text-muted-foreground">Key from the selected object to display.</p>
+                                        </div>
+                                    )}
+                                </>
                             )}
                         </AccordionContent>
                     </AccordionItem>
@@ -757,7 +779,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "Input":
              return (
-                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "advanced"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -773,6 +795,23 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <SelectItem value="alphanumeric">Alphanumeric Only</SelectItem>
                                     </SelectContent>
                                 </Select>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="advanced">
+                        <AccordionTrigger className="py-2">Advanced</AccordionTrigger>
+                        <AccordionContent>
+                           <div className="flex flex-col gap-2">
+                                <Label htmlFor="formula">Formula (Optional)</Label>
+                                <Input
+                                    id="formula"
+                                    value={props.formula || ''}
+                                    onChange={(e) => updateProperty('formula', e.target.value)}
+                                    placeholder="e.g., {field_a} + {field_b}"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    If a formula is provided, this field will be read-only.
+                                </p>
                             </div>
                         </AccordionContent>
                     </AccordionItem>

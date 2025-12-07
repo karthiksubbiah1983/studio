@@ -61,8 +61,9 @@ export type Workflow = {
 }
 
 export type DisplayDataSourceConfig = {
-    sourceElementId:string; // ID of the Select element
+    sourceElementId: string; // ID of the Select element
     displayKey: string;      // Key of the property to display from the selected object
+    sourceType?: 'field' | 'currentUser' | 'currentDateTime';
 };
 
 export type PopupConfig = {
@@ -99,6 +100,7 @@ export type FormElementInstance = {
     exposeForValidation?: boolean; // New property
     // For Input
     inputFormat?: 'text' | 'number' | 'alphanumeric';
+    formula?: string;
     // For Select, RadioGroup, Table
     dataSource?: 'static' | 'dynamic';
     options?: string[];
