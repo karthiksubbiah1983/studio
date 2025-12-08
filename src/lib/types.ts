@@ -101,7 +101,7 @@ export type FormElementInstance = {
     // For Input
     inputFormat?: 'text' | 'number' | 'alphanumeric';
     formula?: string;
-    defaultValue?: string;
+    defaultValue?: any;
     // For Select, RadioGroup, Table, List
     dataSource?: 'static' | 'dynamic';
     options?: string[];
@@ -147,6 +147,7 @@ export type FormElementInstance = {
     // For List
     listType?: 'checkbox' | 'radio';
     displaySelection?: 'selected' | 'unselected' | 'none';
+    placeholder?: string;
 };
 
 export type Section = {

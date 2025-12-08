@@ -278,7 +278,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'DataGrid' || element.type === 'Table') && element.apiUrl && !element.dependentFieldId) {
+    if ((element.type === 'Select' || element.type === 'DataGrid' || element.type === 'Table' || element.type === 'List') && element.apiUrl && !element.dependentFieldId) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -324,7 +324,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'Table' ? props.apiUrl : undefined);
+    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'Table' || props.type === 'List' ? props.apiUrl : undefined);
     if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
@@ -903,6 +903,83 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <div className="flex items-center space-x-2">
                                         <RadioGroupItem value="dynamic" id="source-dynamic" />
                                         <Label htmlFor="source-dynamic">Dynamic</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
+        case "List":
+            return (
+                <Accordion type="multiple" defaultValue={["general", "data", "layout"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="layout">
+                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label>List Type</Label>
+                                <RadioGroup
+                                    value={props.listType || 'checkbox'}
+                                    onValueChange={(value) => updateProperty('listType', value as 'checkbox' | 'radio')}
+                                    className="flex"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="checkbox" id="list-type-checkbox" />
+                                        <Label htmlFor="list-type-checkbox">Checkboxes</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="radio" id="list-type-radio" />
+                                        <Label htmlFor="list-type-radio">Radio Buttons</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label>Display Selection</Label>
+                                <Select
+                                    value={props.displaySelection || 'none'}
+                                    onValueChange={(value) => updateProperty('displaySelection', value as 'selected' | 'unselected' | 'none')}
+                                >
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="selected">Show Selected</SelectItem>
+                                        <SelectItem value="unselected">Show Unselected</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2 mb-1.5">
+                                <Label>Source Type</Label>
+                                <RadioGroup
+                                    value={props.dataSource || 'static'}
+                                    onValueChange={(val) => {
+                                      const newDataSource = val as 'static' | 'dynamic';
+                                      const newOptions = (newDataSource === 'static' && !props.options) ? ['Option 1'] : props.options;
+                                      updateProperty('dataSource', newDataSource);
+                                      if (newDataSource === 'static') {
+                                        updateProperty('options', newOptions);
+                                      }
+                                    }}
+                                    className="flex"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="static" id="source-static-list" />
+                                        <Label htmlFor="source-static-list">Static</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="dynamic" id="source-dynamic-list" />
+                                        <Label htmlFor="source-dynamic-list">Dynamic</Label>
                                     </div>
                                 </RadioGroup>
                             </div>

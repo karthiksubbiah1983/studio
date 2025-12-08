@@ -195,7 +195,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   useEffect(() => {
-    if (element.type === 'Select' && element.dataSource === 'dynamic') {
+    if ((element.type === 'Select' || element.type === 'List') && element.dataSource === 'dynamic') {
       
       if (element.dependencyType === 'parent' && element.dependentFieldId && element.subKey) {
         const parentValue = formState?.[element.dependentFieldId];
@@ -491,6 +491,92 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         </div>
       );
       break;
+    case "List": {
+        const { listType, displaySelection, valueKey, labelKey, dataSource } = element;
+        const currentOptions = dataSource === 'dynamic' ? dynamicOptions : (options || []);
+
+        const renderOptions = (opts: any[]) => {
+            return opts.map((option, index) => {
+                const optionValue = typeof option === 'object' ? getNestedValue(option, valueKey!) : option;
+                const optionLabel = typeof option === 'object' ? getNestedValue(option, labelKey!) : option;
+
+                if (listType === 'checkbox') {
+                    const isChecked = Array.isArray(value) && value.includes(optionValue);
+                    return (
+                        <div key={index} className="flex items-center space-x-2">
+                            <Checkbox 
+                                id={`${element.id}-${index}`}
+                                checked={isChecked}
+                                onCheckedChange={(checked) => {
+                                    const newValue = checked
+                                        ? [...(value || []), optionValue]
+                                        : (value || []).filter((v: any) => v !== optionValue);
+                                    onValueChange(element.id, newValue);
+                                }}
+                            />
+                            <Label htmlFor={`${element.id}-${index}`}>{optionLabel}</Label>
+                        </div>
+                    );
+                } else { // radio
+                    return (
+                         <div key={index} className="flex items-center space-x-2">
+                            <RadioGroupItem value={optionValue} id={`${element.id}-${index}`} />
+                            <Label htmlFor={`${element.id}-${index}`}>{optionLabel}</Label>
+                        </div>
+                    );
+                }
+            })
+        }
+        
+        const selectionContent = useMemo(() => {
+            if (displaySelection === 'none' || !value) return null;
+            
+            const selectedValues = Array.isArray(value) ? value : [value];
+            if (selectedValues.length === 0 && displaySelection === 'selected') return null;
+
+            const allOptionValues = currentOptions.map(opt => typeof opt === 'object' ? getNestedValue(opt, valueKey!) : opt);
+            
+            let itemsToShow: string[] = [];
+            if (displaySelection === 'selected') {
+                itemsToShow = selectedValues;
+            } else if (displaySelection === 'unselected') {
+                itemsToShow = allOptionValues.filter(opt => !selectedValues.includes(opt));
+            }
+            
+            if (itemsToShow.length === 0) return null;
+
+            return (
+                 <div className="mt-4 p-4 border rounded-md bg-muted/50">
+                    <h4 className="font-medium text-sm mb-2">
+                        {displaySelection === 'selected' ? 'Selected Items' : 'Unselected Items'}
+                    </h4>
+                    <ul className="list-disc pl-5 space-y-1 text-sm">
+                        {itemsToShow.map((item, index) => <li key={index}>{item}</li>)}
+                    </ul>
+                </div>
+            )
+        }, [value, displaySelection, currentOptions, valueKey]);
+
+
+        content = (
+             <div>
+                {renderLabel()}
+                {isLoading ? <Loader2 className="animate-spin" /> : (
+                    listType === 'radio' ? (
+                        <RadioGroup value={value} onValueChange={(val) => onValueChange(element.id, val)} className="space-y-2">
+                            {renderOptions(currentOptions)}
+                        </RadioGroup>
+                    ) : (
+                        <div className="space-y-2">
+                            {renderOptions(currentOptions)}
+                        </div>
+                    )
+                )}
+                {selectionContent}
+            </div>
+        );
+        break;
+    }
     case "Checkbox":
         content = (
             <div className="flex items-start space-x-2">
