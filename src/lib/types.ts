@@ -89,6 +89,11 @@ export type TableColumn = {
     formula?: string;
 }
 
+export type ListItemElement = {
+    id: string;
+    element: FormElementInstance;
+};
+
 export type FormElementInstance = {
     id: string;
     type: ElementType;
@@ -147,6 +152,7 @@ export type FormElementInstance = {
     // For List
     listType?: 'checkbox' | 'radio';
     displaySelection?: 'selected' | 'unselected' | 'none';
+    listItemElements?: ListItemElement[];
     placeholder?: string;
 };
 
@@ -217,3 +223,4 @@ export type Task = {
     assignedAt: string;
     submittedAt?: string;
 };
+

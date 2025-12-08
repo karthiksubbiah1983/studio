@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, DataGridColumn, TableColumn } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, DataGridColumn, TableColumn, ListItemElement } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -263,7 +263,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
-  const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | null>(null);
+  const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
   const [isFetchedJsonDialogOpen, setIsFetchedJsonDialogOpen] = useState(false);
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
 
@@ -913,6 +913,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "List":
             return (
+                <>
                 <Accordion type="multiple" defaultValue={["general", "data", "layout"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
@@ -940,6 +941,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                 </RadioGroup>
                             </div>
+                            <Button variant="outline" size="sm" onClick={() => {
+                                const newItem: ListItemElement = {
+                                    id: crypto.randomUUID(),
+                                    element: createNewElement('Display'),
+                                };
+                                setEditingColumn(newItem);
+                            }}>
+                                Configure List Item
+                            </Button>
                             <div className="flex flex-col gap-2">
                                 <Label>Display Selection</Label>
                                 <Select
@@ -987,6 +997,48 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
+                <Dialog open={!!editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
+                    <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle>Configure List Item</DialogTitle>
+                            <DialogDescription>
+                                Add and configure display elements for each item in the list.
+                            </DialogDescription>
+                        </DialogHeader>
+                         <div className="flex-grow py-4 flex flex-col gap-4 overflow-y-auto">
+                            {(props.listItemElements || []).map((item, index) => (
+                                <div key={item.id} className="border p-4 rounded-md">
+                                    <ElementProperties
+                                        element={item.element}
+                                        onUpdate={(updatedElement) => {
+                                            const newItems = [...(props.listItemElements || [])];
+                                            newItems[index] = { ...newItems[index], element: updatedElement };
+                                            updateProperty('listItemElements', newItems);
+                                        }}
+                                        isColumnElement={true}
+                                    />
+                                    <Button variant="destructive" size="sm" className="mt-4" onClick={() => {
+                                        const newItems = (props.listItemElements || []).filter(i => i.id !== item.id);
+                                        updateProperty('listItemElements', newItems);
+                                    }}>
+                                        <Trash className="mr-2 h-4 w-4" /> Remove
+                                    </Button>
+                                </div>
+                            ))}
+                            <Button variant="outline" onClick={() => {
+                                const newItem: ListItemElement = {
+                                    id: crypto.randomUUID(),
+                                    element: createNewElement('Display'),
+                                };
+                                const newItems = [...(props.listItemElements || []), newItem];
+                                updateProperty('listItemElements', newItems);
+                            }}>
+                                <Plus className="mr-2 h-4 w-4" /> Add Display Element
+                            </Button>
+                         </div>
+                    </DialogContent>
+                </Dialog>
+                </>
             );
         case "DataGrid":
             return (
@@ -1446,3 +1498,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+

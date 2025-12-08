@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -492,39 +492,62 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       );
       break;
     case "List": {
-        const { listType, displaySelection, valueKey, labelKey, dataSource } = element;
+        const { listType, displaySelection, valueKey, labelKey, dataSource, listItemElements } = element;
         const currentOptions = dataSource === 'dynamic' ? dynamicOptions : (options || []);
 
         const renderOptions = (opts: any[]) => {
             return opts.map((option, index) => {
                 const optionValue = typeof option === 'object' ? getNestedValue(option, valueKey!) : option;
                 const optionLabel = typeof option === 'object' ? getNestedValue(option, labelKey!) : option;
+                const isChecked = listType === 'checkbox' ? (Array.isArray(value) && value.includes(optionValue)) : value === optionValue;
+                const rowContext = typeof option === 'object' ? option : { value: option };
 
-                if (listType === 'checkbox') {
-                    const isChecked = Array.isArray(value) && value.includes(optionValue);
-                    return (
-                        <div key={index} className="flex items-center space-x-2">
+                const handleSelectionChange = () => {
+                    if (listType === 'checkbox') {
+                         const newValue = isChecked
+                            ? (value || []).filter((v: any) => v !== optionValue)
+                            : [...(value || []), optionValue];
+                        onValueChange(element.id, newValue);
+                    } else {
+                        onValueChange(element.id, optionValue);
+                    }
+                }
+
+                return (
+                    <div 
+                        key={index}
+                        className="flex items-start gap-3 p-3 border rounded-md has-[:checked]:bg-accent"
+                        onClick={handleSelectionChange}
+                    >
+                         {listType === 'checkbox' ? (
                             <Checkbox 
                                 id={`${element.id}-${index}`}
                                 checked={isChecked}
-                                onCheckedChange={(checked) => {
-                                    const newValue = checked
-                                        ? [...(value || []), optionValue]
-                                        : (value || []).filter((v: any) => v !== optionValue);
-                                    onValueChange(element.id, newValue);
-                                }}
+                                className="mt-1"
                             />
-                            <Label htmlFor={`${element.id}-${index}`}>{optionLabel}</Label>
+                         ) : (
+                            <RadioGroupItem value={optionValue} id={`${element.id}-${index}`} checked={isChecked} className="mt-1"/>
+                         )}
+                        <div className="flex-1">
+                            <Label htmlFor={`${element.id}-${index}`} className="font-medium cursor-pointer">{optionLabel}</Label>
+                            {listItemElements && listItemElements.length > 0 && (
+                                <div className="mt-1 space-y-1">
+                                    {listItemElements.map(itemEl => (
+                                        <FormElementRenderer
+                                            key={itemEl.id}
+                                            element={itemEl.element}
+                                            value={undefined}
+                                            onValueChange={()=>{}}
+                                            formState={formState}
+                                            rowContext={rowContext}
+                                            isTableCell={true}
+                                        />
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    );
-                } else { // radio
-                    return (
-                         <div key={index} className="flex items-center space-x-2">
-                            <RadioGroupItem value={optionValue} id={`${element.id}-${index}`} />
-                            <Label htmlFor={`${element.id}-${index}`}>{optionLabel}</Label>
-                        </div>
-                    );
-                }
+                    </div>
+                );
             })
         }
         
@@ -562,15 +585,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
              <div>
                 {renderLabel()}
                 {isLoading ? <Loader2 className="animate-spin" /> : (
-                    listType === 'radio' ? (
-                        <RadioGroup value={value} onValueChange={(val) => onValueChange(element.id, val)} className="space-y-2">
-                            {renderOptions(currentOptions)}
-                        </RadioGroup>
-                    ) : (
-                        <div className="space-y-2">
-                            {renderOptions(currentOptions)}
-                        </div>
-                    )
+                   <div className="space-y-2">
+                        {renderOptions(currentOptions)}
+                   </div>
                 )}
                 {selectionContent}
             </div>
@@ -1215,3 +1232,4 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
