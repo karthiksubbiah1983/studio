@@ -13,6 +13,7 @@ export const FormElements: {
     { type: 'Select', icon: ChevronsUpDown, label: 'Select' },
     { type: 'Checkbox', icon: CheckSquare, label: 'Checkbox' },
     { type: 'RadioGroup', icon: RadioTower, label: 'Radio Group' },
+    { type: 'List', icon: List, label: 'List' },
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
@@ -42,6 +43,15 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 options: ["Option 1", "Option 2"], 
                 dataSource: 'static', 
                 placeholder: "Select an option"
+            };
+        case "List":
+            return {
+                ...baseElement,
+                label: "List Field",
+                listType: 'checkbox',
+                dataSource: 'static',
+                options: ["Option 1", "Option 2"],
+                displaySelection: 'none',
             };
         case "Checkbox":
             return { ...baseElement, label: "Checkbox Field" };

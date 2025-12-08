@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview" | "FileUpload";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview" | "FileUpload" | "List";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -102,10 +102,10 @@ export type FormElementInstance = {
     inputFormat?: 'text' | 'number' | 'alphanumeric';
     formula?: string;
     defaultValue?: string;
-    // For Select, RadioGroup, Table
+    // For Select, RadioGroup, Table, List
     dataSource?: 'static' | 'dynamic';
     options?: string[];
-    // For dynamic data source (Select, DataGrid, Table)
+    // For dynamic data source (Select, DataGrid, Table, List)
     apiUrl?: string;
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
@@ -144,6 +144,9 @@ export type FormElementInstance = {
     allowedFileTypes?: string[];
     maxFileSize?: number; // in MB
     multiple?: boolean;
+    // For List
+    listType?: 'checkbox' | 'radio';
+    displaySelection?: 'selected' | 'unselected' | 'none';
 };
 
 export type Section = {
