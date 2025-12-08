@@ -437,47 +437,51 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 
-  const dynamicDataSourceFields = () => (
+  const dynamicDataSourceFields = (isList = false) => (
     <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-2">
-            <Label htmlFor="dependent-field">Dependent Field (Optional)</Label>
-            <Select 
-                value={props.dependentFieldId || 'none'} 
-                onValueChange={handleDependentFieldChange}
-            >
-                <SelectTrigger>
-                    <SelectValue placeholder="None" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="none">None</SelectItem>
-                    {dependentFieldOptions.map(opt => (
-                        <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
-        
-        {props.dependentFieldId && (
-             <div className="flex flex-col gap-2">
-                <Label>Dependency Type</Label>
-                <RadioGroup
-                    value={props.dependencyType || 'api'}
-                    onValueChange={(value) => updateProperty('dependencyType', value as 'api' | 'parent')}
-                    className="flex"
-                >
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="api" id="dep-api" />
-                        <Label htmlFor="dep-api">API Call</Label>
+        {!isList && (
+            <>
+                <div className="flex flex-col gap-2">
+                    <Label htmlFor="dependent-field">Dependent Field (Optional)</Label>
+                    <Select 
+                        value={props.dependentFieldId || 'none'} 
+                        onValueChange={handleDependentFieldChange}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="None" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="none">None</SelectItem>
+                            {dependentFieldOptions.map(opt => (
+                                <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                
+                {props.dependentFieldId && (
+                     <div className="flex flex-col gap-2">
+                        <Label>Dependency Type</Label>
+                        <RadioGroup
+                            value={props.dependencyType || 'api'}
+                            onValueChange={(value) => updateProperty('dependencyType', value as 'api' | 'parent')}
+                            className="flex"
+                        >
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="api" id="dep-api" />
+                                <Label htmlFor="dep-api">API Call</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <RadioGroupItem value="parent" id="dep-parent" />
+                                <Label htmlFor="dep-parent">Parent Data</Label>
+                            </div>
+                        </RadioGroup>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="parent" id="dep-parent" />
-                        <Label htmlFor="dep-parent">Parent Data</Label>
-                    </div>
-                </RadioGroup>
-            </div>
+                )}
+            </>
         )}
 
-        {(props.dependencyType === 'api' || !props.dependentFieldId) && (
+        {(props.dependencyType === 'api' || !props.dependentFieldId || isList) && (
             <div className="flex flex-col gap-2">
                 <Label htmlFor="apiUrl">API URL</Label>
                 <div className="flex gap-2">
@@ -486,7 +490,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         {isFetching ? "Fetching..." : "Fetch"}
                     </Button>
                 </div>
-                {props.dependentFieldId && (
+                {props.dependentFieldId && !isList && (
                     <p className="text-xs text-muted-foreground">
                         Use {'{field_key}'} to include the value of the dependent field.
                     </p>
@@ -494,7 +498,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             </div>
         )}
 
-        {props.dependencyType === 'parent' && props.dependentFieldId && (
+        {props.dependencyType === 'parent' && props.dependentFieldId && !isList && (
              <div className="flex flex-col gap-2">
                 <Label htmlFor="sub-key">Sub-Array Key</Label>
                 <Input
@@ -965,7 +969,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Label htmlFor="list-source-dynamic">Dynamic</Label>
                                 </div>
                             </RadioGroup>
-                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields(true) : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="layout">
