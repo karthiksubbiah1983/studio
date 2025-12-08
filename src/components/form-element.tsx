@@ -195,7 +195,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   useEffect(() => {
-    if (element.type === 'Select' && element.dataSource === 'dynamic') {
+    if ((element.type === 'Select' || element.type === 'List') && element.dataSource === 'dynamic') {
       
       if (element.dependencyType === 'parent' && element.dependentFieldId && element.subKey) {
         const parentValue = formState?.[element.dependentFieldId];
@@ -508,18 +508,24 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
         const listOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
 
-        let displayedSelection = [];
-        if (element.displaySelection === 'selected') {
-            displayedSelection = listOptions.filter(opt => {
-                const optValue = typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt;
-                return currentSelection.includes(optValue);
-            });
-        } else if (element.displaySelection === 'unselected') {
-             displayedSelection = listOptions.filter(opt => {
-                const optValue = typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt;
-                return !currentSelection.includes(optValue);
-            });
+        const getDisplaySelection = () => {
+            if (element.displaySelection === 'none' || !currentSelection) {
+                return [];
+            }
+            if (element.displaySelection === 'selected') {
+                return listOptions.filter(opt => {
+                    const optValue = typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt;
+                    return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
+                });
+            } else { // unselected
+                 return listOptions.filter(opt => {
+                    const optValue = typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt;
+                    return isCheckbox ? !currentSelection.includes(optValue) : currentSelection !== optValue;
+                });
+            }
         }
+        
+        const displayedSelection = getDisplaySelection();
         
         content = (
             <div>
