@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table, Table2, Link, icons, Eye, Upload, CalendarDays, Grid, List, ListChecks } from "lucide-react";
+import { Clock, Table, Table2, Link, icons, Eye, Upload, CalendarDays, Grid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -96,6 +96,17 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
           {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
         </div>
       );
+    case "List":
+        return (
+            <div>
+                {renderLabel()}
+                <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
+                    <List className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">List Field</p>
+                    <p className="text-xs text-muted-foreground/70">{element.listType === 'checkbox' ? 'Checkboxes' : 'Radio Buttons'}</p>
+                </div>
+            </div>
+        );
     case "Checkbox":
       return (
         <div className="flex items-center space-x-2">
@@ -106,18 +117,20 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         </div>
       );
     case "RadioGroup":
-    case "CheckboxGroup":
-      return (
-        <div>
-          {renderLabel()}
-          <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
-            {type === 'RadioGroup' ? <RadioGroup className="h-12 w-12 text-muted-foreground" /> : <ListChecks className="h-12 w-12 text-muted-foreground" />}
-            <p className="text-sm text-muted-foreground">{label}</p>
-            <p className="text-xs text-muted-foreground/70">{options?.length || 0} options</p>
-          </div>
-          {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
-        </div>
-      );
+        return (
+            <div>
+                {renderLabel()}
+                <RadioGroup>
+                    {options?.map((option, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                            <RadioGroupItem value={option} id={`${element.id}-${index}`} />
+                            <Label htmlFor={`${element.id}-${index}`}>{option}</Label>
+                        </div>
+                    ))}
+                </RadioGroup>
+                {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+            </div>
+        )
     case "DatePicker":
       return (
         <div>

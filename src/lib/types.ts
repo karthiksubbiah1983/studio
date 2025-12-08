@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "CheckboxGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview" | "FileUpload";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview" | "FileUpload" | "List";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -107,10 +107,10 @@ export type FormElementInstance = {
     inputFormat?: 'text' | 'number' | 'alphanumeric';
     formula?: string;
     defaultValue?: any;
-    // For Select, RadioGroup, CheckboxGroup
+    // For Select, RadioGroup
     dataSource?: 'static' | 'dynamic';
     options?: string[];
-    // For dynamic data source (Select, RadioGroup, CheckboxGroup)
+    // For dynamic data source (Select, List)
     apiUrl?: string;
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
@@ -149,6 +149,10 @@ export type FormElementInstance = {
     allowedFileTypes?: string[];
     maxFileSize?: number; // in MB
     multiple?: boolean;
+    // For List
+    listType?: 'checkbox' | 'radio';
+    displaySelection?: 'none' | 'selected' | 'unselected';
+    listItemElements?: ListItemElement[];
     placeholder?: string;
 };
 
@@ -219,4 +223,3 @@ export type Task = {
     assignedAt: string;
     submittedAt?: string;
 };
-
