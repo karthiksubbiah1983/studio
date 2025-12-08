@@ -195,7 +195,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   useEffect(() => {
-    if ((element.type === 'Select' || element.type === 'List') && element.dataSource === 'dynamic') {
+    if ((element.type === 'Select' || element.type === 'RadioGroup' || element.type === 'CheckboxGroup') && element.dataSource === 'dynamic') {
       
       if (element.dependencyType === 'parent' && element.dependentFieldId && element.subKey) {
         const parentValue = formState?.[element.dependentFieldId];
@@ -491,109 +491,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         </div>
       );
       break;
-    case "List": {
-        const { listType, displaySelection, valueKey, labelKey, dataSource, listItemElements } = element;
-        const currentOptions = dataSource === 'dynamic' ? dynamicOptions : (options || []);
-
-        const renderOptions = (opts: any[]) => {
-            return opts.map((option, index) => {
-                const optionValue = typeof option === 'object' ? getNestedValue(option, valueKey!) : option;
-                const optionLabel = typeof option === 'object' ? getNestedValue(option, labelKey!) : option;
-                const isChecked = listType === 'checkbox' ? (Array.isArray(value) && value.includes(optionValue)) : value === optionValue;
-                const rowContext = typeof option === 'object' ? option : { value: option };
-
-                const handleSelectionChange = () => {
-                    if (listType === 'checkbox') {
-                         const newValue = isChecked
-                            ? (value || []).filter((v: any) => v !== optionValue)
-                            : [...(value || []), optionValue];
-                        onValueChange(element.id, newValue);
-                    } else {
-                        onValueChange(element.id, optionValue);
-                    }
-                }
-
-                return (
-                    <div 
-                        key={index}
-                        className="flex items-start gap-3 p-3 border rounded-md has-[:checked]:bg-accent"
-                        onClick={handleSelectionChange}
-                    >
-                         {listType === 'checkbox' ? (
-                            <Checkbox 
-                                id={`${element.id}-${index}`}
-                                checked={isChecked}
-                                className="mt-1"
-                            />
-                         ) : (
-                            <RadioGroupItem value={optionValue} id={`${element.id}-${index}`} checked={isChecked} className="mt-1"/>
-                         )}
-                        <div className="flex-1">
-                            <Label htmlFor={`${element.id}-${index}`} className="font-medium cursor-pointer">{optionLabel}</Label>
-                            {listItemElements && listItemElements.length > 0 && (
-                                <div className="mt-1 space-y-1">
-                                    {listItemElements.map(itemEl => (
-                                        <FormElementRenderer
-                                            key={itemEl.id}
-                                            element={itemEl.element}
-                                            value={undefined}
-                                            onValueChange={()=>{}}
-                                            formState={formState}
-                                            rowContext={rowContext}
-                                            isTableCell={true}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                );
-            })
-        }
-        
-        const selectionContent = useMemo(() => {
-            if (displaySelection === 'none' || !value) return null;
-            
-            const selectedValues = Array.isArray(value) ? value : [value];
-            if (selectedValues.length === 0 && displaySelection === 'selected') return null;
-
-            const allOptionValues = currentOptions.map(opt => typeof opt === 'object' ? getNestedValue(opt, valueKey!) : opt);
-            
-            let itemsToShow: string[] = [];
-            if (displaySelection === 'selected') {
-                itemsToShow = selectedValues;
-            } else if (displaySelection === 'unselected') {
-                itemsToShow = allOptionValues.filter(opt => !selectedValues.includes(opt));
-            }
-            
-            if (itemsToShow.length === 0) return null;
-
-            return (
-                 <div className="mt-4 p-4 border rounded-md bg-muted/50">
-                    <h4 className="font-medium text-sm mb-2">
-                        {displaySelection === 'selected' ? 'Selected Items' : 'Unselected Items'}
-                    </h4>
-                    <ul className="list-disc pl-5 space-y-1 text-sm">
-                        {itemsToShow.map((item, index) => <li key={index}>{item}</li>)}
-                    </ul>
-                </div>
-            )
-        }, [value, displaySelection, currentOptions, valueKey]);
-
-
-        content = (
-             <div>
-                {renderLabel()}
-                {isLoading ? <Loader2 className="animate-spin" /> : (
-                   <div className="space-y-2">
-                        {renderOptions(currentOptions)}
-                   </div>
-                )}
-                {selectionContent}
-            </div>
-        );
-        break;
-    }
     case "Checkbox":
         content = (
             <div className="flex items-start space-x-2">
@@ -614,27 +511,52 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         );
         break;
     case "RadioGroup":
-      content = (
-        <div>
-          {renderLabelWithPopup()}
-          <RadioGroup value={value} onValueChange={(val) => onValueChange(element.id, val)} className="mt-3" disabled={isDisabled}>
-            {options?.map((option, index) => (
-              <div key={index} className="flex items-center space-x-2">
-                <RadioGroupItem
-                  value={option}
-                  id={`${element.id}-${index}`}
-                />
-                <Label htmlFor={`${element.id}-${index}`} style={appliedStyles.style}>{option}</Label>
-              </div>
-            ))}
-          </RadioGroup>
-          {helperText && (
-            <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
-          )}
-          {renderError()}
-        </div>
-      );
-      break;
+    case "CheckboxGroup":
+        const currentOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
+        const isCheckboxGroup = type === 'CheckboxGroup';
+
+        const handleGroupChange = (optionValue: string) => {
+            if (isCheckboxGroup) {
+                const currentValues = Array.isArray(value) ? value : [];
+                const newValues = currentValues.includes(optionValue)
+                    ? currentValues.filter(v => v !== optionValue)
+                    : [...currentValues, optionValue];
+                onValueChange(element.id, newValues);
+            } else {
+                onValueChange(element.id, optionValue);
+            }
+        };
+
+        content = (
+            <div>
+            {renderLabelWithPopup()}
+            <div className="mt-3 space-y-2">
+                {isLoading ? <Loader2 className="animate-spin" /> : currentOptions.map((option, index) => {
+                    const optionValue = typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option;
+                    const optionLabel = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option;
+                    const isChecked = isCheckboxGroup
+                        ? Array.isArray(value) && value.includes(optionValue)
+                        : value === optionValue;
+                    
+                    return (
+                        <div key={index} className="flex items-center space-x-2 p-2 rounded-md has-[:checked]:bg-accent cursor-pointer" onClick={() => handleGroupChange(optionValue)}>
+                            {isCheckboxGroup ? (
+                                <Checkbox id={`${element.id}-${index}`} checked={isChecked} />
+                            ) : (
+                                <RadioGroupItem value={optionValue} id={`${element.id}-${index}`} checked={isChecked} />
+                            )}
+                            <Label htmlFor={`${element.id}-${index}`} style={appliedStyles.style} className="cursor-pointer">{optionLabel}</Label>
+                        </div>
+                    );
+                })}
+            </div>
+            {helperText && (
+                <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
+            )}
+            {renderError()}
+            </div>
+        );
+        break;
     case "DatePicker":
       const dateValue = value ? new Date(value) : undefined;
       const handleDateChange = (date: Date | undefined) => {
@@ -1232,4 +1154,3 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-

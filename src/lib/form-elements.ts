@@ -1,5 +1,5 @@
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2, Eye, Upload } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2, Eye, Upload, ListChecks } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -12,8 +12,8 @@ export const FormElements: {
     { type: 'Textarea', icon: Pilcrow, label: 'Textarea' },
     { type: 'Select', icon: ChevronsUpDown, label: 'Select' },
     { type: 'Checkbox', icon: CheckSquare, label: 'Checkbox' },
+    { type: 'CheckboxGroup', icon: ListChecks, label: 'Checkbox Group' },
     { type: 'RadioGroup', icon: RadioTower, label: 'Radio Group' },
-    { type: 'List', icon: List, label: 'List' },
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
@@ -44,19 +44,12 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 dataSource: 'static', 
                 placeholder: "Select an option"
             };
-        case "List":
-            return {
-                ...baseElement,
-                label: "List Field",
-                listType: 'checkbox',
-                dataSource: 'static',
-                options: ["Option 1", "Option 2"],
-                displaySelection: 'none',
-            };
         case "Checkbox":
             return { ...baseElement, label: "Checkbox Field" };
         case "RadioGroup":
-             return { ...baseElement, label: "Radio Group", options: ["Option 1", "Option 2"] };
+             return { ...baseElement, label: "Radio Group", options: ["Option 1", "Option 2"], dataSource: 'static' };
+        case "CheckboxGroup":
+             return { ...baseElement, label: "Checkbox Group", options: ["Option 1", "Option 2"], dataSource: 'static' };
         case "DatePicker":
             return { ...baseElement, label: "Date Picker" };
         case "Display":

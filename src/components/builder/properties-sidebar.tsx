@@ -278,7 +278,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'DataGrid' || element.type === 'Table' || element.type === 'List') && element.apiUrl && !element.dependentFieldId) {
+    if ((element.type === 'Select' || element.type === 'DataGrid' || element.type === 'Table' || element.type === 'RadioGroup' || element.type === 'CheckboxGroup') && element.apiUrl && !element.dependentFieldId) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -324,7 +324,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'Table' || props.type === 'List' ? props.apiUrl : undefined);
+    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'Table' || props.type === 'RadioGroup' || props.type === 'CheckboxGroup' ? props.apiUrl : undefined);
     if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
@@ -911,135 +911,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
             );
-        case "List":
-            return (
-                <>
-                <Accordion type="multiple" defaultValue={["general", "data", "layout"]} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                     <AccordionItem value="layout">
-                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                             <div className="flex flex-col gap-2">
-                                <Label>List Type</Label>
-                                <RadioGroup
-                                    value={props.listType || 'checkbox'}
-                                    onValueChange={(value) => updateProperty('listType', value as 'checkbox' | 'radio')}
-                                    className="flex"
-                                >
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="checkbox" id="list-type-checkbox" />
-                                        <Label htmlFor="list-type-checkbox">Checkboxes</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="radio" id="list-type-radio" />
-                                        <Label htmlFor="list-type-radio">Radio Buttons</Label>
-                                    </div>
-                                </RadioGroup>
-                            </div>
-                            <Button variant="outline" size="sm" onClick={() => {
-                                const newItem: ListItemElement = {
-                                    id: crypto.randomUUID(),
-                                    element: createNewElement('Display'),
-                                };
-                                setEditingColumn(newItem);
-                            }}>
-                                Configure List Item
-                            </Button>
-                            <div className="flex flex-col gap-2">
-                                <Label>Display Selection</Label>
-                                <Select
-                                    value={props.displaySelection || 'none'}
-                                    onValueChange={(value) => updateProperty('displaySelection', value as 'selected' | 'unselected' | 'none')}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        <SelectItem value="selected">Show Selected</SelectItem>
-                                        <SelectItem value="unselected">Show Unselected</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="data">
-                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                             <div className="flex flex-col gap-2 mb-1.5">
-                                <Label>Source Type</Label>
-                                <RadioGroup
-                                    value={props.dataSource || 'static'}
-                                    onValueChange={(val) => {
-                                      const newDataSource = val as 'static' | 'dynamic';
-                                      const newOptions = (newDataSource === 'static' && !props.options) ? ['Option 1'] : props.options;
-                                      updateProperty('dataSource', newDataSource);
-                                      if (newDataSource === 'static') {
-                                        updateProperty('options', newOptions);
-                                      }
-                                    }}
-                                    className="flex"
-                                >
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="static" id="source-static-list" />
-                                        <Label htmlFor="source-static-list">Static</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="dynamic" id="source-dynamic-list" />
-                                        <Label htmlFor="source-dynamic-list">Dynamic</Label>
-                                    </div>
-                                </RadioGroup>
-                            </div>
-                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-                <Dialog open={!!editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
-                    <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
-                        <DialogHeader>
-                            <DialogTitle>Configure List Item</DialogTitle>
-                            <DialogDescription>
-                                Add and configure display elements for each item in the list.
-                            </DialogDescription>
-                        </DialogHeader>
-                         <div className="flex-grow py-4 flex flex-col gap-4 overflow-y-auto">
-                            {(props.listItemElements || []).map((item, index) => (
-                                <div key={item.id} className="border p-4 rounded-md">
-                                    <ElementProperties
-                                        element={item.element}
-                                        onUpdate={(updatedElement) => {
-                                            const newItems = [...(props.listItemElements || [])];
-                                            newItems[index] = { ...newItems[index], element: updatedElement };
-                                            updateProperty('listItemElements', newItems);
-                                        }}
-                                        isColumnElement={true}
-                                    />
-                                    <Button variant="destructive" size="sm" className="mt-4" onClick={() => {
-                                        const newItems = (props.listItemElements || []).filter(i => i.id !== item.id);
-                                        updateProperty('listItemElements', newItems);
-                                    }}>
-                                        <Trash className="mr-2 h-4 w-4" /> Remove
-                                    </Button>
-                                </div>
-                            ))}
-                            <Button variant="outline" onClick={() => {
-                                const newItem: ListItemElement = {
-                                    id: crypto.randomUUID(),
-                                    element: createNewElement('Display'),
-                                };
-                                const newItems = [...(props.listItemElements || []), newItem];
-                                updateProperty('listItemElements', newItems);
-                            }}>
-                                <Plus className="mr-2 h-4 w-4" /> Add Display Element
-                            </Button>
-                         </div>
-                    </DialogContent>
-                </Dialog>
-                </>
-            );
         case "DataGrid":
             return (
                  <>
@@ -1356,6 +1227,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </>
             );
         case "RadioGroup":
+        case "CheckboxGroup":
              return (
                  <Accordion type="multiple" defaultValue={["general", "data"]} className="w-full">
                     <AccordionItem value="general">
@@ -1367,8 +1239,29 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                      <AccordionItem value="data">
                         <AccordionTrigger className="py-2">Options</AccordionTrigger>
-                        <AccordionContent>
-                            {optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                        <AccordionContent className="flex flex-col gap-4">
+                            <RadioGroup
+                                value={props.dataSource || 'static'}
+                                onValueChange={(val) => {
+                                    const newDataSource = val as 'static' | 'dynamic';
+                                    const newOptions = (newDataSource === 'static' && !props.options) ? ['Option 1'] : props.options;
+                                    updateProperty('dataSource', newDataSource);
+                                    if (newDataSource === 'static') {
+                                    updateProperty('options', newOptions);
+                                    }
+                                }}
+                                className="flex"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="static" id="source-static" />
+                                    <Label htmlFor="source-static">Static</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="dynamic" id="source-dynamic" />
+                                    <Label htmlFor="source-dynamic">Dynamic</Label>
+                                </div>
+                            </RadioGroup>
+                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1498,4 +1391,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
