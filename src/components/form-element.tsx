@@ -276,6 +276,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           finalDisplayValue = format(currentDateTime, 'PPP p');
       } else if (isReadOnly) {
           finalDisplayValue = value;
+      } else if (isTableCell && rowContext && key) { 
+          finalDisplayValue = getNestedValue(rowContext, key);
       } else if (dataSourceConfig?.sourceElementId && formState) { 
           const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
           const sourceValue = formState[dataSourceConfig.sourceElementId];
@@ -286,8 +288,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                   finalDisplayValue = sourceValue.value;
               }
           }
-      } else if (isTableCell && rowContext && key) { 
-          finalDisplayValue = getNestedValue(rowContext, key);
       }
       
       if (finalDisplayValue === undefined || finalDisplayValue === null) {
