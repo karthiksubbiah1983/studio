@@ -97,13 +97,15 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         </div>
       );
     case "List":
+        const listTypeLabel = element.listType === 'checkbox' ? 'Checkboxes' : element.listType === 'radio' ? 'Radio Buttons' : 'Display Only';
         return (
             <div>
                 {renderLabel()}
                 <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
                     <List className="h-12 w-12 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">List Field</p>
-                    <p className="text-xs text-muted-foreground/70">{element.listType === 'checkbox' ? 'Checkboxes' : 'Radio Buttons'}</p>
+                    <p className="text-xs text-muted-foreground/70">{listTypeLabel}</p>
+                     {element.enableScoring && <p className="text-xs text-muted-foreground/70">Scoring Enabled</p>}
                 </div>
             </div>
         );

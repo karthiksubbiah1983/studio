@@ -150,9 +150,12 @@ export type FormElementInstance = {
     maxFileSize?: number; // in MB
     multiple?: boolean;
     // For List
-    listType?: 'checkbox' | 'radio';
+    listType?: 'checkbox' | 'radio' | 'display';
     displaySelection?: 'none' | 'selected' | 'unselected';
     listItemElements?: ListItemElement[];
+    enableScoring?: boolean;
+    scorePerItem?: number;
+    passingScore?: number;
     placeholder?: string;
 };
 

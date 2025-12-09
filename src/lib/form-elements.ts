@@ -54,7 +54,10 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 displaySelection: 'none',
                 listItemElements: [
                     { id: crypto.randomUUID(), element: createNewElement('Display') }
-                ]
+                ],
+                enableScoring: false,
+                scorePerItem: 1,
+                passingScore: 1,
             };
         case "Checkbox":
             return { ...baseElement, label: "Checkbox Field" };
