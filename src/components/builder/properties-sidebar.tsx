@@ -439,49 +439,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const dynamicDataSourceFields = (isList = false) => (
     <div className="flex flex-col gap-4">
-        {!isList && (
-            <>
-                <div className="flex flex-col gap-2">
-                    <Label htmlFor="dependent-field">Dependent Field (Optional)</Label>
-                    <Select 
-                        value={props.dependentFieldId || 'none'} 
-                        onValueChange={handleDependentFieldChange}
-                    >
-                        <SelectTrigger>
-                            <SelectValue placeholder="None" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="none">None</SelectItem>
-                            {dependentFieldOptions.map(opt => (
-                                <SelectItem key={opt.id} value={opt.id}>{opt.label}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-                
-                {props.dependentFieldId && (
-                     <div className="flex flex-col gap-2">
-                        <Label>Dependency Type</Label>
-                        <RadioGroup
-                            value={props.dependencyType || 'api'}
-                            onValueChange={(value) => updateProperty('dependencyType', value as 'api' | 'parent')}
-                            className="flex"
-                        >
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="api" id="dep-api" />
-                                <Label htmlFor="dep-api">API Call</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="parent" id="dep-parent" />
-                                <Label htmlFor="dep-parent">Parent Data</Label>
-                            </div>
-                        </RadioGroup>
-                    </div>
-                )}
-            </>
-        )}
-
-        {(props.dependencyType === 'api' || !props.dependentFieldId || isList) && (
+       {(props.dependencyType === 'api' || !props.dependentFieldId || isList) && (
             <div className="flex flex-col gap-2">
                 <Label htmlFor="apiUrl">API URL</Label>
                 <div className="flex gap-2">
@@ -490,29 +448,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         {isFetching ? "Fetching..." : "Fetch"}
                     </Button>
                 </div>
-                {props.dependentFieldId && !isList && (
-                    <p className="text-xs text-muted-foreground">
-                        Use {'{field_key}'} to include the value of the dependent field.
-                    </p>
-                )}
             </div>
         )}
-
-        {props.dependencyType === 'parent' && props.dependentFieldId && !isList && (
-             <div className="flex flex-col gap-2">
-                <Label htmlFor="sub-key">Sub-Array Key</Label>
-                <Input
-                    id="sub-key"
-                    value={props.subKey || ''}
-                    onChange={(e) => updateProperty('subKey', e.target.value)}
-                    placeholder="e.g., 'comments' or 'address.history'"
-                />
-                 <p className="text-xs text-muted-foreground">
-                    The key for the array within the parent's selected object.
-                </p>
-            </div>
-        )}
-
         <>
             <div className="flex flex-col gap-2">
                 <Label htmlFor="valueKey">Option Value Key</Label>
@@ -917,7 +854,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "List":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "layout"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "layout", "scoring"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -926,7 +863,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label>List Type</Label>
                                  <RadioGroup
                                     value={props.listType || 'checkbox'}
-                                    onValueChange={(value) => updateProperty('listType', value as 'checkbox' | 'radio')}
+                                    onValueChange={(value) => updateProperty('listType', value as 'checkbox' | 'radio' | 'display')}
                                     className="flex gap-4"
                                 >
                                     <div className="flex items-center space-x-2">
@@ -936,6 +873,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <div className="flex items-center space-x-2">
                                         <RadioGroupItem value="radio" id="list-type-radio" />
                                         <Label htmlFor="list-type-radio">Radio Buttons</Label>
+                                    </div>
+                                     <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="display" id="list-type-display" />
+                                        <Label htmlFor="list-type-display">Display Only</Label>
                                     </div>
                                 </RadioGroup>
                             </div>
@@ -1001,6 +942,27 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     Add Item Element
                                 </Button>
                             </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="scoring">
+                        <AccordionTrigger className="py-2">Scoring</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="enable-scoring">Enable Scoring</Label>
+                                <Switch id="enable-scoring" checked={props.enableScoring} onCheckedChange={(checked) => updateProperty('enableScoring', checked)} />
+                            </div>
+                            {props.enableScoring && (
+                                <>
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="score-per-item">Score per Item</Label>
+                                    <Input id="score-per-item" type="number" value={props.scorePerItem || 1} onChange={(e) => updateProperty('scorePerItem', parseInt(e.target.value))} />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="passing-score">Passing Score</Label>
+                                    <Input id="passing-score" type="number" value={props.passingScore || 1} onChange={(e) => updateProperty('passingScore', parseInt(e.target.value))} />
+                                </div>
+                                </>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                       <Dialog open={!!editingColumn && 'element' in editingColumn && !('formula' in editingColumn)} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>

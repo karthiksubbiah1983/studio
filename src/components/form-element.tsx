@@ -197,37 +197,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   useEffect(() => {
     if ((element.type === 'Select' || element.type === 'List') && element.dataSource === 'dynamic') {
       
-      if (element.dependencyType === 'parent' && element.dependentFieldId && element.subKey) {
-        const parentValue = formState?.[element.dependentFieldId];
-        if (parentValue?.fullObject) {
-            const subArray = getNestedValue(parentValue.fullObject, element.subKey);
-            if (Array.isArray(subArray)) {
-                setDynamicOptions(subArray);
-            } else {
-                setDynamicOptions([]);
-            }
-        } else {
-            setDynamicOptions([]);
-        }
-        return; 
-      }
-      
       if (element.apiUrl) {
         let finalApiUrl = element.apiUrl;
-
-        if (element.dependentFieldId && formState) {
-          const dependentValue = formState[element.dependentFieldId]?.value;
-          
-          if (dependentValue) {
-              const placeholder = finalApiUrl.match(/\{(.+?)\}/);
-              if (placeholder) {
-                  finalApiUrl = finalApiUrl.replace(placeholder[0], encodeURIComponent(dependentValue));
-              }
-          } else {
-              setDynamicOptions([]);
-              return; 
-          }
-        }
 
         setIsLoading(true);
         fetchFromApi(finalApiUrl)
@@ -235,10 +206,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           .finally(() => setIsLoading(false));
       }
     }
-  }, [element.apiUrl, element.dependencyType, element.subKey, element.dependentFieldId, element.type, element.dataSource, formState?.[element.dependentFieldId!]?.value]);
+  }, [element.apiUrl, element.type, element.dataSource]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, dependentFieldId, isLink, linkUrl, textStyle, color, content: richTextContent, key } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, textStyle, color, content: richTextContent, key } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -458,15 +429,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                  onValueChange(element.id, val);
             }
         }
-
-        const isDependentAndParentNotSelected = dependentFieldId && !formState?.[dependentFieldId]?.value;
-
       content = (
         <div>
           {renderLabel()}
-          <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled || isDependentAndParentNotSelected}>
+          <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled}>
             <SelectTrigger style={appliedStyles.style} className={cn(appliedStyles.error && "border-destructive")}>
-              <SelectValue placeholder={isLoading ? "Loading..." : (isDependentAndParentNotSelected ? "Select parent first" : placeholder)} />
+              <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
             </SelectTrigger>
             <SelectContent>
               {element.dataSource === 'dynamic' ? (
@@ -493,9 +461,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
     case "List": {
         const isCheckbox = element.listType === 'checkbox';
+        const isDisplayOnly = element.listType === 'display';
         const currentSelection = isCheckbox ? (Array.isArray(value) ? value : []) : (value || '');
 
         const handleListChange = (itemValue: string) => {
+            if (isDisplayOnly) return;
             if (isCheckbox) {
                 const newSelection = currentSelection.includes(itemValue)
                     ? currentSelection.filter((v: string) => v !== itemValue)
@@ -509,7 +479,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const listOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
 
         const getDisplaySelection = () => {
-            if (element.displaySelection === 'none' || !currentSelection) {
+            if (element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
                 return [];
             }
             if (element.displaySelection === 'selected') {
@@ -524,6 +494,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 });
             }
         }
+
+        const score = useMemo(() => {
+            if (!element.enableScoring || isDisplayOnly) return null;
+            const scorePerItem = element.scorePerItem || 0;
+            const selectedCount = isCheckbox ? currentSelection.length : (currentSelection ? 1 : 0);
+            return selectedCount * scorePerItem;
+        }, [currentSelection, element.enableScoring, element.scorePerItem, isCheckbox, isDisplayOnly]);
+
+        const passed = score !== null && element.passingScore !== undefined ? score >= element.passingScore : null;
         
         const displayedSelection = getDisplaySelection();
         
@@ -540,13 +519,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 key={index}
                                 onClick={() => handleListChange(itemValue)}
                                 className={cn(
-                                    "flex items-center gap-4 p-3 rounded-md cursor-pointer transition-colors",
+                                    "flex items-center gap-4 p-3 rounded-md transition-colors",
+                                    !isDisplayOnly && "cursor-pointer",
                                     isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-accent"
                                 )}
                             >
-                                <div className="flex-shrink-0">
-                                    {isCheckbox ? <Checkbox checked={isSelected} /> : <RadioGroupItem value={itemValue} checked={isSelected} />}
-                                </div>
+                                {!isDisplayOnly && (
+                                    <div className="flex-shrink-0">
+                                        {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} checked={isSelected} />}
+                                    </div>
+                                )}
                                 <div className="flex-1 space-y-2">
                                      {(element.listItemElements || []).map(itemEl => (
                                         <FormElementRenderer 
@@ -563,7 +545,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         );
                     })}
                 </div>
-                 {element.displaySelection !== 'none' && displayedSelection.length > 0 && (
+                 {element.displaySelection !== 'none' && displayedSelection.length > 0 && !isDisplayOnly && (
                     <div className="mt-4">
                         <p className="text-sm font-medium mb-2">{element.displaySelection === 'selected' ? 'Selected' : 'Unselected'} Items:</p>
                         <div className="rounded-md border p-2 space-y-1">
@@ -572,6 +554,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                  return <div key={index} className="p-2 bg-muted/50 rounded-md text-sm">{itemLabel}</div>
                             })}
                         </div>
+                    </div>
+                 )}
+                 {element.enableScoring && score !== null && (
+                    <div className="mt-4 flex justify-between items-center rounded-md border p-3 bg-muted/50">
+                        <p className="font-medium">Total Score: {score}</p>
+                        {passed !== null && (
+                            <div className={cn("font-bold px-3 py-1 rounded-full text-sm", passed ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800")}>
+                                {passed ? "Pass" : "Fail"}
+                            </div>
+                        )}
                     </div>
                  )}
             </div>
