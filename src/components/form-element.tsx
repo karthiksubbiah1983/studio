@@ -85,7 +85,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
 
    const isVisible = useMemo(() => {
-    if (!context) return true;
+    if (!context || element.hidden) return !element.hidden;
 
     const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
     const hideRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
@@ -103,7 +103,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     
     return visible;
-  }, [element.id, context, rules]);
+  }, [element.id, context, rules, element.hidden]);
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
     let readOnly = false;
@@ -490,8 +490,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         
         const mainListOptions = useMemo(() => {
             if (element.displaySelection === 'selected' && !isDisplayOnly) {
-                return allListOptions.filter(opt => {
-                    const optValue = String(typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt);
+                return allListOptions.filter(option => {
+                    const optValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
                     return isCheckbox ? !currentSelection.includes(optValue) : currentSelection !== optValue;
                 });
             }
@@ -503,8 +503,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 return [];
             }
             if (element.displaySelection === 'selected') {
-                 return allListOptions.filter(opt => {
-                    const optValue = String(typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt);
+                 return allListOptions.filter(option => {
+                    const optValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
                     return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
                 });
             }
@@ -587,8 +587,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     <div className="mt-4">
                         <p className="text-sm font-medium mb-2">{element.displaySelection === 'selected' ? 'Selected' : 'Unselected'} Items:</p>
                         <div className="rounded-md border p-2 space-y-1">
-                            {displayedSelection.map((opt, index) => {
-                                 const itemLabel = typeof opt === 'object' ? getNestedValue(opt, element.labelKey!) : opt;
+                            {displayedSelection.map((option, index) => {
+                                 const itemLabel = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option;
                                  return <div key={index} className="p-2 bg-muted/50 rounded-md text-sm">{itemLabel}</div>
                             })}
                         </div>

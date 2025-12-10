@@ -100,6 +100,7 @@ export type FormElementInstance = {
     key: string; // Unique key for JSON schema
     label: string;
     required: boolean;
+    hidden?: boolean;
     description?: string; // Corresponds to JSON Schema description
     helperText?: string;
     exposeForValidation?: boolean; // New property

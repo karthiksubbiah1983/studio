@@ -7,7 +7,7 @@ import { FormElementInstance } from "@/lib/types";
 import { ElementPreview } from "./element-preview";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
-import { Copy, Trash, ClipboardCopy } from "lucide-react";
+import { Copy, Trash, ClipboardCopy, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "../ui/badge";
 import { Layout } from "lucide-react";
@@ -241,12 +241,20 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
         className={cn(
           "relative flex flex-col p-4 cursor-pointer bg-card transition-all",
           (mouseIsOver || isSelected) && "shadow-[inset_0_0_0_1px_#084D8E]",
-          isHorizontalChild && 'flex-1'
+          isHorizontalChild && 'flex-1',
+          element.hidden && 'opacity-50'
         )}
       >
         {mouseIsOver && state.draggedElement && isTopHalf && <div className="absolute top-0 left-0 w-full h-1 bg-primary z-10" />}
         {mouseIsOver && state.draggedElement && !isTopHalf && <div className="absolute bottom-0 left-0 w-full h-1 bg-primary z-10" />}
 
+        {element.hidden && (
+          <Badge variant="secondary" className="absolute top-2 left-2 z-10 border-destructive/50 border">
+            <EyeOff className="h-3 w-3 mr-1 text-destructive" />
+            Hidden
+          </Badge>
+        )}
+        
         {mouseIsOver && (
           <div className="absolute top-2 right-2 flex gap-1 z-10">
             <Button

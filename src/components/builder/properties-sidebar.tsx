@@ -579,6 +579,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <Label htmlFor="required">Required</Label>
         <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
       </div>
+      <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+        <Label htmlFor="hidden">Hidden in Form</Label>
+        <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+      </div>
     </>
   );
 
@@ -1248,6 +1252,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="required">Required</Label>
                                 <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hidden">Hidden in Form</Label>
+                                <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                             <PopupSettings element={props} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
