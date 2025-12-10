@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -1224,13 +1225,35 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "RadioGroup":
             return (
-                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "layout"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                             {optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                             <PopupSettings element={props} onUpdate={(popup) => updateProperty('popup', popup)} />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="layout">
+                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           <div className="flex flex-col gap-2">
+                                <Label>Alignment</Label>
+                                <RadioGroup
+                                    value={props.direction || 'vertical'}
+                                    onValueChange={(value) => updateProperty('direction', value as 'horizontal' | 'vertical')}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="vertical" id="dir-vertical-rg" />
+                                        <Label htmlFor="dir-vertical-rg">Vertical</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="horizontal" id="dir-horizontal-rg" />
+                                        <Label htmlFor="dir-horizontal-rg">Horizontal</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

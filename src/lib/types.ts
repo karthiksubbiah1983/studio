@@ -125,9 +125,10 @@ export type FormElementInstance = {
     popup?: PopupConfig;
     // For RichText
     content?: string;
+    // For Container, RadioGroup
+    direction?: 'horizontal' | 'vertical';
     // For Container
     elements?: FormElementInstance[];
-    direction?: 'horizontal' | 'vertical';
     justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
     // For DataGrid

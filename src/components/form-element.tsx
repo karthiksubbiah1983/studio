@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement } from "@/lib/types";
@@ -208,7 +209,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.apiUrl, element.type, element.dataSource]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, textStyle, color, content: richTextContent, key } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, textStyle, color, content: richTextContent, key, direction } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -631,7 +632,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       content = (
         <div id={element.id}>
           {renderLabelWithPopup()}
-          <RadioGroup value={value} onValueChange={(val) => onValueChange(element.id, val)} className="mt-3" disabled={isDisabled}>
+          <RadioGroup 
+            value={value}
+            onValueChange={(val) => onValueChange(element.id, val)}
+            className={cn("mt-3", direction === 'horizontal' ? "flex flex-row gap-4" : "grid gap-2")}
+            disabled={isDisabled}
+          >
             {options?.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <RadioGroupItem
