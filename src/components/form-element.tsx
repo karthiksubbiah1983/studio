@@ -271,22 +271,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         let finalDisplayValue;
 
         if (isTableCell && rowContext) {
-            // For List items and Table cells, the context is the row data object itself.
-             if (element.dataSourceConfig?.displayKey) {
+            if (element.dataSourceConfig?.displayKey) {
                 finalDisplayValue = getNestedValue(rowContext, element.dataSourceConfig.displayKey);
-             } else if (typeof rowContext === 'string') {
-                // Handle static lists where rowContext is just a string
-                finalDisplayValue = rowContext;
-             } else if (typeof rowContext === 'object' && rowContext !== null) {
-                // Handle dynamic lists where we need to find the correct property
-                if (element.labelKey && element.dataSource === 'dynamic') {
-                    finalDisplayValue = getNestedValue(rowContext, element.labelKey);
-                } else if (element.labelKey) { // Fallback for static object lists (if ever implemented)
-                    finalDisplayValue = getNestedValue(rowContext, element.labelKey);
-                } else {
-                    // Try to find a reasonable default like 'name' or 'label'
-                    finalDisplayValue = rowContext.name || rowContext.label || JSON.stringify(rowContext);
-                }
+            } else if (element.labelKey) {
+                finalDisplayValue = getNestedValue(rowContext, element.labelKey);
+            } else {
+                 finalDisplayValue = typeof rowContext === 'string' ? rowContext : rowContext.name || rowContext.label || JSON.stringify(rowContext);
             }
         } else if (dataSourceConfig?.sourceType === 'currentUser') {
             finalDisplayValue = user?.username || 'Guest';
@@ -477,6 +467,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
     case "List": {
         const isCheckbox = element.listType === 'checkbox';
+        const isRadio = element.listType === 'radio';
         const isDisplayOnly = element.listType === 'display';
         const currentSelection = isCheckbox ? (Array.isArray(value) ? value : []) : (value || '');
 
@@ -522,47 +513,60 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         
         const displayedSelection = getDisplaySelection();
         
+        const listContent = (
+            <div className="rounded-md border p-2 space-y-2">
+                {isLoading ? <Loader2 className="animate-spin" /> : listOptions.map((option, index) => {
+                    const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                    const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
+                    const isSelected = isCheckbox ? currentSelection.includes(itemValue) : currentSelection === itemValue;
+                    
+                    return (
+                        <div
+                            key={`${element.id}-item-${index}`}
+                            onClick={() => handleListChange(itemValue)}
+                            className={cn(
+                                "flex items-center gap-4 p-3 rounded-md transition-colors",
+                                !isDisplayOnly && "cursor-pointer",
+                                isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-accent"
+                            )}
+                        >
+                            {!isDisplayOnly && (
+                                <div className="flex-shrink-0">
+                                    {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem id={`${element.id}-${index}`} value={itemValue} checked={isSelected} />}
+                                </div>
+                            )}
+                            <div className="flex-1 space-y-2">
+                                { (isDisplayOnly && element.listItemElements && element.listItemElements.length > 0) ?
+                                    element.listItemElements.map(itemEl => (
+                                        <FormElementRenderer 
+                                            key={itemEl.id}
+                                            element={{...itemEl.element, id: `${element.id}::${itemEl.element.key}`}}
+                                            value={null}
+                                            onValueChange={() => {}}
+                                            rowContext={option}
+                                            isTableCell={true}
+                                        />
+                                ))
+                                :
+                                <Label htmlFor={isRadio ? `${element.id}-${index}`: undefined} className="font-normal">{itemLabel}</Label>
+                            }
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+        
         content = (
             <div>
                 {renderLabel()}
-                <div className="rounded-md border p-2 space-y-2">
-                    {isLoading ? <Loader2 className="animate-spin" /> : listOptions.map((option, index) => {
-                        const itemValue = typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option;
-                        const isSelected = isCheckbox ? currentSelection.includes(itemValue) : currentSelection === itemValue;
-                        
-                        return (
-                            <div
-                                key={index}
-                                onClick={() => handleListChange(itemValue)}
-                                className={cn(
-                                    "flex items-center gap-4 p-3 rounded-md transition-colors",
-                                    !isDisplayOnly && "cursor-pointer",
-                                    isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-accent"
-                                )}
-                            >
-                                {!isDisplayOnly && (
-                                    <div className="flex-shrink-0">
-                                        {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} checked={isSelected} />}
-                                    </div>
-                                )}
-                                <div className="flex-1 space-y-2">
-                                     {element.listType !== 'display' ?
-                                        <Label className="font-normal">{typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option}</Label>
-                                        : (element.listItemElements || []).map(itemEl => (
-                                            <FormElementRenderer 
-                                                key={itemEl.id}
-                                                element={{...itemEl.element, id: `${element.id}::${itemEl.element.key}`}}
-                                                value={null} // Value is handled by rowContext
-                                                onValueChange={() => {}} // Display only
-                                                rowContext={option}
-                                                isTableCell={true}
-                                            />
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                {isRadio ? (
+                    <RadioGroup id={element.id} value={value} onValueChange={handleListChange}>
+                        {listContent}
+                    </RadioGroup>
+                ) : (
+                    listContent
+                )}
                  {element.displaySelection !== 'none' && displayedSelection.length > 0 && !isDisplayOnly && (
                     <div className="mt-4">
                         <p className="text-sm font-medium mb-2">{element.displaySelection === 'selected' ? 'Selected' : 'Unselected'} Items:</p>
@@ -1226,6 +1230,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
 
