@@ -270,11 +270,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Display": {
         let finalDisplayValue;
         if (isTableCell && rowContext) {
-            if (element.dataSourceConfig?.displayKey) {
-                finalDisplayValue = getNestedValue(rowContext, element.dataSourceConfig.displayKey);
-            } else {
-                 finalDisplayValue = typeof rowContext === 'string' ? rowContext : getNestedValue(rowContext, element.labelKey || 'name') || JSON.stringify(rowContext);
-            }
+             const keyToUse = element.dataSourceConfig?.displayKey || element.key || '';
+             finalDisplayValue = getNestedValue(rowContext, keyToUse);
         } else if (dataSourceConfig?.sourceType === 'currentUser') {
             finalDisplayValue = user?.username || 'Guest';
         } else if (dataSourceConfig?.sourceType === 'currentDateTime') {
@@ -510,7 +507,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             if (score !== null) {
                 onValueChange(`${element.id}::score`, score);
             }
-        }, [score, element.id, onValueChange]);
+        }, [score]);
 
         const passed = score !== null && element.passingScore !== undefined ? score >= element.passingScore : null;
         
@@ -524,7 +521,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     
                     const itemContent = () => {
                         if (isDisplayOnly && element.listItemElements && element.listItemElements.length > 0) {
-                            return element.listItemElements.map(itemEl => (
+                             return element.listItemElements.map(itemEl => (
                                 <FormElementRenderer 
                                     key={itemEl.id}
                                     element={{...itemEl.element, id: `${element.id}::${itemEl.element.key}`}}
@@ -1236,6 +1233,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
 
