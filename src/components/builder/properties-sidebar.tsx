@@ -837,7 +837,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "List":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "scoring"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "scoring", "layout"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -863,17 +863,18 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                 </RadioGroup>
                             </div>
-                             <div className="flex flex-col gap-2">
-                                <Label>Display Selection</Label>
-                                 <Select value={props.displaySelection || 'none'} onValueChange={(value) => updateProperty('displaySelection', value)}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        <SelectItem value="selected">Show Selected</SelectItem>
-                                        <SelectItem value="unselected">Show Unselected</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {props.listType !== 'display' &&
+                                <div className="flex flex-col gap-2">
+                                    <Label>Display Selection</Label>
+                                    <Select value={props.displaySelection || 'none'} onValueChange={(value) => updateProperty('displaySelection', value)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">None</SelectItem>
+                                            <SelectItem value="selected">Show Selected</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            }
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
@@ -1194,7 +1195,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
 
-                <Dialog open={!!editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
+                <Dialog open={!!editingColumn && 'formula' in editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
                     <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
                         <DialogHeader>
                             <DialogTitle>Edit Column</DialogTitle>
@@ -1203,7 +1204,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </DialogDescription>
                         </DialogHeader>
                         <ScrollArea className="flex-grow -mx-6 px-6">
-                            {editingColumn && (
+                            {editingColumn && 'formula' in editingColumn && (
                                 <div className="py-4 flex flex-col gap-4">
                                     <div className="flex flex-col gap-2">
                                         <Label>Column Header</Label>
