@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { FormElementInstance, Workflow, Section, Condition, WorkflowAction, TaskStatus, ConditionComparisonType, ConditionSourceType } from "@/lib/types";
+import { FormElementInstance, Workflow, Section, Condition, WorkflowAction, TaskStatus, ConditionComparisonType, ConditionSourceType, Configuration } from "@/lib/types";
 import { Plus, Trash, X, Zap, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn, getAllElements } from "@/lib/utils";
@@ -34,7 +34,7 @@ const allStatuses: string[] = [...taskStatuses, 'Current Status'];
 
 
 export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
-  const { sections, workflows, updateWorkflows } = useBuilder();
+  const { sections, workflows, configurations, updateWorkflows } = useBuilder();
   const [localWorkflows, setLocalWorkflows] = useState<Workflow[]>([]);
   const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
 
@@ -171,6 +171,15 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                 return (
                     <div className="h-8 text-xs px-3 py-2 text-muted-foreground">Current Status</div>
                 );
+            case 'config':
+                return (
+                    <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
+                        <SelectContent>
+                            {(configurations || []).map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
             default: return null;
         }
     }
@@ -218,6 +227,15 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                         </SelectContent>
                     </Select>
                 );
+            case 'config':
+                 return (
+                    <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
+                        <SelectContent>
+                            {(configurations || []).map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
             default:
                 return <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} className="h-8 text-xs" />;
         }
@@ -239,6 +257,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                         <SelectItem value="field">Field</SelectItem>
                         <SelectItem value="date">Date</SelectItem>
                         <SelectItem value="status">Current Status</SelectItem>
+                        <SelectItem value="config">Configuration</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -279,6 +298,7 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                             <SelectItem value="date">Date</SelectItem>
                             <SelectItem value="field">Field</SelectItem>
                             <SelectItem value="status">Status</SelectItem>
+                            <SelectItem value="config">Configuration</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -464,6 +484,3 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
-
-
-    

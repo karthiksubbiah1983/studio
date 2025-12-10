@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus } from "@/lib/types";
+import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus, Configuration } from "@/lib/types";
 import { Plus, Trash, X, Settings2, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn, getAllElements } from "@/lib/utils";
@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Input } from "../ui/input";
 import { Separator } from "../ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
 type Props = {
   isOpen: boolean;
@@ -31,14 +32,19 @@ const allStatuses: string[] = [...taskStatuses, 'Current Status'];
 
 
 export function RulesDialog({ isOpen, onOpenChange }: Props) {
-  const { sections, rules, updateRules } = useBuilder();
+  const { sections, rules, configurations, updateRules, updateConfigurations } = useBuilder();
   const [localRules, setLocalRules] = useState<Rule[]>([]);
+  const [localConfigs, setLocalConfigs] = useState<Configuration[]>([]);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
         const initialRules = JSON.parse(JSON.stringify(rules || []));
         setLocalRules(initialRules);
+        
+        const initialConfigs = JSON.parse(JSON.stringify(configurations || []));
+        setLocalConfigs(initialConfigs);
+
         if (initialRules.length > 0 && !selectedRuleId) {
             setSelectedRuleId(initialRules[0].id);
         } else if (initialRules.length > 0 && selectedRuleId) {
@@ -50,7 +56,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             setSelectedRuleId(null);
         }
     }
-  }, [isOpen, rules]);
+  }, [isOpen, rules, configurations]);
 
   useEffect(() => {
     if (isOpen) {
@@ -112,6 +118,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
 
   const handleSaveChanges = () => {
     updateRules(localRules);
+    updateConfigurations(localConfigs);
     onOpenChange(false);
   }
 
@@ -187,6 +194,15 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 return (
                     <div className="h-8 text-xs px-3 py-2 text-muted-foreground">Current Status</div>
                 );
+            case 'config':
+                return (
+                    <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
+                        <SelectContent>
+                            {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
             default: return null;
         }
     }
@@ -234,6 +250,15 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         </SelectContent>
                     </Select>
                 );
+            case 'config':
+                return (
+                    <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value: value })}>
+                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
+                        <SelectContent>
+                            {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                );
             default:
                 return <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} className="h-8 text-xs" />;
         }
@@ -255,6 +280,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <SelectItem value="field">Field</SelectItem>
                         <SelectItem value="date">Date</SelectItem>
                         <SelectItem value="status">Current Status</SelectItem>
+                        <SelectItem value="config">Configuration</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -295,6 +321,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                             <SelectItem value="date">Date</SelectItem>
                             <SelectItem value="field">Field</SelectItem>
                             <SelectItem value="status">Status</SelectItem>
+                            <SelectItem value="config">Configuration</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
@@ -524,58 +551,120 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     )
   }
 
+  const ConfigurationsEditor = () => {
+    
+    const handleAddConfig = () => {
+        const newConfig: Configuration = {
+            id: crypto.randomUUID(),
+            key: `config_${localConfigs.length + 1}`,
+            value: ''
+        };
+        setLocalConfigs([...localConfigs, newConfig]);
+    }
+
+    const handleUpdateConfig = (id: string, updatedConfig: Partial<Configuration>) => {
+        setLocalConfigs(localConfigs.map(c => c.id === id ? { ...c, ...updatedConfig } : c));
+    }
+
+    const handleDeleteConfig = (id: string) => {
+        setLocalConfigs(localConfigs.filter(c => c.id !== id));
+    }
+    
+    return (
+        <div className="p-4 space-y-4">
+            <div className="space-y-2">
+                {localConfigs.map(config => (
+                    <div key={config.id} className="flex items-center gap-2">
+                        <Input 
+                            placeholder="Key"
+                            value={config.key}
+                            onChange={(e) => handleUpdateConfig(config.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                        />
+                         <Input 
+                            placeholder="Value"
+                            value={config.value}
+                            onChange={(e) => handleUpdateConfig(config.id, { value: e.target.value })}
+                        />
+                        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDeleteConfig(config.id)}>
+                            <Trash className="h-4 w-4 text-destructive"/>
+                        </Button>
+                    </div>
+                ))}
+            </div>
+            <Button variant="outline" size="sm" onClick={handleAddConfig}>
+                <Plus className="mr-2 h-4 w-4"/>
+                Add Configuration
+            </Button>
+        </div>
+    )
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle>Rule Editor</DialogTitle>
-          <DialogDescription>
-            Create and manage rules to add conditional logic to your form.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 flex overflow-hidden">
-            <aside className="w-1/3 border-r overflow-y-auto">
-                <div className="p-4">
-                     <Button variant="outline" className="w-full" onClick={handleAddRule}>
-                        <Plus className="mr-2 h-4 w-4" /> Add New Rule
-                    </Button>
-                </div>
-                <div className="p-2 space-y-1">
-                    {localRules.map(rule => (
-                        <div key={rule.id} className="relative group/rule">
-                            <button
-                                onClick={() => handleSelectRule(rule.id)}
-                                className={cn(
-                                    "w-full text-left p-2 rounded-md flex justify-between items-center",
-                                    selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
-                                )}
-                            >
-                                <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
-                            </button>
-                             <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
-                                onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
-                             >
-                                <Trash className="h-4 w-4 text-destructive" />
-                             </Button>
-                        </div>
-                    ))}
-                </div>
-            </aside>
-            <main className="flex-1 overflow-y-auto">
-                {selectedRule ? (
-                   <RuleEditor rule={selectedRule} />
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                        <Settings2 className="h-12 w-12 mb-4" />
-                        <h3 className="text-lg font-semibold">No Rule Selected</h3>
-                        <p className="text-sm">Select a rule from the left panel to edit it, or add a new rule.</p>
+        <Tabs defaultValue="rules" className="h-full flex flex-col">
+            <DialogHeader className="p-6 pb-0">
+            <DialogTitle>Logic Editor</DialogTitle>
+            <DialogDescription>
+                Manage conditional rules and reusable configurations for your form.
+            </DialogDescription>
+             <TabsList className="grid w-full grid-cols-2 mt-4">
+                <TabsTrigger value="rules">Rules</TabsTrigger>
+                <TabsTrigger value="configurations">Configurations</TabsTrigger>
+            </TabsList>
+            </DialogHeader>
+
+            <TabsContent value="rules" className="flex-1 flex overflow-hidden">
+                <aside className="w-1/3 border-r overflow-y-auto">
+                    <div className="p-4">
+                        <Button variant="outline" className="w-full" onClick={handleAddRule}>
+                            <Plus className="mr-2 h-4 w-4" /> Add New Rule
+                        </Button>
                     </div>
-                )}
-            </main>
-        </div>
+                    <div className="p-2 space-y-1">
+                        {localRules.map(rule => (
+                            <div key={rule.id} className="relative group/rule">
+                                <button
+                                    onClick={() => handleSelectRule(rule.id)}
+                                    className={cn(
+                                        "w-full text-left p-2 rounded-md flex justify-between items-center",
+                                        selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
+                                    )}
+                                >
+                                    <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
+                                </button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
+                                    onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
+                                >
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </aside>
+                <main className="flex-1 overflow-y-auto">
+                    {selectedRule ? (
+                    <RuleEditor rule={selectedRule} />
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+                            <Settings2 className="h-12 w-12 mb-4" />
+                            <h3 className="text-lg font-semibold">No Rule Selected</h3>
+                            <p className="text-sm">Select a rule from the left panel to edit it, or add a new rule.</p>
+                        </div>
+                    )}
+                </main>
+            </TabsContent>
+
+            <TabsContent value="configurations" className="flex-1 flex overflow-hidden">
+                 <main className="flex-1 overflow-y-auto">
+                    <ConfigurationsEditor />
+                 </main>
+            </TabsContent>
+        </Tabs>
+        
         <DialogFooter className="p-4 border-t">
             <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>

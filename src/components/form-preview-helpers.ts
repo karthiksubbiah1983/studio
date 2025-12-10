@@ -1,10 +1,10 @@
 
 
-import { FormElementInstance, Section, Rule, Condition } from "@/lib/types";
+import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/lib/types";
 import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue } from "@/lib/utils";
 
-export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: any }) => {
+export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: any }, configurations?: Configuration[]) => {
     
     const getConditionValue = (idOrKey: string | undefined): any => {
         if (!idOrKey) return undefined;
@@ -20,6 +20,11 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             }
         }
         
+        if (condition.sourceType === 'config' || condition.comparisonType === 'config') {
+            const config = (configurations || []).find(c => c.key === idOrKey);
+            return config?.value;
+        }
+
         let value;
         const isProxyId = idOrKey.includes("::");
         
@@ -38,7 +43,7 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     let sourceValue: any;
     if (condition.sourceType === 'field') {
         sourceValue = getConditionValue(condition.sourceElementId || '');
-    } else if (condition.sourceType === 'date') {
+    } else if (condition.sourceType === 'date' || condition.sourceType === 'config') {
         sourceValue = getConditionValue(condition.sourceValue);
     } else { // status
         sourceValue = 'Open'; // Placeholder
@@ -49,7 +54,7 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
         comparisonValue = getConditionValue(condition.comparisonElementId || '');
-    } else if (condition.comparisonType === 'date') {
+    } else if (condition.comparisonType === 'date' || condition.comparisonType === 'config') {
         comparisonValue = getConditionValue(condition.value);
     } else { 
         comparisonValue = condition.value;
@@ -120,10 +125,10 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     }
 }
 
-export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any }): boolean => {
+export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any }, configurations?: Configuration[]): boolean => {
     if (!rule || !rule.conditions || rule.conditions.length === 0) return false;
     
-    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state));
+    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, configurations));
 
     if (rule.logicType === 'and') {
         return conditionResults.every(res => res);
@@ -131,7 +136,3 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         return conditionResults.some(res => res);
     }
 };
-
-
-
-    

@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement, Configuration } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -62,7 +62,7 @@ const interpolateString = (template: string, data: { sections: Section[], formSt
 
 
 export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext }: Props) {
-  const { rules, sections } = useBuilder();
+  const { rules, sections, configurations } = useBuilder();
   const { user } = useAuth();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -96,17 +96,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let visible = true; 
 
     if (showRules.length > 0) {
-      visible = showRules.some(r => evaluateRule(r, context));
+      visible = showRules.some(r => evaluateRule(r, context, configurations));
     }
 
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, context))) {
+      if (hideRules.some(r => evaluateRule(r, context, configurations))) {
         visible = false;
       }
     }
     
     return visible;
-  }, [element.id, element.hidden, context, rules]);
+  }, [element.id, element.hidden, context, rules, configurations]);
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
     let readOnly = false;
@@ -131,7 +131,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     else if (!contextForEval || !rules) return { value: initialValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
     
     for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, contextForEval);
+        const isRuleMet = evaluateRule(rule, contextForEval, configurations);
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
                 if (behavior.type === 'set_value' && behavior.targetElementId === element.id) {
@@ -145,7 +145,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let finalValue = newCalculatedValue !== undefined ? newCalculatedValue : (initialValue ?? ('defaultValue' in element ? element.defaultValue : undefined));
 
     return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
-  }, [element, initialValue, rules, context, formState, sections, rowContext]);
+  }, [element, initialValue, rules, context, formState, sections, rowContext, configurations]);
 
 
   useEffect(() => {
@@ -158,17 +158,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if (!context) return false;
 
     const disableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
-    if (disableRules.some(r => evaluateRule(r, context))) {
+    if (disableRules.some(r => evaluateRule(r, context, configurations))) {
       return true;
     }
 
     const enableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
-      return !enableRules.some(r => evaluateRule(r, context));
+      return !enableRules.some(r => evaluateRule(r, context, configurations));
     }
 
     return false;
-  }, [element.id, context, rules]);
+  }, [element.id, context, rules, configurations]);
 
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
@@ -176,7 +176,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if (!context || !rules) return { style, error };
     
     for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, context);
+        const isRuleMet = evaluateRule(rule, context, configurations);
 
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
@@ -192,7 +192,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
     }
     return { style, error };
-  }, [element.id, context, rules]);
+  }, [element.id, context, rules, configurations]);
   
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
@@ -790,7 +790,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             const proxyId = `${element.id}::${col.key}`;
             const styles: React.CSSProperties = {};
              for (const rule of rules) {
-                const isRuleMet = evaluateRule(rule, row);
+                const isRuleMet = evaluateRule(rule, row, configurations);
                 if (isRuleMet) {
                     for (const behavior of rule.behaviors) {
                         if (behavior.targetElementId === proxyId && behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
@@ -1140,7 +1140,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "FileUpload":
         const fileInputRef = useRef<HTMLInputElement>(null);
         const [fileError, setFileError] = useState<string | null>(null);
-        const currentFiles: File[] = (value?.value || []) as File[];
+        const currentFiles: File[] = (value || []) as File[];
         
         const handleFileChange = (files: FileList | null) => {
             if (!files || files.length === 0) return;
@@ -1254,9 +1254,3 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-
-
-    
-
-

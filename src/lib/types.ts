@@ -12,14 +12,14 @@ export type RuleConditionOperator =
 
 export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_error' | 'set_value';
 
-export type ConditionSourceType = 'field' | 'date' | 'status';
-export type ConditionComparisonType = 'value' | 'field' | 'date' | 'status';
+export type ConditionSourceType = 'field' | 'date' | 'status' | 'config';
+export type ConditionComparisonType = 'value' | 'field' | 'date' | 'status' | 'config';
 
 export type Condition = {
     id: string;
     sourceType: ConditionSourceType;
     sourceElementId?: string; // Used for sourceType 'field'
-    sourceValue?: string; // Used for sourceType 'date'
+    sourceValue?: string; // Used for sourceType 'date' or 'config'
     operator: RuleConditionOperator;
     comparisonType: ConditionComparisonType;
     value?: string; // Used for comparisonType 'value', 'date', or 'status'
@@ -59,6 +59,12 @@ export type Workflow = {
     logicType: 'and' | 'or';
     actions: (WorkflowAction & { id: string })[];
 }
+
+export type Configuration = {
+  id: string;
+  key: string;
+  value: string;
+};
 
 export type DisplayDataSourceConfig = {
     sourceElementId: string; // ID of the Select element
@@ -177,6 +183,7 @@ export type FormVersion = {
   sections: Section[];
   rules: Rule[];
   workflows: Workflow[];
+  configurations?: Configuration[];
 };
 
 export type SubCategory = {

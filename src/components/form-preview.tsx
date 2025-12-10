@@ -41,7 +41,7 @@ const generateSubmissionJson = (elements: (FormElementInstance | Section)[], for
 };
 
 export function FormPreview({ showSubmitButton = true, sections, taskId }: Props) {
-  const { rules, workflows, dispatch, activeForm, state, formState, setFormState, updateFormState } = useBuilder();
+  const { rules, workflows, configurations, dispatch, activeForm, state, formState, setFormState, updateFormState } = useBuilder();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -61,7 +61,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
             }
         })
         
-        const isTriggered = evaluateRule(workflow, stateForEval);
+        const isTriggered = evaluateRule(workflow, stateForEval, configurations);
 
         if (isTriggered) {
              for (const action of workflow.actions) {
@@ -138,11 +138,11 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     let visible = !section.popupOnly;
 
     if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, formState || {}));
+        visible = showRules.some(r => evaluateRule(r, formState || {}, configurations));
     }
 
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, formState || {}))) {
+      if (hideRules.some(r => evaluateRule(r, formState || {}, configurations))) {
         visible = false;
       }
     }

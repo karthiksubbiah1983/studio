@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements } from "@/lib/utils";
 
@@ -39,7 +39,7 @@ type Action =
   | { type: "SET_DRAGGED_ELEMENT"; payload: State['draggedElement'] }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number, toIndex: number } }
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index?: number, parentId?: string } } }
-  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[], rules: Rule[], workflows: Workflow[] } }
+  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[], rules: Rule[], workflows: Workflow[], configurations: Configuration[] } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any>, taskId?: string } }
@@ -47,6 +47,7 @@ type Action =
   | { type: "SET_SECTIONS"; payload: { sections: Section[] } }
   | { type: "UPDATE_RULES"; payload: { rules: Rule[] } }
   | { type: "UPDATE_WORKFLOWS"; payload: { workflows: Workflow[] } }
+  | { type: "UPDATE_CONFIGURATIONS"; payload: { configurations: Configuration[] } }
   | { type: "ADD_CATEGORY", payload: { name: string } }
   | { type: "UPDATE_CATEGORY", payload: { category: Category } }
   | { type: "DELETE_CATEGORY", payload: { categoryId: string } }
@@ -338,6 +339,7 @@ const builderReducer = (state: State, action: Action): State => {
               sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }],
               rules: [],
               workflows: [],
+              configurations: [],
             }]
         };
         // This is a bit of a hack for the special dispatch, we return the ID via the state itself
@@ -465,6 +467,23 @@ const builderReducer = (state: State, action: Action): State => {
           newVersions[0] = {
             ...newVersions[0],
             workflows: workflows,
+            timestamp: new Date().toISOString(),
+          };
+          return { ...form, versions: newVersions };
+        }
+        return form;
+      });
+      return { ...state, forms: newForms };
+    }
+    case "UPDATE_CONFIGURATIONS": {
+      if (!activeForm) return state;
+      const { configurations } = action.payload;
+      const newForms = state.forms.map(form => {
+        if (form.id === state.activeFormId) {
+          const newVersions = [...form.versions];
+          newVersions[0] = {
+            ...newVersions[0],
+            configurations: configurations,
             timestamp: new Date().toISOString(),
           };
           return { ...form, versions: newVersions };
@@ -664,7 +683,7 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SAVE_VERSION": {
       if (!activeForm) return state;
-      const { name, description, type, sections, rules, workflows } = action.payload;
+      const { name, description, type, sections, rules, workflows, configurations } = action.payload;
       
       const newVersion: FormVersion = {
         id: crypto.randomUUID(),
@@ -675,6 +694,7 @@ const builderReducer = (state: State, action: Action): State => {
         sections,
         rules,
         workflows,
+        configurations
       };
       
       const newForms = state.forms.map(form => {
@@ -830,6 +850,8 @@ type BuilderContextType = {
   updateRules: (rules: Rule[]) => void;
   workflows: Workflow[];
   updateWorkflows: (workflows: Workflow[]) => void;
+  configurations: Configuration[];
+  updateConfigurations: (configurations: Configuration[]) => void;
   clipboard: ClipboardItem | null;
   submissions: Submission[];
   formState: { [key: string]: { value: any, fullObject?: any } };
@@ -861,6 +883,7 @@ const defaultState: State = {
             sections: [{ id: defaultSectionId, title: "New Section", displayMode: "default", elements: [] }],
             rules: [],
             workflows: [],
+            configurations: [],
         }]
     }],
     categories: [{
@@ -930,6 +953,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const sections = activeForm?.versions[0]?.sections || [];
   const rules = activeForm?.versions[0]?.rules || [];
   const workflows = activeForm?.versions[0]?.workflows || [];
+  const configurations = activeForm?.versions[0]?.configurations || [];
   
   const dispatch = (action: Action): string | void => {
     if (action.type === 'ADD_FORM') {
@@ -961,6 +985,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatchAction({ type: 'UPDATE_WORKFLOWS', payload: { workflows: newWorkflows }});
   }
 
+  const updateConfigurations = (newConfigurations: Configuration[]) => {
+    dispatchAction({ type: 'UPDATE_CONFIGURATIONS', payload: { configurations: newConfigurations }});
+  }
+
   const setFormState = (newState: { [key: string]: { value: any, fullObject?: any } }) => {
     dispatchAction({ type: 'SET_FORM_STATE', payload: newState });
   }
@@ -981,7 +1009,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState }}>
+    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState }}>
       {children}
     </BuilderContext.Provider>
   );
