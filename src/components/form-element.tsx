@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement } from "@/lib/types";
@@ -270,8 +269,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Display": {
         let finalDisplayValue;
         if (isTableCell && rowContext) {
-             const keyToUse = element.dataSourceConfig?.displayKey || element.key || '';
-             finalDisplayValue = getNestedValue(rowContext, keyToUse);
+            if (element.dataSourceConfig?.sourceElementId && formState) {
+                // Special case for display elements in tables that reference form state
+                const sourceValue = formState[element.dataSourceConfig.sourceElementId];
+                 if (sourceValue?.fullObject && element.dataSourceConfig.displayKey) {
+                    finalDisplayValue = getNestedValue(sourceValue.fullObject, element.dataSourceConfig.displayKey);
+                 } else {
+                    finalDisplayValue = sourceValue?.value;
+                 }
+            } else {
+                 const keyToUse = element.dataSourceConfig?.displayKey || element.key || '';
+                 finalDisplayValue = getNestedValue(rowContext, keyToUse);
+            }
         } else if (dataSourceConfig?.sourceType === 'currentUser') {
             finalDisplayValue = user?.username || 'Guest';
         } else if (dataSourceConfig?.sourceType === 'currentDateTime') {
@@ -477,24 +486,33 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             }
         };
 
-        const listOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
-
-        const getDisplaySelection = () => {
+        const allListOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
+        
+        const displayedSelection = useMemo(() => {
             if (element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
                 return [];
             }
+            return allListOptions.filter(opt => {
+                const optValue = String(typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt);
+                return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
+            });
+        }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.valueKey]);
+
+        const mainListOptions = useMemo(() => {
             if (element.displaySelection === 'selected') {
-                return listOptions.filter(opt => {
-                    const optValue = typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt;
-                    return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
-                });
-            } else { // unselected
-                 return listOptions.filter(opt => {
-                    const optValue = typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt;
+                return allListOptions.filter(opt => {
+                    const optValue = String(typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt);
                     return isCheckbox ? !currentSelection.includes(optValue) : currentSelection !== optValue;
                 });
             }
-        }
+             if (element.displaySelection === 'unselected') {
+                 return allListOptions.filter(opt => {
+                    const optValue = String(typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt);
+                    return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
+                });
+            }
+            return allListOptions;
+        }, [allListOptions, currentSelection, isCheckbox, element.displaySelection, element.valueKey]);
 
         const score = useMemo(() => {
             if (!element.enableScoring || isDisplayOnly) return null;
@@ -507,16 +525,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             if (score !== null) {
                 onValueChange(`${element.id}::score`, score);
             }
-        }, [score]);
+        }, [score, element.id, onValueChange]);
 
         const passed = score !== null && element.passingScore !== undefined ? score >= element.passingScore : null;
         
-        const displayedSelection = getDisplaySelection();
-        
         const listContent = (
             <div className="rounded-md border p-2 space-y-2">
-                {isLoading ? <Loader2 className="animate-spin" /> : listOptions.map((option, index) => {
-                    const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                {isLoading ? <Loader2 className="animate-spin" /> : mainListOptions.map((option, index) => {
+                    const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : opt);
                     const isSelected = isCheckbox ? currentSelection.includes(itemValue) : currentSelection === itemValue;
                     
                     const itemContent = () => {
@@ -532,7 +548,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 />
                             ));
                         }
-                        const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
+                        const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : opt);
                         return <Label htmlFor={isRadio ? `${element.id}-${index}` : undefined} className="font-normal">{itemLabel}</Label>;
                     }
 
@@ -1236,9 +1252,4 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
 
 
-
-
-
-
-
-
+    
