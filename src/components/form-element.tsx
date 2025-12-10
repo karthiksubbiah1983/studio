@@ -271,11 +271,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         let finalDisplayValue;
 
         if (isTableCell && rowContext) {
-            // For a List, rowContext can be a string (static) or an object (dynamic)
             if (typeof rowContext === 'string') {
                 finalDisplayValue = rowContext;
-            } else if (typeof rowContext === 'object' && element.key) {
-                finalDisplayValue = getNestedValue(rowContext, element.key);
+            } else if (typeof rowContext === 'object' && element.dataSourceConfig?.displayKey) {
+                finalDisplayValue = getNestedValue(rowContext, element.dataSourceConfig.displayKey);
             }
         } else if (dataSourceConfig?.sourceType === 'currentUser') {
             finalDisplayValue = user?.username || 'Guest';
@@ -1213,5 +1212,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
