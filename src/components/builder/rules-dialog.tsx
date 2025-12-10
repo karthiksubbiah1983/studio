@@ -513,50 +513,52 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-        <div className="p-4 space-y-4">
-            <Input 
-                value={rule.name}
-                onChange={(e) => handleUpdateRuleName(e.target.value)}
-                className="text-lg font-medium"
-            />
-            <Separator />
-            <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
-                <span>IF</span>
-                <RadioGroup
-                    value={rule.logicType}
-                    onValueChange={(value) => handleUpdateLogicType(value as 'and' | 'or')}
-                    className="flex"
-                >
-                    <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="and" id={`and-${rule.id}`} className="h-4 w-4" />
-                        <Label htmlFor={`and-${rule.id}`} className="text-sm font-normal">All (AND)</Label>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="or" id={`or-${rule.id}`} className="h-4 w-4" />
-                        <Label htmlFor={`or-${rule.id}`} className="text-sm font-normal">Any (OR)</Label>
-                    </div>
-                </RadioGroup>
-                <span>OF THE FOLLOWING ARE MET:</span>
+        <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+                <Input 
+                    value={rule.name}
+                    onChange={(e) => handleUpdateRuleName(e.target.value)}
+                    className="text-lg font-medium"
+                />
+                <Separator />
+                <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
+                    <span>IF</span>
+                    <RadioGroup
+                        value={rule.logicType}
+                        onValueChange={(value) => handleUpdateLogicType(value as 'and' | 'or')}
+                        className="flex"
+                    >
+                        <div className="flex items-center space-x-1">
+                            <RadioGroupItem value="and" id={`and-${rule.id}`} className="h-4 w-4" />
+                            <Label htmlFor={`and-${rule.id}`} className="text-sm font-normal">All (AND)</Label>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                            <RadioGroupItem value="or" id={`or-${rule.id}`} className="h-4 w-4" />
+                            <Label htmlFor={`or-${rule.id}`} className="text-sm font-normal">Any (OR)</Label>
+                        </div>
+                    </RadioGroup>
+                    <span>OF THE FOLLOWING ARE MET:</span>
+                </div>
+                <div className="space-y-3">
+                     {rule.conditions.map((cond) => (
+                        <ConditionEditor key={cond.id} condition={cond} rule={rule} />
+                    ))}
+                </div>
+                 <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddCondition}>
+                    <Plus className="mr-1 h-4 w-4"/> Add Condition
+                </Button>
+                <Separator />
+                <h4 className="font-medium text-sm text-muted-foreground">THEN DO THIS:</h4>
+                <div className="space-y-3">
+                    {rule.behaviors.map((behavior) => (
+                        <BehaviorEditor key={behavior.id} behavior={behavior} rule={rule} />
+                    ))}
+                </div>
+                <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddBehavior}>
+                    <Plus className="mr-1 h-4 w-4"/> Add Behavior
+                </Button>
             </div>
-            <div className="space-y-3">
-                 {rule.conditions.map((cond) => (
-                    <ConditionEditor key={cond.id} condition={cond} rule={rule} />
-                ))}
-            </div>
-             <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddCondition}>
-                <Plus className="mr-1 h-4 w-4"/> Add Condition
-            </Button>
-            <Separator />
-            <h4 className="font-medium text-sm text-muted-foreground">THEN DO THIS:</h4>
-            <div className="space-y-3">
-                {rule.behaviors.map((behavior) => (
-                    <BehaviorEditor key={behavior.id} behavior={behavior} rule={rule} />
-                ))}
-            </div>
-            <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddBehavior}>
-                <Plus className="mr-1 h-4 w-4"/> Add Behavior
-            </Button>
-        </div>
+        </ScrollArea>
     )
   }
 
@@ -571,79 +573,82 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
     
     return (
-        <div className="p-4 space-y-4">
-            <div className="space-y-2">
-                {localConfigs.map(config => (
-                    <div key={config.id} className="flex items-center gap-2">
-                        <Input 
-                            placeholder="Key"
-                            value={config.key}
-                            onChange={(e) => handleUpdateConfig(config.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
-                        />
-                         <Input 
-                            placeholder="Value"
-                            value={config.value}
-                            onChange={(e) => handleUpdateConfig(config.id, { value: e.target.value })}
-                        />
-                        <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDeleteConfig(config.id)}>
-                            <Trash className="h-4 w-4 text-destructive"/>
-                        </Button>
-                    </div>
-                ))}
+        <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
+                <div className="space-y-2">
+                    {localConfigs.map(config => (
+                        <div key={config.id} className="flex items-center gap-2">
+                            <Input 
+                                placeholder="Key"
+                                value={config.key}
+                                onChange={(e) => handleUpdateConfig(config.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                            />
+                             <Input 
+                                placeholder="Value"
+                                value={config.value}
+                                onChange={(e) => handleUpdateConfig(config.id, { value: e.target.value })}
+                            />
+                            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDeleteConfig(config.id)}>
+                                <Trash className="h-4 w-4 text-destructive"/>
+                            </Button>
+                        </div>
+                    ))}
+                </div>
             </div>
-        </div>
+        </ScrollArea>
     )
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
-        <Tabs defaultValue="rules" className="h-full flex flex-col">
-            <DialogHeader className="p-6 pb-0">
-            <DialogTitle>Logic Editor</DialogTitle>
-            <DialogDescription>
-                Manage conditional rules and reusable configurations for your form.
-            </DialogDescription>
-             <TabsList className="grid w-full grid-cols-2 mt-4">
+        <DialogHeader className="p-6 pb-0">
+          <DialogTitle>Logic Editor</DialogTitle>
+          <DialogDescription>
+            Manage conditional rules and reusable configurations for your form.
+          </DialogDescription>
+        </DialogHeader>
+        <Tabs defaultValue="rules" className="flex-1 flex flex-col overflow-hidden">
+             <TabsList className="grid w-full grid-cols-2 mx-6 mt-4 w-auto">
                 <TabsTrigger value="rules">Rules</TabsTrigger>
                 <TabsTrigger value="configurations">Configurations</TabsTrigger>
             </TabsList>
-            </DialogHeader>
-
             <TabsContent value="rules" className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex justify-between p-4 border-b">
+                <div className="flex justify-between items-center p-4 border-b">
                     <h3 className="font-semibold text-lg">Rules</h3>
                     <Button variant="outline" size="sm" onClick={handleAddRule}>
                         <Plus className="mr-2 h-4 w-4" /> Add New Rule
                     </Button>
                 </div>
                 <div className="flex-1 flex overflow-hidden">
-                    <aside className="w-1/3 border-r overflow-y-auto">
-                        <div className="p-2 space-y-1">
-                            {localRules.map(rule => (
-                                <div key={rule.id} className="relative group/rule">
-                                    <button
-                                        onClick={() => handleSelectRule(rule.id)}
-                                        className={cn(
-                                            "w-full text-left p-2 rounded-md flex justify-between items-center",
-                                            selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
-                                        )}
-                                    >
-                                        <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
-                                    </button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
-                                        onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
-                                    >
-                                        <Trash className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
+                    <aside className="w-1/3 border-r">
+                        <ScrollArea className="h-full">
+                            <div className="p-2 space-y-1">
+                                {localRules.map(rule => (
+                                    <div key={rule.id} className="relative group/rule">
+                                        <button
+                                            onClick={() => handleSelectRule(rule.id)}
+                                            className={cn(
+                                                "w-full text-left p-2 rounded-md flex justify-between items-center",
+                                                selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
+                                            )}
+                                        >
+                                            <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
+                                        </button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
+                                            onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
+                                        >
+                                            <Trash className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
                     </aside>
-                    <main className="flex-1 overflow-y-auto">
+                    <main className="flex-1 overflow-hidden">
                         {selectedRule ? (
                         <RuleEditor rule={selectedRule} />
                         ) : (
@@ -658,19 +663,19 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             </TabsContent>
 
             <TabsContent value="configurations" className="flex-1 flex flex-col overflow-hidden">
-                 <div className="flex justify-between p-4 border-b">
+                 <div className="flex justify-between items-center p-4 border-b">
                     <h3 className="font-semibold text-lg">Configurations</h3>
                     <Button variant="outline" size="sm" onClick={handleAddConfig}>
                         <Plus className="mr-2 h-4 w-4" /> Add Configuration
                     </Button>
                 </div>
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-hidden">
                     <ConfigurationsEditor />
                  </div>
             </TabsContent>
         </Tabs>
         
-        <DialogFooter className="p-4 border-t">
+        <DialogFooter className="p-4 border-t shrink-0">
             <DialogClose asChild>
                 <Button variant="outline">Cancel</Button>
             </DialogClose>
@@ -680,4 +685,3 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
-
