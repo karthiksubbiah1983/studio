@@ -269,14 +269,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
     case "Display": {
         let finalDisplayValue;
-
         if (isTableCell && rowContext) {
             if (element.dataSourceConfig?.displayKey) {
                 finalDisplayValue = getNestedValue(rowContext, element.dataSourceConfig.displayKey);
-            } else if (element.labelKey) {
-                finalDisplayValue = getNestedValue(rowContext, element.labelKey);
             } else {
-                 finalDisplayValue = typeof rowContext === 'string' ? rowContext : rowContext.name || rowContext.label || JSON.stringify(rowContext);
+                 finalDisplayValue = typeof rowContext === 'string' ? rowContext : getNestedValue(rowContext, element.labelKey || 'name') || JSON.stringify(rowContext);
             }
         } else if (dataSourceConfig?.sourceType === 'currentUser') {
             finalDisplayValue = user?.username || 'Guest';
@@ -509,6 +506,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             return selectedCount * scorePerItem;
         }, [currentSelection, element.enableScoring, element.scorePerItem, isCheckbox, isDisplayOnly]);
 
+        useEffect(() => {
+            if (score !== null) {
+                onValueChange(`${element.id}::score`, score);
+            }
+        }, [score, element.id, onValueChange]);
+
         const passed = score !== null && element.passingScore !== undefined ? score >= element.passingScore : null;
         
         const displayedSelection = getDisplaySelection();
@@ -520,6 +523,22 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
                     const isSelected = isCheckbox ? currentSelection.includes(itemValue) : currentSelection === itemValue;
                     
+                    const itemContent = () => {
+                        if (isDisplayOnly && element.listItemElements && element.listItemElements.length > 0) {
+                            return element.listItemElements.map(itemEl => (
+                                <FormElementRenderer 
+                                    key={itemEl.id}
+                                    element={{...itemEl.element, id: `${element.id}::${itemEl.element.key}`}}
+                                    value={null}
+                                    onValueChange={() => {}}
+                                    rowContext={option}
+                                    isTableCell={true}
+                                />
+                            ));
+                        }
+                        return <Label htmlFor={isRadio ? `${element.id}-${index}` : undefined} className="font-normal">{itemLabel}</Label>;
+                    }
+
                     return (
                         <div
                             key={`${element.id}-item-${index}`}
@@ -532,24 +551,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         >
                             {!isDisplayOnly && (
                                 <div className="flex-shrink-0">
-                                    {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem id={`${element.id}-${index}`} value={itemValue} checked={isSelected} />}
+                                    {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} id={`${element.id}-${index}`} />}
                                 </div>
                             )}
                             <div className="flex-1 space-y-2">
-                                { (isDisplayOnly && element.listItemElements && element.listItemElements.length > 0) ?
-                                    element.listItemElements.map(itemEl => (
-                                        <FormElementRenderer 
-                                            key={itemEl.id}
-                                            element={{...itemEl.element, id: `${element.id}::${itemEl.element.key}`}}
-                                            value={null}
-                                            onValueChange={() => {}}
-                                            rowContext={option}
-                                            isTableCell={true}
-                                        />
-                                ))
-                                :
-                                <Label htmlFor={isRadio ? `${element.id}-${index}`: undefined} className="font-normal">{itemLabel}</Label>
-                            }
+                                {itemContent()}
                             </div>
                         </div>
                     );
@@ -613,7 +619,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         break;
     case "RadioGroup":
       content = (
-        <div>
+        <div id={element.id}>
           {renderLabelWithPopup()}
           <RadioGroup value={value} onValueChange={(val) => onValueChange(element.id, val)} className="mt-3" disabled={isDisabled}>
             {options?.map((option, index) => (
@@ -1230,6 +1236,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
 

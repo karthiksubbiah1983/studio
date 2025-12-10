@@ -28,15 +28,6 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         if (isRowContext) {
             const key = isProxyId ? idOrKey.split('::').pop()! : idOrKey;
             value = getNestedValue(state, key);
-        } else if (isProxyId) {
-            const [containerId, fieldKey] = idOrKey.split('::');
-            const containerValue = state[containerId]?.value;
-            if (Array.isArray(containerValue) && containerValue.length > 0) {
-                 const firstRow = containerValue[0];
-                 value = getNestedValue(firstRow, fieldKey);
-            } else {
-                value = undefined;
-            }
         } else {
              value = getNestedValue(state, `${idOrKey}.value`);
         }

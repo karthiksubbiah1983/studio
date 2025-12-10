@@ -85,7 +85,6 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
         els.forEach(element => {
             if (processedElements.has(element.id)) return;
             
-            // Any element with a key, required status, or validation exposure should be included
             const isSelectable = element.key || element.required || element.exposeForValidation;
 
             if (element.type === 'Container' && element.elements) {
@@ -97,7 +96,6 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
             } else if (element.type === 'Table' && element.tableColumns) {
                  allElementsAndSections.push(element); // Add the table itself
                  processedElements.add(element.id);
-                // Create "proxy" elements for each valid column to be used in rules
                 element.tableColumns.forEach(col => {
                     if ((col.element.required || col.element.exposeForValidation || col.key) && col.key) {
                         const proxyElement: FormElementInstance = {
@@ -110,7 +108,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                     }
                 });
             } else if (element.type === 'DataGrid' && element.dataGridColumns) {
-                allElementsAndSections.push(element); // Add the grid itself
+                allElementsAndSections.push(element);
                 processedElements.add(element.id);
                 element.dataGridColumns.forEach(col => {
                     if (col.key) {
@@ -123,6 +121,17 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                         allElementsAndSections.push(proxyElement);
                     }
                 });
+            } else if (element.type === 'List' && element.enableScoring) {
+                 allElementsAndSections.push(element);
+                 processedElements.add(element.id);
+                 const scoreProxyElement: FormElementInstance = {
+                     id: `${element.id}::score`,
+                     type: 'Input', // Treat as a number input for rule purposes
+                     key: `${element.key}_score`,
+                     label: `${element.label} (Score)`,
+                     required: false,
+                 };
+                 allElementsAndSections.push(scoreProxyElement);
             } else if (isSelectable) {
                 allElementsAndSections.push(element);
                 processedElements.add(element.id);
@@ -133,7 +142,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
     if (sections) {
         sections.forEach(section => {
             if (section.exposeForValidation) {
-                allElementsAndSections.push({ ...section, label: section.title } as unknown as Section); // Add section itself
+                allElementsAndSections.push({ ...section, label: section.title } as unknown as Section);
             }
             findElementsRecursive(section.elements);
         });

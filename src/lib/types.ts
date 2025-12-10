@@ -114,9 +114,6 @@ export type FormElementInstance = {
     apiUrl?: string;
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label
-    dependentFieldId?: string; // For cascading dropdowns
-    dependencyType?: 'api' | 'parent'; // 'api' calls new url, 'parent' uses sub-array from parent data
-    subKey?: string; // Key for the sub-array when dependencyType is 'parent'
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     textStyle?: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
