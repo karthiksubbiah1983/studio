@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -257,6 +256,127 @@ function AlignmentRadioGroup({
     )
 }
 
+function ColumnEditorDialog({
+    isOpen,
+    onOpenChange,
+    onSave,
+    column,
+    isTableColumn
+}: {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    onSave: (column: TableColumn | DataGridColumn | ListItemElement) => void;
+    column: TableColumn | DataGridColumn | ListItemElement | null;
+    isTableColumn: boolean;
+}) {
+    const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
+
+    useEffect(() => {
+        if (isOpen && column) {
+            setEditingColumn(JSON.parse(JSON.stringify(column)));
+        } else {
+            setEditingColumn(null);
+        }
+    }, [isOpen, column]);
+
+    const handleSave = () => {
+        if (editingColumn) {
+            onSave(editingColumn);
+        }
+        onOpenChange(false);
+    };
+
+    if (!isOpen || !editingColumn) {
+        return null;
+    }
+
+    const title = 'id' in editingColumn && !column?.id.startsWith('new') ? 'Edit Column' : 'Add New Column';
+    const description = "Configure the properties for this column.";
+    const isListItemElement = 'element' in editingColumn && !('key' in editingColumn);
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                    {description && <DialogDescription>{description}</DialogDescription>}
+                </DialogHeader>
+                <ScrollArea className="flex-grow -mx-6 px-6">
+                    <div className="py-4 flex flex-col gap-4">
+                        {!isListItemElement && 'key' in editingColumn && (
+                             <>
+                                <div className="flex flex-col gap-2">
+                                    <Label>Column Header</Label>
+                                    <Input value={editingColumn.label} onChange={(e) => setEditingColumn({ ...editingColumn, label: e.target.value })} />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label>Column Key</Label>
+                                    <Input value={editingColumn.key} onChange={(e) => setEditingColumn({ ...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
+                                </div>
+                                <Separator />
+                            </>
+                        )}
+                        {isTableColumn && 'formula' in editingColumn && (
+                             <div className="flex flex-col gap-2">
+                                <Label>Formula (Optional)</Label>
+                                <Input 
+                                    placeholder="e.g. {col_1} * {col_2}"
+                                    value={editingColumn.formula || ''}
+                                    onChange={(e) => setEditingColumn({ ...editingColumn, formula: e.target.value })}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
+                                </p>
+                            </div>
+                        )}
+
+                        {'element' in editingColumn && (!('formula' in editingColumn) || !editingColumn.formula) && (
+                            <>
+                                <h3 className="text-lg font-medium">Field Properties</h3>
+                                <div className="flex flex-col gap-2">
+                                    <Label>Field Type</Label>
+                                    <Select
+                                        value={editingColumn.element.type}
+                                        onValueChange={(type) => {
+                                            const newElement = createNewElement(type as ElementType);
+                                            setEditingColumn({ ...editingColumn, element: newElement });
+                                        }}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a field type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Input">Input</SelectItem>
+                                            <SelectItem value="Select">Select</SelectItem>
+                                            <SelectItem value="Checkbox">Checkbox</SelectItem>
+                                            <SelectItem value="RadioGroup">Radio Group</SelectItem>
+                                            <SelectItem value="DatePicker">Date Picker</SelectItem>
+                                            <SelectItem value="Display">Display Text</SelectItem>
+                                            <SelectItem value="RichText">Rich Text</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <ElementProperties
+                                    element={editingColumn.element}
+                                    onUpdate={(updatedElement) => {
+                                        setEditingColumn({ ...editingColumn, element: updatedElement });
+                                    }}
+                                    isColumnElement={true}
+                                />
+                            </>
+                        )}
+                    </div>
+                </ScrollArea>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button onClick={handleSave}>Save Column</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
   const { dispatch, state, sections } = useBuilder();
   const [props, setProps] = useState(element);
@@ -264,6 +384,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
   const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
+  const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
   const [isFetchedJsonDialogOpen, setIsFetchedJsonDialogOpen] = useState(false);
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
 
@@ -350,18 +471,38 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         setIsFetching(false);
     }
   }
+
+  const openColumnEditor = (col: TableColumn | DataGridColumn | ListItemElement | null) => {
+      const colToEdit = col ? JSON.parse(JSON.stringify(col)) : { 
+          id: `new_${crypto.randomUUID()}`, 
+          key: `col_${(props.tableColumns?.length || props.dataGridColumns?.length || 0) + 1}`,
+          label: `Column ${(props.tableColumns?.length || props.dataGridColumns?.length || 0) + 1}`,
+          element: createNewElement('Input')
+      };
+      setEditingColumn(colToEdit as any);
+      setIsColumnEditorOpen(true);
+  }
   
-  const handleUpdateColumn = (updatedColumn: TableColumn | DataGridColumn) => {
-    if ('formula' in updatedColumn) { // It's a TableColumn
-      if (!props.tableColumns) return;
-      const newColumns = props.tableColumns.map(c => c.id === updatedColumn.id ? updatedColumn : c);
-      updateProperty('tableColumns', newColumns);
-    } else { // It's a DataGridColumn
-      if (!props.dataGridColumns) return;
-      const newColumns = props.dataGridColumns.map(c => c.id === updatedColumn.id ? updatedColumn : c);
-      updateProperty('dataGridColumns', newColumns);
+  const handleSaveColumn = (updatedColumn: TableColumn | DataGridColumn | ListItemElement) => {
+    const isNew = 'id' in updatedColumn && updatedColumn.id.startsWith('new_');
+    const finalColumn = { ...updatedColumn, id: isNew ? crypto.randomUUID() : updatedColumn.id };
+
+    if ('formula' in finalColumn && props.type === 'Table') { // TableColumn
+        const newColumns = isNew 
+            ? [...(props.tableColumns || []), finalColumn] 
+            : (props.tableColumns || []).map(c => c.id === finalColumn.id ? finalColumn : c);
+        updateProperty('tableColumns', newColumns);
+    } else if (!('formula' in finalColumn) && 'key' in finalColumn && props.type === 'DataGrid') { // DataGridColumn
+        const newColumns = isNew 
+            ? [...(props.dataGridColumns || []), finalColumn] 
+            : (props.dataGridColumns || []).map(c => c.id === finalColumn.id ? finalColumn : c);
+        updateProperty('dataGridColumns', newColumns);
+    } else if ('element' in finalColumn && !('key' in finalColumn) && props.type === 'List') { // ListItemElement
+         const newItems = isNew
+            ? [...(props.listItemElements || []), finalColumn]
+            : (props.listItemElements || []).map(i => i.id === finalColumn.id ? finalColumn : i);
+        updateProperty('listItemElements', newItems);
     }
-    setEditingColumn(updatedColumn);
   }
 
   const commonFields = (
@@ -470,7 +611,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         {columns?.map((col) => (
             <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
                 <div className="flex-1 text-sm">{col.label} ({col.element.type})</div>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingColumn(col)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openColumnEditor(col)}>
                     <Edit className="h-4 w-4" />
                 </Button>
                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
@@ -481,15 +622,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </Button>
             </div>
         ))}
-        <Button variant="outline" size="sm" onClick={() => {
-            const newCol: DataGridColumn = {
-                id: crypto.randomUUID(),
-                key: `col_${(columns?.length || 0) + 1}`,
-                label: `Column ${(columns?.length || 0) + 1}`,
-                element: createNewElement('Input')
-            };
-            setEditingColumn(newCol);
-        }}>
+        <Button variant="outline" size="sm" onClick={() => openColumnEditor(null)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Column
         </Button>
@@ -905,7 +1038,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     {props.listItemElements?.map(itemEl => (
                                         <div key={itemEl.id} className="flex items-center gap-2 p-2 border rounded-md">
                                             <div className="flex-1 text-sm">{itemEl.element.label} ({itemEl.element.type})</div>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingColumn(itemEl)}>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openColumnEditor(itemEl)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
@@ -917,11 +1050,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         </div>
                                     ))}
                                     <Button variant="outline" size="sm" onClick={() => {
-                                        const newItem: ListItemElement = {
-                                            id: crypto.randomUUID(),
+                                         const newItem: ListItemElement = {
+                                            id: `new_${crypto.randomUUID()}`,
                                             element: createNewElement('Display')
                                         };
-                                        setEditingColumn(newItem);
+                                        openColumnEditor(newItem);
                                     }}>
                                         <Plus className="mr-2 h-4 w-4" />
                                         Add Item Element
@@ -951,39 +1084,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             )}
                         </AccordionContent>
                     </AccordionItem>
-                      <Dialog open={!!editingColumn && 'element' in editingColumn && !('formula' in editingColumn)} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
-                        <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
-                            <DialogHeader>
-                                <DialogTitle>Configure List Item Element</DialogTitle>
-                            </DialogHeader>
-                            <ScrollArea className="flex-grow -mx-6 px-6">
-                                {editingColumn && 'element' in editingColumn && (
-                                     <div className="py-4 flex flex-col gap-4">
-                                        <ElementProperties
-                                            element={editingColumn.element}
-                                            onUpdate={(updatedElement) => setEditingColumn({ ...editingColumn, element: updatedElement })}
-                                            isColumnElement={true}
-                                        />
-                                    </div>
-                                )}
-                            </ScrollArea>
-                            <DialogFooter>
-                                <Button variant="outline" onClick={() => setEditingColumn(null)}>Cancel</Button>
-                                <Button onClick={() => {
-                                    if (!editingColumn || !('element' in editingColumn)) return;
-                                    const existing = props.listItemElements?.find(item => item.id === editingColumn.id);
-                                    let newItems: ListItemElement[];
-                                    if(existing) {
-                                        newItems = (props.listItemElements || []).map(item => item.id === editingColumn.id ? editingColumn as ListItemElement : item);
-                                    } else {
-                                        newItems = [...(props.listItemElements || []), editingColumn as ListItemElement];
-                                    }
-                                    updateProperty('listItemElements', newItems);
-                                    setEditingColumn(null);
-                                }}>Save Element</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
                  </Accordion>
             );
         case "DataGrid":
@@ -1003,78 +1103,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
-                     <Dialog open={!!editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
-                        <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
-                            <DialogHeader>
-                                <DialogTitle>Edit Column</DialogTitle>
-                                <DialogDescription>
-                                    Configure the properties for this data grid column.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <ScrollArea className="flex-grow -mx-6 px-6">
-                                {editingColumn && (
-                                    <div className="py-4 flex flex-col gap-4">
-                                        <div className="flex flex-col gap-2">
-                                            <Label>Column Header</Label>
-                                            <Input value={editingColumn.label} onChange={(e) => setEditingColumn({...editingColumn, label: e.target.value })} />
-                                        </div>
-                                        <div className="flex flex-col gap-2">
-                                            <Label>Column Key</Label>
-                                            <Input value={editingColumn.key} onChange={(e) => setEditingColumn({...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
-                                        </div>
-
-                                        <Separator />
-                                        
-                                        <h3 className="text-lg font-medium">Field Properties</h3>
-                                        <div className="flex flex-col gap-2">
-                                            <Label>Field Type</Label>
-                                            <Select 
-                                                value={editingColumn.element.type}
-                                                onValueChange={(type) => {
-                                                    const newElement = createNewElement(type as ElementType);
-                                                    setEditingColumn({...editingColumn, element: newElement });
-                                                }}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select a field type" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Input">Input</SelectItem>
-                                                    <SelectItem value="Select">Select</SelectItem>
-                                                    <SelectItem value="Checkbox">Checkbox</SelectItem>
-                                                    <SelectItem value="RadioGroup">Radio Group</SelectItem>
-                                                    <SelectItem value="DatePicker">Date Picker</SelectItem>
-                                                    <SelectItem value="Display">Display Text</SelectItem>
-                                                    <SelectItem value="RichText">Rich Text</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        
-                                        <ElementProperties
-                                            element={editingColumn.element}
-                                            onUpdate={(updatedElement) => setEditingColumn({ ...editingColumn, element: updatedElement })}
-                                            isColumnElement={true}
-                                        />
-                                    </div>
-                                )}
-                            </ScrollArea>
-                            <DialogFooter>
-                                 <Button variant="outline" onClick={() => setEditingColumn(null)}>Cancel</Button>
-                                 <Button onClick={() => {
-                                    if (!editingColumn) return;
-                                    const existing = props.dataGridColumns?.find(c => c.id === editingColumn.id);
-                                    let newColumns: DataGridColumn[];
-                                    if (existing) {
-                                        newColumns = (props.dataGridColumns || []).map(c => c.id === editingColumn.id ? editingColumn as DataGridColumn : c);
-                                    } else {
-                                        newColumns = [...(props.dataGridColumns || []), editingColumn as DataGridColumn];
-                                    }
-                                    updateProperty('dataGridColumns', newColumns);
-                                    setEditingColumn(null);
-                                 }}>Save Column</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
                  </>
             )
         case "Table":
@@ -1125,7 +1153,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 {props.tableColumns?.map((col) => (
                                     <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
                                         <div className="flex-1 text-sm">{col.label} ({col.element.type})</div>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingColumn(col)}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openColumnEditor(col)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
@@ -1136,15 +1164,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         </Button>
                                     </div>
                                 ))}
-                                <Button variant="outline" size="sm" onClick={() => {
-                                    const newCol: TableColumn = {
-                                        id: crypto.randomUUID(),
-                                        key: `col_${(props.tableColumns?.length || 0) + 1}`,
-                                        label: `Column ${(props.tableColumns?.length || 0) + 1}`,
-                                        element: createNewElement('Input')
-                                    };
-                                    setEditingColumn(newCol);
-                                }}>
+                                <Button variant="outline" size="sm" onClick={() => openColumnEditor(null)}>
                                     <Plus className="mr-2 h-4 w-4" /> Add Column
                                 </Button>
                             </div>
@@ -1194,104 +1214,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
-
-                <Dialog open={!!editingColumn && 'formula' in editingColumn} onOpenChange={(isOpen) => !isOpen && setEditingColumn(null)}>
-                    <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
-                        <DialogHeader>
-                            <DialogTitle>Edit Column</DialogTitle>
-                            <DialogDescription>
-                                Configure the properties for this table column.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <ScrollArea className="flex-grow -mx-6 px-6">
-                            {editingColumn && 'formula' in editingColumn && (
-                                <div className="py-4 flex flex-col gap-4">
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Column Header</Label>
-                                        <Input value={editingColumn.label} onChange={(e) => setEditingColumn({...editingColumn, label: e.target.value })} />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Column Key</Label>
-                                        <Input value={editingColumn.key} onChange={(e) => setEditingColumn({...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
-                                    </div>
-
-                                    <Separator />
-                                    
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Formula (Optional)</Label>
-                                        <Input 
-                                            placeholder="e.g. {col_1} * {col_2}"
-                                            value={editingColumn.formula || ''}
-                                            onChange={(e) => setEditingColumn({ ...editingColumn, formula: e.target.value })}
-                                        />
-                                        <p className="text-xs text-muted-foreground">
-                                            If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
-                                        </p>
-                                    </div>
-                                    <Separator />
-                                    
-                                    {(!editingColumn.formula) && (
-                                        <>
-                                            <h3 className="text-lg font-medium">Field Properties</h3>
-                                            <div className="flex flex-col gap-2">
-                                                <Label>Field Type</Label>
-                                                <Select 
-                                                    value={editingColumn.element.type}
-                                                    onValueChange={(type) => {
-                                                        const newElement = createNewElement(type as ElementType);
-                                                        const currentEditing = editingColumn;
-                                                        if (currentEditing) {
-                                                            setEditingColumn({...currentEditing, element: newElement });
-                                                        }
-                                                    }}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a field type" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="Input">Input</SelectItem>
-                                                        <SelectItem value="Select">Select</SelectItem>
-                                                        <SelectItem value="Checkbox">Checkbox</SelectItem>
-                                                        <SelectItem value="RadioGroup">Radio Group</SelectItem>
-                                                        <SelectItem value="DatePicker">Date Picker</SelectItem>
-                                                        <SelectItem value="Display">Display Text</SelectItem>
-                                                        <SelectItem value="RichText">Rich Text</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            
-                                            <ElementProperties
-                                                element={editingColumn.element}
-                                                onUpdate={(updatedElement) => {
-                                                    const currentEditing = editingColumn;
-                                                    if (currentEditing) {
-                                                        setEditingColumn({ ...currentEditing, element: updatedElement })
-                                                    }
-                                                }}
-                                                isColumnElement={true}
-                                            />
-                                        </>
-                                    )}
-                                </div>
-                            )}
-                        </ScrollArea>
-                        <DialogFooter>
-                             <Button variant="outline" onClick={() => setEditingColumn(null)}>Cancel</Button>
-                             <Button onClick={() => {
-                                if (!editingColumn || !('formula' in editingColumn)) return;
-                                const existing = props.tableColumns?.find(c => c.id === editingColumn.id);
-                                let newColumns: TableColumn[];
-                                if (existing) {
-                                    newColumns = (props.tableColumns || []).map(c => c.id === editingColumn.id ? editingColumn : c);
-                                } else {
-                                    newColumns = [...(props.tableColumns || []), editingColumn];
-                                }
-                                updateProperty('tableColumns', newColumns);
-                                setEditingColumn(null);
-                             }}>Save Column</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
                 </>
             );
         case "RadioGroup":
@@ -1424,6 +1346,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   return (
     <div className="flex flex-col gap-4">
       {content()}
+      <ColumnEditorDialog
+        isOpen={isColumnEditorOpen}
+        onOpenChange={setIsColumnEditorOpen}
+        onSave={handleSaveColumn}
+        column={editingColumn}
+        isTableColumn={props.type === 'Table'}
+      />
       <FetchedJsonDialog
         isOpen={isFetchedJsonDialogOpen}
         onOpenChange={setIsFetchedJsonDialogOpen}
@@ -1432,3 +1361,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
