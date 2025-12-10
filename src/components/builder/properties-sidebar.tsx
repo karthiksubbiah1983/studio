@@ -1200,7 +1200,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <DialogHeader>
                             <DialogTitle>Edit Column</DialogTitle>
                             <DialogDescription>
-                                {props.type === 'DataGrid' ? 'Configure the properties for this data grid column.' : 'Configure the properties for this table column.'}
+                                Configure the properties for this table column.
                             </DialogDescription>
                         </DialogHeader>
                         <ScrollArea className="flex-grow -mx-6 px-6">
@@ -1217,24 +1217,20 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
                                     <Separator />
                                     
-                                    {props.type === 'Table' && 'formula' in editingColumn && (
-                                        <>
-                                            <div className="flex flex-col gap-2">
-                                                <Label>Formula (Optional)</Label>
-                                                <Input 
-                                                    placeholder="e.g. {col_1} * {col_2}"
-                                                    value={editingColumn.formula || ''}
-                                                    onChange={(e) => setEditingColumn({ ...editingColumn, formula: e.target.value })}
-                                                />
-                                                <p className="text-xs text-muted-foreground">
-                                                    If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
-                                                </p>
-                                            </div>
-                                            <Separator />
-                                        </>
-                                    )}
+                                    <div className="flex flex-col gap-2">
+                                        <Label>Formula (Optional)</Label>
+                                        <Input 
+                                            placeholder="e.g. {col_1} * {col_2}"
+                                            value={editingColumn.formula || ''}
+                                            onChange={(e) => setEditingColumn({ ...editingColumn, formula: e.target.value })}
+                                        />
+                                        <p className="text-xs text-muted-foreground">
+                                            If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
+                                        </p>
+                                    </div>
+                                    <Separator />
                                     
-                                    {(!('formula' in editingColumn) || !editingColumn.formula) && (
+                                    {(!editingColumn.formula) && (
                                         <>
                                             <h3 className="text-lg font-medium">Field Properties</h3>
                                             <div className="flex flex-col gap-2">
@@ -1274,26 +1270,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <DialogFooter>
                              <Button variant="outline" onClick={() => setEditingColumn(null)}>Cancel</Button>
                              <Button onClick={() => {
-                                if (!editingColumn) return;
-                                if (props.type === 'Table' && 'formula' in editingColumn) {
-                                    const existing = props.tableColumns?.find(c => c.id === editingColumn.id);
-                                    let newColumns: TableColumn[];
-                                    if (existing) {
-                                        newColumns = (props.tableColumns || []).map(c => c.id === editingColumn.id ? editingColumn : c);
-                                    } else {
-                                        newColumns = [...(props.tableColumns || []), editingColumn];
-                                    }
-                                    updateProperty('tableColumns', newColumns);
-                                } else if (props.type === 'DataGrid') {
-                                     const existing = props.dataGridColumns?.find(c => c.id === editingColumn.id);
-                                    let newColumns: DataGridColumn[];
-                                    if (existing) {
-                                        newColumns = (props.dataGridColumns || []).map(c => c.id === editingColumn.id ? editingColumn as DataGridColumn : c);
-                                    } else {
-                                        newColumns = [...(props.dataGridColumns || []), editingColumn as DataGridColumn];
-                                    }
-                                    updateProperty('dataGridColumns', newColumns);
+                                if (!editingColumn || !('formula' in editingColumn)) return;
+                                const existing = props.tableColumns?.find(c => c.id === editingColumn.id);
+                                let newColumns: TableColumn[];
+                                if (existing) {
+                                    newColumns = (props.tableColumns || []).map(c => c.id === editingColumn.id ? editingColumn : c);
+                                } else {
+                                    newColumns = [...(props.tableColumns || []), editingColumn];
                                 }
+                                updateProperty('tableColumns', newColumns);
                                 setEditingColumn(null);
                              }}>Save Column</Button>
                         </DialogFooter>
