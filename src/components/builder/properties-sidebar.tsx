@@ -257,131 +257,6 @@ function AlignmentRadioGroup({
     )
 }
 
-function ColumnEditorDialog({
-    isOpen,
-    onOpenChange,
-    onSave,
-    column,
-    columnType
-}: {
-    isOpen: boolean;
-    onOpenChange: (isOpen: boolean) => void;
-    onSave: (column: TableColumn | DataGridColumn | ListItemElement) => void;
-    column: TableColumn | DataGridColumn | ListItemElement | null;
-    columnType: 'table' | 'datagrid' | 'listitem';
-}) {
-    const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
-
-    useEffect(() => {
-        if (isOpen && column) {
-            setEditingColumn(JSON.parse(JSON.stringify(column)));
-        } else {
-            setEditingColumn(null);
-        }
-    }, [isOpen, column]);
-
-    const handleSave = () => {
-        if (editingColumn) {
-            onSave(editingColumn);
-        }
-        onOpenChange(false);
-    };
-    
-    const handleElementUpdate = (updatedElement: FormElementInstance) => {
-        if (editingColumn && 'element' in editingColumn) {
-            setEditingColumn({ ...editingColumn, element: updatedElement });
-        }
-    }
-
-    if (!isOpen || !editingColumn) {
-        return null;
-    }
-
-    const title = 'id' in editingColumn && !editingColumn?.id.startsWith('new') ? 'Edit Column' : 'Add New Column';
-    const description = "Configure the properties for this column.";
-    const isListItemElement = columnType === 'listitem';
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    {description && <DialogDescription>{description}</DialogDescription>}
-                </DialogHeader>
-                <ScrollArea className="flex-grow -mx-6 px-6">
-                    <div className="py-4 flex flex-col gap-4">
-                        {!isListItemElement && 'key' in editingColumn && (
-                             <>
-                                <div className="flex flex-col gap-2">
-                                    <Label>Column Header</Label>
-                                    <Input value={editingColumn.label} onChange={(e) => setEditingColumn({ ...editingColumn, label: e.target.value })} />
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <Label>Column Key</Label>
-                                    <Input value={editingColumn.key} onChange={(e) => setEditingColumn({ ...editingColumn, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} />
-                                </div>
-                                <Separator />
-                            </>
-                        )}
-                        {columnType === 'table' && 'formula' in editingColumn && (
-                             <div className="flex flex-col gap-2">
-                                <Label>Formula (Optional)</Label>
-                                <Input 
-                                    placeholder="e.g. {col_1} * {col_2}"
-                                    value={editingColumn.formula || ''}
-                                    onChange={(e) => setEditingColumn({ ...editingColumn, formula: e.target.value })}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
-                                </p>
-                            </div>
-                        )}
-
-                        {'element' in editingColumn && (!('formula' in editingColumn) || !editingColumn.formula) && (
-                            <>
-                                <h3 className="text-lg font-medium">Field Properties</h3>
-                                <div className="flex flex-col gap-2">
-                                    <Label>Field Type</Label>
-                                    <Select
-                                        value={editingColumn.element.type}
-                                        onValueChange={(type) => {
-                                            const newElement = createNewElement(type as ElementType);
-                                            handleElementUpdate(newElement);
-                                        }}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a field type" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="Input">Input</SelectItem>
-                                            <SelectItem value="Select">Select</SelectItem>
-                                            <SelectItem value="Checkbox">Checkbox</SelectItem>
-                                            <SelectItem value="RadioGroup">Radio Group</SelectItem>
-                                            <SelectItem value="DatePicker">Date Picker</SelectItem>
-                                            <SelectItem value="Display">Display Text</SelectItem>
-                                            <SelectItem value="RichText">Rich Text</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <ElementProperties
-                                    element={editingColumn.element}
-                                    onUpdate={handleElementUpdate}
-                                    isColumnElement={true}
-                                />
-                            </>
-                        )}
-                    </div>
-                </ScrollArea>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleSave}>Save Column</Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
 function ColumnManager({
     columns,
     onUpdate,
@@ -391,17 +266,17 @@ function ColumnManager({
     onUpdate: (columns: (TableColumn | DataGridColumn | ListItemElement)[]) => void,
     columnType: 'table' | 'datagrid' | 'listitem'
 }) {
-    const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
     const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
+    const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
 
     const openColumnEditor = (col: TableColumn | DataGridColumn | ListItemElement | null) => {
         if (col) {
-            setEditingColumn(JSON.parse(JSON.stringify(col)));
+            setEditingColumn(JSON.parse(JSON.stringify(col))); // Deep clone for editing
         } else {
             const baseNewCol = {
                 id: `new_${crypto.randomUUID()}`,
             };
-            if (columnType === 'listitem') {
+             if (columnType === 'listitem') {
                 setEditingColumn({
                     ...baseNewCol,
                     element: createNewElement('Display')
@@ -462,14 +337,147 @@ function ColumnManager({
                 <Plus className="mr-2 h-4 w-4" />
                 Add {columnType === 'listitem' ? 'Element' : 'Column'}
             </Button>
-            <ColumnEditorDialog
-                isOpen={isColumnEditorOpen}
-                onOpenChange={setIsColumnEditorOpen}
-                onSave={handleSaveColumn}
-                column={editingColumn}
-                columnType={columnType}
-            />
+            {isColumnEditorOpen && (
+                <ColumnEditorDialog
+                    isOpen={isColumnEditorOpen}
+                    onOpenChange={setIsColumnEditorOpen}
+                    onSave={handleSaveColumn}
+                    column={editingColumn}
+                    columnType={columnType}
+                />
+            )}
         </div>
+    );
+}
+
+function ColumnEditorDialog({
+    isOpen,
+    onOpenChange,
+    onSave,
+    column,
+    columnType
+}: {
+    isOpen: boolean;
+    onOpenChange: (isOpen: boolean) => void;
+    onSave: (column: TableColumn | DataGridColumn | ListItemElement) => void;
+    column: TableColumn | DataGridColumn | ListItemElement | null;
+    columnType: 'table' | 'datagrid' | 'listitem';
+}) {
+    const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
+
+    useEffect(() => {
+        setEditingColumn(column);
+    }, [column]);
+
+    const handleSave = () => {
+        if (editingColumn) {
+            onSave(editingColumn);
+        }
+        onOpenChange(false);
+    };
+    
+    const handleElementUpdate = (updatedElement: FormElementInstance) => {
+        if (editingColumn && 'element' in editingColumn) {
+            setEditingColumn({ ...editingColumn, element: updatedElement });
+        }
+    }
+    
+    const updateColumnProperty = (key: string, value: any) => {
+        if (editingColumn) {
+            setEditingColumn({ ...editingColumn, [key]: value });
+        }
+    };
+    
+    const handleFieldTypeChange = (type: ElementType) => {
+        if (editingColumn && 'element' in editingColumn) {
+            const newElement = createNewElement(type);
+            handleElementUpdate(newElement);
+        }
+    }
+
+    if (!isOpen || !editingColumn) {
+        return null;
+    }
+
+    const title = 'id' in editingColumn && !editingColumn?.id.startsWith('new') ? 'Edit Column' : 'Add New Column';
+    const description = "Configure the properties for this column.";
+    const isListItemElement = columnType === 'listitem';
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
+                <DialogHeader>
+                    <DialogTitle>{title}</DialogTitle>
+                    {description && <DialogDescription>{description}</DialogDescription>}
+                </DialogHeader>
+                <ScrollArea className="flex-grow -mx-6 px-6">
+                    <div className="py-4 flex flex-col gap-4">
+                        {!isListItemElement && 'key' in editingColumn && (
+                             <>
+                                <div className="flex flex-col gap-2">
+                                    <Label>Column Header</Label>
+                                    <Input value={editingColumn.label} onChange={(e) => updateColumnProperty('label', e.target.value)} />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <Label>Column Key</Label>
+                                    <Input value={editingColumn.key} onChange={(e) => updateColumnProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                </div>
+                                <Separator />
+                            </>
+                        )}
+                        {columnType === 'table' && 'formula' in editingColumn && (
+                             <div className="flex flex-col gap-2">
+                                <Label>Formula (Optional)</Label>
+                                <Input 
+                                    placeholder="e.g. {col_1} * {col_2}"
+                                    value={editingColumn.formula || ''}
+                                    onChange={(e) => updateColumnProperty('formula', e.target.value)}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
+                                </p>
+                            </div>
+                        )}
+
+                        {'element' in editingColumn && (!('formula' in editingColumn) || !editingColumn.formula) && (
+                            <>
+                                <h3 className="text-lg font-medium">Field Properties</h3>
+                                <div className="flex flex-col gap-2">
+                                    <Label>Field Type</Label>
+                                    <Select
+                                        value={editingColumn.element.type}
+                                        onValueChange={handleFieldTypeChange}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a field type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Input">Input</SelectItem>
+                                            <SelectItem value="Select">Select</SelectItem>
+                                            <SelectItem value="Checkbox">Checkbox</SelectItem>
+                                            <SelectItem value="RadioGroup">Radio Group</SelectItem>
+                                            <SelectItem value="DatePicker">Date Picker</SelectItem>
+                                            <SelectItem value="Display">Display Text</SelectItem>
+                                            <SelectItem value="RichText">Rich Text</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <ElementProperties
+                                    element={editingColumn.element}
+                                    onUpdate={handleElementUpdate}
+                                    isColumnElement={true}
+                                />
+                            </>
+                        )}
+                    </div>
+                </ScrollArea>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button onClick={handleSave}>Save Column</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -687,6 +695,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
                                 />
                             </div>
+                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hidden">Hidden in Form</Label>
+                                <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="layout">
@@ -759,6 +771,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     checked={props.exposeForValidation || false}
                                     onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
                                 />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hidden">Hidden in Form</Label>
+                                <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                             {!props.isLink && (
                                 <>
@@ -894,6 +910,46 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                  </Accordion>
             );
+        case "RichText":
+            return (
+                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="label">Label</Label>
+                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="expose-for-validation">Expose for validation</Label>
+                                <Switch
+                                    id="expose-for-validation"
+                                    checked={props.exposeForValidation || false}
+                                    onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
+                                />
+                            </div>
+                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hidden">Hidden in Form</Label>
+                                <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="content">Content</Label>
+                                <LexicalComposer initialConfig={{
+                                    namespace: 'FormBuilder-Properties',
+                                    nodes: [],
+                                    onError: console.error,
+                                    editable: true,
+                                }}>
+                                    <LexicalEditor
+                                        initialValue={props.content}
+                                        onChange={(html) => updateProperty('content', html)}
+                                    />
+                                </LexicalComposer>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                 </Accordion>
+            );
         case "Input":
              return (
                  <Accordion type="multiple" defaultValue={["general", "advanced"]} className="w-full">
@@ -946,42 +1002,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                             {placeholderField}
-                        </AccordionContent>
-                    </AccordionItem>
-                 </Accordion>
-            );
-        case "RichText":
-            return (
-                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="label">Label</Label>
-                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
-                            </div>
-                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="expose-for-validation">Expose for validation</Label>
-                                <Switch
-                                    id="expose-for-validation"
-                                    checked={props.exposeForValidation || false}
-                                    onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
-                                />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="content">Content</Label>
-                                <LexicalComposer initialConfig={{
-                                    namespace: 'FormBuilder-Properties',
-                                    nodes: [],
-                                    onError: console.error,
-                                    editable: true,
-                                }}>
-                                    <LexicalEditor
-                                        initialValue={props.content}
-                                        onChange={(html) => updateProperty('content', html)}
-                                    />
-                                </LexicalComposer>
-                            </div>
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>
