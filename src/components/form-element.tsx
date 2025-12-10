@@ -86,7 +86,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
 
    const isVisible = useMemo(() => {
-    if (!context || !element.hidden) return !element.hidden;
+    if (element.hidden) return false;
+    
+    if (!context || !rules) return true;
 
     const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
     const hideRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
@@ -104,7 +106,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     
     return visible;
-  }, [element.id, context, rules, element.hidden]);
+  }, [element.id, element.hidden, context, rules]);
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
     let readOnly = false;
@@ -1256,4 +1258,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
 
     
+
 
