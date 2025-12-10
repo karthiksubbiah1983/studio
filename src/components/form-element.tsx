@@ -270,20 +270,19 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Display": {
         let finalDisplayValue;
 
-        if (dataSourceConfig?.sourceType === 'currentUser') {
+        if (isTableCell && rowContext) {
+            // For a List, rowContext can be a string (static) or an object (dynamic)
+            if (typeof rowContext === 'string') {
+                finalDisplayValue = rowContext;
+            } else if (typeof rowContext === 'object' && element.key) {
+                finalDisplayValue = getNestedValue(rowContext, element.key);
+            }
+        } else if (dataSourceConfig?.sourceType === 'currentUser') {
             finalDisplayValue = user?.username || 'Guest';
         } else if (dataSourceConfig?.sourceType === 'currentDateTime') {
             finalDisplayValue = format(currentDateTime, 'PPP p');
         } else if (isReadOnly) {
             finalDisplayValue = value;
-        } else if (isTableCell && rowContext) {
-            const itemKey = element.key || '';
-            // For static lists, rowContext is a string. For dynamic, it's an object.
-            if (typeof rowContext === 'string') {
-                finalDisplayValue = rowContext;
-            } else {
-                finalDisplayValue = getNestedValue(rowContext, itemKey);
-            }
         } else if (dataSourceConfig?.sourceElementId && formState) {
             const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
             const sourceValue = formState[dataSourceConfig.sourceElementId];
@@ -1214,4 +1213,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
