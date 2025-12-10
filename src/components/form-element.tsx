@@ -271,10 +271,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         let finalDisplayValue;
 
         if (isTableCell && rowContext) {
-            if (typeof rowContext === 'string') {
-                finalDisplayValue = rowContext;
-            } else if (typeof rowContext === 'object' && element.dataSourceConfig?.displayKey) {
+            // For List items and Table cells, the context is the row data object itself.
+             if (element.dataSourceConfig?.displayKey) {
                 finalDisplayValue = getNestedValue(rowContext, element.dataSourceConfig.displayKey);
+            } else if (typeof rowContext === 'string') {
+                // Handle static lists where rowContext is just a string
+                finalDisplayValue = rowContext;
             }
         } else if (dataSourceConfig?.sourceType === 'currentUser') {
             finalDisplayValue = user?.username || 'Guest';
@@ -1212,6 +1214,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
 
