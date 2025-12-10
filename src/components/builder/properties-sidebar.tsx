@@ -1143,7 +1143,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         label: `Column ${(props.tableColumns?.length || 0) + 1}`,
                                         element: createNewElement('Input')
                                     };
-                                    setEditingColumn(newCol); // Open dialog to configure new column
+                                    setEditingColumn(newCol);
                                 }}>
                                     <Plus className="mr-2 h-4 w-4" /> Add Column
                                 </Button>
@@ -1239,7 +1239,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                     value={editingColumn.element.type}
                                                     onValueChange={(type) => {
                                                         const newElement = createNewElement(type as ElementType);
-                                                        setEditingColumn({...editingColumn, element: newElement });
+                                                        const currentEditing = editingColumn;
+                                                        if (currentEditing) {
+                                                            setEditingColumn({...currentEditing, element: newElement });
+                                                        }
                                                     }}
                                                 >
                                                     <SelectTrigger>
@@ -1259,7 +1262,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                             
                                             <ElementProperties
                                                 element={editingColumn.element}
-                                                onUpdate={(updatedElement) => setEditingColumn({ ...editingColumn, element: updatedElement })}
+                                                onUpdate={(updatedElement) => {
+                                                    const currentEditing = editingColumn;
+                                                    if (currentEditing) {
+                                                        setEditingColumn({ ...currentEditing, element: updatedElement })
+                                                    }
+                                                }}
                                                 isColumnElement={true}
                                             />
                                         </>
