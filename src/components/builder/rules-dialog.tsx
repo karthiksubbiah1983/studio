@@ -121,6 +121,15 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     updateConfigurations(localConfigs);
     onOpenChange(false);
   }
+  
+  const handleAddConfig = () => {
+    const newConfig: Configuration = {
+        id: crypto.randomUUID(),
+        key: `config_${localConfigs.length + 1}`,
+        value: ''
+    };
+    setLocalConfigs([...localConfigs, newConfig]);
+  }
 
   const ConditionEditor = ({ condition, rule }: { condition: Condition, rule: Rule }) => {
     const sourceElement = useMemo(() => {
@@ -553,15 +562,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
 
   const ConfigurationsEditor = () => {
     
-    const handleAddConfig = () => {
-        const newConfig: Configuration = {
-            id: crypto.randomUUID(),
-            key: `config_${localConfigs.length + 1}`,
-            value: ''
-        };
-        setLocalConfigs([...localConfigs, newConfig]);
-    }
-
     const handleUpdateConfig = (id: string, updatedConfig: Partial<Configuration>) => {
         setLocalConfigs(localConfigs.map(c => c.id === id ? { ...c, ...updatedConfig } : c));
     }
@@ -591,10 +591,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     </div>
                 ))}
             </div>
-            <Button variant="outline" size="sm" onClick={handleAddConfig}>
-                <Plus className="mr-2 h-4 w-4"/>
-                Add Configuration
-            </Button>
         </div>
     )
   }
@@ -614,54 +610,63 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             </TabsList>
             </DialogHeader>
 
-            <TabsContent value="rules" className="flex-1 flex overflow-hidden">
-                <aside className="w-1/3 border-r overflow-y-auto">
-                    <div className="p-4">
-                        <Button variant="outline" className="w-full" onClick={handleAddRule}>
-                            <Plus className="mr-2 h-4 w-4" /> Add New Rule
-                        </Button>
-                    </div>
-                    <div className="p-2 space-y-1">
-                        {localRules.map(rule => (
-                            <div key={rule.id} className="relative group/rule">
-                                <button
-                                    onClick={() => handleSelectRule(rule.id)}
-                                    className={cn(
-                                        "w-full text-left p-2 rounded-md flex justify-between items-center",
-                                        selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
-                                    )}
-                                >
-                                    <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
-                                </button>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
-                                    onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
-                                >
-                                    <Trash className="h-4 w-4 text-destructive" />
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-                </aside>
-                <main className="flex-1 overflow-y-auto">
-                    {selectedRule ? (
-                    <RuleEditor rule={selectedRule} />
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                            <Settings2 className="h-12 w-12 mb-4" />
-                            <h3 className="text-lg font-semibold">No Rule Selected</h3>
-                            <p className="text-sm">Select a rule from the left panel to edit it, or add a new rule.</p>
+            <TabsContent value="rules" className="flex-1 flex flex-col overflow-hidden">
+                <div className="flex justify-between p-4 border-b">
+                    <h3 className="font-semibold text-lg">Rules</h3>
+                    <Button variant="outline" size="sm" onClick={handleAddRule}>
+                        <Plus className="mr-2 h-4 w-4" /> Add New Rule
+                    </Button>
+                </div>
+                <div className="flex-1 flex overflow-hidden">
+                    <aside className="w-1/3 border-r overflow-y-auto">
+                        <div className="p-2 space-y-1">
+                            {localRules.map(rule => (
+                                <div key={rule.id} className="relative group/rule">
+                                    <button
+                                        onClick={() => handleSelectRule(rule.id)}
+                                        className={cn(
+                                            "w-full text-left p-2 rounded-md flex justify-between items-center",
+                                            selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
+                                        )}
+                                    >
+                                        <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
+                                    </button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
+                                        onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
+                                    >
+                                        <Trash className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
+                            ))}
                         </div>
-                    )}
-                </main>
+                    </aside>
+                    <main className="flex-1 overflow-y-auto">
+                        {selectedRule ? (
+                        <RuleEditor rule={selectedRule} />
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+                                <Settings2 className="h-12 w-12 mb-4" />
+                                <h3 className="text-lg font-semibold">No Rule Selected</h3>
+                                <p className="text-sm">Select a rule from the left panel to edit it, or add a new rule.</p>
+                            </div>
+                        )}
+                    </main>
+                </div>
             </TabsContent>
 
-            <TabsContent value="configurations" className="flex-1 flex overflow-hidden">
-                 <main className="flex-1 overflow-y-auto">
+            <TabsContent value="configurations" className="flex-1 flex flex-col overflow-hidden">
+                 <div className="flex justify-between p-4 border-b">
+                    <h3 className="font-semibold text-lg">Configurations</h3>
+                    <Button variant="outline" size="sm" onClick={handleAddConfig}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Configuration
+                    </Button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
                     <ConfigurationsEditor />
-                 </main>
+                 </div>
             </TabsContent>
         </Tabs>
         
