@@ -609,7 +609,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             Manage conditional rules and reusable configurations for your form.
           </DialogDescription>
         </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden px-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-6">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="rules">Rules</TabsTrigger>
                 <TabsTrigger value="configurations">Configurations</TabsTrigger>
@@ -621,7 +621,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <Plus className="mr-2 h-4 w-4" /> Add New Rule
                     </Button>
                 </div>
-                <div className="flex-1 flex overflow-hidden">
+                <div className="flex-1 flex min-h-0">
                     <aside className="w-1/3 border-r overflow-y-auto">
                         <div className="p-2 space-y-1">
                             {localRules.map(rule => (
@@ -647,7 +647,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                             ))}
                         </div>
                     </aside>
-                    <main className="flex-1 overflow-hidden">
+                    <main className="flex-1 flex flex-col min-h-0">
                         {selectedRule ? (
                         <RuleEditor rule={selectedRule} />
                         ) : (
@@ -668,7 +668,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <Plus className="mr-2 h-4 w-4" /> Add Configuration
                     </Button>
                 </div>
-                <div className="flex-1 overflow-hidden">
+                <div className="flex-1 min-h-0">
                     <ConfigurationsEditor />
                  </div>
             </TabsContent>
