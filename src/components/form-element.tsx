@@ -504,8 +504,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             const scorePerItem = element.scorePerItem || 0;
             const selectedCount = isCheckbox ? currentSelection.length : (currentSelection ? 1 : 0);
             return selectedCount * scorePerItem;
-        }, [currentSelection, element.enableScoring, element.scorePerItem, isCheckbox, isDisplayOnly]);
-
+        }, [isCheckbox, isDisplayOnly, currentSelection, element.enableScoring, element.scorePerItem]);
+        
         useEffect(() => {
             if (score !== null) {
                 onValueChange(`${element.id}::score`, score);
@@ -520,7 +520,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             <div className="rounded-md border p-2 space-y-2">
                 {isLoading ? <Loader2 className="animate-spin" /> : listOptions.map((option, index) => {
                     const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
-                    const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
                     const isSelected = isCheckbox ? currentSelection.includes(itemValue) : currentSelection === itemValue;
                     
                     const itemContent = () => {
@@ -536,6 +535,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 />
                             ));
                         }
+                        const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
                         return <Label htmlFor={isRadio ? `${element.id}-${index}` : undefined} className="font-normal">{itemLabel}</Label>;
                     }
 
@@ -1236,6 +1236,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
 
