@@ -261,13 +261,13 @@ function ColumnEditorDialog({
     onOpenChange,
     onSave,
     column,
-    isTableColumn
+    columnType
 }: {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
     onSave: (column: TableColumn | DataGridColumn | ListItemElement) => void;
     column: TableColumn | DataGridColumn | ListItemElement | null;
-    isTableColumn: boolean;
+    columnType: 'table' | 'datagrid' | 'listitem';
 }) {
     const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
 
@@ -285,14 +285,20 @@ function ColumnEditorDialog({
         }
         onOpenChange(false);
     };
+    
+    const handleElementUpdate = (updatedElement: FormElementInstance) => {
+        if (editingColumn && 'element' in editingColumn) {
+            setEditingColumn({ ...editingColumn, element: updatedElement });
+        }
+    }
 
     if (!isOpen || !editingColumn) {
         return null;
     }
 
-    const title = 'id' in editingColumn && !column?.id.startsWith('new') ? 'Edit Column' : 'Add New Column';
+    const title = 'id' in editingColumn && !editingColumn?.id.startsWith('new') ? 'Edit Column' : 'Add New Column';
     const description = "Configure the properties for this column.";
-    const isListItemElement = 'element' in editingColumn && !('key' in editingColumn);
+    const isListItemElement = columnType === 'listitem';
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -316,7 +322,7 @@ function ColumnEditorDialog({
                                 <Separator />
                             </>
                         )}
-                        {isTableColumn && 'formula' in editingColumn && (
+                        {columnType === 'table' && 'formula' in editingColumn && (
                              <div className="flex flex-col gap-2">
                                 <Label>Formula (Optional)</Label>
                                 <Input 
@@ -339,7 +345,7 @@ function ColumnEditorDialog({
                                         value={editingColumn.element.type}
                                         onValueChange={(type) => {
                                             const newElement = createNewElement(type as ElementType);
-                                            setEditingColumn({ ...editingColumn, element: newElement });
+                                            handleElementUpdate(newElement);
                                         }}
                                     >
                                         <SelectTrigger>
@@ -359,9 +365,7 @@ function ColumnEditorDialog({
 
                                 <ElementProperties
                                     element={editingColumn.element}
-                                    onUpdate={(updatedElement) => {
-                                        setEditingColumn({ ...editingColumn, element: updatedElement });
-                                    }}
+                                    onUpdate={handleElementUpdate}
                                     isColumnElement={true}
                                 />
                             </>
@@ -377,14 +381,103 @@ function ColumnEditorDialog({
     );
 }
 
+function ColumnManager({
+    columns,
+    onUpdate,
+    columnType
+} : {
+    columns: (TableColumn | DataGridColumn | ListItemElement)[],
+    onUpdate: (columns: (TableColumn | DataGridColumn | ListItemElement)[]) => void,
+    columnType: 'table' | 'datagrid' | 'listitem'
+}) {
+    const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
+    const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
+
+    const openColumnEditor = (col: TableColumn | DataGridColumn | ListItemElement | null) => {
+        if (col) {
+            setEditingColumn(JSON.parse(JSON.stringify(col)));
+        } else {
+            const baseNewCol = {
+                id: `new_${crypto.randomUUID()}`,
+            };
+            if (columnType === 'listitem') {
+                setEditingColumn({
+                    ...baseNewCol,
+                    element: createNewElement('Display')
+                });
+            } else {
+                 setEditingColumn({
+                    ...baseNewCol,
+                    key: `col_${(columns.length || 0) + 1}`,
+                    label: `Column ${(columns.length || 0) + 1}`,
+                    element: createNewElement('Input')
+                });
+            }
+        }
+        setIsColumnEditorOpen(true);
+    };
+
+    const handleSaveColumn = (updatedColumn: TableColumn | DataGridColumn | ListItemElement) => {
+        const isNew = 'id' in updatedColumn && updatedColumn.id.startsWith('new_');
+        const finalColumn = { ...updatedColumn, id: isNew ? crypto.randomUUID() : updatedColumn.id };
+
+        let newColumns;
+        if (isNew) {
+            newColumns = [...(columns || []), finalColumn];
+        } else {
+            newColumns = (columns || []).map(c => c.id === finalColumn.id ? finalColumn : c);
+        }
+        onUpdate(newColumns as any);
+        setIsColumnEditorOpen(false);
+        setEditingColumn(null);
+    };
+
+    const handleDeleteColumn = (columnId: string) => {
+        const newCols = columns.filter(c => c.id !== columnId);
+        onUpdate(newCols as any);
+    }
+    
+    const getLabel = (col: TableColumn | DataGridColumn | ListItemElement) => {
+        if ('label' in col) return col.label;
+        if ('element' in col) return col.element.label || col.element.type;
+        return 'Item';
+    }
+
+    return (
+        <div className="flex flex-col gap-2">
+            <Label>{columnType === 'listitem' ? 'List Item Elements' : 'Columns'}</Label>
+            {(columns || []).map((col) => (
+                <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
+                    <div className="flex-1 text-sm">{getLabel(col)} ({'element' in col && col.element.type})</div>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openColumnEditor(col)}>
+                        <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteColumn(col.id)}>
+                        <Trash className="h-4 w-4 text-destructive" />
+                    </Button>
+                </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => openColumnEditor(null)}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add {columnType === 'listitem' ? 'Element' : 'Column'}
+            </Button>
+            <ColumnEditorDialog
+                isOpen={isColumnEditorOpen}
+                onOpenChange={setIsColumnEditorOpen}
+                onSave={handleSaveColumn}
+                column={editingColumn}
+                columnType={columnType}
+            />
+        </div>
+    );
+}
+
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
   const { dispatch, state, sections } = useBuilder();
   const [props, setProps] = useState(element);
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
-  const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
-  const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
   const [isFetchedJsonDialogOpen, setIsFetchedJsonDialogOpen] = useState(false);
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
 
@@ -469,39 +562,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         setFetchedKeys([]);
     } finally {
         setIsFetching(false);
-    }
-  }
-
-  const openColumnEditor = (col: TableColumn | DataGridColumn | ListItemElement | null) => {
-      const colToEdit = col ? JSON.parse(JSON.stringify(col)) : { 
-          id: `new_${crypto.randomUUID()}`, 
-          key: `col_${(props.tableColumns?.length || props.dataGridColumns?.length || 0) + 1}`,
-          label: `Column ${(props.tableColumns?.length || props.dataGridColumns?.length || 0) + 1}`,
-          element: createNewElement('Input')
-      };
-      setEditingColumn(colToEdit as any);
-      setIsColumnEditorOpen(true);
-  }
-  
-  const handleSaveColumn = (updatedColumn: TableColumn | DataGridColumn | ListItemElement) => {
-    const isNew = 'id' in updatedColumn && updatedColumn.id.startsWith('new_');
-    const finalColumn = { ...updatedColumn, id: isNew ? crypto.randomUUID() : updatedColumn.id };
-
-    if ('formula' in finalColumn && props.type === 'Table') { // TableColumn
-        const newColumns = isNew 
-            ? [...(props.tableColumns || []), finalColumn] 
-            : (props.tableColumns || []).map(c => c.id === finalColumn.id ? finalColumn : c);
-        updateProperty('tableColumns', newColumns);
-    } else if (!('formula' in finalColumn) && 'key' in finalColumn && props.type === 'DataGrid') { // DataGridColumn
-        const newColumns = isNew 
-            ? [...(props.dataGridColumns || []), finalColumn] 
-            : (props.dataGridColumns || []).map(c => c.id === finalColumn.id ? finalColumn : c);
-        updateProperty('dataGridColumns', newColumns);
-    } else if ('element' in finalColumn && !('key' in finalColumn) && props.type === 'List') { // ListItemElement
-         const newItems = isNew
-            ? [...(props.listItemElements || []), finalColumn]
-            : (props.listItemElements || []).map(i => i.id === finalColumn.id ? finalColumn : i);
-        updateProperty('listItemElements', newItems);
     }
   }
 
@@ -604,32 +664,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 
-  const dataGridColumnsField = (columns: DataGridColumn[] | undefined, onUpdate: (columns: DataGridColumn[]) => void) => {
-    return (
-    <div className="flex flex-col gap-2">
-        <Label>Columns</Label>
-        {columns?.map((col) => (
-            <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
-                <div className="flex-1 text-sm">{col.label} ({col.element.type})</div>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openColumnEditor(col)}>
-                    <Edit className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                    const newCols = columns.filter(c => c.id !== col.id);
-                    onUpdate(newCols);
-                }}>
-                    <Trash className="h-4 w-4 text-destructive" />
-                </Button>
-            </div>
-        ))}
-        <Button variant="outline" size="sm" onClick={() => openColumnEditor(null)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Column
-        </Button>
-    </div>
-    )
-  };
-  
   const content = () => {
       switch(props.type) {
         case "Separator":
@@ -1034,32 +1068,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionItem value="layout">
                             <AccordionTrigger className="py-2">List Item Layout</AccordionTrigger>
                             <AccordionContent>
-                                <div className="flex flex-col gap-2">
-                                    {props.listItemElements?.map(itemEl => (
-                                        <div key={itemEl.id} className="flex items-center gap-2 p-2 border rounded-md">
-                                            <div className="flex-1 text-sm">{itemEl.element.label} ({itemEl.element.type})</div>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openColumnEditor(itemEl)}>
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                                                const newItems = (props.listItemElements || []).filter(i => i.id !== itemEl.id);
-                                                updateProperty('listItemElements', newItems);
-                                            }}>
-                                                <Trash className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                    <Button variant="outline" size="sm" onClick={() => {
-                                         const newItem: ListItemElement = {
-                                            id: `new_${crypto.randomUUID()}`,
-                                            element: createNewElement('Display')
-                                        };
-                                        openColumnEditor(newItem);
-                                    }}>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Add Item Element
-                                    </Button>
-                                </div>
+                                <ColumnManager
+                                    columns={props.listItemElements || []}
+                                    onUpdate={(newItems) => updateProperty('listItemElements', newItems)}
+                                    columnType="listitem"
+                                />
                             </AccordionContent>
                         </AccordionItem>
                     }
@@ -1099,7 +1112,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionItem value="columns">
                             <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                             <AccordionContent>
-                                {dataGridColumnsField(props.dataGridColumns, (newColumns) => updateProperty('dataGridColumns', newColumns))}
+                                 <ColumnManager
+                                    columns={props.dataGridColumns || []}
+                                    onUpdate={(newColumns) => updateProperty('dataGridColumns', newColumns)}
+                                    columnType="datagrid"
+                                />
                             </AccordionContent>
                         </AccordionItem>
                     </Accordion>
@@ -1148,26 +1165,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     <AccordionItem value="columns">
                         <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                         <AccordionContent>
-                            <div className="flex flex-col gap-2">
-                                <Label>Columns</Label>
-                                {props.tableColumns?.map((col) => (
-                                    <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
-                                        <div className="flex-1 text-sm">{col.label} ({col.element.type})</div>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openColumnEditor(col)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                                            const newCols = props.tableColumns?.filter(c => c.id !== col.id);
-                                            updateProperty('tableColumns', newCols);
-                                        }}>
-                                            <Trash className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                ))}
-                                <Button variant="outline" size="sm" onClick={() => openColumnEditor(null)}>
-                                    <Plus className="mr-2 h-4 w-4" /> Add Column
-                                </Button>
-                            </div>
+                           <ColumnManager
+                                columns={props.tableColumns || []}
+                                onUpdate={(newColumns) => updateProperty('tableColumns', newColumns)}
+                                columnType="table"
+                            />
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="features">
@@ -1346,13 +1348,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   return (
     <div className="flex flex-col gap-4">
       {content()}
-      <ColumnEditorDialog
-        isOpen={isColumnEditorOpen}
-        onOpenChange={setIsColumnEditorOpen}
-        onSave={handleSaveColumn}
-        column={editingColumn}
-        isTableColumn={props.type === 'Table'}
-      />
       <FetchedJsonDialog
         isOpen={isFetchedJsonDialogOpen}
         onOpenChange={setIsFetchedJsonDialogOpen}
@@ -1361,5 +1356,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-    
