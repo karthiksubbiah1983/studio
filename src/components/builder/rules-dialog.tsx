@@ -511,24 +511,24 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 className="text-lg font-medium"
             />
             <Separator />
-            <h4 className="font-medium text-sm text-muted-foreground flex items-center">
-                IF 
+            <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
+                <span>IF</span>
                 <RadioGroup
                     value={rule.logicType}
                     onValueChange={(value) => handleUpdateLogicType(value as 'and' | 'or')}
-                    className="flex ml-2"
+                    className="flex"
                 >
                     <div className="flex items-center space-x-1">
                         <RadioGroupItem value="and" id={`and-${rule.id}`} className="h-4 w-4" />
-                        <Label htmlFor={`and-${rule.id}`} className="text-sm">All (AND)</Label>
+                        <Label htmlFor={`and-${rule.id}`} className="text-sm font-normal">All (AND)</Label>
                     </div>
                     <div className="flex items-center space-x-1">
                         <RadioGroupItem value="or" id={`or-${rule.id}`} className="h-4 w-4" />
-                        <Label htmlFor={`or-${rule.id}`} className="text-sm">Any (OR)</Label>
+                        <Label htmlFor={`or-${rule.id}`} className="text-sm font-normal">Any (OR)</Label>
                     </div>
                 </RadioGroup>
-                OF THE FOLLOWING ARE MET:
-            </h4>
+                <span>OF THE FOLLOWING ARE MET:</span>
+            </div>
             <div className="space-y-3">
                  {rule.conditions.map((cond) => (
                     <ConditionEditor key={cond.id} condition={cond} rule={rule} />
@@ -675,3 +675,4 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
