@@ -36,6 +36,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   const [localRules, setLocalRules] = useState<Rule[]>([]);
   const [localConfigs, setLocalConfigs] = useState<Configuration[]>([]);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("rules");
 
   useEffect(() => {
     if (isOpen) {
@@ -513,8 +514,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-        <ScrollArea className="h-full">
-            <div className="p-4 space-y-4">
+        <ScrollArea className="h-full px-4">
+            <div className="py-4 space-y-4">
                 <Input 
                     value={rule.name}
                     onChange={(e) => handleUpdateRuleName(e.target.value)}
@@ -573,8 +574,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
     
     return (
-        <ScrollArea className="h-full">
-            <div className="p-4 space-y-4">
+        <ScrollArea className="h-full px-4">
+            <div className="py-4 space-y-4">
                 <div className="space-y-2">
                     {localConfigs.map(config => (
                         <div key={config.id} className="flex items-center gap-2">
@@ -608,45 +609,43 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             Manage conditional rules and reusable configurations for your form.
           </DialogDescription>
         </DialogHeader>
-        <Tabs defaultValue="rules" className="flex-1 flex flex-col overflow-hidden">
-             <TabsList className="grid w-full grid-cols-2 mx-6 mt-4 w-auto">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden px-6">
+            <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="rules">Rules</TabsTrigger>
                 <TabsTrigger value="configurations">Configurations</TabsTrigger>
             </TabsList>
-            <TabsContent value="rules" className="flex-1 flex flex-col overflow-hidden">
+            <TabsContent value="rules" className="flex-1 flex flex-col overflow-hidden -mx-6">
                 <div className="flex justify-between items-center p-4 border-b">
-                    <h3 className="font-semibold text-lg">Rules</h3>
+                    <h3 className="font-semibold">Rules</h3>
                     <Button variant="outline" size="sm" onClick={handleAddRule}>
                         <Plus className="mr-2 h-4 w-4" /> Add New Rule
                     </Button>
                 </div>
                 <div className="flex-1 flex overflow-hidden">
-                    <aside className="w-1/3 border-r">
-                        <ScrollArea className="h-full">
-                            <div className="p-2 space-y-1">
-                                {localRules.map(rule => (
-                                    <div key={rule.id} className="relative group/rule">
-                                        <button
-                                            onClick={() => handleSelectRule(rule.id)}
-                                            className={cn(
-                                                "w-full text-left p-2 rounded-md flex justify-between items-center",
-                                                selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
-                                            )}
-                                        >
-                                            <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
-                                        </button>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
-                                            onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
-                                        >
-                                            <Trash className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        </ScrollArea>
+                    <aside className="w-1/3 border-r overflow-y-auto">
+                        <div className="p-2 space-y-1">
+                            {localRules.map(rule => (
+                                <div key={rule.id} className="relative group/rule">
+                                    <button
+                                        onClick={() => handleSelectRule(rule.id)}
+                                        className={cn(
+                                            "w-full text-left p-2 rounded-md flex justify-between items-center",
+                                            selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
+                                        )}
+                                    >
+                                        <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
+                                    </button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
+                                        onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
+                                    >
+                                        <Trash className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
                     </aside>
                     <main className="flex-1 overflow-hidden">
                         {selectedRule ? (
@@ -662,9 +661,9 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 </div>
             </TabsContent>
 
-            <TabsContent value="configurations" className="flex-1 flex flex-col overflow-hidden">
+            <TabsContent value="configurations" className="flex-1 flex flex-col overflow-hidden -mx-6">
                  <div className="flex justify-between items-center p-4 border-b">
-                    <h3 className="font-semibold text-lg">Configurations</h3>
+                    <h3 className="font-semibold">Configurations</h3>
                     <Button variant="outline" size="sm" onClick={handleAddConfig}>
                         <Plus className="mr-2 h-4 w-4" /> Add Configuration
                     </Button>
