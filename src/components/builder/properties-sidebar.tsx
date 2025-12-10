@@ -269,16 +269,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const allElements = getAllElements(sections);
 
-  const dependentFieldOptions = useMemo(() => 
-      allElements.filter(el => 
-          el.id !== element.id
-      )
-  , [allElements, element.id]);
-
-
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'DataGrid' || element.type === 'Table') && element.apiUrl && !element.dependentFieldId) {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'DataGrid' || element.type === 'Table') && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -299,17 +292,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       onUpdate(newProps);
   };
   
-  const handleDependentFieldChange = (value: string) => {
-    const newDependentFieldId = value === 'none' ? undefined : value;
-    updateProperty('dependentFieldId', newDependentFieldId);
-    
-    // Reset dependency type if dependent field is removed
-    if (!newDependentFieldId) {
-        updateProperty('dependencyType', undefined);
-    }
-  }
-
-
   const handleApiUrlChange = (newUrl: string) => {
     const newProps = { 
         ...props,
@@ -437,19 +419,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 
-  const dynamicDataSourceFields = (isList = false) => (
+  const dynamicDataSourceFields = () => (
     <div className="flex flex-col gap-4">
-       {(props.dependencyType === 'api' || !props.dependentFieldId || isList) && (
-            <div className="flex flex-col gap-2">
-                <Label htmlFor="apiUrl">API URL</Label>
-                <div className="flex gap-2">
-                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                    <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
-                        {isFetching ? "Fetching..." : "Fetch"}
-                    </Button>
-                </div>
+        <div className="flex flex-col gap-2">
+            <Label htmlFor="apiUrl">API URL</Label>
+            <div className="flex gap-2">
+                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
+                <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
+                    {isFetching ? "Fetching..." : "Fetch"}
+                </Button>
             </div>
-        )}
+        </div>
         <>
             <div className="flex flex-col gap-2">
                 <Label htmlFor="valueKey">Option Value Key</Label>
@@ -587,9 +567,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
              )
         case "Display":
             const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "", sourceType: "field" };
-            const selectedSourceElement = dependentFieldOptions.find(el => el.id === config.sourceElementId);
-            const sourceIsSelect = selectedSourceElement && selectedSourceElement.type === 'Select';
-
             return (
                  <Accordion type="multiple" defaultValue={["general", "link", "data"]} className="w-full">
                     <AccordionItem value="general">
@@ -685,7 +662,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <Select
                                             value={config.sourceElementId || "none"}
                                             onValueChange={(value) => {
-                                                const newConfig = { ...config, sourceElementId: value === "none" ? "" : value, displayKey: "" };
+                                                const sourceElement = allElements.find(el => el.id === value);
+                                                const newConfig = { 
+                                                    ...config, 
+                                                    sourceElementId: value === "none" ? "" : value,
+                                                    // Reset display key if the source is not a select
+                                                    displayKey: sourceElement?.type === 'Select' ? config.displayKey : ""
+                                                };
                                                 updateProperty('dataSourceConfig', newConfig);
                                             }}
                                         >
@@ -700,9 +683,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                    { config.sourceElementId && sourceIsSelect && (
+                                    { config.sourceElementId && allElements.find(el => el.id === config.sourceElementId)?.type === 'Select' && (
                                         <div className="flex flex-col gap-2">
-                                            <Label htmlFor="display-key">Display Key (for Select fields)</Label>
+                                            <Label htmlFor="display-key">Display Key (from Select object)</Label>
                                             <Input 
                                                 id="display-key" 
                                                 value={config.displayKey}
@@ -854,7 +837,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "List":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "layout", "scoring"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "scoring"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -910,40 +893,42 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Label htmlFor="list-source-dynamic">Dynamic</Label>
                                 </div>
                             </RadioGroup>
-                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields(true) : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="layout">
-                        <AccordionTrigger className="py-2">List Item Layout</AccordionTrigger>
-                        <AccordionContent>
-                             <div className="flex flex-col gap-2">
-                                {props.listItemElements?.map(itemEl => (
-                                     <div key={itemEl.id} className="flex items-center gap-2 p-2 border rounded-md">
-                                        <div className="flex-1 text-sm">{itemEl.element.label} ({itemEl.element.type})</div>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingColumn(itemEl)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
-                                            const newItems = (props.listItemElements || []).filter(i => i.id !== itemEl.id);
-                                            updateProperty('listItemElements', newItems);
-                                        }}>
-                                            <Trash className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                ))}
-                                <Button variant="outline" size="sm" onClick={() => {
-                                    const newItem: ListItemElement = {
-                                        id: crypto.randomUUID(),
-                                        element: createNewElement('Display')
-                                    };
-                                    setEditingColumn(newItem);
-                                }}>
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Add Item Element
-                                </Button>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
+                    { (props.listType === 'display') &&
+                        <AccordionItem value="layout">
+                            <AccordionTrigger className="py-2">List Item Layout</AccordionTrigger>
+                            <AccordionContent>
+                                <div className="flex flex-col gap-2">
+                                    {props.listItemElements?.map(itemEl => (
+                                        <div key={itemEl.id} className="flex items-center gap-2 p-2 border rounded-md">
+                                            <div className="flex-1 text-sm">{itemEl.element.label} ({itemEl.element.type})</div>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingColumn(itemEl)}>
+                                                <Edit className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => {
+                                                const newItems = (props.listItemElements || []).filter(i => i.id !== itemEl.id);
+                                                updateProperty('listItemElements', newItems);
+                                            }}>
+                                                <Trash className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                    <Button variant="outline" size="sm" onClick={() => {
+                                        const newItem: ListItemElement = {
+                                            id: crypto.randomUUID(),
+                                            element: createNewElement('Display')
+                                        };
+                                        setEditingColumn(newItem);
+                                    }}>
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        Add Item Element
+                                    </Button>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    }
                      <AccordionItem value="scoring">
                         <AccordionTrigger className="py-2">Scoring</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">

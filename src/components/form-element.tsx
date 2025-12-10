@@ -274,9 +274,19 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             // For List items and Table cells, the context is the row data object itself.
              if (element.dataSourceConfig?.displayKey) {
                 finalDisplayValue = getNestedValue(rowContext, element.dataSourceConfig.displayKey);
-            } else if (typeof rowContext === 'string') {
+             } else if (typeof rowContext === 'string') {
                 // Handle static lists where rowContext is just a string
                 finalDisplayValue = rowContext;
+             } else if (typeof rowContext === 'object' && rowContext !== null) {
+                // Handle dynamic lists where we need to find the correct property
+                if (element.labelKey && element.dataSource === 'dynamic') {
+                    finalDisplayValue = getNestedValue(rowContext, element.labelKey);
+                } else if (element.labelKey) { // Fallback for static object lists (if ever implemented)
+                    finalDisplayValue = getNestedValue(rowContext, element.labelKey);
+                } else {
+                    // Try to find a reasonable default like 'name' or 'label'
+                    finalDisplayValue = rowContext.name || rowContext.label || JSON.stringify(rowContext);
+                }
             }
         } else if (dataSourceConfig?.sourceType === 'currentUser') {
             finalDisplayValue = user?.username || 'Guest';
@@ -536,15 +546,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                     </div>
                                 )}
                                 <div className="flex-1 space-y-2">
-                                     {(element.listItemElements || []).map(itemEl => (
-                                        <FormElementRenderer 
-                                            key={itemEl.id}
-                                            element={{...itemEl.element, id: `${element.id}::${itemEl.element.key}`}}
-                                            value={null} // Value is handled by rowContext
-                                            onValueChange={() => {}} // Display only
-                                            rowContext={option}
-                                            isTableCell={true}
-                                        />
+                                     {element.listType !== 'display' ?
+                                        <Label className="font-normal">{typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option}</Label>
+                                        : (element.listItemElements || []).map(itemEl => (
+                                            <FormElementRenderer 
+                                                key={itemEl.id}
+                                                element={{...itemEl.element, id: `${element.id}::${itemEl.element.key}`}}
+                                                value={null} // Value is handled by rowContext
+                                                onValueChange={() => {}} // Display only
+                                                rowContext={option}
+                                                isTableCell={true}
+                                            />
                                     ))}
                                 </div>
                             </div>
@@ -1214,6 +1226,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
 
 
