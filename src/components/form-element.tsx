@@ -268,59 +268,65 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       content = <Separator />;
       break;
     case "Display": {
-      let finalDisplayValue;
+        let finalDisplayValue;
 
-      if (dataSourceConfig?.sourceType === 'currentUser') {
-          finalDisplayValue = user?.username || 'Guest';
-      } else if (dataSourceConfig?.sourceType === 'currentDateTime') {
-          finalDisplayValue = format(currentDateTime, 'PPP p');
-      } else if (isReadOnly) {
-          finalDisplayValue = value;
-      } else if (isTableCell && rowContext && key) { 
-          finalDisplayValue = getNestedValue(rowContext, key);
-      } else if (dataSourceConfig?.sourceElementId && formState) { 
-          const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
-          const sourceValue = formState[dataSourceConfig.sourceElementId];
-          if (sourceElement && sourceValue) {
-              if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
-                  finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
-              } else {
-                  finalDisplayValue = sourceValue.value;
-              }
-          }
-      }
-      
-      if (finalDisplayValue === undefined || finalDisplayValue === null) {
-          finalDisplayValue = label;
-      }
-      
-      if (isLink && linkUrl) {
-          const finalUrl = interpolateString(linkUrl, { formState: formState || {}, sections });
-          return (
-                 <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
+        if (dataSourceConfig?.sourceType === 'currentUser') {
+            finalDisplayValue = user?.username || 'Guest';
+        } else if (dataSourceConfig?.sourceType === 'currentDateTime') {
+            finalDisplayValue = format(currentDateTime, 'PPP p');
+        } else if (isReadOnly) {
+            finalDisplayValue = value;
+        } else if (isTableCell && rowContext) {
+            const itemKey = element.key || '';
+            // For static lists, rowContext is a string. For dynamic, it's an object.
+            if (typeof rowContext === 'string') {
+                finalDisplayValue = rowContext;
+            } else {
+                finalDisplayValue = getNestedValue(rowContext, itemKey);
+            }
+        } else if (dataSourceConfig?.sourceElementId && formState) {
+            const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
+            const sourceValue = formState[dataSourceConfig.sourceElementId];
+            if (sourceElement && sourceValue) {
+                if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
+                    finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
+                } else {
+                    finalDisplayValue = sourceValue.value;
+                }
+            }
+        }
+        
+        if (finalDisplayValue === undefined || finalDisplayValue === null) {
+            finalDisplayValue = label;
+        }
+        
+        if (isLink && linkUrl) {
+            const finalUrl = interpolateString(linkUrl, { formState: formState || {}, sections });
+            return (
+                    <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     <Link className="h-4 w-4" />
                     <span className="text-sm">{String(finalDisplayValue)}</span>
                 </a>
-          )
-      }
+            )
+        }
 
-      const style = textStyle || 'p';
-      const classes = {
-          p: 'text-muted-foreground text-sm',
-          h1: 'text-4xl font-bold',
-          h2: 'text-3xl font-bold',
-          h3: 'text-2xl font-bold',
-          h4: 'text-xl font-bold',
-          h5: 'text-lg font-bold',
-          h6: 'text-base font-bold',
-      };
-      const Tag = style === 'p' ? 'p' : style;
-      const finalStyle = { ...appliedStyles.style };
-      if (!finalStyle.color && color) { 
-        finalStyle.color = color;
-      }
-      content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
-      break;
+        const style = textStyle || 'p';
+        const classes = {
+            p: 'text-muted-foreground text-sm',
+            h1: 'text-4xl font-bold',
+            h2: 'text-3xl font-bold',
+            h3: 'text-2xl font-bold',
+            h4: 'text-xl font-bold',
+            h5: 'text-lg font-bold',
+            h6: 'text-base font-bold',
+        };
+        const Tag = style === 'p' ? 'p' : style;
+        const finalStyle = { ...appliedStyles.style };
+        if (!finalStyle.color && color) { 
+            finalStyle.color = color;
+        }
+        content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
+        break;
     }
     case "Container": {
         const { elements, direction, justify, align } = element;
@@ -534,7 +540,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                         <FormElementRenderer 
                                             key={itemEl.id}
                                             element={{...itemEl.element, id: `${element.id}::${itemEl.element.key}`}}
-                                            value={getNestedValue(option, itemEl.element.key || '')}
+                                            value={null} // Value is handled by rowContext
                                             onValueChange={() => {}} // Display only
                                             rowContext={option}
                                             isTableCell={true}
@@ -1208,3 +1214,4 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
