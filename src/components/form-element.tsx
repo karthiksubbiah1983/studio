@@ -488,31 +488,28 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
         const allListOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
         
-        const displayedSelection = useMemo(() => {
-            if (element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
-                return [];
-            }
-            return allListOptions.filter(opt => {
-                const optValue = String(typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt);
-                return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
-            });
-        }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.valueKey]);
-
         const mainListOptions = useMemo(() => {
-            if (element.displaySelection === 'selected') {
+            if (element.displaySelection === 'selected' && !isDisplayOnly) {
                 return allListOptions.filter(opt => {
                     const optValue = String(typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt);
                     return isCheckbox ? !currentSelection.includes(optValue) : currentSelection !== optValue;
                 });
             }
-             if (element.displaySelection === 'unselected') {
+            return allListOptions;
+        }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.valueKey]);
+
+        const displayedSelection = useMemo(() => {
+            if (element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
+                return [];
+            }
+            if (element.displaySelection === 'selected') {
                  return allListOptions.filter(opt => {
                     const optValue = String(typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt);
                     return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
                 });
             }
-            return allListOptions;
-        }, [allListOptions, currentSelection, isCheckbox, element.displaySelection, element.valueKey]);
+            return []; // Placeholder for 'unselected', can be implemented if needed
+        }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.valueKey]);
 
         const score = useMemo(() => {
             if (!element.enableScoring || isDisplayOnly) return null;
@@ -522,17 +519,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }, [isCheckbox, isDisplayOnly, currentSelection, element.enableScoring, element.scorePerItem]);
         
         useEffect(() => {
-            if (score !== null) {
+            if (score !== null && (formState?.[`${element.id}::score`]?.value !== score)) {
                 onValueChange(`${element.id}::score`, score);
             }
-        }, [score, element.id, onValueChange]);
+        }, [score, element.id, onValueChange, formState]);
 
         const passed = score !== null && element.passingScore !== undefined ? score >= element.passingScore : null;
         
         const listContent = (
             <div className="rounded-md border p-2 space-y-2">
                 {isLoading ? <Loader2 className="animate-spin" /> : mainListOptions.map((option, index) => {
-                    const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : opt);
+                    const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
                     const isSelected = isCheckbox ? currentSelection.includes(itemValue) : currentSelection === itemValue;
                     
                     const itemContent = () => {
@@ -548,7 +545,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 />
                             ));
                         }
-                        const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : opt);
+                        const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
                         return <Label htmlFor={isRadio ? `${element.id}-${index}` : undefined} className="font-normal">{itemLabel}</Label>;
                     }
 
