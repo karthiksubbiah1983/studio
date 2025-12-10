@@ -514,8 +514,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-        <ScrollArea className="h-full px-4">
-            <div className="py-4 space-y-4">
+        <ScrollArea className="h-full px-1">
+            <div className="py-4 px-3 space-y-4">
                 <Input 
                     value={rule.name}
                     onChange={(e) => handleUpdateRuleName(e.target.value)}
@@ -574,8 +574,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
     
     return (
-        <ScrollArea className="h-full px-4">
-            <div className="py-4 space-y-4">
+        <ScrollArea className="h-full px-1">
+            <div className="py-4 px-3 space-y-4">
                 <div className="space-y-2">
                     {localConfigs.map(config => (
                         <div key={config.id} className="flex items-center gap-2">
@@ -684,3 +684,4 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
