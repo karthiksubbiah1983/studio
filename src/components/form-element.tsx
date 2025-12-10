@@ -86,7 +86,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
 
    const isVisible = useMemo(() => {
-    if (!context || element.hidden) return !element.hidden;
+    if (!context || !element.hidden) return !element.hidden;
 
     const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
     const hideRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
@@ -219,7 +219,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     <div className="flex items-center gap-2">
        <Label className="text-[0.9rem]" style={appliedStyles.style}>
         {label}
-        {required && <span className="text-destructive"> *</span>}
+        {required && label && <span className="text-destructive"> *</span>}
       </Label>
       {popup?.enabled && (
         <>
@@ -1256,3 +1256,4 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
 
     
+
