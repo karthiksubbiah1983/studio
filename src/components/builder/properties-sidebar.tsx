@@ -568,7 +568,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const commonFields = (
     <>
-      {!isColumnElement && <div className="flex flex-col gap-2">
+      {(!isColumnElement || (props.type === 'Display')) && <div className="flex flex-col gap-2">
         <Label htmlFor="key">Field Key</Label>
         <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
       </div>}
@@ -740,10 +740,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         case "Display":
             const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "", sourceType: "field" };
             return (
-                 <Accordion type="multiple" defaultValue={["general", "link", "data"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "link", "data", "advanced"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="key">Field Key</Label>
+                                <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                            </div>
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Text / Label</Label>
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
@@ -869,6 +873,23 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     )}
                                 </>
                             )}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="advanced">
+                        <AccordionTrigger className="py-2">Advanced</AccordionTrigger>
+                        <AccordionContent>
+                           <div className="flex flex-col gap-2">
+                                <Label htmlFor="formula">Formula (Optional)</Label>
+                                <Input
+                                    id="formula"
+                                    value={props.formula || ''}
+                                    onChange={(e) => updateProperty('formula', e.target.value)}
+                                    placeholder="e.g., {field_a} + {field_b}"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    If a formula is provided, this field will be read-only.
+                                </p>
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>

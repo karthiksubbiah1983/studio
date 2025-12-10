@@ -112,7 +112,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     
     const contextForEval = rowContext || formState;
 
-    if (element.type === 'Input' && element.formula && contextForEval) {
+    if ((element.type === 'Input' || element.type === 'Display') && element.formula && contextForEval) {
         const formulaContext = Object.keys(contextForEval).reduce((acc, key) => {
             const elKey = getAllElements(sections).find(e => e.id === key)?.key;
             if (elKey) {
