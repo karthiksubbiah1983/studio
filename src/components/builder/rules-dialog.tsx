@@ -514,8 +514,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-        <ScrollArea className="h-full">
-            <div className="p-4 space-y-4">
+        <ScrollArea className="h-full p-4">
+            <div className="space-y-4">
                 <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
                     <span>IF</span>
                     <RadioGroup
@@ -569,6 +569,12 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
     return (
         <div className="h-full flex flex-col">
+            <div className="p-4 border-b flex justify-between items-center">
+                <h3 className="font-semibold text-sm">All Configurations</h3>
+                <Button variant="outline" size="sm" onClick={handleAddConfig}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Configuration
+                </Button>
+            </div>
             <div className="flex-1 p-4">
                 <ScrollArea className="h-full">
                     <div className="space-y-2">
@@ -611,64 +617,59 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     <TabsTrigger value="rules">Rules</TabsTrigger>
                     <TabsTrigger value="configurations">Configurations</TabsTrigger>
                 </TabsList>
-                <TabsContent value="rules" className="flex-1 -mx-6 flex flex-col min-h-0">
-                    <div className="flex-1 flex min-h-0 border-t">
-                        <aside className="w-1/3 border-r flex flex-col">
-                           <div className="p-4 border-b flex justify-between items-center">
-                                <h3 className="font-semibold text-sm">All Rules</h3>
-                                <Button variant="outline" size="sm" onClick={handleAddRule}>
-                                    <Plus className="mr-2 h-4 w-4" /> Add Rule
-                                </Button>
-                            </div>
-                            <ScrollArea className="flex-1">
-                                <div className="p-2 space-y-1">
-                                    {localRules.map(rule => (
-                                        <div key={rule.id} className="relative group/rule">
-                                            <button
-                                                onClick={() => handleSelectRule(rule.id)}
-                                                className={cn(
-                                                    "w-full text-left p-2 rounded-md flex justify-between items-center",
-                                                    selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
-                                                )}
-                                            >
-                                                <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
-                                            </button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
-                                                onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
-                                            >
-                                                <Trash className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </div>
-                                    ))}
+                <div className="flex-1 flex flex-col min-h-0 border-t">
+                    <TabsContent value="rules" className="flex-1 flex min-h-0 -mx-6 mt-0">
+                        <div className="flex-1 flex min-h-0">
+                            <aside className="w-1/3 border-r flex flex-col">
+                               <div className="p-4 border-b flex justify-between items-center">
+                                    <h3 className="font-semibold text-sm">All Rules</h3>
+                                    <Button variant="outline" size="sm" onClick={handleAddRule}>
+                                        <Plus className="mr-2 h-4 w-4" /> Add Rule
+                                    </Button>
                                 </div>
-                            </ScrollArea>
-                        </aside>
-                        <main className="flex-1 flex flex-col min-h-0">
-                            {selectedRule ? (
-                            <RuleEditor rule={selectedRule} />
-                            ) : (
-                                <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                                    <Settings2 className="h-12 w-12 mb-4" />
-                                    <h3 className="text-lg font-semibold">No Rule Selected</h3>
-                                    <p className="text-sm">Select a rule from the left panel to edit it, or add a new rule.</p>
-                                </div>
-                            )}
-                        </main>
-                    </div>
-                </TabsContent>
-
-                <TabsContent value="configurations" className="flex-1 -mx-6 flex flex-col min-h-0 border-t">
-                     <div className="p-4 flex justify-between items-center border-b">
-                        <h3 className="font-semibold text-sm">All Configurations</h3>
-                        <Button variant="outline" size="sm" onClick={handleAddConfig}>
-                            <Plus className="mr-2 h-4 w-4" /> Add Configuration
-                        </Button>
-                    </div>
-                    <ConfigurationsEditor />
-                </TabsContent>
+                                <ScrollArea className="flex-1">
+                                    <div className="p-2 space-y-1">
+                                        {localRules.map(rule => (
+                                            <div key={rule.id} className="relative group/rule">
+                                                <button
+                                                    onClick={() => handleSelectRule(rule.id)}
+                                                    className={cn(
+                                                        "w-full text-left p-2 rounded-md flex justify-between items-center",
+                                                        selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
+                                                    )}
+                                                >
+                                                    <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
+                                                </button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
+                                                    onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
+                                                >
+                                                    <Trash className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </aside>
+                            <main className="flex-1 flex flex-col min-h-0">
+                                {selectedRule ? (
+                                    <RuleEditor rule={selectedRule} />
+                                ) : (
+                                    <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+                                        <Settings2 className="h-12 w-12 mb-4" />
+                                        <h3 className="text-lg font-semibold">No Rule Selected</h3>
+                                        <p className="text-sm">Select a rule from the left panel to edit it, or add a new rule.</p>
+                                    </div>
+                                )}
+                            </main>
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="configurations" className="flex-1 -mx-6 mt-0">
+                        <ConfigurationsEditor />
+                    </TabsContent>
+                </div>
             </Tabs>
         </div>
         
