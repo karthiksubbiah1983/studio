@@ -574,29 +574,36 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
     
     return (
-        <ScrollArea className="h-full px-1">
-            <div className="py-4 px-3 space-y-4">
-                <div className="space-y-2">
-                    {localConfigs.map(config => (
-                        <div key={config.id} className="flex items-center gap-2">
-                            <Input 
-                                placeholder="Key"
-                                value={config.key}
-                                onChange={(e) => handleUpdateConfig(config.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
-                            />
-                             <Input 
-                                placeholder="Value"
-                                value={config.value}
-                                onChange={(e) => handleUpdateConfig(config.id, { value: e.target.value })}
-                            />
-                            <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDeleteConfig(config.id)}>
-                                <Trash className="h-4 w-4 text-destructive"/>
-                            </Button>
-                        </div>
-                    ))}
-                </div>
+        <div className="h-full flex flex-col">
+            <div className="flex justify-end items-center p-4 border-b">
+                 <Button variant="outline" size="sm" onClick={handleAddConfig}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Configuration
+                </Button>
             </div>
-        </ScrollArea>
+            <ScrollArea className="flex-1">
+                <div className="py-4 px-3 space-y-4">
+                    <div className="space-y-2">
+                        {localConfigs.map(config => (
+                            <div key={config.id} className="flex items-center gap-2">
+                                <Input 
+                                    placeholder="Key"
+                                    value={config.key}
+                                    onChange={(e) => handleUpdateConfig(config.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                                />
+                                <Input 
+                                    placeholder="Value"
+                                    value={config.value}
+                                    onChange={(e) => handleUpdateConfig(config.id, { value: e.target.value })}
+                                />
+                                <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDeleteConfig(config.id)}>
+                                    <Trash className="h-4 w-4 text-destructive"/>
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </ScrollArea>
+        </div>
     )
   }
 
@@ -609,70 +616,66 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             Manage conditional rules and reusable configurations for your form.
           </DialogDescription>
         </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-6">
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="rules">Rules</TabsTrigger>
-                <TabsTrigger value="configurations">Configurations</TabsTrigger>
-            </TabsList>
-            <TabsContent value="rules" className="flex-1 flex flex-col overflow-hidden -mx-6">
-                <div className="flex justify-between items-center p-4 border-b">
-                    <h3 className="font-semibold">Rules</h3>
-                    <Button variant="outline" size="sm" onClick={handleAddRule}>
-                        <Plus className="mr-2 h-4 w-4" /> Add New Rule
-                    </Button>
-                </div>
-                <div className="flex-1 flex min-h-0">
-                    <aside className="w-1/3 border-r overflow-y-auto">
-                        <div className="p-2 space-y-1">
-                            {localRules.map(rule => (
-                                <div key={rule.id} className="relative group/rule">
-                                    <button
-                                        onClick={() => handleSelectRule(rule.id)}
-                                        className={cn(
-                                            "w-full text-left p-2 rounded-md flex justify-between items-center",
-                                            selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
-                                        )}
-                                    >
-                                        <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
-                                    </button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
-                                        onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
-                                    >
-                                        <Trash className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
-                    </aside>
-                    <main className="flex-1 flex flex-col min-h-0">
-                        {selectedRule ? (
-                        <RuleEditor rule={selectedRule} />
-                        ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                                <Settings2 className="h-12 w-12 mb-4" />
-                                <h3 className="text-lg font-semibold">No Rule Selected</h3>
-                                <p className="text-sm">Select a rule from the left panel to edit it, or add a new rule.</p>
+        <div className="flex-1 flex flex-col min-h-0">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-6">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="rules">Rules</TabsTrigger>
+                    <TabsTrigger value="configurations">Configurations</TabsTrigger>
+                </TabsList>
+                <TabsContent value="rules" className="flex-1 -mx-6 flex flex-col">
+                    <div className="flex-1 flex min-h-0">
+                        <aside className="w-1/3 border-r flex flex-col">
+                            <div className="p-4 border-b flex justify-between items-center">
+                                <h3 className="font-semibold text-sm">All Rules</h3>
+                                <Button variant="outline" size="sm" onClick={handleAddRule}>
+                                    <Plus className="mr-2 h-4 w-4" /> Add Rule
+                                </Button>
                             </div>
-                        )}
-                    </main>
-                </div>
-            </TabsContent>
+                            <ScrollArea className="flex-1">
+                                <div className="p-2 space-y-1">
+                                    {localRules.map(rule => (
+                                        <div key={rule.id} className="relative group/rule">
+                                            <button
+                                                onClick={() => handleSelectRule(rule.id)}
+                                                className={cn(
+                                                    "w-full text-left p-2 rounded-md flex justify-between items-center",
+                                                    selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
+                                                )}
+                                            >
+                                                <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
+                                            </button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
+                                                onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
+                                            >
+                                                <Trash className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </aside>
+                        <main className="flex-1 flex flex-col min-h-0">
+                            {selectedRule ? (
+                            <RuleEditor rule={selectedRule} />
+                            ) : (
+                                <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+                                    <Settings2 className="h-12 w-12 mb-4" />
+                                    <h3 className="text-lg font-semibold">No Rule Selected</h3>
+                                    <p className="text-sm">Select a rule from the left panel to edit it, or add a new rule.</p>
+                                </div>
+                            )}
+                        </main>
+                    </div>
+                </TabsContent>
 
-            <TabsContent value="configurations" className="flex-1 flex flex-col overflow-hidden -mx-6">
-                 <div className="flex justify-between items-center p-4 border-b">
-                    <h3 className="font-semibold">Configurations</h3>
-                    <Button variant="outline" size="sm" onClick={handleAddConfig}>
-                        <Plus className="mr-2 h-4 w-4" /> Add Configuration
-                    </Button>
-                </div>
-                <div className="flex-1 min-h-0">
+                <TabsContent value="configurations" className="flex-1 -mx-6">
                     <ConfigurationsEditor />
-                 </div>
-            </TabsContent>
-        </Tabs>
+                </TabsContent>
+            </Tabs>
+        </div>
         
         <DialogFooter className="p-4 border-t shrink-0">
             <DialogClose asChild>
@@ -684,4 +687,3 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
-
