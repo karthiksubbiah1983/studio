@@ -615,7 +615,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 <TabsTrigger value="rules">Rules</TabsTrigger>
                 <TabsTrigger value="configurations">Configurations</TabsTrigger>
             </TabsList>
-
             <TabsContent value="rules" className="flex-1 flex flex-col min-h-0 mt-0 border-t -mx-6">
                 <div className="flex-1 flex min-h-0">
                     <aside className="w-1/3 border-r flex flex-col">
@@ -685,5 +684,3 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
-
-    
