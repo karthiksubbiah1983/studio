@@ -514,7 +514,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-        <ScrollArea className="h-full p-4">
+        <ScrollArea className="flex-1 p-4">
             <div className="space-y-4">
                 <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
                     <span>IF</span>
@@ -569,13 +569,13 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
     return (
         <div className="h-full flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center">
+            <div className="p-4 border-b flex justify-between items-center shrink-0">
                 <h3 className="font-semibold text-sm">All Configurations</h3>
                 <Button variant="outline" size="sm" onClick={handleAddConfig}>
                     <Plus className="mr-2 h-4 w-4" /> Add Configuration
                 </Button>
             </div>
-            <div className="flex-1 p-4">
+            <div className="flex-1 p-4 overflow-y-auto">
                 <ScrollArea className="h-full">
                     <div className="space-y-2">
                         {localConfigs.map(config => (
@@ -595,6 +595,11 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                                 </Button>
                             </div>
                         ))}
+                         {localConfigs.length === 0 && (
+                            <div className="text-center text-sm text-muted-foreground pt-10">
+                                No configurations created yet.
+                            </div>
+                        )}
                     </div>
                 </ScrollArea>
             </div>
@@ -618,28 +623,28 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     <TabsTrigger value="configurations">Configurations</TabsTrigger>
                 </TabsList>
                 <div className="flex-1 flex flex-col min-h-0 border-t -mx-6">
-                    <TabsContent value="rules" className="flex-1 flex min-h-0 mt-0">
+                    <TabsContent value="rules" className="flex-1 flex flex-col min-h-0 mt-0">
                         <div className="flex-1 flex min-h-0">
                             <aside className="w-1/3 border-r flex flex-col">
-                               <div className="p-4 border-b flex justify-between items-center">
+                               <div className="p-4 border-b flex justify-between items-center shrink-0">
                                     <h3 className="font-semibold text-sm">All Rules</h3>
                                     <Button variant="outline" size="sm" onClick={handleAddRule}>
                                         <Plus className="mr-2 h-4 w-4" /> Add Rule
                                     </Button>
                                 </div>
-                                <ScrollArea className="flex-1">
-                                    <div className="p-2 space-y-1">
+                                <ScrollArea className="flex-1 p-2">
+                                    <div className="space-y-1">
                                         {localRules.map(rule => (
                                             <div key={rule.id} className="relative group/rule">
-                                                <button
-                                                    onClick={() => handleSelectRule(rule.id)}
+                                                 <input 
                                                     className={cn(
-                                                        "w-full text-left p-2 rounded-md flex justify-between items-center",
-                                                        selectedRuleId === rule.id ? 'bg-accent' : 'hover:bg-accent/50'
+                                                        "w-full text-left p-2 rounded-md truncate text-sm bg-transparent",
+                                                        selectedRuleId === rule.id ? 'bg-accent font-medium' : 'hover:bg-accent/50'
                                                     )}
-                                                >
-                                                    <span className="text-sm truncate">{rule.name || "Untitled Rule"}</span>
-                                                </button>
+                                                    value={rule.name}
+                                                    onChange={(e) => handleUpdateRule({ ...rule, name: e.target.value })}
+                                                    onFocus={() => handleSelectRule(rule.id)}
+                                                />
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
@@ -650,6 +655,11 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                                                 </Button>
                                             </div>
                                         ))}
+                                         {localRules.length === 0 && (
+                                            <div className="text-center text-sm text-muted-foreground pt-10">
+                                                No rules created yet.
+                                            </div>
+                                        )}
                                     </div>
                                 </ScrollArea>
                             </aside>
