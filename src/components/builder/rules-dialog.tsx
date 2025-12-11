@@ -659,7 +659,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     )}
                 </main>
             </div>
-            <div className="border-t">
+            <div className="border-t min-h-0">
                 <ConfigurationsEditor />
             </div>
         </div>
@@ -673,3 +673,4 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
