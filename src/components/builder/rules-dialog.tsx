@@ -482,10 +482,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   }
 
   const RuleEditor = ({ rule }: { rule: Rule }) => {
-    
-    const handleUpdateRuleName = (name: string) => {
-        handleUpdateRule({ ...rule, name });
-    }
 
     const handleUpdateLogicType = (logicType: 'and' | 'or') => {
         handleUpdateRule({ ...rule, logicType });
@@ -514,46 +510,46 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-        <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
-                <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
-                    <span>IF</span>
-                    <RadioGroup
-                        value={rule.logicType}
-                        onValueChange={(value) => handleUpdateLogicType(value as 'and' | 'or')}
-                        className="flex"
-                    >
-                        <div className="flex items-center space-x-1">
-                            <RadioGroupItem value="and" id={`and-${rule.id}`} className="h-4 w-4" />
-                            <Label htmlFor={`and-${rule.id}`} className="text-sm font-normal">All (AND)</Label>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                            <RadioGroupItem value="or" id={`or-${rule.id}`} className="h-4 w-4" />
-                            <Label htmlFor={`or-${rule.id}`} className="text-sm font-normal">Any (OR)</Label>
-                        </div>
-                    </RadioGroup>
-                    <span>OF THE FOLLOWING ARE MET:</span>
-                </div>
-                <div className="space-y-3">
-                     {rule.conditions.map((cond) => (
-                        <ConditionEditor key={cond.id} condition={cond} rule={rule} />
-                    ))}
-                </div>
-                 <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddCondition}>
-                    <Plus className="mr-1 h-4 w-4"/> Add Condition
-                </Button>
-                <Separator />
-                <h4 className="font-medium text-sm text-muted-foreground">THEN DO THIS:</h4>
-                <div className="space-y-3">
-                    {rule.behaviors.map((behavior) => (
-                        <BehaviorEditor key={behavior.id} behavior={behavior} rule={rule} />
-                    ))}
-                </div>
-                <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddBehavior}>
-                    <Plus className="mr-1 h-4 w-4"/> Add Behavior
-                </Button>
+      <ScrollArea className="h-full">
+        <div className="p-4 space-y-4">
+            <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
+                <span>IF</span>
+                <RadioGroup
+                    value={rule.logicType}
+                    onValueChange={(value) => handleUpdateLogicType(value as 'and' | 'or')}
+                    className="flex"
+                >
+                    <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="and" id={`and-${rule.id}`} className="h-4 w-4" />
+                        <Label htmlFor={`and-${rule.id}`} className="text-sm font-normal">All (AND)</Label>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                        <RadioGroupItem value="or" id={`or-${rule.id}`} className="h-4 w-4" />
+                        <Label htmlFor={`or-${rule.id}`} className="text-sm font-normal">Any (OR)</Label>
+                    </div>
+                </RadioGroup>
+                <span>OF THE FOLLOWING ARE MET:</span>
             </div>
-        </ScrollArea>
+            <div className="space-y-3">
+                    {rule.conditions.map((cond) => (
+                    <ConditionEditor key={cond.id} condition={cond} rule={rule} />
+                ))}
+            </div>
+                <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddCondition}>
+                <Plus className="mr-1 h-4 w-4"/> Add Condition
+            </Button>
+            <Separator />
+            <h4 className="font-medium text-sm text-muted-foreground">THEN DO THIS:</h4>
+            <div className="space-y-3">
+                {rule.behaviors.map((behavior) => (
+                    <BehaviorEditor key={behavior.id} behavior={behavior} rule={rule} />
+                ))}
+            </div>
+            <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddBehavior}>
+                <Plus className="mr-1 h-4 w-4"/> Add Behavior
+            </Button>
+        </div>
+      </ScrollArea>
     )
   }
 
@@ -568,42 +564,42 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
     
     return (
-        <div className="h-full flex flex-col">
-            <div className="p-4 border-b flex justify-between items-center shrink-0">
-                <h3 className="font-semibold text-sm">All Configurations</h3>
-                <Button variant="outline" size="sm" onClick={handleAddConfig}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Configuration
-                </Button>
-            </div>
-            <div className="flex-1 p-4 overflow-y-auto">
-                <ScrollArea className="h-full">
-                    <div className="space-y-2">
-                        {localConfigs.map(config => (
-                            <div key={config.id} className="flex items-center gap-2">
-                                <Input 
-                                    placeholder="Key"
-                                    value={config.key}
-                                    onChange={(e) => handleUpdateConfig(config.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
-                                />
-                                <Input 
-                                    placeholder="Value"
-                                    value={config.value}
-                                    onChange={(e) => handleUpdateConfig(config.id, { value: e.target.value })}
-                                />
-                                <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDeleteConfig(config.id)}>
-                                    <Trash className="h-4 w-4 text-destructive"/>
-                                </Button>
-                            </div>
-                        ))}
-                         {localConfigs.length === 0 && (
-                            <div className="text-center text-sm text-muted-foreground pt-10">
-                                No configurations created yet.
-                            </div>
-                        )}
-                    </div>
-                </ScrollArea>
-            </div>
+      <div className="h-full flex flex-col">
+        <div className="p-4 border-b flex justify-between items-center shrink-0">
+          <h3 className="font-semibold text-sm">All Configurations</h3>
+          <Button variant="outline" size="sm" onClick={handleAddConfig}>
+            <Plus className="mr-2 h-4 w-4" /> Add Configuration
+          </Button>
         </div>
+        <div className="flex-1 p-4 overflow-y-auto">
+          <ScrollArea className="h-full">
+            <div className="space-y-2">
+              {localConfigs.map(config => (
+                <div key={config.id} className="flex items-center gap-2">
+                  <Input
+                    placeholder="Key"
+                    value={config.key}
+                    onChange={(e) => handleUpdateConfig(config.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                  />
+                  <Input
+                    placeholder="Value"
+                    value={config.value}
+                    onChange={(e) => handleUpdateConfig(config.id, { value: e.target.value })}
+                  />
+                  <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDeleteConfig(config.id)}>
+                    <Trash className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              ))}
+              {localConfigs.length === 0 && (
+                <div className="text-center text-sm text-muted-foreground pt-10">
+                  No configurations created yet.
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </div>
+      </div>
     )
   }
 
@@ -616,13 +612,14 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             Manage conditional rules and reusable configurations for your form.
           </DialogDescription>
         </DialogHeader>
+
         <div className="flex-1 flex flex-col min-h-0">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 px-6">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="rules">Rules</TabsTrigger>
                     <TabsTrigger value="configurations">Configurations</TabsTrigger>
                 </TabsList>
-                <div className="flex-1 flex flex-col min-h-0 border-t -mx-6">
+                <div className="flex-1 flex flex-col min-h-0 border-t -mx-6 mt-0">
                     <TabsContent value="rules" className="flex-1 flex flex-col min-h-0 mt-0">
                         <div className="flex-1 flex min-h-0">
                             <aside className="w-1/3 border-r flex flex-col">
@@ -638,7 +635,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                                             <div key={rule.id} className="relative group/rule">
                                                  <input 
                                                     className={cn(
-                                                        "w-full text-left p-2 rounded-md truncate text-sm bg-transparent",
+                                                        "w-full text-left p-2 rounded-md truncate text-sm bg-transparent border-transparent border focus:border-border",
                                                         selectedRuleId === rule.id ? 'bg-accent font-medium' : 'hover:bg-accent/50'
                                                     )}
                                                     value={rule.name}
