@@ -509,8 +509,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-      <ScrollArea className="h-full p-4">
-        <div className="space-y-4">
+      <ScrollArea className="h-full">
+        <div className="space-y-4 p-4">
             <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
                 <span>IF</span>
                 <RadioGroup
@@ -603,7 +603,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-0">
+        <DialogHeader className="p-6 pb-0 shrink-0">
           <DialogTitle>Logic Editor</DialogTitle>
           <DialogDescription>
             Manage conditional rules and reusable configurations for your form.
@@ -682,3 +682,5 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
+    
