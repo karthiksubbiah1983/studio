@@ -514,14 +514,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-        <ScrollArea className="h-full px-1">
-            <div className="py-4 px-3 space-y-4">
-                <Input 
-                    value={rule.name}
-                    onChange={(e) => handleUpdateRuleName(e.target.value)}
-                    className="text-lg font-medium"
-                />
-                <Separator />
+        <ScrollArea className="h-full">
+            <div className="p-4 space-y-4">
                 <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
                     <span>IF</span>
                     <RadioGroup
@@ -575,13 +569,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
     return (
         <div className="h-full flex flex-col">
-            <div className="flex justify-end items-center p-4 border-b">
-                 <Button variant="outline" size="sm" onClick={handleAddConfig}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Configuration
-                </Button>
-            </div>
-            <ScrollArea className="flex-1">
-                <div className="py-4 px-3 space-y-4">
+            <div className="flex-1 p-4">
+                <ScrollArea className="h-full">
                     <div className="space-y-2">
                         {localConfigs.map(config => (
                             <div key={config.id} className="flex items-center gap-2">
@@ -601,8 +590,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                             </div>
                         ))}
                     </div>
-                </div>
-            </ScrollArea>
+                </ScrollArea>
+            </div>
         </div>
     )
   }
@@ -622,10 +611,10 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     <TabsTrigger value="rules">Rules</TabsTrigger>
                     <TabsTrigger value="configurations">Configurations</TabsTrigger>
                 </TabsList>
-                <TabsContent value="rules" className="flex-1 -mx-6 flex flex-col">
-                    <div className="flex-1 flex min-h-0">
+                <TabsContent value="rules" className="flex-1 -mx-6 flex flex-col min-h-0">
+                    <div className="flex-1 flex min-h-0 border-t">
                         <aside className="w-1/3 border-r flex flex-col">
-                            <div className="p-4 border-b flex justify-between items-center">
+                           <div className="p-4 border-b flex justify-between items-center">
                                 <h3 className="font-semibold text-sm">All Rules</h3>
                                 <Button variant="outline" size="sm" onClick={handleAddRule}>
                                     <Plus className="mr-2 h-4 w-4" /> Add Rule
@@ -671,7 +660,13 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="configurations" className="flex-1 -mx-6">
+                <TabsContent value="configurations" className="flex-1 -mx-6 flex flex-col min-h-0 border-t">
+                     <div className="p-4 flex justify-between items-center border-b">
+                        <h3 className="font-semibold text-sm">All Configurations</h3>
+                        <Button variant="outline" size="sm" onClick={handleAddConfig}>
+                            <Plus className="mr-2 h-4 w-4" /> Add Configuration
+                        </Button>
+                    </div>
                     <ConfigurationsEditor />
                 </TabsContent>
             </Tabs>
