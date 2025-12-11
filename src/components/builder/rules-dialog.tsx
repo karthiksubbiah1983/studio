@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -510,8 +509,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-      <ScrollArea className="h-full">
-        <div className="p-4 space-y-4">
+      <ScrollArea className="h-full p-4">
+        <div className="space-y-4">
             <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
                 <span>IF</span>
                 <RadioGroup
@@ -531,11 +530,11 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 <span>OF THE FOLLOWING ARE MET:</span>
             </div>
             <div className="space-y-3">
-                    {rule.conditions.map((cond) => (
+                {rule.conditions.map((cond) => (
                     <ConditionEditor key={cond.id} condition={cond} rule={rule} />
                 ))}
             </div>
-                <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddCondition}>
+            <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddCondition}>
                 <Plus className="mr-1 h-4 w-4"/> Add Condition
             </Button>
             <Separator />
@@ -571,8 +570,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             <Plus className="mr-2 h-4 w-4" /> Add Configuration
           </Button>
         </div>
-        <div className="flex-1 p-4 overflow-y-auto">
-          <ScrollArea className="h-full">
+        <ScrollArea className="flex-1 p-4">
             <div className="space-y-2">
               {localConfigs.map(config => (
                 <div key={config.id} className="flex items-center gap-2">
@@ -597,15 +595,14 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 </div>
               )}
             </div>
-          </ScrollArea>
-        </div>
+        </ScrollArea>
       </div>
     )
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle>Logic Editor</DialogTitle>
           <DialogDescription>
@@ -690,3 +687,5 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
+    
