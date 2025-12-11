@@ -617,8 +617,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     <TabsTrigger value="rules">Rules</TabsTrigger>
                     <TabsTrigger value="configurations">Configurations</TabsTrigger>
                 </TabsList>
-                <div className="flex-1 flex flex-col min-h-0 border-t">
-                    <TabsContent value="rules" className="flex-1 flex min-h-0 -mx-6 mt-0">
+                <div className="flex-1 flex flex-col min-h-0 border-t -mx-6">
+                    <TabsContent value="rules" className="flex-1 flex min-h-0 mt-0">
                         <div className="flex-1 flex min-h-0">
                             <aside className="w-1/3 border-r flex flex-col">
                                <div className="p-4 border-b flex justify-between items-center">
@@ -666,7 +666,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                             </main>
                         </div>
                     </TabsContent>
-                    <TabsContent value="configurations" className="flex-1 -mx-6 mt-0">
+                    <TabsContent value="configurations" className="flex-1 flex flex-col min-h-0 mt-0">
                         <ConfigurationsEditor />
                     </TabsContent>
                 </div>
