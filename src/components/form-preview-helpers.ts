@@ -6,9 +6,11 @@ import { getAllElements, getNestedValue } from "@/lib/utils";
 
 export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: any }, configurations?: Configuration[]) => {
     
-    const getConditionValue = (idOrKey: string | undefined): any => {
+    const getConditionValue = (type: 'source' | 'comparison', idOrKey: string | undefined): any => {
         if (!idOrKey) return undefined;
         
+        const valueType = type === 'source' ? condition.sourceType : condition.comparisonType;
+
         if (idOrKey.startsWith('_')) {
             switch(idOrKey) {
                 case '_current_date':
@@ -20,43 +22,41 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             }
         }
         
-        if (condition.sourceType === 'config' || condition.comparisonType === 'config') {
+        if (valueType === 'config') {
             const config = (configurations || []).find(c => c.key === idOrKey);
             return config?.value;
         }
 
-        let value;
-        const isProxyId = idOrKey.includes("::");
-        
-        const isRowContext = state && typeof state === 'object' && !Object.values(state).some(v => typeof v === 'object' && v !== null && 'value' in v);
+        if (valueType === 'field' || valueType === 'status' || valueType === 'date') {
+             const isProxyId = idOrKey.includes("::");
+            const isRowContext = state && typeof state === 'object' && !Object.values(state).some(v => typeof v === 'object' && v !== null && 'value' in v);
 
-        if (isRowContext) {
-            const key = isProxyId ? idOrKey.split('::').pop()! : idOrKey;
-            value = getNestedValue(state, key);
-        } else {
-             value = getNestedValue(state, `${idOrKey}.value`);
+            if (isRowContext) {
+                const key = isProxyId ? idOrKey.split('::').pop()! : idOrKey;
+                return getNestedValue(state, key);
+            } else {
+                 return getNestedValue(state, `${idOrKey}.value`);
+            }
         }
-
-        return value;
+        
+        return idOrKey; // for comparisonType 'value'
     }
 
     let sourceValue: any;
     if (condition.sourceType === 'field') {
-        sourceValue = getConditionValue(condition.sourceElementId || '');
-    } else if (condition.sourceType === 'date' || condition.sourceType === 'config') {
-        sourceValue = getConditionValue(condition.sourceValue);
-    } else { // status
-        sourceValue = 'Open'; // Placeholder
+        sourceValue = getConditionValue('source', condition.sourceElementId || '');
+    } else { // 'date', 'status', 'config'
+        sourceValue = getConditionValue('source', condition.sourceValue);
     }
     
     const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
 
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
-        comparisonValue = getConditionValue(condition.comparisonElementId || '');
-    } else if (condition.comparisonType === 'date' || condition.comparisonType === 'config') {
-        comparisonValue = getConditionValue(condition.value);
-    } else { 
+        comparisonValue = getConditionValue('comparison', condition.comparisonElementId || '');
+    } else if (condition.comparisonType === 'date' || condition.comparisonType === 'config' || condition.comparisonType === 'status') {
+        comparisonValue = getConditionValue('comparison', condition.value);
+    } else { // 'value'
         comparisonValue = condition.value;
     }
 
@@ -136,3 +136,4 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         return conditionResults.some(res => res);
     }
 };
+
