@@ -54,7 +54,10 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
         comparisonValue = getConditionValue('comparison', condition.comparisonElementId || '');
-    } else if (condition.comparisonType === 'date' || condition.comparisonType === 'config' || condition.comparisonType === 'status') {
+    } else if (condition.comparisonType === 'config') {
+        comparisonValue = getConditionValue('comparison', condition.value);
+    }
+    else if (condition.comparisonType === 'date' || condition.comparisonType === 'status') {
         comparisonValue = getConditionValue('comparison', condition.value);
     } else { // 'value'
         comparisonValue = condition.value;
@@ -136,4 +139,5 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         return conditionResults.some(res => res);
     }
 };
+
 
