@@ -43,7 +43,7 @@ export default function MyTasksPage() {
   return (
     <div className="w-full p-4 md:p-6">
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="pt-0">
           <div className="border-t">
             <div className="hidden md:grid grid-cols-[3fr_1fr_auto] items-center p-4 border-b font-medium text-sm text-muted-foreground">
               <div>Form</div>

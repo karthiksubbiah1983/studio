@@ -39,7 +39,7 @@ export default function SitesPage() {
   return (
     <div className="w-full p-4 md:p-6">
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="pt-6">
           <div className="flex items-center gap-2 mb-6">
             <Input
               placeholder="New site name..."

@@ -82,7 +82,7 @@ export default function AllTasksPage() {
         </div>
       </div>
       <Card>
-        <CardContent className="p-0">
+        <CardContent className="pt-0">
           <div className="border-t">
               <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_auto] items-center p-4 border-b font-medium text-sm text-muted-foreground">
                   <div>Form</div>

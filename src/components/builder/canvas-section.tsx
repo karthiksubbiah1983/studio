@@ -173,7 +173,7 @@ export function CanvasSection({ section }: { section: Section }) {
                                 {header}
                             </AccordionTrigger>
                             <AccordionContent>
-                                <CardContent className="p-4 pt-0">
+                                <CardContent className="pt-0">
                                     {content}
                                 </CardContent>
                             </AccordionContent>
@@ -198,7 +198,7 @@ export function CanvasSection({ section }: { section: Section }) {
                 <CardHeader className="p-4">
                     {header}
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
+                <CardContent className="pt-0">
                   {content}
                 </CardContent>
             </Card>
