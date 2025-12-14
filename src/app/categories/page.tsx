@@ -93,7 +93,7 @@ export default function CategoriesPage() {
   return (
     <div className="w-full p-4 md:p-6">
       <Card>
-        <CardContent className="pt-6">
+        <CardContent>
           <div className="flex items-center gap-2 mb-6">
             <Input
               placeholder="New category name..."
