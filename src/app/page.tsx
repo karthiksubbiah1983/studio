@@ -255,8 +255,8 @@ export default function Home() {
                         </Select>
                     </div>
                     )}
-                <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="template-description" className="text-right">Description</Label>
+                <div className="grid grid-cols-4 items-start gap-4 pt-2">
+                    <Label htmlFor="template-description" className="text-right leading-snug">Description</Label>
                     <Textarea id="template-description" value={newTemplateDescription} onChange={(e) => setNewTemplateDescription(e.target.value)} className="col-span-3" placeholder="Optional: A brief summary of this template's purpose."/>
                 </div>
                 </div>
@@ -430,7 +430,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
-
-    
