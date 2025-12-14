@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -520,7 +519,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-      <ScrollArea className="h-full bg-background">
+      <ScrollArea className="h-full bg-slate-50">
         <div className="space-y-6 p-6">
             <div>
                 <Label>Rule Name</Label>
@@ -588,7 +587,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
     
     return (
-      <div className="h-full flex flex-col bg-background">
+      <div className="h-full flex flex-col">
         <div className="p-4 border-b flex justify-between items-center shrink-0">
           <h3 className="font-semibold">All Configurations</h3>
           <Button variant="outline" size="sm" onClick={handleAddConfig}>
@@ -627,17 +626,17 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   
   const RulesEditorLayout = () => (
     <div className="flex flex-row overflow-hidden h-full">
-        <aside className="w-1/3 border-r flex flex-col bg-background">
-            <div className="p-4 border-b flex justify-between items-center shrink-0">
-                <Button variant="outline" className="w-full" onClick={handleAddRule}>
+        <aside className="w-1/3 border-r flex flex-col">
+            <div className="p-4 border-b shrink-0">
+                <Button variant="outline" className="w-full justify-center" onClick={handleAddRule}>
                     Add New Rule
                 </Button>
             </div>
             <ScrollArea className="flex-1">
-                <div className="py-2">
-                    {localRules.map(rule => (
+                <div className="p-4 space-y-2">
+                    {localRules.length > 0 ? localRules.map(rule => (
                         <div key={rule.id} className="relative group/rule">
-                             <button onClick={() => handleSelectRule(rule.id)} className={cn("w-full text-left px-4 py-2 truncate text-sm", selectedRuleId === rule.id ? 'bg-blue-50 border-l-4 border-blue-500 font-semibold text-primary' : 'hover:bg-accent/50')}>
+                             <button onClick={() => handleSelectRule(rule.id)} className={cn("w-full text-left px-3 py-2 truncate text-sm rounded-md", selectedRuleId === rule.id ? 'bg-blue-50 font-semibold text-primary' : 'hover:bg-accent/50')}>
                                 {rule.name}
                             </button>
                             <Button
@@ -649,16 +648,15 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                                 <Trash className="h-4 w-4 text-destructive" />
                             </Button>
                         </div>
-                    ))}
-                    {localRules.length === 0 && (
-                        <div className="text-center text-sm text-muted-foreground p-4">
+                    )) : (
+                        <div className="text-center text-sm text-muted-foreground pt-10">
                             No rules created yet.
                         </div>
                     )}
                 </div>
             </ScrollArea>
         </aside>
-        <main className="flex-1 flex flex-col min-h-0 bg-background">
+        <main className="flex-1 flex flex-col min-h-0">
             {selectedRule ? (
                 <RuleEditor rule={selectedRule} />
             ) : (
@@ -675,26 +673,26 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl w-full h-[90vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="p-4 border-b bg-background">
-          <DialogTitle>Rules & Configurations</DialogTitle>
+        <DialogHeader className="p-4 border-b">
+          <DialogTitle>Rules &amp; Configurations</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 overflow-hidden bg-background">
+        <div className="flex-1 overflow-hidden bg-white">
             <Tabs defaultValue="rules" className="h-full flex flex-col">
-                <div className="px-4 pt-4">
-                    <TabsList className="grid w-full grid-cols-2 h-auto p-1 bg-muted rounded-md">
-                        <TabsTrigger value="configurations" className="rounded-sm">Configurations</TabsTrigger>
-                        <TabsTrigger value="rules" className="rounded-sm">Rules</TabsTrigger>
+                <div className="px-4">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="configurations">Configurations</TabsTrigger>
+                        <TabsTrigger value="rules">Rules</TabsTrigger>
                     </TabsList>
                 </div>
-                <TabsContent value="rules" className="flex-1 h-0 mt-2">
+                <TabsContent value="rules" className="flex-1 h-0">
                     <RulesEditorLayout />
                 </TabsContent>
-                <TabsContent value="configurations" className="flex-1 h-0 mt-2">
+                <TabsContent value="configurations" className="flex-1 h-0">
                     <ConfigurationsEditor />
                 </TabsContent>
             </Tabs>
         </div>
-        <DialogFooter className="p-4 border-t bg-background">
+        <DialogFooter className="p-4 border-t">
             <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button onClick={handleSaveChanges}>Save</Button>
         </DialogFooter>
