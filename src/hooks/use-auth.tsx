@@ -23,6 +23,11 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { auth, user: firebaseUser, isUserLoading } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
@@ -41,21 +46,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [firebaseUser, isUserLoading]);
 
   const login = async (email: string, pass: string) => {
-    // Special case for the user "RajShah"
-    if (email === "RajShah" && pass === "RajShah") {
-      email = "rajshah@example.com"; // Use a dummy email for Firebase auth
-    } else if (email === "Karthik1983" && pass === "Karthik1983") {
-      email = "karthik1983@example.com"; // Use a dummy email for Firebase auth
-    }
+    let authEmail = email;
 
+    // If the input is not a valid email, treat it as a username and append a dummy domain.
+    if (!isValidEmail(email)) {
+        authEmail = `${email.toLowerCase()}@example.com`;
+    }
+    
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      await signInWithEmailAndPassword(auth, authEmail, pass);
       router.push("/");
       return true;
     } catch (error: any) {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
-                await createUserWithEmailAndPassword(auth, email, pass);
+                await createUserWithEmailAndPassword(auth, authEmail, pass);
                 router.push("/");
                 return true;
             } catch (signUpError) {
