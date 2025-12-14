@@ -30,7 +30,7 @@ export default function LoginPage() {
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: "Invalid email or password. New users are automatically signed up.",
+        description: "Invalid credentials. New users are automatically signed up.",
       });
     }
   };
@@ -47,11 +47,11 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleLogin} className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">Email or Username</Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="m@example.com"
+                type="text"
+                placeholder="m@example.com or RajShah"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

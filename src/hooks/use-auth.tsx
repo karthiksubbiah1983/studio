@@ -11,7 +11,6 @@ import {
 } from "firebase/auth";
 
 type User = {
-  username: string;
   email: string;
 };
 
@@ -33,7 +32,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!isUserLoading) {
       if (firebaseUser) {
         setUser({ 
-          username: firebaseUser.email?.split('@')[0] || 'User',
           email: firebaseUser.email || ''
         });
       } else {
@@ -43,12 +41,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [firebaseUser, isUserLoading]);
 
   const login = async (email: string, pass: string) => {
+    // Special case for the user "RajShah"
+    if (email === "RajShah" && pass === "RajShah") {
+      email = "rajshah@example.com"; // Use a dummy email for Firebase auth
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email, pass);
       router.push("/");
       return true;
     } catch (error: any) {
-        if (error.code === 'auth/user-not-found') {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
                 await createUserWithEmailAndPassword(auth, email, pass);
                 router.push("/");
