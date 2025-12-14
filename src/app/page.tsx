@@ -255,8 +255,8 @@ export default function Home() {
                         </Select>
                     </div>
                     )}
-                <div className="grid grid-cols-4 items-start gap-4 pt-2">
-                    <Label htmlFor="template-description" className="text-right leading-snug">Description</Label>
+                <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="template-description" className="text-right leading-snug pt-3">Description</Label>
                     <Textarea id="template-description" value={newTemplateDescription} onChange={(e) => setNewTemplateDescription(e.target.value)} className="col-span-3" placeholder="Optional: A brief summary of this template's purpose."/>
                 </div>
                 </div>
@@ -269,7 +269,7 @@ export default function Home() {
         </div>
       </div>
       <Card>
-        <CardContent className="p-0">
+        <CardContent>
           <div className="border-t">
               <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center p-4 border-b font-medium text-sm text-muted-foreground">
                   <div>Template Name</div>
