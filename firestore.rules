@@ -1,3 +1,4 @@
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -19,7 +20,8 @@ service cloud.firestore {
     }
 
     match /userSettings/{userId} {
-      allow read, create: if isSignedIn() && isOwner(userId) && request.resource.data.ownerId == request.auth.uid;
+      allow read: if isSignedIn() && isOwner(userId) && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.ownerId == request.auth.uid;
       allow update: if isSignedIn() && isOwner(userId);
     }
   }
