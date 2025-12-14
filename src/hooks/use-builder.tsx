@@ -678,26 +678,28 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }, [firestore, user, isLoaded]);
 
   // Firestore subscription for user settings (categories, sites)
-  const userSettingsDocRef = useMemoFirebase(() => {
-    if (!firestore || !user) return null;
-    return doc(firestore, 'userSettings', user.uid);
-  }, [firestore, user]);
-
   useEffect(() => {
-    if (!userSettingsDocRef) {
-        dispatch({ type: "SET_USER_SETTINGS", payload: { categories: [], sites: [] } });
-        return;
-    };
+    if (!firestore || !user) {
+      dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: [], sites: [] } });
+      return;
+    }
+    const userSettingsDocRef = doc(firestore, 'userSettings', user.uid);
+
     const unsubscribe = onSnapshot(userSettingsDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            dispatch({ type: "SET_USER_SETTINGS", payload: { categories: data.categories, sites: data.sites } });
-        } else {
-            console.log("No user settings document found!");
-        }
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: data.categories || [], sites: data.sites || [] } });
+      } else {
+        console.log("User settings document not found for user:", user.uid);
+        dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: [], sites: [] } });
+      }
+    }, (error) => {
+      console.error("Error fetching user settings:", error);
+      dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: [], sites: [] } });
     });
+
     return () => unsubscribe();
-  }, [userSettingsDocRef]);
+  }, [firestore, user]);
   
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
@@ -772,6 +774,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (!firestore || !user) {
         return dispatch(action);
     }
+    const userSettingsDocRef = doc(firestore, 'userSettings', user.uid);
     
     // Actions that modify user settings
     if (['ADD_CATEGORY', 'UPDATE_CATEGORY', 'DELETE_CATEGORY', 'ADD_SUBCATEGORY', 'UPDATE_SUBCATEGORY', 'DELETE_SUBCATEGORY', 'ADD_SITE', 'DELETE_SITE'].includes(action.type)) {
