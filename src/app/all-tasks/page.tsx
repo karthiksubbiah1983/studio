@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/types";
 
 function FormattedDate({ timestamp }: { timestamp: string | undefined }) {
-    const [formattedDate, setFormattedDate] = useState('');
+    const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
     useEffect(() => {
         if (timestamp) {
@@ -31,8 +31,8 @@ function FormattedDate({ timestamp }: { timestamp: string | undefined }) {
     }, [timestamp]);
 
     // Render a placeholder on the server and initial client render
-    if (!formattedDate) {
-        return null; 
+    if (formattedDate === null) {
+        return <span>—</span>; // Or a loading skeleton
     }
 
     return <>{formattedDate}</>;

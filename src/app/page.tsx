@@ -41,7 +41,7 @@ import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/hooks/use-toast";
 
 function FormattedDate({ timestamp }: { timestamp: string }) {
-    const [formattedDate, setFormattedDate] = useState('');
+    const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
     useEffect(() => {
         if (timestamp) {
@@ -50,8 +50,10 @@ function FormattedDate({ timestamp }: { timestamp: string }) {
     }, [timestamp]);
 
     // Render a placeholder on the server and initial client render
-    if (!formattedDate) {
-        return null; 
+    if (formattedDate === null) {
+        const date = new Date(timestamp);
+        // Fallback for SSR
+        return <span>{date.toLocaleDateString()}</span>; 
     }
 
     return <>{formattedDate}</>;
