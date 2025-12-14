@@ -40,7 +40,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (username: string, pass: string) => {
     // Hardcoded credentials check
-    if (username === "Karthik1983" && pass === "$Karthik1983$") {
+    const validUsers = {
+      "Karthik1983": "$Karthik1983$",
+      "RajShah": "RajShah",
+    };
+
+    if (validUsers[username as keyof typeof validUsers] === pass) {
       const newUser = { username };
       setUser(newUser);
       try {
