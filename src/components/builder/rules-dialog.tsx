@@ -1,11 +1,12 @@
 
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus, Configuration } from "@/lib/types";
+import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, ElementType, DataGridColumn, TableColumn, ListItemElement, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus, Configuration } from "@/lib/types";
 import { Plus, Trash, X, Settings2, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn, getAllElements } from "@/lib/utils";
@@ -180,68 +181,98 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         switch(condition.sourceType) {
             case 'field':
                 return (
-                    <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a source field..." /></SelectTrigger>
-                        <SelectContent>
-                             {selectableFields.map(el => (
-                                <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className='flex flex-col gap-2'>
+                        <Label>Source Field *</Label>
+                        <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdateCondition({ sourceElementId: value })}>
+                            <SelectTrigger><SelectValue placeholder="Select a source field..." /></SelectTrigger>
+                            <SelectContent>
+                                {selectableFields.map(el => (
+                                    <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 );
             case 'date':
                  return (
-                    <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a date..." /></SelectTrigger>
-                        <SelectContent>
-                            {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                    <div className='flex flex-col gap-2'>
+                        <Label>Source Value *</Label>
+                        <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
+                            <SelectTrigger><SelectValue placeholder="Select a date..." /></SelectTrigger>
+                            <SelectContent>
+                                {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 );
             case 'status':
                 return (
-                    <div className="h-8 text-xs px-3 py-2 text-muted-foreground">Current Status</div>
+                    <div className='flex flex-col gap-2'>
+                        <Label>Source</Label>
+                        <div className="h-10 px-3 py-2 text-muted-foreground border rounded-md bg-muted/50">Current Status</div>
+                    </div>
                 );
             case 'config':
                 return (
-                    <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
-                        <SelectContent>
-                            {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
+                    <div className='flex flex-col gap-2'>
+                        <Label>Source Value *</Label>
+                        <Select value={condition.sourceValue} onValueChange={(value) => handleUpdateCondition({ sourceValue: value })}>
+                            <SelectTrigger><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
+                            <SelectContent>
+                                {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 );
             default: return null;
         }
     }
 
-
     const renderComparisonInput = () => {
+        const commonProps = {
+            value: condition.comparisonType,
+            onValueChange: (value: ConditionComparisonType) => handleUpdateCondition({ comparisonType: value, value: '', comparisonElementId: undefined })
+        };
+        const commonTrigger = <SelectTrigger><SelectValue placeholder="Select comparison type..." /></SelectTrigger>;
+        const commonContent = (
+            <SelectContent>
+                <SelectItem value="value">Value</SelectItem>
+                <SelectItem value="date">Date</SelectItem>
+                <SelectItem value="field">Field</SelectItem>
+                <SelectItem value="status">Status</SelectItem>
+                <SelectItem value="config">Configuration</SelectItem>
+            </SelectContent>
+        );
+
+        let comparisonValueInput = null;
         switch (condition.comparisonType) {
             case 'value':
                 const sourceFieldOptions = getFieldOptions(sourceElement);
                  if (sourceFieldOptions.length > 0) {
-                    return (
+                    comparisonValueInput = (
                         <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value: value })}>
-                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select an option..." /></SelectTrigger>
+                            <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
                             <SelectContent>{sourceFieldOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
                         </Select>
                     )
+                 } else {
+                    comparisonValueInput = <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} />;
                  }
-                return <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} className="h-8 text-xs" />;
+                break;
             case 'date':
-                return (
+                comparisonValueInput = (
                     <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value })}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a date..." /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select a date..." /></SelectTrigger>
                         <SelectContent>
                             {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 );
+                break;
             case 'field':
-                return (
+                comparisonValueInput = (
                      <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdateCondition({ comparisonElementId: value })}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a field..." /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
                             {selectableFields.map(el => (
                                 <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
@@ -249,96 +280,81 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         </SelectContent>
                     </Select>
                 );
+                break;
             case 'status':
-                 return (
+                 comparisonValueInput = (
                     <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value })}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a status..." /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select a status..." /></SelectTrigger>
                         <SelectContent>
                             {allStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 );
+                break;
             case 'config':
-                return (
+                 comparisonValueInput = (
                     <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value: value })}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
+                        <SelectTrigger><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
                         <SelectContent>
-                            {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
+                            {(configurations || []).map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 );
+                break;
             default:
-                return <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} className="h-8 text-xs" />;
+                comparisonValueInput = <Input placeholder="Value" value={condition.value} onChange={(e) => handleUpdateCondition({ value: e.target.value })} />;
         }
+        return (
+            <>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-2">
+                        <Label>Operator *</Label>
+                        <Select value={condition.operator} onValueChange={(value) => handleUpdateCondition({ operator: value as Condition['operator'] })}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="equals">Equals</SelectItem>
+                                <SelectItem value="not_equals">Not Equals</SelectItem>
+                                <SelectItem value="is_greater_than">Is Greater Than</SelectItem>
+                                <SelectItem value="is_less_than">Is Less Than</SelectItem>
+                                <SelectItem value="contains">Contains</SelectItem>
+                                <SelectItem value="not_contains">Does Not Contain</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                        <Label>Compare To *</Label>
+                        <Select {...commonProps}>
+                            {commonTrigger}
+                            {commonContent}
+                        </Select>
+                    </div>
+                </div>
+                {comparisonValueInput}
+            </>
+        );
     }
 
-
     return (
-        <div className="border bg-background/50 p-3 rounded-md space-y-3 relative">
-            {rule.conditions.length > 1 && (
-            <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-5 w-5" onClick={handleDeleteCondition}>
-                <X className="h-3 w-3 text-destructive/70" />
+        <div className="border bg-white p-4 rounded-md space-y-4 relative">
+            <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={handleDeleteCondition}>
+                <X className="h-4 w-4 text-red-500" />
             </Button>
-            )}
-            <div className="space-y-1">
-                <Label className="text-xs">Source Type</Label>
-                <Select value={condition.sourceType} onValueChange={(value: ConditionSourceType) => handleUpdateCondition({ sourceType: value, sourceElementId: undefined, sourceValue: '' })}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="field">Field</SelectItem>
-                        <SelectItem value="date">Date</SelectItem>
-                        <SelectItem value="status">Current Status</SelectItem>
-                        <SelectItem value="config">Configuration</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-             <div className="space-y-1">
-                {condition.sourceType !== 'status' && <Label className="text-xs">Source</Label>}
-                {renderSourceInput()}
-            </div>
-
-            <div className="flex items-center gap-2">
-                <div className="flex-1 space-y-1">
-                    <Label className="text-xs">Operator</Label>
-                    <Select value={condition.operator} onValueChange={(value) => handleUpdateCondition({ operator: value as Condition['operator'] })}>
-                        <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <div className="grid grid-cols-1 gap-4">
+                <div className="flex flex-col gap-2">
+                    <Label>Source Type *</Label>
+                    <Select value={condition.sourceType} onValueChange={(value: ConditionSourceType) => handleUpdateCondition({ sourceType: value, sourceElementId: undefined, sourceValue: '' })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="equals">Equals</SelectItem>
-                            <SelectItem value="not_equals">Not Equals</SelectItem>
-                            <SelectItem value="is_greater_than">Is Greater Than</SelectItem>
-                            <SelectItem value="is_less_than">Is Less Than</SelectItem>
-                            <SelectItem value="contains">Contains</SelectItem>
-                            <SelectItem value="not_contains">Does Not Contain</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="pt-5"><GitCommitHorizontal className="h-4 w-4 text-muted-foreground" /></div>
-                <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                        <Label className="text-xs">Compare To</Label>
-                    </div>
-                    <Select 
-                        value={condition.comparisonType} 
-                        onValueChange={(value: ConditionComparisonType) => handleUpdateCondition({ comparisonType: value, value: '', comparisonElementId: undefined })}
-                    >
-                        <SelectTrigger className="h-8 text-xs">
-                            <SelectValue placeholder="Select comparison type..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="value">Value</SelectItem>
-                            <SelectItem value="date">Date</SelectItem>
                             <SelectItem value="field">Field</SelectItem>
-                            <SelectItem value="status">Status</SelectItem>
+                            <SelectItem value="date">Date</SelectItem>
+                            <SelectItem value="status">Current Status</SelectItem>
                             <SelectItem value="config">Configuration</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>
-            </div>
-            
-            <div className="space-y-1">
+                {renderSourceInput()}
                 {renderComparisonInput()}
             </div>
-
              {shouldShowDateOffset && (
                 <div className="flex items-end gap-2">
                     <div className="w-1/2 space-y-1">
@@ -380,19 +396,17 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
 
 
     return (
-        <div className="space-y-3 p-3 border rounded-lg bg-accent/20 relative">
-            {rule.behaviors.length > 1 && (
-                <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-5 w-5" onClick={handleDeleteBehavior}>
-                    <X className="h-3 w-3 text-destructive/70" />
-                </Button>
-            )}
+        <div className="space-y-4 p-4 border rounded-lg bg-white relative">
+            <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={handleDeleteBehavior}>
+                <X className="h-4 w-4 text-red-500" />
+            </Button>
             <div className="space-y-2">
-                <Label className="text-xs">Behavior</Label>
+                <Label>Action *</Label>
                 <Select
                     value={behavior.type}
                     onValueChange={(value) => handleUpdateBehavior({ type: value as RuleBehaviorType, targetElementId: '' })}
                 >
-                    <SelectTrigger className="h-8 text-xs">
+                    <SelectTrigger>
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -407,12 +421,12 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 </Select>
             </div>
              <div className="space-y-2">
-                <Label className="text-xs">Target Field</Label>
+                <Label>Target Field *</Label>
                 <Select
                     value={behavior.targetElementId}
                     onValueChange={(value) => handleUpdateBehavior({ targetElementId: value })}
                 >
-                    <SelectTrigger className="h-8 text-xs">
+                    <SelectTrigger>
                         <SelectValue>{selectedTargetFieldLabel}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -424,14 +438,14 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             </div>
 
             {behavior.type === 'change_color' && (
-                <div className="flex items-end gap-2">
-                    <div className="flex-1">
-                        <Label className="text-xs">Property</Label>
+                <div className="flex items-end gap-4">
+                    <div className="flex-1 space-y-2">
+                        <Label>Property</Label>
                         <Select 
                             value={behavior.targetProperty}
                             onValueChange={(value) => handleUpdateBehavior({ targetProperty: value as 'color' | 'backgroundColor' })}
                         >
-                            <SelectTrigger className="h-8 text-xs">
+                            <SelectTrigger>
                                 <SelectValue placeholder="Target" />
                             </SelectTrigger>
                             <SelectContent>
@@ -440,13 +454,13 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                             </SelectContent>
                         </Select>
                     </div>
-                    <div className="flex-1">
-                        <Label className="text-xs">Color</Label>
+                    <div className="flex-1 space-y-2">
+                        <Label>Color</Label>
                         <Input
                             type="color"
                             value={behavior.color || '#000000'}
                             onChange={(e) => handleUpdateBehavior({ color: e.target.value })}
-                            className="p-1 h-8"
+                            className="p-1 h-10"
                         />
                     </div>
                 </div>
@@ -454,24 +468,22 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
 
             {behavior.type === 'set_error' && (
                 <div className="space-y-2">
-                        <Label className="text-xs">Error Message</Label>
+                        <Label>Error Message</Label>
                         <Input
                         placeholder="e.g. Value must be greater than 10"
                         value={behavior.message}
                         onChange={(e) => handleUpdateBehavior({ message: e.target.value })}
-                        className="h-8 text-xs"
                     />
                 </div>
             )}
 
             {behavior.type === 'set_value' && (
                 <div className="space-y-2">
-                    <Label className="text-xs">Value to Set</Label>
+                    <Label>Value to Set</Label>
                     <Input
                         placeholder="Enter the value to set"
                         value={behavior.value || ''}
                         onChange={(e) => handleUpdateBehavior({ value: e.target.value })}
-                        className="h-8 text-xs"
                     />
                 </div>
             )}
@@ -508,44 +520,58 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-      <ScrollArea className="h-full">
-        <div className="space-y-4 p-4">
-            <div className="flex items-center gap-2 font-medium text-sm text-muted-foreground">
-                <span>IF</span>
-                <RadioGroup
-                    value={rule.logicType}
-                    onValueChange={(value) => handleUpdateLogicType(value as 'and' | 'or')}
-                    className="flex"
-                >
-                    <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="and" id={`and-${rule.id}`} className="h-4 w-4" />
-                        <Label htmlFor={`and-${rule.id}`} className="text-sm font-normal">All (AND)</Label>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                        <RadioGroupItem value="or" id={`or-${rule.id}`} className="h-4 w-4" />
-                        <Label htmlFor={`or-${rule.id}`} className="text-sm font-normal">Any (OR)</Label>
-                    </div>
-                </RadioGroup>
-                <span>OF THE FOLLOWING ARE MET:</span>
+      <ScrollArea className="h-full bg-slate-50">
+        <div className="space-y-6 p-6">
+            <div>
+                <Label>Rule Name</Label>
+                <Input value={rule.name} onChange={e => handleUpdateRule({ ...rule, name: e.target.value })} className="mt-1 bg-white" />
             </div>
-            <div className="space-y-3">
-                {rule.conditions.map((cond) => (
-                    <ConditionEditor key={cond.id} condition={cond} rule={rule} />
-                ))}
+            
+            <div className="space-y-4">
+                <div className="p-3 bg-primary/10 rounded-md">
+                    <h3 className="font-semibold text-primary">Set Conditions</h3>
+                </div>
+                <div className="flex items-center gap-4 text-sm">
+                    <span className="font-medium">Conditional Operator</span>
+                    <RadioGroup
+                        value={rule.logicType}
+                        onValueChange={(value) => handleUpdateLogicType(value as 'and' | 'or')}
+                        className="flex"
+                    >
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="and" id={`and-${rule.id}`} />
+                            <Label htmlFor={`and-${rule.id}`} className="font-normal">AND</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="or" id={`or-${rule.id}`} />
+                            <Label htmlFor={`or-${rule.id}`} className="font-normal">OR</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+
+                <div className="space-y-4">
+                    {rule.conditions.map((cond) => (
+                        <ConditionEditor key={cond.id} condition={cond} rule={rule} />
+                    ))}
+                </div>
+                <Button variant="outline" onClick={handleAddCondition}>
+                    Add Condition
+                </Button>
             </div>
-            <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddCondition}>
-                <Plus className="mr-1 h-4 w-4"/> Add Condition
-            </Button>
-            <Separator />
-            <h4 className="font-medium text-sm text-muted-foreground">THEN DO THIS:</h4>
-            <div className="space-y-3">
-                {rule.behaviors.map((behavior) => (
-                    <BehaviorEditor key={behavior.id} behavior={behavior} rule={rule} />
-                ))}
+            
+            <div className="space-y-4">
+                 <div className="p-3 bg-primary/10 rounded-md">
+                    <h3 className="font-semibold text-primary">Set Behaviour</h3>
+                </div>
+                <div className="space-y-4">
+                    {rule.behaviors.map((behavior) => (
+                        <BehaviorEditor key={behavior.id} behavior={behavior} rule={rule} />
+                    ))}
+                </div>
+                <Button variant="outline" onClick={handleAddBehavior}>
+                    Add Action
+                </Button>
             </div>
-            <Button variant="outline" size="sm" className="h-8 text-sm" onClick={handleAddBehavior}>
-                <Plus className="mr-1 h-4 w-4"/> Add Behavior
-            </Button>
         </div>
       </ScrollArea>
     )
@@ -564,7 +590,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     return (
       <div className="h-full flex flex-col">
         <div className="p-4 border-b flex justify-between items-center shrink-0">
-          <h3 className="font-semibold text-sm">All Configurations</h3>
+          <h3 className="font-semibold">All Configurations</h3>
           <Button variant="outline" size="sm" onClick={handleAddConfig}>
             <Plus className="mr-2 h-4 w-4" /> Add Configuration
           </Button>
@@ -599,28 +625,21 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     )
   }
   
-  const RulesEditor = () => (
+  const RulesEditorLayout = () => (
     <div className="flex flex-row overflow-hidden h-full">
-        <aside className="w-1/3 border-r flex flex-col">
+        <aside className="w-1/3 border-r flex flex-col bg-white">
             <div className="p-4 border-b flex justify-between items-center shrink-0">
-                <h3 className="font-semibold text-sm">All Rules</h3>
-                <Button variant="outline" size="sm" onClick={handleAddRule}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Rule
+                <Button variant="outline" className="w-full" onClick={handleAddRule}>
+                    Add New Rule
                 </Button>
             </div>
-            <ScrollArea className="flex-1 p-2">
-                <div className="space-y-1">
+            <ScrollArea className="flex-1">
+                <div className="py-2">
                     {localRules.map(rule => (
                         <div key={rule.id} className="relative group/rule">
-                            <input 
-                                className={cn(
-                                    "w-full text-left p-2 rounded-md truncate text-sm bg-transparent border-transparent border focus:border-border",
-                                    selectedRuleId === rule.id ? 'bg-accent font-medium' : 'hover:bg-accent/50'
-                                )}
-                                value={rule.name}
-                                onChange={(e) => handleUpdateRule({ ...rule, name: e.target.value })}
-                                onFocus={() => handleSelectRule(rule.id)}
-                            />
+                             <button onClick={() => handleSelectRule(rule.id)} className={cn("w-full text-left px-4 py-2 truncate text-sm", selectedRuleId === rule.id ? 'bg-blue-50 border-l-4 border-blue-500 font-semibold text-primary' : 'hover:bg-accent/50')}>
+                                {rule.name}
+                            </button>
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -632,14 +651,14 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         </div>
                     ))}
                     {localRules.length === 0 && (
-                        <div className="text-center text-sm text-muted-foreground pt-10">
+                        <div className="text-center text-sm text-muted-foreground p-4">
                             No rules created yet.
                         </div>
                     )}
                 </div>
             </ScrollArea>
         </aside>
-        <main className="flex-1 flex flex-col min-h-0">
+        <main className="flex-1 flex flex-col min-h-0 bg-slate-50">
             {selectedRule ? (
                 <RuleEditor rule={selectedRule} />
             ) : (
@@ -655,32 +674,27 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-2 shrink-0">
-          <DialogTitle>Logic Editor</DialogTitle>
-          <DialogDescription>
-            Manage conditional rules and reusable configurations for your form.
-          </DialogDescription>
+      <DialogContent className="max-w-6xl w-full h-[90vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="p-4 border-b">
+          <DialogTitle>Rules & Configurations</DialogTitle>
         </DialogHeader>
-        <Tabs defaultValue="rules" className="flex-1 flex flex-col overflow-hidden px-6">
-            <TabsList className="shrink-0">
-                <TabsTrigger value="rules">Rules</TabsTrigger>
-                <TabsTrigger value="configurations">Configurations</TabsTrigger>
-            </TabsList>
-            <div className="flex-1 border-t -mx-6 mt-2 overflow-hidden">
-                <TabsContent value="rules" className="h-full m-0">
-                    <RulesEditor />
+        <div className="flex-1 overflow-hidden">
+            <Tabs defaultValue="rules" className="h-full flex flex-col">
+                <TabsList className="mx-4 mt-4 inline-flex">
+                    <TabsTrigger value="configurations">Configurations</TabsTrigger>
+                    <TabsTrigger value="rules">Rules</TabsTrigger>
+                </TabsList>
+                <TabsContent value="rules" className="flex-1 h-0 mt-0">
+                    <RulesEditorLayout />
                 </TabsContent>
-                <TabsContent value="configurations" className="h-full m-0">
+                <TabsContent value="configurations" className="flex-1 h-0 mt-0">
                     <ConfigurationsEditor />
                 </TabsContent>
-            </div>
-        </Tabs>
-        <DialogFooter className="p-4 border-t shrink-0">
-            <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
-            </DialogClose>
-            <Button onClick={handleSaveChanges}>Save Changes</Button>
+            </Tabs>
+        </div>
+        <DialogFooter className="p-4 border-t bg-slate-50">
+            <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={handleSaveChanges}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
