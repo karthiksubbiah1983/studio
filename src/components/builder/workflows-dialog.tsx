@@ -145,6 +145,16 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         return [];
     }
 
+    const isDateRelated = (element: FormElementInstance | Section | null) => {
+        if (!element) return false;
+        if ('type' in element) return element.type === 'DatePicker';
+        return false;
+    }
+
+    const shouldShowDateOffset = 
+        (condition.sourceType === 'date' || isDateRelated(sourceElement)) || 
+        (condition.comparisonType === 'date' || isDateRelated(comparisonElement));
+
     const renderSourceInput = () => {
         switch(condition.sourceType) {
             case 'field':
@@ -307,7 +317,21 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
             <div className="space-y-1">
                 {renderComparisonInput()}
             </div>
-
+            {shouldShowDateOffset && (
+                <div className="flex items-end gap-2">
+                    <div className="w-1/2 space-y-1">
+                        <Label className="text-xs">Offset (days)</Label>
+                        <Input
+                            type="number"
+                            placeholder="e.g., 2 or -2"
+                            value={condition.offsetDays || ''}
+                            onChange={(e) => handleUpdateCondition({ offsetDays: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                            className="h-8 text-xs"
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the comparison value.</p>
+                </div>
+            )}
         </div>
     )
   }

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -519,7 +520,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-      <ScrollArea className="h-full bg-slate-50">
+      <ScrollArea className="h-full bg-white">
         <div className="space-y-6 p-6">
             <div>
                 <Label>Rule Name</Label>
@@ -587,7 +588,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
     
     return (
-      <div className="h-full flex flex-col">
+      <div className="h-full flex flex-col bg-white">
         <div className="p-4 border-b flex justify-between items-center shrink-0">
           <h3 className="font-semibold">All Configurations</h3>
           <Button variant="outline" size="sm" onClick={handleAddConfig}>
@@ -626,8 +627,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   
   const RulesEditorLayout = () => (
     <div className="flex flex-row overflow-hidden h-full">
-        <aside className="w-1/3 border-r flex flex-col">
-            <div className="p-4 border-b shrink-0">
+        <aside className="w-1/3 border-r flex flex-col bg-white">
+            <div className="p-4 border-b shrink-0 flex items-center justify-center">
                 <Button variant="outline" className="w-full justify-center" onClick={handleAddRule}>
                     Add New Rule
                 </Button>
@@ -656,7 +657,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 </div>
             </ScrollArea>
         </aside>
-        <main className="flex-1 flex flex-col min-h-0">
+        <main className="flex-1 flex flex-col min-h-0 bg-white">
             {selectedRule ? (
                 <RuleEditor rule={selectedRule} />
             ) : (
@@ -673,26 +674,26 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl w-full h-[90vh] flex flex-col p-0 gap-0">
-        <DialogHeader className="p-4 border-b">
+        <DialogHeader className="p-4 border-b bg-slate-50">
           <DialogTitle>Rules &amp; Configurations</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-hidden bg-white">
             <Tabs defaultValue="rules" className="h-full flex flex-col">
-                <div className="px-4">
-                    <TabsList className="grid w-full grid-cols-2">
+                <div className="px-4 border-b">
+                    <TabsList className="grid w-full grid-cols-2 bg-transparent">
                         <TabsTrigger value="configurations">Configurations</TabsTrigger>
                         <TabsTrigger value="rules">Rules</TabsTrigger>
                     </TabsList>
                 </div>
-                <TabsContent value="rules" className="flex-1 h-0">
+                <TabsContent value="rules" className="flex-1 h-0 m-0">
                     <RulesEditorLayout />
                 </TabsContent>
-                <TabsContent value="configurations" className="flex-1 h-0">
+                <TabsContent value="configurations" className="flex-1 h-0 m-0">
                     <ConfigurationsEditor />
                 </TabsContent>
             </Tabs>
         </div>
-        <DialogFooter className="p-4 border-t">
+        <DialogFooter className="p-4 border-t bg-slate-50">
             <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button onClick={handleSaveChanges}>Save</Button>
         </DialogFooter>
