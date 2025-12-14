@@ -10,7 +10,6 @@ import {
     signOut,
     User as FirebaseUser
 } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
 
 type User = {
   email: string;
@@ -30,21 +29,8 @@ const isValidEmail = (email: string) => {
     return emailRegex.test(email);
 }
 
-const createInitialSettings = async (firestore: any, user: FirebaseUser) => {
-    const userSettingsRef = doc(firestore, "userSettings", user.uid);
-    try {
-        await setDoc(userSettingsRef, {
-            ownerId: user.uid,
-            categories: [],
-            sites: [],
-        });
-    } catch (error) {
-        console.error("Error creating initial user settings:", error);
-    }
-};
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { auth, firestore, user: firebaseUser, isUserLoading } = useFirebase();
+  const { auth, firebaseUser, isUserLoading } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
@@ -78,9 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
-                const userCredential = await createUserWithEmailAndPassword(auth, authEmail, pass);
-                // Create initial settings for the new user
-                await createInitialSettings(firestore, userCredential.user);
+                await createUserWithEmailAndPassword(auth, authEmail, pass);
                 router.push("/");
                 return true;
             } catch (signUpError) {

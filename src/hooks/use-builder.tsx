@@ -7,7 +7,7 @@ import { FormElementInstance, Section, ElementType, FormVersion, Form, Submissio
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
 
@@ -689,12 +689,26 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     }
     const userSettingsDocRef = doc(firestore, 'userSettings', user.uid);
 
+    const handleNewUser = async () => {
+        const docSnap = await getDoc(userSettingsDocRef);
+        if (!docSnap.exists()) {
+             try {
+                await setDoc(userSettingsDocRef, {
+                    ownerId: user.uid,
+                    categories: [],
+                    sites: [],
+                });
+            } catch (error) {
+                console.error("Error creating initial user settings:", error);
+            }
+        }
+    }
+    handleNewUser();
+
     const unsubscribe = onSnapshot(userSettingsDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: data.categories || [], sites: data.sites || [] } });
-      } else {
-        // This is expected for new users, initial settings are created on signup
       }
     }, (error) => {
         const contextualError = new FirestorePermissionError({
