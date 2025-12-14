@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
@@ -6,7 +7,7 @@ import { FormElementInstance, Section, ElementType, FormVersion, Form, Submissio
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements } from "@/lib/utils";
 import { useFirebase } from "@/firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
 
@@ -25,7 +26,6 @@ type State = {
 
 type Action =
   | { type: "SET_FORMS"; payload: Form[] }
-  | { type: "ADD_FORM"; payload: { title: string, description?: string, categoryId: string, subCategoryId: string | null } }
   | { type: "UPDATE_FORM_TITLE"; payload: { formId: string, title: string } }
   | { type: "DELETE_FORM"; payload: { formId: string } }
   | { type: "CLONE_FORM", payload: { formId: string, newName: string } }
@@ -618,9 +618,17 @@ const updateActiveFormInState = (forms: Form[], activeFormId: string, updates: P
     });
 };
 
+type AddNewFormPayload = {
+    title: string;
+    description?: string;
+    categoryId: string;
+    subCategoryId: string | null;
+};
+
 type BuilderContextType = {
   state: State;
-  dispatch: (action: Action) => any;
+  dispatch: (action: Action) => void;
+  addNewForm: (payload: AddNewFormPayload) => Promise<DocumentReference>;
   forms: Form[];
   categories: Category[];
   sites: Site[];
@@ -644,14 +652,14 @@ type BuilderContextType = {
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatchAction] = useReducer(builderReducer, initialState);
+  const [state, dispatch] = useReducer(builderReducer, initialState);
   const [isLoaded, setIsLoaded] = useState(false);
   const { firestore, user } = useFirebase();
 
   // Firestore subscription
   useEffect(() => {
     if (!firestore || !user) {
-        dispatchAction({ type: "SET_FORMS", payload: [] });
+        dispatch({ type: "SET_FORMS", payload: [] });
         setIsLoaded(true);
         return;
     }
@@ -662,7 +670,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             .map(doc => ({ id: doc.id, ...doc.data() } as Form))
             .filter(form => form.ownerId === user.uid); // Filter for current user
 
-        dispatchAction({ type: "SET_FORMS", payload: formsData });
+        dispatch({ type: "SET_FORMS", payload: formsData });
         if (!isLoaded) setIsLoaded(true);
     }, (error) => {
         console.error("Error fetching forms:", error);
@@ -679,27 +687,66 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
   
-  const dispatch = (action: Action) => {
+  const addNewForm = (payload: AddNewFormPayload): Promise<DocumentReference> => {
+    if (!firestore || !user) {
+        return Promise.reject("Firestore not initialized");
+    }
+    const { title, description, categoryId, subCategoryId } = payload;
+    const newVersion: FormVersion = {
+        id: crypto.randomUUID(), name: "Version 1", description: description || "Initial version", type: "draft", timestamp: new Date().toISOString(),
+        sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }], rules: [], workflows: [], configurations: []
+    };
+    const newForm = { 
+        title, categoryId, subCategoryId, 
+        ownerId: user.uid,
+        versions: [newVersion]
+    };
+    return addDoc(collection(firestore, 'formTemplates'), newForm);
+  }
+
+  const setSections = (newSections: Section[]) => {
+    if (!activeForm || !firestore) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], sections: newSections, timestamp: new Date().toISOString() };
+    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+  }
+
+  const updateRules = (newRules: Rule[]) => {
+    if (!activeForm || !firestore) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], rules: newRules, timestamp: new Date().toISOString() };
+    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+  }
+  
+  const updateWorkflows = (newWorkflows: Workflow[]) => {
+    if (!activeForm || !firestore) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], workflows: newWorkflows, timestamp: new Date().toISOString() };
+    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+  }
+
+  const updateConfigurations = (newConfigurations: Configuration[]) => {
+    if (!activeForm || !firestore) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], configurations: newConfigurations, timestamp: new Date().toISOString() };
+    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+  }
+
+  const setFormState = (newState: { [key: string]: { value: any, fullObject?: any } }) => {
+    dispatch({ type: 'SET_FORM_STATE', payload: newState });
+  }
+
+  const updateFormState = (elementId: string, value: any, fullObject?: any) => {
+    dispatch({ type: 'UPDATE_FORM_STATE', payload: { elementId, value, fullObject } });
+  }
+
+  const enhancedDispatch = (action: Action) => {
     if (!firestore || !user) {
         // Fallback to local state changes if firestore is not available
-        return dispatchAction(action);
+        return dispatch(action);
     }
     
     switch(action.type) {
-        case "ADD_FORM": {
-            const { title, description, categoryId, subCategoryId } = action.payload;
-            const newVersion: FormVersion = {
-              id: crypto.randomUUID(), name: "Version 1", description: description || "Initial version", type: "draft", timestamp: new Date().toISOString(),
-              sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }], rules: [], workflows: [], configurations: []
-            };
-            const newForm = { 
-                title, categoryId, subCategoryId, 
-                ownerId: user.uid,
-                versions: [newVersion]
-            };
-            // Return the promise from addDoc so the UI can await it
-            return addDoc(collection(firestore, 'formTemplates'), newForm);
-        }
         case "DELETE_FORM":
             deleteDocumentNonBlocking(doc(firestore, 'formTemplates', action.payload.formId));
             return;
@@ -742,7 +789,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             const newVersions = [versionToLoad, ...otherVersions];
             updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
             const formState = getInitialFormState(versionToLoad.sections || []);
-            dispatchAction({ type: "SET_FORM_STATE", payload: formState });
+            dispatch({ type: "SET_FORM_STATE", payload: formState });
             return;
         }
         case 'DELETE_VERSION': {
@@ -763,44 +810,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
              }
              return;
         default:
-            dispatchAction(action);
+            dispatch(action);
     }
-  }
-
-  const setSections = (newSections: Section[]) => {
-    if (!activeForm || !firestore) return;
-    const newVersions = [...activeForm.versions];
-    newVersions[0] = { ...newVersions[0], sections: newSections, timestamp: new Date().toISOString() };
-    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
-  }
-
-  const updateRules = (newRules: Rule[]) => {
-    if (!activeForm || !firestore) return;
-    const newVersions = [...activeForm.versions];
-    newVersions[0] = { ...newVersions[0], rules: newRules, timestamp: new Date().toISOString() };
-    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
-  }
-  
-  const updateWorkflows = (newWorkflows: Workflow[]) => {
-    if (!activeForm || !firestore) return;
-    const newVersions = [...activeForm.versions];
-    newVersions[0] = { ...newVersions[0], workflows: newWorkflows, timestamp: new Date().toISOString() };
-    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
-  }
-
-  const updateConfigurations = (newConfigurations: Configuration[]) => {
-    if (!activeForm || !firestore) return;
-    const newVersions = [...activeForm.versions];
-    newVersions[0] = { ...newVersions[0], configurations: newConfigurations, timestamp: new Date().toISOString() };
-    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
-  }
-
-  const setFormState = (newState: { [key: string]: { value: any, fullObject?: any } }) => {
-    dispatchAction({ type: 'SET_FORM_STATE', payload: newState });
-  }
-
-  const updateFormState = (elementId: string, value: any, fullObject?: any) => {
-    dispatchAction({ type: 'UPDATE_FORM_STATE', payload: { elementId, value, fullObject } });
   }
 
   if (!isLoaded) {
@@ -815,7 +826,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState }}>
+    <BuilderContext.Provider value={{ state, dispatch: enhancedDispatch, addNewForm, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState }}>
       {children}
     </BuilderContext.Provider>
   );
@@ -828,5 +839,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-    

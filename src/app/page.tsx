@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -58,7 +59,7 @@ function FormattedDate({ timestamp }: { timestamp: string }) {
 
 
 export default function Home() {
-  const { state, dispatch } = useBuilder();
+  const { state, dispatch, addNewForm } = useBuilder();
   const { forms, categories, sites } = state;
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
@@ -102,14 +103,11 @@ export default function Home() {
     if (!newTemplateName.trim() || !selectedCategoryId) return;
     
     try {
-        const docRef: any = await dispatch({ 
-          type: "ADD_FORM", 
-          payload: { 
-            title: newTemplateName,
-            description: newTemplateDescription,
-            categoryId: selectedCategoryId,
-            subCategoryId: selectedSubCategoryId,
-          } 
+        const docRef = await addNewForm({ 
+          title: newTemplateName,
+          description: newTemplateDescription,
+          categoryId: selectedCategoryId,
+          subCategoryId: selectedSubCategoryId,
         });
         
         // Reset fields
@@ -431,5 +429,3 @@ export default function Home() {
     </div>
   );
 }
-
-    
