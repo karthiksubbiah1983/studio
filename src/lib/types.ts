@@ -25,6 +25,7 @@ export type Condition = {
     value?: string; // Used for comparisonType 'value', 'date', or 'status'
     comparisonElementId?: string; // Used for comparisonType 'field'
     offsetDays?: number;
+    offsetValue?: number;
 };
 
 export type RuleBehavior = {

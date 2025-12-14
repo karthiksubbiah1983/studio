@@ -173,9 +173,18 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         return false;
     }
 
-    const shouldShowDateOffset = 
+     const isNumericRelated = (element: FormElementInstance | Section | null) => {
+        if (!element) return false;
+        if ('type' in element) return element.type === 'Input' && element.inputFormat === 'number';
+        return false;
+    };
+
+    const showDateOffset = 
         (condition.sourceType === 'date' || isDateRelated(sourceElement)) || 
         (condition.comparisonType === 'date' || isDateRelated(comparisonElement));
+
+    const showValueOffset = (isNumericRelated(sourceElement) || isNumericRelated(comparisonElement)) &&
+        (condition.operator === 'is_greater_than' || condition.operator === 'is_less_than');
     
     const renderSourceInput = () => {
         switch(condition.sourceType) {
@@ -355,10 +364,10 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 {renderSourceInput()}
                 {renderComparisonInput()}
             </div>
-             {shouldShowDateOffset && (
+             {showDateOffset && (
                 <div className="flex items-end gap-2">
                     <div className="w-1/2 space-y-1">
-                        <Label className="text-xs">Offset (days)</Label>
+                        <Label className="text-xs">Date Offset (days)</Label>
                         <Input
                             type="number"
                             placeholder="e.g., 2 or -2"
@@ -367,7 +376,22 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                             className="h-8 text-xs"
                         />
                     </div>
-                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the comparison value.</p>
+                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the source date.</p>
+                </div>
+            )}
+             {showValueOffset && (
+                <div className="flex items-end gap-2">
+                    <div className="w-1/2 space-y-1">
+                        <Label className="text-xs">Value Offset</Label>
+                        <Input
+                            type="number"
+                            placeholder="e.g., 5 or -10"
+                            value={condition.offsetValue || ''}
+                            onChange={(e) => handleUpdateCondition({ offsetValue: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                            className="h-8 text-xs"
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the source value.</p>
                 </div>
             )}
         </div>
@@ -626,7 +650,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   }
   
   const RulesEditorLayout = () => (
-    <div className="flex flex-row overflow-hidden h-full">
+    <div className="flex flex-row overflow-hidden h-full bg-slate-50">
         <aside className="w-1/3 border-r flex flex-col bg-white">
             <div className="p-4 border-b shrink-0 flex items-center justify-center">
                 <Button variant="outline" className="w-full justify-center" onClick={handleAddRule}>
@@ -680,7 +704,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         <div className="flex-1 overflow-hidden bg-white">
             <Tabs defaultValue="rules" className="h-full flex flex-col">
                 <div className="px-4 border-b">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-2 bg-transparent p-0">
                         <TabsTrigger value="configurations">Configurations</TabsTrigger>
                         <TabsTrigger value="rules">Rules</TabsTrigger>
                     </TabsList>

@@ -68,8 +68,13 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     const isNumericComparison = condition.operator === 'is_greater_than' || condition.operator === 'is_less_than';
     
     if (isNumericComparison) {
-        const numSource = parseFloat(sourceValue);
+        let numSource = parseFloat(sourceValue);
         const numComparison = parseFloat(comparisonValue);
+
+        if (condition.offsetValue) {
+            numSource += condition.offsetValue;
+        }
+
         if (isNaN(numSource) || isNaN(numComparison)) {
             return false;
         }
@@ -99,7 +104,7 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
 
     if (isDateComparison) {
         try {
-            const dateSource = new Date(sourceValue);
+            let dateSource = new Date(sourceValue);
             let dateComparison = new Date(comparisonValue);
 
             if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) return false;

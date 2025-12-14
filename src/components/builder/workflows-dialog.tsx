@@ -151,9 +151,18 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         return false;
     }
 
-    const shouldShowDateOffset = 
+    const isNumericRelated = (element: FormElementInstance | Section | null) => {
+        if (!element) return false;
+        if ('type' in element) return element.type === 'Input' && element.inputFormat === 'number';
+        return false;
+    };
+
+    const showDateOffset = 
         (condition.sourceType === 'date' || isDateRelated(sourceElement)) || 
         (condition.comparisonType === 'date' || isDateRelated(comparisonElement));
+
+    const showValueOffset = (isNumericRelated(sourceElement) || isNumericRelated(comparisonElement)) &&
+        (condition.operator === 'is_greater_than' || condition.operator === 'is_less_than');
 
     const renderSourceInput = () => {
         switch(condition.sourceType) {
@@ -317,10 +326,10 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
             <div className="space-y-1">
                 {renderComparisonInput()}
             </div>
-            {shouldShowDateOffset && (
+            {showDateOffset && (
                 <div className="flex items-end gap-2">
                     <div className="w-1/2 space-y-1">
-                        <Label className="text-xs">Offset (days)</Label>
+                        <Label className="text-xs">Date Offset (days)</Label>
                         <Input
                             type="number"
                             placeholder="e.g., 2 or -2"
@@ -329,7 +338,22 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                             className="h-8 text-xs"
                         />
                     </div>
-                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the comparison value.</p>
+                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the source date.</p>
+                </div>
+            )}
+             {showValueOffset && (
+                <div className="flex items-end gap-2">
+                    <div className="w-1/2 space-y-1">
+                        <Label className="text-xs">Value Offset</Label>
+                        <Input
+                            type="number"
+                            placeholder="e.g., 5 or -10"
+                            value={condition.offsetValue || ''}
+                            onChange={(e) => handleUpdateCondition({ offsetValue: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                            className="h-8 text-xs"
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the source value.</p>
                 </div>
             )}
         </div>
