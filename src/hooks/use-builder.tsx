@@ -697,7 +697,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 ownerId: user.uid,
                 versions: [newVersion]
             };
-            return addDocumentNonBlocking(collection(firestore, 'formTemplates'), newForm);
+            // Return the promise from addDoc so the UI can await it
+            return addDoc(collection(firestore, 'formTemplates'), newForm);
         }
         case "DELETE_FORM":
             deleteDocumentNonBlocking(doc(firestore, 'formTemplates', action.payload.formId));
@@ -827,3 +828,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    

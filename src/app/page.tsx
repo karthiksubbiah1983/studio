@@ -101,27 +101,35 @@ export default function Home() {
   const handleCreateNew = async () => {
     if (!newTemplateName.trim() || !selectedCategoryId) return;
     
-    // Dispatch and await the promise which resolves with the new document reference
-    const docRef: any = await dispatch({ 
-      type: "ADD_FORM", 
-      payload: { 
-        title: newTemplateName,
-        description: newTemplateDescription,
-        categoryId: selectedCategoryId,
-        subCategoryId: selectedSubCategoryId,
-      } 
-    });
-    
-    // Reset fields
-    setNewTemplateName("");
-    setNewTemplateDescription("");
-    setSelectedCategoryId(null);
-    setSelectedSubCategoryId(null);
-    setIsNewTemplateDialogOpen(false);
-    
-    // Navigate after we have the new ID
-    if (docRef?.id) {
-        router.push(`/builder/${docRef.id}`);
+    try {
+        const docRef: any = await dispatch({ 
+          type: "ADD_FORM", 
+          payload: { 
+            title: newTemplateName,
+            description: newTemplateDescription,
+            categoryId: selectedCategoryId,
+            subCategoryId: selectedSubCategoryId,
+          } 
+        });
+        
+        // Reset fields
+        setNewTemplateName("");
+        setNewTemplateDescription("");
+        setSelectedCategoryId(null);
+        setSelectedSubCategoryId(null);
+        setIsNewTemplateDialogOpen(false);
+        
+        // Navigate after we have the new ID
+        if (docRef?.id) {
+            router.push(`/builder/${docRef.id}`);
+        }
+    } catch (error) {
+        console.error("Failed to create form:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not create the new form template.",
+        });
     }
   };
 
@@ -423,3 +431,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
