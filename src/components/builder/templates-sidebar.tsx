@@ -20,11 +20,14 @@ function FormattedDate({ timestamp }: { timestamp: string }) {
     useEffect(() => {
         if (timestamp) {
             setFormattedDate(format(new Date(timestamp), "PPP p"));
+        } else {
+             setFormattedDate('—');
         }
     }, [timestamp]);
 
+    // Render a placeholder on the server and initial client render
     if (formattedDate === null) {
-        return <span>—</span>;
+        return <span>—</span>; // Or a loading skeleton
     }
 
     return <>{formattedDate}</>;
