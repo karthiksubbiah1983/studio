@@ -8,6 +8,23 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Edit } from "lucide-react";
 import type { Task } from "@/lib/types";
+import { useState, useEffect } from "react";
+
+function FormattedDate({ timestamp }: { timestamp: string }) {
+    const [formattedDate, setFormattedDate] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (timestamp) {
+            setFormattedDate(format(new Date(timestamp), "PPP p"));
+        }
+    }, [timestamp]);
+
+    if (formattedDate === null) {
+        return <span>—</span>;
+    }
+
+    return <>{formattedDate}</>;
+}
 
 export default function MyTasksPage() {
   const { state } = useBuilder();
@@ -37,7 +54,7 @@ export default function MyTasksPage() {
                     <div className="font-medium">{getFormTitle(task.formId)}</div>
                     <div>
                       <span className="md:hidden font-medium mr-2">Assigned:</span>
-                      {format(new Date(task.assignedAt), "PPP p")}
+                      <FormattedDate timestamp={task.assignedAt} />
                     </div>
                     <div className="flex justify-end gap-0">
                       <button 
