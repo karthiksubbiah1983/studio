@@ -4,14 +4,13 @@
 import { useState, useEffect } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Category, SubCategory } from "@/lib/types";
 import { Plus, Trash, X, GripVertical, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { PageHeader } from "@/components/page-header";
 
 export default function CategoriesPage() {
   const { state, dispatch } = useBuilder();
@@ -21,35 +20,37 @@ export default function CategoriesPage() {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newSubCategoryNames, setNewSubCategoryNames] = useState<Record<string, string>>({});
   const [editingCategoryNames, setEditingCategoryNames] = useState<Record<string, string>>({});
+  const [originalCategoryNames, setOriginalCategoryNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const initialEditingNames: Record<string, string> = {};
+    const initialOriginalNames: Record<string, string> = {};
     categories.forEach(cat => {
       initialEditingNames[cat.id] = cat.name;
+      initialOriginalNames[cat.id] = cat.name;
     });
     setEditingCategoryNames(initialEditingNames);
+    setOriginalCategoryNames(initialOriginalNames);
   }, [categories]);
 
   // Category Management Handlers
   const handleAddCategory = () => {
     if (!newCategoryName.trim()) return;
-    const newCategoryId = dispatch({ type: "ADD_CATEGORY", payload: { name: newCategoryName } });
-    if (newCategoryId) {
-      toast({
-          title: "Category Added",
-          description: `"${newCategoryName}" has been successfully added.`
-      });
-      setNewCategoryName("");
-      setEditingCategoryNames(prev => ({...prev, [newCategoryId as string]: newCategoryName}))
-    }
+    dispatch({ type: "ADD_CATEGORY", payload: { name: newCategoryName } });
+    toast({
+        title: "Category Added",
+        description: `"${newCategoryName}" has been successfully added.`
+    });
+    setNewCategoryName("");
   };
 
   const handleUpdateCategory = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    const newName = editingCategoryNames[categoryId];
-    if (!category || !newName || !newName.trim()) return;
+    const newName = editingCategoryNames[categoryId]?.trim();
+    const originalName = originalCategoryNames[categoryId];
+
+    if (!newName || newName === originalName) return;
     
-    dispatch({ type: "UPDATE_CATEGORY", payload: { category: { ...category, name: newName } } });
+    dispatch({ type: "UPDATE_CATEGORY", payload: { category: { ...categories.find(c => c.id === categoryId)!, name: newName } } });
     toast({
         title: "Category Saved",
         description: `Category has been updated to "${newName}".`
@@ -98,6 +99,7 @@ export default function CategoriesPage() {
               placeholder="New category name..."
               value={newCategoryName}
               onChange={e => setNewCategoryName(e.target.value)}
+               onKeyDown={e => { if (e.key === 'Enter') handleAddCategory()}}
             />
             <Button onClick={handleAddCategory}>
               <Plus className="mr-2 h-4 w-4" /> Add Category
@@ -121,8 +123,10 @@ export default function CategoriesPage() {
                       <div>
                          <span className="md:hidden font-medium mr-2">Category:</span>
                         <Input
-                          value={editingCategoryNames[cat.id] || cat.name}
+                          value={editingCategoryNames[cat.id] || ''}
                           onChange={e => setEditingCategoryNames(prev => ({ ...prev, [cat.id]: e.target.value }))}
+                          onBlur={() => handleUpdateCategory(cat.id)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleUpdateCategory(cat.id) }}
                           className="font-medium"
                         />
                       </div>
@@ -154,9 +158,6 @@ export default function CategoriesPage() {
                       <div className="text-right">
                          <span className="md:hidden font-medium mr-2">Actions:</span>
                         <div className="flex justify-end gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleUpdateCategory(cat.id)}>
-                                <Save className="h-4 w-4 text-green-600" />
-                            </Button>
                             <Button variant="ghost" size="icon" onClick={() => handleDeleteCategory(cat.id)}>
                                 <Trash className="h-4 w-4 text-destructive" />
                             </Button>

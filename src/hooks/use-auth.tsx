@@ -7,8 +7,10 @@ import { useFirebase } from "@/firebase";
 import { 
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
-    signOut 
+    signOut,
+    User as FirebaseUser
 } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 type User = {
   email: string;
@@ -28,8 +30,21 @@ const isValidEmail = (email: string) => {
     return emailRegex.test(email);
 }
 
+const createInitialSettings = async (firestore: any, user: FirebaseUser) => {
+    const userSettingsRef = doc(firestore, "userSettings", user.uid);
+    try {
+        await setDoc(userSettingsRef, {
+            ownerId: user.uid,
+            categories: [],
+            sites: [],
+        });
+    } catch (error) {
+        console.error("Error creating initial user settings:", error);
+    }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { auth, user: firebaseUser, isUserLoading } = useFirebase();
+  const { auth, firestore, user: firebaseUser, isUserLoading } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
@@ -48,8 +63,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, pass: string) => {
     let authEmail = email;
 
-    // If the input is not a valid email, treat it as a username and append a dummy domain.
-    if (!isValidEmail(email)) {
+    if (email === 'RajShah') {
+        authEmail = 'rajshah@example.com';
+    } else if (email === 'Karthik1983') {
+        authEmail = 'karthik1983@example.com';
+    } else if (!isValidEmail(email)) {
         authEmail = `${email.toLowerCase()}@example.com`;
     }
     
@@ -60,7 +78,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
-                await createUserWithEmailAndPassword(auth, authEmail, pass);
+                const userCredential = await createUserWithEmailAndPassword(auth, authEmail, pass);
+                // Create initial settings for the new user
+                await createInitialSettings(firestore, userCredential.user);
                 router.push("/");
                 return true;
             } catch (signUpError) {

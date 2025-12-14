@@ -17,5 +17,9 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
+
+    match /userSettings/{userId} {
+      allow read, create, update: if isSignedIn() && request.auth.uid == userId;
+    }
   }
 }

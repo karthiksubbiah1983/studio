@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Plus, Trash, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -45,6 +45,7 @@ export default function SitesPage() {
               placeholder="New site name..."
               value={newSiteName}
               onChange={e => setNewSiteName(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleAddSite()}}
             />
             <Button onClick={handleAddSite}>
               <Plus className="mr-2 h-4 w-4" /> Add Site

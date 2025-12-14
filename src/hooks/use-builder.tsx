@@ -6,8 +6,8 @@ import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, 
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements } from "@/lib/utils";
-import { useFirebase } from "@/firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference } from "firebase/firestore";
+import { useFirebase, useMemoFirebase } from "@/firebase";
+import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
 
@@ -53,6 +53,7 @@ type Action =
   | { type: "UPDATE_RULES"; payload: { rules: Rule[] } }
   | { type: "UPDATE_WORKFLOWS"; payload: { workflows: Workflow[] } }
   | { type: "UPDATE_CONFIGURATIONS"; payload: { configurations: Configuration[] } }
+  | { type: "SET_USER_SETTINGS", payload: { categories: Category[], sites: Site[] } }
   | { type: "ADD_CATEGORY", payload: { name: string } }
   | { type: "UPDATE_CATEGORY", payload: { category: Category } }
   | { type: "DELETE_CATEGORY", payload: { categoryId: string } }
@@ -547,15 +548,18 @@ const builderReducer = (state: State, action: Action): State => {
             tasks: newTasks,
         }
     }
+     case "SET_USER_SETTINGS": {
+        const { categories, sites } = action.payload;
+        return { ...state, categories: categories || [], sites: sites || [] };
+    }
     case "ADD_CATEGORY": {
         const newCategory: Category = {
             id: crypto.randomUUID(),
             name: action.payload.name,
             subCategories: [],
         };
-        const newId = newCategory.id;
-        // This is a bit of a hack for the special dispatch, we return the ID via the state itself
-        return { ...state, categories: [...state.categories, newCategory], activeFormId: newId };
+        const newCategories = [...state.categories, newCategory];
+        return { ...state, categories: newCategories };
     }
     case "UPDATE_CATEGORY": {
         return {
@@ -564,10 +568,10 @@ const builderReducer = (state: State, action: Action): State => {
         };
     }
     case "DELETE_CATEGORY": {
+        const newCategories = state.categories.filter(c => c.id !== action.payload.categoryId);
         return {
             ...state,
-            categories: state.categories.filter(c => c.id !== action.payload.categoryId),
-            // Un-categorize forms that used this category
+            categories: newCategories,
             forms: state.forms.map(f => f.categoryId === action.payload.categoryId ? {...f, categoryId: undefined, subCategoryId: undefined} : f)
         };
     }
@@ -576,22 +580,18 @@ const builderReducer = (state: State, action: Action): State => {
             id: crypto.randomUUID(),
             name: action.payload.name,
         };
-        return {
-            ...state,
-            categories: state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: [...c.subCategories, newSubCategory] } : c),
-        };
+        const newCategoriesWithSub = state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: [...c.subCategories, newSubCategory] } : c);
+        return { ...state, categories: newCategoriesWithSub };
     }
     case "UPDATE_SUBCATEGORY": {
-        return {
-            ...state,
-            categories: state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: c.subCategories.map(sc => sc.id === action.payload.subCategory.id ? action.payload.subCategory : sc) } : c),
-        };
+        const updatedCategories = state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: c.subCategories.map(sc => sc.id === action.payload.subCategory.id ? action.payload.subCategory : sc) } : c);
+        return { ...state, categories: updatedCategories };
     }
     case "DELETE_SUBCATEGORY": {
+        const updatedCategoriesWithSubDelete = state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: c.subCategories.filter(sc => sc.id !== action.payload.subCategoryId) } : c);
         return {
             ...state,
-            categories: state.categories.map(c => c.id === action.payload.categoryId ? { ...c, subCategories: c.subCategories.filter(sc => sc.id !== action.payload.subCategoryId) } : c),
-            // Un-categorize forms that used this sub-category
+            categories: updatedCategoriesWithSubDelete,
             forms: state.forms.map(f => f.subCategoryId === action.payload.subCategoryId ? {...f, subCategoryId: undefined} : f)
         };
     }
@@ -659,29 +659,45 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const { firestore, user } = useFirebase();
 
-  // Firestore subscription
+  // Firestore subscription for forms
   useEffect(() => {
     if (!firestore || !user) {
-        dispatch({ type: "SET_FORMS", payload: [] });
-        setIsLoaded(true);
+        if (isLoaded) dispatch({ type: "SET_FORMS", payload: [] });
         return;
     }
-
-    const formsCollection = collection(firestore, 'formTemplates');
-    const unsubscribe = onSnapshot(formsCollection, (snapshot) => {
-        const formsData = snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as Form))
-            .filter(form => form.ownerId === user.uid); // Filter for current user
-
+    const q = query(collection(firestore, 'formTemplates'), where("ownerId", "==", user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+        const formsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Form));
         dispatch({ type: "SET_FORMS", payload: formsData });
         if (!isLoaded) setIsLoaded(true);
     }, (error) => {
         console.error("Error fetching forms:", error);
-        setIsLoaded(true); // Still allow app to load, but with no data
+        if (!isLoaded) setIsLoaded(true);
     });
-
     return () => unsubscribe();
   }, [firestore, user, isLoaded]);
+
+  // Firestore subscription for user settings (categories, sites)
+  const userSettingsDocRef = useMemoFirebase(() => {
+    if (!firestore || !user) return null;
+    return doc(firestore, 'userSettings', user.uid);
+  }, [firestore, user]);
+
+  useEffect(() => {
+    if (!userSettingsDocRef) {
+        dispatch({ type: "SET_USER_SETTINGS", payload: { categories: [], sites: [] } });
+        return;
+    };
+    const unsubscribe = onSnapshot(userSettingsDocRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            dispatch({ type: "SET_USER_SETTINGS", payload: { categories: data.categories, sites: data.sites } });
+        } else {
+            console.log("No user settings document found!");
+        }
+    });
+    return () => unsubscribe();
+  }, [userSettingsDocRef]);
   
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
@@ -707,7 +723,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     
     const docRef = await addDoc(collection(firestore, 'formTemplates'), newFormDocData);
     
-    // Manually add the new form to the local state to ensure consistency
     const newFormWithId: Form = {
         id: docRef.id,
         ...newFormDocData
@@ -755,10 +770,25 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
   const enhancedDispatch = (action: Action) => {
     if (!firestore || !user) {
-        // Fallback to local state changes if firestore is not available
         return dispatch(action);
     }
     
+    // Actions that modify user settings
+    if (['ADD_CATEGORY', 'UPDATE_CATEGORY', 'DELETE_CATEGORY', 'ADD_SUBCATEGORY', 'UPDATE_SUBCATEGORY', 'DELETE_SUBCATEGORY', 'ADD_SITE', 'DELETE_SITE'].includes(action.type)) {
+        const newState = builderReducer(state, action);
+        if (userSettingsDocRef) {
+            updateDocumentNonBlocking(userSettingsDocRef, { categories: newState.categories, sites: newState.sites });
+        }
+        // Still dispatch locally for immediate UI update
+        dispatch(action);
+        if(action.type === 'ADD_CATEGORY' && action.payload.name) {
+             const newId = newState.categories.find(c => c.name === action.payload.name)?.id;
+             if(newId) (dispatch as any)({type: 'RETURN_ID', payload: newId})
+        }
+
+        return;
+    }
+
     switch(action.type) {
         case "DELETE_FORM":
             deleteDocumentNonBlocking(doc(firestore, 'formTemplates', action.payload.formId));
@@ -852,5 +882,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-    
