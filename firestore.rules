@@ -19,7 +19,8 @@ service cloud.firestore {
     }
 
     match /userSettings/{userId} {
-      allow read, create, update: if isSignedIn() && request.auth.uid == userId;
+      allow read, create: if isSignedIn() && isOwner(userId) && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isSignedIn() && isOwner(userId);
     }
   }
 }
