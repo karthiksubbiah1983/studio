@@ -13,7 +13,7 @@ service cloud.firestore {
 
     match /formTemplates/{formTemplateId} {
       allow read: if isSignedIn() && resource.data.ownerId == request.auth.uid;
-      allow list: if isSignedIn() && request.query.resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn() && request.query.where.ownerId == request.auth.uid;
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
