@@ -1,11 +1,13 @@
 
-
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements } from "@/lib/utils";
+import { useFirebase } from "@/firebase";
+import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 
 type State = {
   forms: Form[];
@@ -21,6 +23,7 @@ type State = {
 };
 
 type Action =
+  | { type: "SET_FORMS"; payload: Form[] }
   | { type: "ADD_FORM"; payload: { title: string, description?: string, categoryId: string, subCategoryId: string | null } }
   | { type: "UPDATE_FORM_TITLE"; payload: { formId: string, title: string } }
   | { type: "DELETE_FORM"; payload: { formId: string } }
@@ -259,6 +262,8 @@ const builderReducer = (state: State, action: Action): State => {
   const activeFormSections = activeForm?.versions[0]?.sections || [];
 
   switch (action.type) {
+    case "SET_FORMS":
+        return { ...state, forms: action.payload };
     case "SET_FORM_STATE":
         return { ...state, formState: action.payload };
     case "UPDATE_FORM_STATE": {
@@ -303,7 +308,7 @@ const builderReducer = (state: State, action: Action): State => {
             const targetIndex = index ?? activeFormSections.length;
             const newSections = [...activeFormSections];
             newSections.splice(targetIndex, 0, newSection);
-            return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSections }) };
+            return { ...state, forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSections }) };
         }
 
         if (state.clipboard.type === 'element' && sectionId) {
@@ -317,90 +322,10 @@ const builderReducer = (state: State, action: Action): State => {
                 }
                 return s;
             });
-            return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSections }) };
+            return { ...state, forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSections }) };
         }
         
         return state;
-    }
-    case "ADD_FORM": {
-        const { title, description, categoryId, subCategoryId } = action.payload;
-        const newFormId = crypto.randomUUID();
-        const newForm: Form = {
-            id: newFormId,
-            title: title,
-            categoryId,
-            subCategoryId,
-            versions: [{
-              id: crypto.randomUUID(),
-              name: "Version 1",
-              description: description || "Initial version",
-              type: "draft",
-              timestamp: new Date().toISOString(),
-              sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }],
-              rules: [],
-              workflows: [],
-              configurations: [],
-            }]
-        };
-        // This is a bit of a hack for the special dispatch, we return the ID via the state itself
-        return {
-            ...state,
-            forms: [...state.forms, newForm],
-            activeFormId: newFormId
-        };
-    }
-    case "UPDATE_FORM_TITLE": {
-      return {
-        ...state,
-        forms: state.forms.map(form =>
-          form.id === action.payload.formId ? { ...form, title: action.payload.title } : form
-        )
-      }
-    }
-    case "DELETE_FORM": {
-        return {
-            ...state,
-            forms: state.forms.filter(f => f.id !== action.payload.formId),
-            activeFormId: state.activeFormId === action.payload.formId ? null : state.activeFormId,
-        };
-    }
-    case "CLONE_FORM": {
-        const { formId, newName } = action.payload;
-        const formToClone = state.forms.find(f => f.id === formId);
-        if (!formToClone || formToClone.versions.length === 0) return state;
-
-        // Take the content of the latest version of the form to clone
-        const latestVersionContent = formToClone.versions[0];
-        
-        // Deep clone and assign new IDs to everything inside the version
-        const newVersionContent = cloneWithNewIds(latestVersionContent);
-
-        const newForm: Form = {
-            id: crypto.randomUUID(),
-            title: newName,
-            categoryId: formToClone.categoryId,
-            subCategoryId: formToClone.subCategoryId,
-            versions: [
-                {
-                    ...newVersionContent,
-                    id: crypto.randomUUID(),
-                    name: "Initial Draft",
-                    description: `Cloned from "${formToClone.title}"`,
-                    type: "draft",
-                    timestamp: new Date().toISOString(),
-                    workflows: newVersionContent.workflows || [],
-                }
-            ]
-        };
-
-        const formIndex = state.forms.findIndex(f => f.id === formId);
-        const newForms = [...state.forms];
-        newForms.splice(formIndex + 1, 0, newForm);
-
-        return {
-            ...state,
-            forms: newForms,
-        };
     }
     case "SET_ACTIVE_FORM": {
       const form = state.forms.find(f => f.id === action.payload.formId);
@@ -408,97 +333,13 @@ const builderReducer = (state: State, action: Action): State => {
       const formState = getInitialFormState(sections);
       return { ...state, activeFormId: action.payload.formId, selectedElement: null, formState };
     }
-    case "UPDATE_FORM_METADATA": {
-      if (!activeForm) return state;
-      const { categoryId, subCategoryId } = action.payload;
-      const newForms = state.forms.map(form => {
-        if (form.id === state.activeFormId) {
-          return {
-            ...form,
-            categoryId,
-            subCategoryId,
-          };
-        }
-        return form;
-      });
-      return { ...state, forms: newForms };
-    }
-
-    // All actions below operate on the active form
-    case "SET_SECTIONS": {
-      if (!activeForm) return state;
-      const newForms = state.forms.map(form => {
-        if (form.id === state.activeFormId) {
-            const newVersions = [...form.versions];
-            newVersions[0] = {
-                ...newVersions[0],
-                sections: action.payload.sections,
-                timestamp: new Date().toISOString(),
-            };
-            return { ...form, versions: newVersions };
-        }
-        return form;
-      });
-      return { ...state, forms: newForms };
-    }
-     case "UPDATE_RULES": {
-      if (!activeForm) return state;
-      const { rules } = action.payload;
-      const newForms = state.forms.map(form => {
-        if (form.id === state.activeFormId) {
-          const newVersions = [...form.versions];
-          newVersions[0] = {
-            ...newVersions[0],
-            rules: rules,
-            timestamp: new Date().toISOString(),
-          };
-          return { ...form, versions: newVersions };
-        }
-        return form;
-      });
-      return { ...state, forms: newForms };
-    }
-     case "UPDATE_WORKFLOWS": {
-      if (!activeForm) return state;
-      const { workflows } = action.payload;
-      const newForms = state.forms.map(form => {
-        if (form.id === state.activeFormId) {
-          const newVersions = [...form.versions];
-          newVersions[0] = {
-            ...newVersions[0],
-            workflows: workflows,
-            timestamp: new Date().toISOString(),
-          };
-          return { ...form, versions: newVersions };
-        }
-        return form;
-      });
-      return { ...state, forms: newForms };
-    }
-    case "UPDATE_CONFIGURATIONS": {
-      if (!activeForm) return state;
-      const { configurations } = action.payload;
-      const newForms = state.forms.map(form => {
-        if (form.id === state.activeFormId) {
-          const newVersions = [...form.versions];
-          newVersions[0] = {
-            ...newVersions[0],
-            configurations: configurations,
-            timestamp: new Date().toISOString(),
-          };
-          return { ...form, versions: newVersions };
-        }
-        return form;
-      });
-      return { ...state, forms: newForms };
-    }
     case "ADD_SECTION":
        if (!activeForm) return state;
       const newSectionsAfterAdd = [
           ...activeFormSections,
           { id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] },
         ];
-      return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSectionsAfterAdd }) };
+      return { ...state, forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSectionsAfterAdd }) };
 
     case "ADD_ELEMENT": {
       if (!activeForm) return state;
@@ -531,7 +372,7 @@ const builderReducer = (state: State, action: Action): State => {
           }
           return section;
         });
-        return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSectionsWithElement }) };
+        return { ...state, forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSectionsWithElement }) };
     }
     case "UPDATE_ELEMENT": {
       if (!activeForm) return state;
@@ -541,12 +382,12 @@ const builderReducer = (state: State, action: Action): State => {
             ? { ...section, elements: findAndModifyElement(section.elements, action) }
             : section
         );
-      return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSectionsWithUpdate }) };
+      return { ...state, forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSectionsWithUpdate }) };
     }
     case "UPDATE_SECTION": {
         if (!activeForm) return state;
         const newSectionsWithSectionUpdate = activeFormSections.map(s => s.id === action.payload.id ? action.payload : s);
-        return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSectionsWithSectionUpdate }) };
+        return { ...state, forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSectionsWithSectionUpdate }) };
     }
     case "SELECT_ELEMENT":
       return { ...state, selectedElement: action.payload };
@@ -562,7 +403,7 @@ const builderReducer = (state: State, action: Action): State => {
 
         return {
             ...state,
-            forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSectionsAfterDelete }),
+            forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSectionsAfterDelete }),
             selectedElement: state.selectedElement?.elementId === elementId ? null : state.selectedElement,
         };
     }
@@ -571,7 +412,7 @@ const builderReducer = (state: State, action: Action): State => {
         const newSectionsAfterSecDelete = activeFormSections.filter(s => s.id !== action.payload.sectionId)
         return {
             ...state,
-            forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSectionsAfterSecDelete }),
+            forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSectionsAfterSecDelete }),
             selectedElement: state.selectedElement?.sectionId === action.payload.sectionId ? null : state.selectedElement,
         };
     }
@@ -585,7 +426,7 @@ const builderReducer = (state: State, action: Action): State => {
       const newSections = [...activeFormSections];
       newSections[sectionIndex] = { ...newSections[sectionIndex], elements: newElements };
       
-      return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSections }) };
+      return { ...state, forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSections }) };
     }
     case "CLONE_SECTION": {
       if (!activeForm) return state;
@@ -601,7 +442,7 @@ const builderReducer = (state: State, action: Action): State => {
 
       return {
           ...state,
-          forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSectionsWithClone }),
+          forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSectionsWithClone }),
           selectedElement: { sectionId: clonedSection.id, elementId: "" }
       }
     }
@@ -614,7 +455,7 @@ const builderReducer = (state: State, action: Action): State => {
         const newSectionsMoved = [...activeFormSections];
         const [removed] = newSectionsMoved.splice(fromIndex, 1);
         newSectionsMoved.splice(toIndex, 0, removed);
-        return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: newSectionsMoved }) };
+        return { ...state, forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: newSectionsMoved }) };
     }
     case "MOVE_ELEMENT": {
         if (!activeForm) return state;
@@ -679,66 +520,7 @@ const builderReducer = (state: State, action: Action): State => {
             return s;
         });
 
-        return { ...state, forms: updateActiveForm(state.forms, state.activeFormId!, { sections: currentSections }) };
-    }
-    case "SAVE_VERSION": {
-      if (!activeForm) return state;
-      const { name, description, type, sections, rules, workflows, configurations } = action.payload;
-      
-      const newVersion: FormVersion = {
-        id: crypto.randomUUID(),
-        name,
-        description,
-        type,
-        timestamp: new Date().toISOString(),
-        sections,
-        rules,
-        workflows,
-        configurations
-      };
-      
-      const newForms = state.forms.map(form => {
-        if (form.id === state.activeFormId) {
-          const newVersions = [newVersion, ...form.versions];
-          return { ...form, versions: newVersions };
-        }
-        return form;
-      });
-      return { ...state, forms: newForms };
-    }
-    case "LOAD_VERSION": {
-      if (!activeForm) return state;
-      const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
-      if (!versionToLoad) return state;
-
-      const newForms = state.forms.map(form => {
-          if (form.id === state.activeFormId) {
-              const otherVersions = form.versions.filter(v => v.id !== action.payload.versionId);
-              // Make the loaded version the new active draft by placing it at the top.
-              const newVersions = [versionToLoad, ...otherVersions];
-              return { ...form, versions: newVersions };
-          }
-          return form;
-      });
-      
-      const formState = getInitialFormState(versionToLoad.sections || []);
-
-      return {
-          ...state,
-          forms: newForms,
-          selectedElement: null,
-          formState,
-      };
-    }
-    case "DELETE_VERSION": {
-      if (!activeForm) return state;
-      const newForms = state.forms.map(form => {
-        if (form.id === state.activeFormId) {
-            return { ...form, versions: form.versions.filter(v => v.id !== action.payload.versionId) };
-        }
-        return form;
-      });
-      return { ...state, forms: newForms };
+        return { ...state, forms: updateActiveFormInState(state.forms, state.activeFormId!, { sections: currentSections }) };
     }
     case "ADD_SUBMISSION": {
         const { formId, data, taskId } = action.payload;
@@ -819,14 +601,14 @@ const builderReducer = (state: State, action: Action): State => {
 /**
  * Updates the sections of the latest version of the active form.
  */
-const updateActiveForm = (forms: Form[], activeFormId: string, updates: { sections: Section[] }): Form[] => {
+const updateActiveFormInState = (forms: Form[], activeFormId: string, updates: Partial<FormVersion>): Form[] => {
     return forms.map(form => {
         if (form.id === activeFormId) {
             const latestVersion = form.versions[0];
             const updatedVersions = [...form.versions];
             updatedVersions[0] = {
                 ...latestVersion,
-                sections: updates.sections,
+                ...updates,
                 timestamp: new Date().toISOString(), // Update timestamp on change
             };
             return { ...form, versions: updatedVersions };
@@ -834,7 +616,6 @@ const updateActiveForm = (forms: Form[], activeFormId: string, updates: { sectio
         return form;
     });
 };
-
 
 type BuilderContextType = {
   state: State;
@@ -861,93 +642,35 @@ type BuilderContextType = {
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
-const LOCAL_STORAGE_KEY = "form-builder-state";
-
-// Static default state to prevent hydration mismatch
-const defaultFormId = "default-form-id-12345";
-const defaultCategoryId = "default-category-id-12345";
-const defaultVersionId = "default-version-id-12345";
-const defaultSectionId = "default-section-id-12345";
-
-const defaultState: State = {
-    forms: [{
-        id: defaultFormId,
-        title: "My First Form",
-        categoryId: defaultCategoryId,
-        versions: [{
-            id: defaultVersionId,
-            name: "Initial Draft",
-            description: "",
-            type: "draft",
-            timestamp: "2023-01-01T00:00:00.000Z",
-            sections: [{ id: defaultSectionId, title: "New Section", displayMode: "default", elements: [] }],
-            rules: [],
-            workflows: [],
-            configurations: [],
-        }]
-    }],
-    categories: [{
-        id: defaultCategoryId,
-        name: 'General',
-        subCategories: []
-    }],
-    sites: [],
-    tasks: [],
-    submissions: [],
-    activeFormId: defaultFormId,
-    selectedElement: null,
-    draggedElement: null,
-    clipboard: null,
-    formState: {},
-};
-
-
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatchAction] = useReducer(builderReducer, initialState);
   const [isLoaded, setIsLoaded] = useState(false);
+  const { firestore, user } = useFirebase();
 
+  // Firestore subscription
   useEffect(() => {
-    // This effect runs only once on the client, after initial render
-    if (typeof window !== "undefined") {
-      let storedState;
-      try {
-        storedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-      } catch (e) {
-        console.error("Could not access localStorage.", e);
-      }
-      
-      let parsedState = defaultState;
-      if (storedState) {
-        try {
-          const parsed = JSON.parse(storedState);
-          // Simple validation to ensure we have a valid-looking state
-          if (parsed && Array.isArray(parsed.forms)) {
-            // Re-initialize formState based on the loaded active form
-            const activeForm = parsed.forms.find((f: Form) => f.id === parsed.activeFormId);
-            const sections = activeForm?.versions[0]?.sections || [];
-            const formState = getInitialFormState(sections);
-            parsedState = { ...initialState, ...parsed, formState };
-          }
-        } catch (error) {
-           console.error("Failed to parse state from localStorage, initializing with default.", error);
-        }
-      }
-
-      dispatchAction({ type: "SET_STATE", payload: parsedState });
-      setIsLoaded(true);
+    if (!firestore || !user) {
+        dispatchAction({ type: "SET_FORMS", payload: [] });
+        setIsLoaded(true);
+        return;
     }
-  }, []);
 
-  useEffect(() => {
-    if (isLoaded && state !== initialState) {
-        try {
-            const stateToSave = JSON.stringify(state);
-            localStorage.setItem(LOCAL_STORAGE_KEY, stateToSave);
-        } catch (error) {
-            console.error("Failed to save state to localStorage", error);
-        }
-    }
-  }, [state, isLoaded]);
+    const formsCollection = collection(firestore, 'formTemplates');
+    const unsubscribe = onSnapshot(formsCollection, (snapshot) => {
+        const formsData = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Form))
+            .filter(form => form.ownerId === user.uid); // Filter for current user
+
+        dispatchAction({ type: "SET_FORMS", payload: formsData });
+        if (!isLoaded) setIsLoaded(true);
+    }, (error) => {
+        console.error("Error fetching forms:", error);
+        setIsLoaded(true); // Still allow app to load, but with no data
+    });
+
+    return () => unsubscribe();
+  }, [firestore, user, isLoaded]);
+  
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
   const sections = activeForm?.versions[0]?.sections || [];
@@ -956,37 +679,122 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const configurations = activeForm?.versions[0]?.configurations || [];
   
   const dispatch = (action: Action): string | void => {
-    if (action.type === 'ADD_FORM') {
-      const newState = builderReducer(state, action);
-      dispatchAction({type: "SET_STATE", payload: newState });
-      return newState.activeFormId;
+    if (!firestore || !user) {
+        // Fallback to local state changes if firestore is not available
+        return dispatchAction(action);
     }
     
-    if (action.type === 'ADD_CATEGORY') {
-        const newState = builderReducer(state, action);
-        const newId = newState.activeFormId; // The reducer temporarily stores the new ID here
-        // We need to dispatch again to reset activeFormId if needed, or just set the state
-        dispatchAction({ type: 'SET_STATE', payload: { ...newState, activeFormId: state.activeFormId } });
-        return newId; // Return the captured new category ID
+    switch(action.type) {
+        case "ADD_FORM": {
+            const { title, description, categoryId, subCategoryId } = action.payload;
+            const newVersion: FormVersion = {
+              id: crypto.randomUUID(), name: "Version 1", description: description || "Initial version", type: "draft", timestamp: new Date().toISOString(),
+              sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }], rules: [], workflows: [], configurations: []
+            };
+            const newForm = { 
+                title, categoryId, subCategoryId, 
+                ownerId: user.uid,
+                versions: [newVersion]
+            };
+            addDocumentNonBlocking(collection(firestore, 'formTemplates'), newForm).then(docRef => {
+                 dispatchAction({ type: "SET_ACTIVE_FORM", payload: { formId: docRef.id } });
+            });
+            // We can't return the ID synchronously anymore
+            return;
+        }
+        case "DELETE_FORM":
+            deleteDocumentNonBlocking(doc(firestore, 'formTemplates', action.payload.formId));
+            return;
+        case "CLONE_FORM": {
+             const { formId, newName } = action.payload;
+             const formToClone = state.forms.find(f => f.id === formId);
+             if (!formToClone) return;
+             const latestVersionContent = formToClone.versions[0];
+             const newVersionContent = cloneWithNewIds(latestVersionContent);
+             const newFormDoc = {
+                title: newName, categoryId: formToClone.categoryId, subCategoryId: formToClone.subCategoryId, ownerId: user.uid,
+                versions: [{ ...newVersionContent, id: crypto.randomUUID(), name: "Initial Draft", description: `Cloned from "${formToClone.title}"`, type: "draft" as "draft", timestamp: new Date().toISOString(), workflows: newVersionContent.workflows || [] }]
+             };
+             addDocumentNonBlocking(collection(firestore, 'formTemplates'), newFormDoc);
+             return;
+        }
+        case 'UPDATE_FORM_TITLE': {
+             if (!activeForm) return;
+             updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { title: action.payload.title });
+             return;
+        }
+        case 'UPDATE_FORM_METADATA': {
+             if (!activeForm) return;
+             updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { categoryId: action.payload.categoryId, subCategoryId: action.payload.subCategoryId });
+             return;
+        }
+        case "SAVE_VERSION": {
+          if (!activeForm) return;
+          const { name, description, type, sections, rules, workflows, configurations } = action.payload;
+          const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp: new Date().toISOString(), sections, rules, workflows, configurations };
+          const updatedVersions = [newVersion, ...activeForm.versions];
+          updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: updatedVersions });
+          return;
+        }
+        case 'LOAD_VERSION': {
+            if (!activeForm) return;
+            const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
+            if (!versionToLoad) return;
+            const otherVersions = activeForm.versions.filter(v => v.id !== action.payload.versionId);
+            const newVersions = [versionToLoad, ...otherVersions];
+            updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+            const formState = getInitialFormState(versionToLoad.sections || []);
+            dispatchAction({ type: "SET_FORM_STATE", payload: formState });
+            return;
+        }
+        case 'DELETE_VERSION': {
+            if (!activeForm) return;
+            const newVersions = activeForm.versions.filter(v => v.id !== action.payload.versionId);
+            updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+            return;
+        }
+        case "SET_SECTIONS":
+        case "UPDATE_RULES":
+        case "UPDATE_WORKFLOWS":
+        case "UPDATE_CONFIGURATIONS":
+             if (!activeForm) return;
+             const newState = builderReducer(state, action);
+             const newActiveForm = newState.forms.find(f => f.id === state.activeFormId);
+             if (newActiveForm) {
+                updateDocumentNonBlocking(doc(firestore, 'formTemplates', newActiveForm.id), { versions: newActiveForm.versions });
+             }
+             return;
+        default:
+            dispatchAction(action);
     }
-
-    dispatchAction(action);
   }
-  
+
   const setSections = (newSections: Section[]) => {
-    dispatchAction({ type: 'SET_SECTIONS', payload: { sections: newSections }})
+    if (!activeForm || !firestore) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], sections: newSections, timestamp: new Date().toISOString() };
+    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
   }
 
   const updateRules = (newRules: Rule[]) => {
-    dispatchAction({ type: 'UPDATE_RULES', payload: { rules: newRules }});
+    if (!activeForm || !firestore) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], rules: newRules, timestamp: new Date().toISOString() };
+    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
   }
   
   const updateWorkflows = (newWorkflows: Workflow[]) => {
-    dispatchAction({ type: 'UPDATE_WORKFLOWS', payload: { workflows: newWorkflows }});
+    if (!activeForm || !firestore) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], workflows: newWorkflows, timestamp: new Date().toISOString() };
+    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
   }
 
   const updateConfigurations = (newConfigurations: Configuration[]) => {
-    dispatchAction({ type: 'UPDATE_CONFIGURATIONS', payload: { configurations: newConfigurations }});
+    if (!activeForm || !firestore) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], configurations: newConfigurations, timestamp: new Date().toISOString() };
+    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
   }
 
   const setFormState = (newState: { [key: string]: { value: any, fullObject?: any } }) => {

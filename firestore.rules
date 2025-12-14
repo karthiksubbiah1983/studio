@@ -1,152 +1,21 @@
-/**
- * Core Philosophy: This ruleset enforces a strict ownership model for form templates and their nested components. All data is organized under a top-level `formTemplates` collection. Access to any document (a template, section, or element) is granted only if the requesting user is the designated owner of the root `FormTemplate` document.
- *
- * Data Structure: The data is hierarchical. A top-level `/formTemplates` collection holds all templates. Each template document can contain a `sections` subcollection, and each section can contain a `formElements` subcollection.
- *
- * Key Security Decisions:
- * - Ownership-Based Access: All security decisions are based on an `ownerId` field that MUST exist on every `FormTemplate` document. This field is the single source of truth for authorization.
- * - Denied Listing: Listing documents from the top-level `/formTemplates` collection is explicitly disallowed. This is a critical security measure to prevent any user from discovering or downloading all templates created by other users. Client applications must be designed to fetch templates via known IDs or through a separate, secure indexing mechanism (like a user-specific document that lists their template IDs).
- * - Subcollection Inheritance: Access to `sections` and `formElements` subcollections is determined by checking the `ownerId` of the parent `FormTemplate` document. This ensures that all components of a template share the same secure ownership.
- * - Relational Integrity: The rules enforce that subcollection documents correctly reference their parent IDs in their own data fields upon creation (e.g., a new Section must have a `formTemplateId` that matches the path), and that these relational fields are immutable once set.
- *
- * Denormalization for Authorization: The entire security model relies on the denormalization of an `ownerId` field onto each `FormTemplate` document. This allows for fast and secure authorization checks for the template and all its sub-collections without needing to consult other collections. For subcollections, a single `get()` call to the parent template is used to verify this ownership.
- */
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    //-------------------------------------------------------------------------
-    // Helper Functions
-    //-------------------------------------------------------------------------
-
-    /**
-     * Returns true if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Returns true if the authenticated user's UID matches the provided userId.
-     */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
-    /**
-     * Returns true if the user is the owner of an existing document.
-     * Used for safe update and delete operations.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * Returns true if the user is the owner of the parent FormTemplate.
-     * This function performs a read to the parent document to check ownership,
-     * securing all nested subcollections.
-     */
-    function isParentTemplateOwner(templateId) {
-      let templateData = get(/databases/$(database)/documents/formTemplates/$(templateId)).data;
-      // CRITICAL: Check for the presence of ownerId. This field is required for security.
-      return isSignedIn() && 'ownerId' in templateData && templateData.ownerId == request.auth.uid;
-    }
-
-    //-------------------------------------------------------------------------
-    // Authorization & Validation Functions
-    //-------------------------------------------------------------------------
-
-    /**
-     * Validates that a new FormTemplate has the creator's UID as the ownerId.
-     * This is a critical check to establish ownership upon creation.
-     */
-    function isNewTemplateOwner() {
-      return request.resource.data.ownerId == request.auth.uid;
-    }
-    
-    /**
-     * Validates that the ownerId field of a FormTemplate cannot be changed.
-     */
-    function isOwnerImmutable() {
-      return request.resource.data.ownerId == resource.data.ownerId;
-    }
-
-    /**
-     * Validates relational integrity for a new Section document.
-     */
-    function hasValidSectionData(formTemplateId) {
-      return request.resource.data.formTemplateId == formTemplateId;
-    }
-
-    /**
-     * Enforces immutability of the parent link for a Section document on update.
-     */
-    function isSectionParentImmutable() {
-      return request.resource.data.formTemplateId == resource.data.formTemplateId;
-    }
-
-    /**
-     * Validates relational integrity for a new FormElement document.
-     */
-    function hasValidElementData(sectionId) {
-      return request.resource.data.sectionId == sectionId;
-    }
-    
-    /**
-     * Enforces immutability of the parent link for a FormElement document on update.
-     */
-    function isElementParentImmutable() {
-      return request.resource.data.sectionId == resource.data.sectionId;
-    }
-
-    //-------------------------------------------------------------------------
-    // Collection Rules
-    //-------------------------------------------------------------------------
-
-    /**
-     * @description Manages FormTemplate documents. Access is restricted to the document's owner.
-     * @path /formTemplates/{formTemplateId}
-     * @allow (get) An authenticated user with UID 'user123' reads their own template where `resource.data.ownerId == 'user123'`.
-     * @deny (list) Any user attempts to list all documents in the collection. This is disallowed to prevent data leakage.
-     * @deny (update) User 'user456' attempts to update a template where `resource.data.ownerId == 'user123'`.
-     * @principle Enforces strict document ownership based on an `ownerId` field. Disallows collection-level listing to protect user privacy.
-     */
     match /formTemplates/{formTemplateId} {
-      allow get: if isOwner(resource.data.ownerId);
-      allow list: if false;
-      allow create: if isSignedIn() && isNewTemplateOwner();
-      allow update: if isExistingOwner(resource.data.ownerId) && isOwnerImmutable();
-      allow delete: if isExistingOwner(resource.data.ownerId);
-    }
-
-    /**
-     * @description Manages the Sections within a FormTemplate. Access is inherited from the parent template.
-     * @path /formTemplates/{formTemplateId}/sections/{sectionId}
-     * @allow (create) The owner of `formTemplateId` creates a new section document within it.
-     * @deny (get) A user who is not the owner of `formTemplateId` tries to read a section.
-     * @deny (update) The owner of `formTemplateId` tries to change the `formTemplateId` field within a section document.
-     * @principle Enforces hierarchical security. Access is granted by checking ownership of the parent document.
-     */
-    match /formTemplates/{formTemplateId}/sections/{sectionId} {
-      allow get, list: if isParentTemplateOwner(formTemplateId);
-      allow create: if isParentTemplateOwner(formTemplateId) && hasValidSectionData(formTemplateId);
-      allow update: if isParentTemplateOwner(formTemplateId) && isSectionParentImmutable() && resource != null;
-      allow delete: if isParentTemplateOwner(formTemplateId) && resource != null;
-    }
-
-    /**
-     * @description Manages FormElements within a Section. Access is inherited from the grandparent FormTemplate.
-     * @path /formTemplates/{formTemplateId}/sections/{sectionId}/formElements/{formElementId}
-     * @allow (list) The owner of `formTemplateId` lists all form elements within a section.
-     * @deny (create) A user who does not own `formTemplateId` attempts to add a new form element.
-     * @deny (delete) Any user attempts to delete a form element from a template they do not own.
-     * @principle Ensures that fine-grained data remains protected by the same ownership rules as the root document in the hierarchy.
-     */
-    match /formTemplates/{formTemplateId}/sections/{sectionId}/formElements/{formElementId} {
-      allow get, list: if isParentTemplateOwner(formTemplateId);
-      allow create: if isParentTemplateOwner(formTemplateId) && hasValidElementData(sectionId);
-      allow update: if isParentTemplateOwner(formTemplateId) && isElementParentImmutable() && resource != null;
-      allow delete: if isParentTemplateOwner(formTemplateId) && resource != null;
+      allow read: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow list: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
     }
   }
 }

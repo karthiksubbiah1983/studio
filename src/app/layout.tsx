@@ -10,6 +10,7 @@ import "@fortawesome/fontawesome-svg-core/styles.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppLayout } from "@/components/app-layout";
 import { AuthProvider } from "@/hooks/use-auth";
+import { FirebaseClientProvider } from "@/firebase";
 
 config.autoAddCss = false;
 
@@ -33,15 +34,17 @@ export default function RootLayout({
           inter.variable
         )}
       >
-        <AuthProvider>
+        <FirebaseClientProvider>
+          <AuthProvider>
             <BuilderProvider>
-            <SidebarProvider>
+              <SidebarProvider>
                 <AppLayout>
-                {children}
+                  {children}
                 </AppLayout>
-            </SidebarProvider>
+              </SidebarProvider>
             </BuilderProvider>
-        </AuthProvider>
+          </AuthProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>

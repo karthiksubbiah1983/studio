@@ -3,74 +3,73 @@
 
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useFirebase } from "@/firebase";
+import { 
+    createUserWithEmailAndPassword, 
+    signInWithEmailAndPassword, 
+    signOut 
+} from "firebase/auth";
 
 type User = {
   username: string;
+  email: string;
 };
 
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
-  login: (username: string, pass: string) => Promise<boolean>;
+  login: (email: string, pass: string) => Promise<boolean>;
   logout: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_STORAGE_KEY = "auth-user";
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { auth, user: firebaseUser, isUserLoading } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Check for saved user in localStorage on initial client load
-    try {
-      const savedUser = localStorage.getItem(AUTH_STORAGE_KEY);
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
+    if (!isUserLoading) {
+      if (firebaseUser) {
+        setUser({ 
+          username: firebaseUser.email?.split('@')[0] || 'User',
+          email: firebaseUser.email || ''
+        });
+      } else {
+        setUser(null);
       }
-    } catch (error) {
-      console.error("Failed to parse auth user from localStorage", error);
-    } finally {
-      setIsLoading(false);
     }
-  }, []);
+  }, [firebaseUser, isUserLoading]);
 
-  const login = async (username: string, pass: string) => {
-    // Hardcoded credentials check
-    const validUsers = {
-      "Karthik1983": "$Karthik1983$",
-      "RajShah": "RajShah",
-    };
-
-    if (validUsers[username as keyof typeof validUsers] === pass) {
-      const newUser = { username };
-      setUser(newUser);
-      try {
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
-      } catch (error) {
-        console.error("Failed to save auth user to localStorage", error);
-      }
+  const login = async (email: string, pass: string) => {
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
       router.push("/");
       return true;
+    } catch (error: any) {
+        if (error.code === 'auth/user-not-found') {
+            try {
+                await createUserWithEmailAndPassword(auth, email, pass);
+                router.push("/");
+                return true;
+            } catch (signUpError) {
+                console.error("Sign up error:", signUpError);
+                return false;
+            }
+        }
+      console.error("Login error:", error);
+      return false;
     }
-    return false;
   };
 
-  const logout = () => {
-    setUser(null);
-    try {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-    } catch (error) {
-      console.error("Failed to remove auth user from localStorage", error);
-    }
+  const logout = async () => {
+    await signOut(auth);
     router.push("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading: isUserLoading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
