@@ -8,6 +8,7 @@ import { getAllElements } from "@/lib/utils";
 import { useFirebase } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
+import { useRouter } from "next/navigation";
 
 type State = {
   forms: Form[];
@@ -646,6 +647,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatchAction] = useReducer(builderReducer, initialState);
   const [isLoaded, setIsLoaded] = useState(false);
   const { firestore, user } = useFirebase();
+  const router = useRouter();
 
   // Firestore subscription
   useEffect(() => {
@@ -697,9 +699,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 versions: [newVersion]
             };
             addDocumentNonBlocking(collection(firestore, 'formTemplates'), newForm).then(docRef => {
-                 dispatchAction({ type: "SET_ACTIVE_FORM", payload: { formId: docRef.id } });
+                 if (docRef) {
+                    router.push(`/builder/${docRef.id}`);
+                 }
             });
-            // We can't return the ID synchronously anymore
             return;
         }
         case "DELETE_FORM":

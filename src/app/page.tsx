@@ -100,7 +100,7 @@ export default function Home() {
 
   const handleCreateNew = () => {
     if (!newTemplateName.trim() || !selectedCategoryId) return;
-    const newFormId = dispatch({ 
+    dispatch({ 
       type: "ADD_FORM", 
       payload: { 
         title: newTemplateName,
@@ -109,9 +109,8 @@ export default function Home() {
         subCategoryId: selectedSubCategoryId,
       } 
     });
-    if (newFormId) {
-      router.push(`/builder/${newFormId}`);
-    }
+    // The navigation is now handled inside the useBuilder hook after the form is created in Firestore
+    
     // Reset fields
     setNewTemplateName("");
     setNewTemplateDescription("");
