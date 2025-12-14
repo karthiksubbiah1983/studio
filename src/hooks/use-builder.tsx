@@ -6,7 +6,7 @@ import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, 
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements } from "@/lib/utils";
-import { useFirebase, useMemoFirebase } from "@/firebase";
+import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
@@ -671,7 +671,11 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         dispatch({ type: "SET_FORMS", payload: formsData });
         if (!isLoaded) setIsLoaded(true);
     }, (error) => {
-        console.error("Error fetching forms:", error);
+        const contextualError = new FirestorePermissionError({
+          operation: 'list',
+          path: 'formTemplates',
+        });
+        errorEmitter.emit('permission-error', contextualError);
         if (!isLoaded) setIsLoaded(true);
     });
     return () => unsubscribe();
@@ -690,12 +694,14 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         const data = docSnap.data();
         dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: data.categories || [], sites: data.sites || [] } });
       } else {
-        console.log("User settings document not found for user:", user.uid);
-        dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: [], sites: [] } });
+        // This is expected for new users, initial settings are created on signup
       }
     }, (error) => {
-      console.error("Error fetching user settings:", error);
-      dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: [], sites: [] } });
+        const contextualError = new FirestorePermissionError({
+            operation: 'get',
+            path: userSettingsDocRef.path,
+        });
+        errorEmitter.emit('permission-error', contextualError);
     });
 
     return () => unsubscribe();
