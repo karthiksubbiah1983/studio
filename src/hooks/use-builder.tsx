@@ -25,6 +25,7 @@ type State = {
 };
 
 type Action =
+  | { type: "ADD_FORM"; payload: Form }
   | { type: "SET_FORMS"; payload: Form[] }
   | { type: "UPDATE_FORM_TITLE"; payload: { formId: string, title: string } }
   | { type: "DELETE_FORM"; payload: { formId: string } }
@@ -263,6 +264,8 @@ const builderReducer = (state: State, action: Action): State => {
   const activeFormSections = activeForm?.versions[0]?.sections || [];
 
   switch (action.type) {
+    case "ADD_FORM":
+        return { ...state, forms: [...state.forms, action.payload] };
     case "SET_FORMS":
         return { ...state, forms: action.payload };
     case "SET_FORM_STATE":
@@ -687,7 +690,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
   
-  const addNewForm = (payload: AddNewFormPayload): Promise<DocumentReference> => {
+  const addNewForm = async (payload: AddNewFormPayload): Promise<DocumentReference> => {
     if (!firestore || !user) {
         return Promise.reject("Firestore not initialized");
     }
@@ -696,12 +699,22 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         id: crypto.randomUUID(), name: "Version 1", description: description || "Initial version", type: "draft", timestamp: new Date().toISOString(),
         sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }], rules: [], workflows: [], configurations: []
     };
-    const newForm = { 
+    const newFormDocData = { 
         title, categoryId, subCategoryId, 
         ownerId: user.uid,
         versions: [newVersion]
     };
-    return addDoc(collection(firestore, 'formTemplates'), newForm);
+    
+    const docRef = await addDoc(collection(firestore, 'formTemplates'), newFormDocData);
+    
+    // Manually add the new form to the local state to ensure consistency
+    const newFormWithId: Form = {
+        id: docRef.id,
+        ...newFormDocData
+    };
+    dispatch({ type: "ADD_FORM", payload: newFormWithId });
+
+    return docRef;
   }
 
   const setSections = (newSections: Section[]) => {
@@ -839,3 +852,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
