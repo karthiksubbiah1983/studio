@@ -18,6 +18,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isBuilderPage = pathname.startsWith('/builder');
   const isLoginPage = pathname === '/login';
   const isMyTasksPage = pathname.startsWith('/my-tasks/');
+
+  useEffect(() => {
+    // Dynamically import and run the polyfill only on the client-side
+    // after the component has mounted to prevent hydration errors.
+    import('@/lib/dnd-touch-polyfill');
+  }, []);
   
   useEffect(() => {
     if (isLoading) return;
