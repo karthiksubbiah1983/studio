@@ -620,7 +620,7 @@ const updateActiveFormInState = (forms: Form[], activeFormId: string, updates: P
 
 type BuilderContextType = {
   state: State;
-  dispatch: (action: Action) => string | void;
+  dispatch: (action: Action) => any;
   forms: Form[];
   categories: Category[];
   sites: Site[];
@@ -647,7 +647,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatchAction] = useReducer(builderReducer, initialState);
   const [isLoaded, setIsLoaded] = useState(false);
   const { firestore, user } = useFirebase();
-  const router = useRouter();
 
   // Firestore subscription
   useEffect(() => {
@@ -680,7 +679,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
   
-  const dispatch = (action: Action): string | void => {
+  const dispatch = (action: Action) => {
     if (!firestore || !user) {
         // Fallback to local state changes if firestore is not available
         return dispatchAction(action);
@@ -698,12 +697,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 ownerId: user.uid,
                 versions: [newVersion]
             };
-            addDocumentNonBlocking(collection(firestore, 'formTemplates'), newForm).then(docRef => {
-                 if (docRef) {
-                    router.push(`/builder/${docRef.id}`);
-                 }
-            });
-            return;
+            return addDocumentNonBlocking(collection(firestore, 'formTemplates'), newForm);
         }
         case "DELETE_FORM":
             deleteDocumentNonBlocking(doc(firestore, 'formTemplates', action.payload.formId));

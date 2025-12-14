@@ -98,9 +98,11 @@ export default function Home() {
     return subCategory?.name || "—";
   }
 
-  const handleCreateNew = () => {
+  const handleCreateNew = async () => {
     if (!newTemplateName.trim() || !selectedCategoryId) return;
-    dispatch({ 
+    
+    // Dispatch and await the promise which resolves with the new document reference
+    const docRef: any = await dispatch({ 
       type: "ADD_FORM", 
       payload: { 
         title: newTemplateName,
@@ -109,7 +111,6 @@ export default function Home() {
         subCategoryId: selectedSubCategoryId,
       } 
     });
-    // The navigation is now handled inside the useBuilder hook after the form is created in Firestore
     
     // Reset fields
     setNewTemplateName("");
@@ -117,6 +118,11 @@ export default function Home() {
     setSelectedCategoryId(null);
     setSelectedSubCategoryId(null);
     setIsNewTemplateDialogOpen(false);
+    
+    // Navigate after we have the new ID
+    if (docRef?.id) {
+        router.push(`/builder/${docRef.id}`);
+    }
   };
 
   const handleEdit = (formId: string) => {
