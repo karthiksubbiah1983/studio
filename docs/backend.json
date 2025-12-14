@@ -1,0 +1,204 @@
+{
+  "entities": {
+    "FormTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FormTemplate",
+      "type": "object",
+      "description": "Represents a form template created within FormForge.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the form template."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the form template."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of the form template's purpose."
+        },
+        "layout": {
+          "type": "string",
+          "description": "The layout configuration of the form (e.g., 2-column, 3-column).",
+          "format": "string"
+        },
+        "sections": {
+          "type": "array",
+          "description": "An array of section IDs that comprise the form template.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the form template was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the form template was last updated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "layout",
+        "sections",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Section": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Section",
+      "type": "object",
+      "description": "Represents a section within a form template, grouping related elements.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the section."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name or title of the section."
+        },
+        "formTemplateId": {
+          "type": "string",
+          "description": "Reference to FormTemplate. (Relationship: FormTemplate 1:N Section)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of the section (e.g., expanded, normal).",
+          "format": "string"
+        },
+        "elementIds": {
+          "type": "array",
+          "description": "An array of form element IDs contained within this section.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "formTemplateId",
+        "type",
+        "elementIds"
+      ]
+    },
+    "FormElement": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FormElement",
+      "type": "object",
+      "description": "Represents a single form element (e.g., text input, dropdown) within a section.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the form element."
+        },
+        "sectionId": {
+          "type": "string",
+          "description": "Reference to Section. (Relationship: Section 1:N FormElement)"
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of form element (e.g., text, number, select).",
+          "format": "string"
+        },
+        "label": {
+          "type": "string",
+          "description": "The user-friendly label displayed for the form element."
+        },
+        "configuration": {
+          "type": "string",
+          "description": "JSON string containing configuration options for the form element.",
+          "format": "string"
+        },
+        "order": {
+          "type": "number",
+          "description": "The display order of elements in the section"
+        }
+      },
+      "required": [
+        "id",
+        "sectionId",
+        "type",
+        "label",
+        "configuration"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/formTemplates/{formTemplateId}",
+        "definition": {
+          "entityName": "FormTemplate",
+          "schema": {
+            "$ref": "#/backend/entities/FormTemplate"
+          },
+          "description": "Stores form templates. Enforces path-based ownership, so only the creator can modify a FormTemplate.",
+          "params": [
+            {
+              "name": "formTemplateId",
+              "description": "The unique ID of the form template."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/formTemplates/{formTemplateId}/sections/{sectionId}",
+        "definition": {
+          "entityName": "Section",
+          "schema": {
+            "$ref": "#/backend/entities/Section"
+          },
+          "description": "Stores sections belonging to a specific form template. Maintains the relationship between templates and their sections and ensures data locality.",
+          "params": [
+            {
+              "name": "formTemplateId",
+              "description": "The unique ID of the form template."
+            },
+            {
+              "name": "sectionId",
+              "description": "The unique ID of the section."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/formTemplates/{formTemplateId}/sections/{sectionId}/formElements/{formElementId}",
+        "definition": {
+          "entityName": "FormElement",
+          "schema": {
+            "$ref": "#/backend/entities/FormElement"
+          },
+          "description": "Stores individual form elements within a section of a form template. This structure mirrors the hierarchical relationship between templates, sections, and elements.",
+          "params": [
+            {
+              "name": "formTemplateId",
+              "description": "The unique ID of the form template."
+            },
+            {
+              "name": "sectionId",
+              "description": "The unique ID of the section."
+            },
+            {
+              "name": "formElementId",
+              "description": "The unique ID of the form element."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to store form templates, sections, and form elements for the FormForge application. It prioritizes path-based ownership for user-specific data, providing a clear and secure way to manage access. The structure leverages hierarchical paths to represent the relationships between users, templates, sections, and elements. This design ensures authorization independence and enables secure list operations by avoiding the need for `get()` calls in security rules, enhancing security and debuggability. Additionally, all form templates are stored under the `/formTemplates` collection. Section and Form Element have been designed as subcollections to the FormTemplates collection to have a hierachical structure. This also supports the QAPs by ensuring each document is associated to a single form template.\n\nKey aspects of the structure:\n\n*   **/users/{userId}/formTemplates/{formTemplateId}:** Stores form templates owned by individual users. This enforces path-based ownership, ensuring that only the user can access their own templates.\n*   **/users/{userId}/formTemplates/{formTemplateId}/sections/{sectionId}:** Stores sections belonging to a specific form template. This maintains the relationship between templates and their sections and ensures data locality.\n*   **/users/{userId}/formTemplates/{formTemplateId}/sections/{sectionId}/formElements/{formElementId}:** Stores individual form elements within a section of a form template. This structure mirrors the hierarchical relationship between templates, sections, and elements.\n\nThis structure achieves Authorization Independence because authorization depends on the user ID in the path, rather than relying on data from other documents. This eliminates the need for `get()` calls in security rules and allows for atomic operations. It supports secure list operations because the path-based ownership makes it easy to filter documents based on the user ID."
+  }
+}
