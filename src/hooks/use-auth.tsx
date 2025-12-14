@@ -12,7 +12,9 @@ import {
 } from "firebase/auth";
 
 type User = {
-  email: string;
+  uid: string;
+  email: string | null;
+  username: string | null;
 };
 
 type AuthContextType = {
@@ -30,15 +32,18 @@ const isValidEmail = (email: string) => {
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const { auth, firebaseUser, isUserLoading } = useFirebase();
+  const { auth, user: firebaseUser, isUserLoading } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {
     if (!isUserLoading) {
       if (firebaseUser) {
+        const username = firebaseUser.email?.split('@')[0] || null;
         setUser({ 
-          email: firebaseUser.email || ''
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          username: username
         });
       } else {
         setUser(null);
@@ -65,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
             try {
                 await createUserWithEmailAndPassword(auth, authEmail, pass);
+                // The userSettings document will now be created by the listener in use-builder.tsx
                 router.push("/");
                 return true;
             } catch (signUpError) {

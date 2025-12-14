@@ -158,7 +158,7 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
         updateConditions(workflow.conditions);
         if (workflow.actions && Array.isArray(workflow.actions)) {
             workflow.actions.forEach((action: any) => {
-                if (action.id && idMap[action.id]) action.id = idMap[action.id];
+                if (action.id) idMap[action.id] = idMap[action.id];
             });
         }
      });
@@ -657,11 +657,11 @@ const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
   const [isLoaded, setIsLoaded] = useState(false);
-  const { firestore, user } = useFirebase();
+  const { firestore, user, isUserLoading } = useFirebase();
 
   // Firestore subscription for forms
   useEffect(() => {
-    if (!firestore || !user) {
+    if (isUserLoading || !firestore || !user) {
         if (isLoaded) dispatch({ type: "SET_FORMS", payload: [] });
         return;
     }
@@ -679,36 +679,28 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         if (!isLoaded) setIsLoaded(true);
     });
     return () => unsubscribe();
-  }, [firestore, user, isLoaded]);
+  }, [firestore, user, isUserLoading, isLoaded]);
 
   // Firestore subscription for user settings (categories, sites)
   useEffect(() => {
-    if (!firestore || !user) {
+    if (isUserLoading || !firestore || !user) {
       dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: [], sites: [] } });
       return;
     }
     const userSettingsDocRef = doc(firestore, 'userSettings', user.uid);
 
-    const handleNewUser = async () => {
-        const docSnap = await getDoc(userSettingsDocRef);
-        if (!docSnap.exists()) {
-             try {
-                await setDoc(userSettingsDocRef, {
-                    ownerId: user.uid,
-                    categories: [],
-                    sites: [],
-                });
-            } catch (error) {
-                console.error("Error creating initial user settings:", error);
-            }
-        }
-    }
-    handleNewUser();
-
     const unsubscribe = onSnapshot(userSettingsDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: data.categories || [], sites: data.sites || [] } });
+      } else {
+        // Document doesn't exist, create it for the new user.
+        const initialSettings = {
+            ownerId: user.uid,
+            categories: [],
+            sites: [],
+        };
+        setDocumentNonBlocking(userSettingsDocRef, initialSettings, {});
       }
     }, (error) => {
         const contextualError = new FirestorePermissionError({
@@ -719,7 +711,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [firestore, user]);
+  }, [firestore, user, isUserLoading]);
   
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
@@ -880,7 +872,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     }
   }
 
-  if (!isLoaded) {
+  if (!isLoaded && isUserLoading) {
     return (
         <main className="flex flex-col items-center justify-center w-full min-h-screen bg-background p-4 md:p-8">
             <div className="text-center">
