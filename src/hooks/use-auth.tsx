@@ -44,6 +44,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Special case for the user "RajShah"
     if (email === "RajShah" && pass === "RajShah") {
       email = "rajshah@example.com"; // Use a dummy email for Firebase auth
+    } else if (email === "Karthik1983" && pass === "Karthik1983") {
+      email = "karthik1983@example.com"; // Use a dummy email for Firebase auth
     }
 
     try {
