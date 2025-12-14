@@ -36,7 +36,7 @@ export function AppHeader({ title, description }: AppHeaderProps) {
         >
           <SidebarTrigger className="h-8 w-8 text-primary hover:text-primary/90 hover:bg-accent" />
           <Link href="/" className="flex items-center gap-2 text-primary hover:text-primary/90 transition-colors">
-            <h1 className="text-xl font-bold">CoPilot</h1>
+            <h1 className="text-xl font-bold">Digitise Admin</h1>
           </Link>
         </div>
         <div className="flex items-center px-6">

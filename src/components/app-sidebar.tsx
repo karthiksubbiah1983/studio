@@ -6,21 +6,23 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuSub,
+  SidebarSeparator,
 } from "@/components/ui/sidebar";
 import {
-  Home,
-  ListTodo,
-  History,
-  CalendarCheck,
-  FileWarning,
+  LayoutDashboard,
+  ClipboardList,
+  Table,
+  Settings,
   Users,
-  Tags,
-  ChevronDown,
-  LayoutGrid,
   Folder,
-  FileDigit,
   Building,
-  ClipboardList
+  ListTodo,
+  FileClock,
+  Megaphone,
+  Mail,
+  Cog,
+  Link as LinkIcon,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -33,52 +35,59 @@ type MenuItem = {
   label: string;
   icon: React.ElementType;
   children?: MenuItem[];
+  isHeader?: boolean;
 };
 
 const menuItems: MenuItem[] = [
+  { href: "#", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/all-tasks", label: "All Task", icon: ClipboardList },
+  { href: "#", label: "Site Overview", icon: Table },
   {
     href: "#",
     label: "Administration",
-    icon: Users,
+    icon: Settings,
+    isHeader: true,
     children: [
-        { href: "/", label: "Manage Templates", icon: Folder },
-        { href: "/categories", label: "Categories", icon: Tags },
-        { href: "/sites", label: "Manage Sites", icon: Building },
+        { href: "/sites", label: "Site Management", icon: Building, children: [
+          { href: "/", label: "Manage Templates", icon: Folder },
+          { href: "/categories", label: "Categories", icon: Folder },
+        ] },
+        { href: "#", label: "User Management", icon: Users, children: [] },
+        { href: "#", label: "Task Management", icon: ListTodo, children: [] },
+        { href: "#", label: "Audit Log", icon: FileClock },
+        { href: "#", label: "Announcement", icon: Megaphone },
+        { href: "#", label: "Mail Setup", icon: Mail },
+        { href: "#", label: "Configurations", icon: Cog },
     ],
   },
-  {
-    href: "/all-tasks",
-    label: "All Tasks",
-    icon: ClipboardList,
-  },
-  {
-    href: "#",
-    label: "Tasks",
-    icon: ListTodo,
-    children: [
-      {
-        href: "#",
-        label: "Sub Task 1",
-        icon: ListTodo,
-        children: [
-          { href: "#", label: "Sub-Sub Task 1", icon: ListTodo },
-          { href: "#", label: "Sub-Sub Task 2", icon: ListTodo },
-        ],
-      },
-      { href: "#", label: "Sub Task 2", icon: ListTodo },
-    ],
-  },
-  { href: "#", label: "Forward View", icon: History },
-  { href: "#", label: "Task Scheduler", icon: CalendarCheck },
-  { href: "#", label: "Accident Report", icon: FileWarning },
-  { href: "#", label: "Community", icon: Users },
+];
+
+const quickLinks: MenuItem[] = [
+    { href: "#", label: "Future Task", icon: LinkIcon, isHeader: true},
+    { href: "#", label: "Accident Report", icon: LinkIcon },
+    { href: "#", label: "Incident Report", icon: LinkIcon },
+    { href: "#", label: "Co Pilot Admin", icon: LinkIcon },
+    { href: "#", label: "Daily Handover", icon: LinkIcon },
+    { href: "#", label: "Housekeeping Request", icon: LinkIcon },
+    { href: "#", label: "Compliance Report", icon: LinkIcon },
+    { href: "#", label: "PI Service Quality Assurance", icon: LinkIcon },
+    { href: "#", label: "Food Traceability", icon: LinkIcon },
 ];
 
 const SidebarMenuEntry = ({ item, level = 1 }: { item: MenuItem, level?: number }) => {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(item.isHeader);
   const hasChildren = item.children && item.children.length > 0;
-  const isActive = (pathname === item.href && item.href !== '#') || (hasChildren && isOpen && level === 1);
+  
+  const checkActive = (item: MenuItem): boolean => {
+    if (item.href === pathname && item.href !== '#') return true;
+    if (item.children) {
+      return item.children.some(child => checkActive(child));
+    }
+    return false;
+  }
+  
+  const isActive = checkActive(item);
 
   const handleToggle = (e: React.MouseEvent) => {
     if (hasChildren) {
@@ -108,6 +117,7 @@ const SidebarMenuEntry = ({ item, level = 1 }: { item: MenuItem, level?: number 
   } as const;
 
   const currentLevelStyle = levelClasses[level as keyof typeof levelClasses] || levelClasses[1];
+  const isActuallyActive = (pathname === item.href && item.href !== '#');
 
   return (
     <SidebarMenuItem>
@@ -115,9 +125,11 @@ const SidebarMenuEntry = ({ item, level = 1 }: { item: MenuItem, level?: number 
         <SidebarMenuButton
           className={cn(
             currentLevelStyle.button,
-            isActive ? currentLevelStyle.active : currentLevelStyle.inactive
+            item.isHeader && "font-bold",
+            isActuallyActive ? currentLevelStyle.active : currentLevelStyle.inactive,
+            (isActive && !isActuallyActive && level === 1) && "bg-primary/10 text-primary"
           )}
-          isActive={isActive}
+          isActive={isActuallyActive}
           tooltip={item.label}
         >
           <div className="flex items-center justify-between w-full">
@@ -132,7 +144,7 @@ const SidebarMenuEntry = ({ item, level = 1 }: { item: MenuItem, level?: number 
         </SidebarMenuButton>
       </Link>
       {hasChildren && isOpen && (
-        <SidebarMenuSub className={cn("flex flex-col", currentLevelStyle.bg)}>
+        <SidebarMenuSub className={cn("flex flex-col", level === 1 && "bg-blue-50/50")}>
             {item.children?.map((child) => (
                 <SidebarMenuEntry key={child.label} item={child} level={level + 1} />
             ))}
@@ -142,6 +154,41 @@ const SidebarMenuEntry = ({ item, level = 1 }: { item: MenuItem, level?: number 
   );
 };
 
+
+const QuickLinkEntry = ({ item }: { item: MenuItem }) => {
+    const pathname = usePathname();
+    const isActuallyActive = (pathname === item.href && item.href !== '#');
+
+    if (item.isHeader) {
+        return (
+            <div className="px-5 py-3 text-sm font-bold text-primary flex items-center gap-2">
+                <LinkIcon className="h-4 w-4" />
+                {item.label}
+            </div>
+        )
+    }
+
+    return (
+        <SidebarMenuItem>
+            <Link href={item.href} className="w-full">
+                <SidebarMenuButton
+                    className={cn(
+                        "py-2 px-5 text-sm",
+                        isActuallyActive ? "level-2-active font-semibold" : "hover:bg-blue-100 text-muted-foreground",
+                    )}
+                    isActive={isActuallyActive}
+                    tooltip={item.label}
+                >
+                    <div className="flex items-center justify-between w-full">
+                        <span>{item.label}</span>
+                    </div>
+                </SidebarMenuButton>
+            </Link>
+            {item.label === 'Accident Report' && <SidebarSeparator className="my-1" />}
+        </SidebarMenuItem>
+    )
+}
+
 export function AppSidebar() {
   return (
     <SidebarContent>
@@ -149,6 +196,12 @@ export function AppSidebar() {
         {menuItems.map((item) => (
           <SidebarMenuEntry key={item.label} item={item} />
         ))}
+      </SidebarMenu>
+      <SidebarSeparator />
+      <SidebarMenu>
+          {quickLinks.map((item) => (
+              <QuickLinkEntry key={item.label} item={item} />
+          ))}
       </SidebarMenu>
     </SidebarContent>
   );
