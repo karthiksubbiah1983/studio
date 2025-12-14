@@ -701,3 +701,5 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
+    
