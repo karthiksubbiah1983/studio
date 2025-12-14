@@ -15,11 +15,17 @@ import { useEffect, useState } from "react";
 
 
 function FormattedDate({ timestamp }: { timestamp: string }) {
-    const [formattedDate, setFormattedDate] = useState('');
+    const [formattedDate, setFormattedDate] = useState<string | null>(null);
 
     useEffect(() => {
-        setFormattedDate(format(new Date(timestamp), "PPP p"));
+        if (timestamp) {
+            setFormattedDate(format(new Date(timestamp), "PPP p"));
+        }
     }, [timestamp]);
+
+    if (formattedDate === null) {
+        return <span>—</span>;
+    }
 
     return <>{formattedDate}</>;
 }
