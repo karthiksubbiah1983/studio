@@ -520,7 +520,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
 
     return (
-      <ScrollArea className="h-full bg-white">
+      <ScrollArea className="h-full">
         <div className="space-y-6 p-6">
             <div>
                 <Label>Rule Name</Label>
@@ -657,7 +657,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 </div>
             </ScrollArea>
         </aside>
-        <main className="flex-1 flex flex-col min-h-0 bg-white">
+        <main className="flex-1 flex flex-col min-h-0 bg-slate-50">
             {selectedRule ? (
                 <RuleEditor rule={selectedRule} />
             ) : (
@@ -680,7 +680,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         <div className="flex-1 overflow-hidden bg-white">
             <Tabs defaultValue="rules" className="h-full flex flex-col">
                 <div className="px-4 border-b">
-                    <TabsList className="grid w-full grid-cols-2 bg-transparent">
+                    <TabsList className="grid w-full grid-cols-2">
                         <TabsTrigger value="configurations">Configurations</TabsTrigger>
                         <TabsTrigger value="rules">Rules</TabsTrigger>
                     </TabsList>
