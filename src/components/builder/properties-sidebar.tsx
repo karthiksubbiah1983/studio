@@ -1271,11 +1271,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 value={props.dataSource || 'static'}
                                 onValueChange={(v) => {
                                     const isStatic = v === 'static';
-                                    updateMultipleProperties({ 
+                                    updateMultipleProperties({
                                         dataSource: v as 'static' | 'dynamic',
+                                        apiUrl: isStatic ? null : (props.apiUrl || ''),
                                         canAddRows: isStatic ? (props.canAddRows ?? true) : false,
                                         defaultRows: isStatic ? (props.defaultRows ?? 1) : null,
-                                        apiUrl: isStatic ? null : (props.apiUrl || ''),
                                     });
                                 }}
                                 className="flex"
@@ -1526,3 +1526,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
