@@ -155,7 +155,7 @@ const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[],
 
      if (obj.workflows && Array.isArray(obj.workflows)) obj.workflows.forEach((workflow: any) => {
         if (workflow.id && idMap[workflow.id]) workflow.id = idMap[workflow.id];
-        updateConditions(workflow.conditions);
+        if (workflow.conditions) updateConditions(workflow.conditions);
         if (workflow.actions && Array.isArray(workflow.actions)) {
             workflow.actions.forEach((action: any) => {
                 if (action.id) idMap[action.id] = idMap[action.id];
@@ -816,7 +816,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
              const newVersionContent = cloneWithNewIds(latestVersionContent);
              const newFormDoc = {
                 title: newName, categoryId: formToClone.categoryId, subCategoryId: formToClone.subCategoryId, ownerId: user.uid,
-                versions: [{ ...newVersionContent, id: crypto.randomUUID(), name: "Initial Draft", description: `Cloned from "${formToClone.title}"`, type: "draft" as "draft", timestamp: new Date().toISOString(), workflows: newVersionContent.workflows || [] }]
+                versions: [{ ...newVersionContent, id: crypto.randomUUID(), name: "Initial Draft", description: `Cloned from "${formToClone.title}"`, type: "draft" as "draft", timestamp: new Date().toISOString() }]
              };
              addDocumentNonBlocking(collection(firestore, 'formTemplates'), newFormDoc);
              return;

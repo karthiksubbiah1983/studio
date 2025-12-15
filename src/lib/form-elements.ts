@@ -30,11 +30,11 @@ export const FormElements: {
 export const createNewElement = (type: ElementType, id?: string): FormElementInstance => {
     const newId = id || crypto.randomUUID();
     const key = `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 7)}`;
-    const baseElement = { id: newId, type, label: type, key, required: false };
+    const baseElement = { id: newId, type, label: type, key, required: false, hidden: false, exposeForValidation: false, placeholder: '' };
     
     switch (type) {
         case "Separator":
-            return { ...baseElement, label: "" };
+            return { ...baseElement, label: "", key: '' };
         case "Input":
             return { ...baseElement, label: "Text Field", placeholder: "Enter text...", inputFormat: 'text', defaultValue: "" };
         case "Textarea":
@@ -45,7 +45,10 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 label: "Select Field", 
                 options: ["Option 1", "Option 2"], 
                 dataSource: 'static', 
-                placeholder: "Select an option"
+                placeholder: "Select an option",
+                apiUrl: null,
+                valueKey: null,
+                labelKey: null,
             };
         case "Combobox":
             return {
@@ -54,6 +57,9 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 options: ["Option 1", "Option 2"],
                 dataSource: 'static',
                 placeholder: "Select or type...",
+                apiUrl: null,
+                valueKey: null,
+                labelKey: null,
             }
         case "List":
             return {
@@ -69,46 +75,49 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 enableScoring: false,
                 scorePerItem: 1,
                 passingScore: 1,
+                apiUrl: null,
+                valueKey: null,
+                labelKey: null,
             };
         case "Checkbox":
-            return { ...baseElement, label: "Checkbox Field" };
+            return { ...baseElement, label: "Checkbox Field", key: key, required: false };
         case "RadioGroup":
              return { ...baseElement, label: "Radio Group", options: ["Option 1", "Option 2"], direction: 'vertical' };
         case "DatePicker":
             return { ...baseElement, label: "Date Picker" };
         case "Display":
-            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "" }, exposeForValidation: false };
+            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "", sourceType: 'field' }, exposeForValidation: false, textStyle: 'p', color: '#000000', isLink: false, linkUrl: null };
         case "RichText":
-            return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false };
+            return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false, key: '' };
         case "Container":
-            return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch', exposeForValidation: false };
+            return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch', exposeForValidation: false, key: '' };
         case "DataGrid":
             return {
                 ...baseElement,
                 label: "Data Grid",
+                apiUrl: null,
                 dataGridColumns: [
-                    { id: crypto.randomUUID(), key: 'name', label: 'Name', element: createNewElement('Input') },
-                    { id: crypto.randomUUID(), key: 'email', label: 'Email', element: createNewElement('Input') },
+                    { id: crypto.randomUUID(), key: 'name', label: 'Name', visible: true, element: createNewElement('Input') },
+                    { id: crypto.randomUUID(), key: 'email', label: 'Email', visible: true, element: createNewElement('Input') },
                 ],
             }
         case "Table":
-            const inputColumnElement = createNewElement('Input');
-            const selectColumnElement = createNewElement('Select');
             return {
                 ...baseElement,
                 label: "Editable Table",
+                dataSource: 'static',
+                apiUrl: null,
                 canAddRows: true,
                 defaultRows: 1,
                 enableSearch: false,
                 paginationEnabled: false,
                 pageSize: 5,
                 tableColumns: [
-                    { id: crypto.randomUUID(), key: 'col_1', label: 'Column 1', element: { ...inputColumnElement, label: 'Input in Table' } },
-                    { id: crypto.randomUUID(), key: 'col_2', label: 'Column 2', element: { ...selectColumnElement, label: 'Select in Table' } },
+                    { id: crypto.randomUUID(), key: 'col_1', label: 'Column 1', element: createNewElement('Input') },
                 ]
             }
         case "Preview":
-            return { ...baseElement, label: "Preview Data", previewSectionIds: [] };
+            return { ...baseElement, label: "Preview Data", previewSectionIds: [], key: '' };
         case "FileUpload":
              return {
                 ...baseElement,
