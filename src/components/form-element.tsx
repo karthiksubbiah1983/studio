@@ -218,11 +218,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   
   if (!isVisible) return null;
 
-  const renderLabelWithPopup = () => (
+  const renderLabelWithPopup = (dynamicLabel?: string) => (
     <div className="flex items-center gap-2">
        <Label className="text-[0.9rem]" style={appliedStyles.style}>
-        {label}
-        {required && label && <span className="text-destructive"> *</span>}
+        {dynamicLabel || label}
+        {required && (dynamicLabel || label) && <span className="text-destructive"> *</span>}
       </Label>
       {popup?.enabled && (
         <>
@@ -694,6 +694,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         break;
     }
     case "Checkbox":
+        const dynamicLabel = isTableCell && rowContext ? String(getNestedValue(rowContext, element.key || '')) : label;
         content = (
             <div className="flex items-start space-x-2">
                 <Checkbox 
@@ -703,7 +704,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     disabled={isDisabled}
                 />
                 <div className="grid gap-1.5 leading-none">
-                    {renderLabelWithPopup()}
+                    {renderLabelWithPopup(dynamicLabel)}
                     {helperText && (
                         <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
                     )}
