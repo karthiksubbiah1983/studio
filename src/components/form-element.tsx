@@ -1,4 +1,3 @@
-
 // @ts-nocheck
 
 "use client";
@@ -91,22 +90,20 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if (element.hidden) return false;
     if (!context || !rules) return true;
 
-    // Check for rules targeting this specific element instance
     const elementId = element.id;
-
     // For elements inside a table, also check for rules targeting the general column element
     // The generic ID would be something like 'tableId::columnKey'
-    const genericColumnElementId = isTableCell ? elementId.substring(0, elementId.lastIndexOf('::')) : null;
+    const genericColumnElementId = isTableCell ? element.id.split('::').slice(0, 2).join('::') : null;
 
-    const showRules = rules.filter(rule => 
-        rule && rule.behaviors && rule.behaviors.some(b => 
-            b.type === 'show' && (b.targetElementId === elementId || (genericColumnElementId && b.targetElementId === genericColumnElementId))
-        )
+    const showRules = rules.filter(rule =>
+      rule?.behaviors?.some(b =>
+        b.type === 'show' && (b.targetElementId === elementId || (genericColumnElementId && b.targetElementId === genericColumnElementId))
+      )
     );
-    const hideRules = rules.filter(rule => 
-        rule && rule.behaviors && rule.behaviors.some(b => 
-            b.type === 'hide' && (b.targetElementId === elementId || (genericColumnElementId && b.targetElementId === genericColumnElementId))
-        )
+    const hideRules = rules.filter(rule =>
+      rule?.behaviors?.some(b =>
+        b.type === 'hide' && (b.targetElementId === elementId || (genericColumnElementId && b.targetElementId === genericColumnElementId))
+      )
     );
     
     let visible = true; 
@@ -146,6 +143,19 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     else if (!contextForEval || !rules) return { value: initialValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
     
+    // Check if the element is part of a formula column in a table
+    if (isTableCell && !readOnly) {
+        const tableId = element.id.split('::')[0];
+        const tableElement = findElementRecursive(sections, tableId) as FormElementInstance | null;
+        if (tableElement?.type === 'Table') {
+            const columnKey = element.id.split('::')[1];
+            const column = tableElement.tableColumns?.find(c => c.key === columnKey);
+            if (column?.formula) {
+                readOnly = true;
+            }
+        }
+    }
+
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, contextForEval, configurations);
         if (isRuleMet) {
@@ -161,7 +171,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let finalValue = newCalculatedValue !== undefined ? newCalculatedValue : (initialValue ?? ('defaultValue' in element ? element.defaultValue : undefined));
 
     return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
-  }, [element, initialValue, rules, context, formState, sections, rowContext, configurations]);
+  }, [element, initialValue, rules, context, formState, sections, rowContext, configurations, isTableCell]);
 
 
   useEffect(() => {
@@ -962,9 +972,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             {element.dataGridColumns?.map((col, index) => {
-                                const proxyId = `${element.id}::${col.key}::${editingIndex !== null ? editingIndex : 'new'}-${index}`;
+                                const proxyId = `${element.id}::${col.key}::${editingIndex !== null ? editingIndex : 'new'}`;
                                 const rowContextForPopup = (element.dataGridColumns || []).reduce((acc, c) => {
-                                        const currentId = `${element.id}::${c.key}::${editingIndex !== null ? editingIndex : 'new'}-${index}`;
+                                        const currentId = `${element.id}::${c.key}::${editingIndex !== null ? editingIndex : 'new'}`;
                                         acc[c.key] = currentFormData[currentId]?.value;
                                         return acc;
                                     }, {} as Record<string, any>);
@@ -1111,7 +1121,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 return (
                                 <TableRow key={originalIndex}>
                                     {element.tableColumns?.map((col, colIndex) => {
-                                        const proxyId = `${element.id}::${col.key}::${originalIndex}-${colIndex}`;
+                                        const proxyId = `${element.id}::${col.key}::${originalIndex}`;
                                         let cellValue = getNestedValue(row, col.key);
 
                                         if (col.formula) {
@@ -1158,7 +1168,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         return (
                             <div key={originalIndex} className="border rounded-lg p-4 space-y-4">
                                 {element.tableColumns?.map((col, colIndex) => {
-                                    const proxyId = `${element.id}::${col.key}::${originalIndex}-${colIndex}`;
+                                    const proxyId = `${element.id}::${col.key}::${originalIndex}`;
                                     let cellValue = getNestedValue(row, col.key);
 
                                     if (col.formula) {
@@ -1367,3 +1377,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 }
 
 
+
+
+    
