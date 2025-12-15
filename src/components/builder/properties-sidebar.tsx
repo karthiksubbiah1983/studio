@@ -366,7 +366,7 @@ function ColumnEditorDialog({
     onOpenChange: (isOpen: boolean) => void;
     onSave: (column: TableColumn | DataGridColumn | ListItemElement) => void;
     column: TableColumn | DataGridColumn | ListItemElement | null;
-    columnType: 'table' | 'datagrid';
+    columnType: 'table' | 'datagrid' | 'listitem';
     parentFetchedKeys?: string[];
 }) {
     const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
@@ -481,6 +481,7 @@ function ColumnEditorDialog({
                                             <SelectItem value="RadioGroup">Radio Group</SelectItem>
                                             <SelectItem value="DatePicker">Date Picker</SelectItem>
                                             <SelectItem value="Display">Display Text</SelectItem>
+                                            <SelectItem value="Combobox">Combobox</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -540,6 +541,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       onUpdate(newProps);
   };
   
+  const updateMultipleProperties = (updates: Partial<FormElementInstance>) => {
+    const newProps = { ...props, ...updates };
+    setProps(newProps);
+    onUpdate(newProps);
+  };
+
   const handleApiUrlChange = (newUrl: string) => {
     const newProps = { 
         ...props,
@@ -1240,7 +1247,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <RadioGroup
                                 value={props.dataSource || 'static'}
-                                onValueChange={(v) => updateProperty('dataSource', v as 'static' | 'dynamic')}
+                                onValueChange={(v) => {
+                                    const updates: Partial<FormElementInstance> = { dataSource: v as 'static' | 'dynamic' };
+                                    if (v === 'dynamic') {
+                                        updates.canAddRows = false;
+                                        updates.defaultRows = 0;
+                                    }
+                                    updateMultipleProperties(updates);
+                                }}
                                 className="flex"
                             >
                                 <div className="flex items-center space-x-2">
@@ -1486,7 +1500,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-    
-
-    
