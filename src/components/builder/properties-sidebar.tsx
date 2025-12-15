@@ -366,7 +366,7 @@ function ColumnEditorDialog({
     onOpenChange: (isOpen: boolean) => void;
     onSave: (column: TableColumn | DataGridColumn | ListItemElement) => void;
     column: TableColumn | DataGridColumn | ListItemElement | null;
-    columnType: 'table' | 'datagrid' | 'listitem';
+    columnType: 'table' | 'datagrid';
     parentFetchedKeys?: string[];
 }) {
     const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
@@ -426,7 +426,23 @@ function ColumnEditorDialog({
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <Label>Column Key</Label>
-                                    <Input value={editingColumn.key} onChange={(e) => updateColumnProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                    {parentFetchedKeys && parentFetchedKeys.length > 0 ? (
+                                        <Select
+                                            value={editingColumn.key}
+                                            onValueChange={(value) => updateColumnProperty('key', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a data key..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {parentFetchedKeys.map(key => (
+                                                    <SelectItem key={key} value={key}>{key}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <Input value={editingColumn.key} onChange={(e) => updateColumnProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                    )}
                                 </div>
                                 <Separator />
                             </>
@@ -1470,3 +1486,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
