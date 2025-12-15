@@ -782,7 +782,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </Accordion>
              )
         case "Display":
-            const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "", sourceType: "field" };
+            const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "" };
             return (
                  <Accordion type="multiple" defaultValue={["general", "link", "data", "advanced"]} className="w-full">
                     <AccordionItem value="general">
@@ -1191,7 +1191,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="enable-scoring">Enable Scoring</Label>
-                                <Switch id="enable-scoring" checked={props.enableScoring} onCheckedChange={(checked) => updateProperty('enableScoring', checked)} />
+                                <Switch id="enable-scoring" checked={props.enableScoring || false} onCheckedChange={(checked) => updateProperty('enableScoring', checked)} />
                             </div>
                             {props.enableScoring && (
                                 <>
@@ -1248,11 +1248,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <RadioGroup
                                 value={props.dataSource || 'static'}
                                 onValueChange={(v) => {
-                                    const updates: Partial<FormElementInstance> = { dataSource: v as 'static' | 'dynamic' };
-                                    if (v === 'dynamic') {
-                                        updates.canAddRows = false;
-                                        updates.defaultRows = 0;
-                                    }
+                                    const updates: Partial<FormElementInstance> = { 
+                                        dataSource: v as 'static' | 'dynamic',
+                                        canAddRows: v === 'static' ? (props.canAddRows ?? true) : false,
+                                        defaultRows: v === 'static' ? (props.defaultRows ?? 1) : 0,
+                                        apiUrl: v === 'static' ? null : props.apiUrl,
+                                        tableColumns: v === 'static' ? props.tableColumns : [],
+                                    };
                                     updateMultipleProperties(updates);
                                 }}
                                 className="flex"
@@ -1295,12 +1297,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="enable-search">Enable Search</Label>
-                                <Switch id="enable-search" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
+                                <Switch id="enable-search" checked={props.enableSearch || false} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
                             </div>
                              {props.dataSource !== 'dynamic' && (
                                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                     <Label htmlFor="can-add-rows">User can add rows</Label>
-                                    <Switch id="can-add-rows" checked={props.canAddRows} onCheckedChange={(checked) => updateProperty('canAddRows', checked)} />
+                                    <Switch id="can-add-rows" checked={props.canAddRows || false} onCheckedChange={(checked) => updateProperty('canAddRows', checked)} />
                                 </div>
                             )}
                              {props.dataSource !== 'dynamic' && (
@@ -1317,7 +1319,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             )}
                              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="pagination-enabled">Enable Pagination</Label>
-                                <Switch id="pagination-enabled" checked={props.paginationEnabled} onCheckedChange={(checked) => updateProperty('paginationEnabled', checked)} />
+                                <Switch id="pagination-enabled" checked={props.paginationEnabled || false} onCheckedChange={(checked) => updateProperty('paginationEnabled', checked)} />
                             </div>
                             {props.paginationEnabled && (
                                 <div className="flex flex-col gap-2">
@@ -1458,7 +1460,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                            {commonFields}
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="multiple-files">Allow Multiple Files</Label>
-                                <Switch id="multiple-files" checked={props.multiple} onCheckedChange={(checked) => updateProperty('multiple', checked)} />
+                                <Switch id="multiple-files" checked={props.multiple || false} onCheckedChange={(checked) => updateProperty('multiple', checked)} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="allowedFileTypes">Allowed File Types</Label>
