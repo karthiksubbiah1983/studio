@@ -694,7 +694,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         break;
     }
     case "Checkbox":
-        const dynamicLabel = isTableCell && rowContext ? String(getNestedValue(rowContext, element.key || '')) : label;
+        const dynamicLabel = isTableCell && rowContext ? (getNestedValue(rowContext, element.key || '') || label) : label;
         content = (
             <div className="flex items-start space-x-2">
                 <Checkbox 
