@@ -117,8 +117,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   };
 
   const handleSaveChanges = () => {
-    updateRules(localRules);
-    updateConfigurations(localConfigs);
+    updateRules(localRules, localConfigs);
     onOpenChange(false);
   }
   
@@ -725,5 +724,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
+    
 
     
