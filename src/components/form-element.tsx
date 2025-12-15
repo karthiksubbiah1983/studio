@@ -694,7 +694,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         break;
     }
     case "Checkbox":
-        const dynamicLabel = isTableCell && rowContext ? (getNestedValue(rowContext, element.key || '') || label) : label;
+        const isStatic = !(isTableCell && rowContext);
+        let dynamicLabel = label;
+        if (!isStatic) {
+            const labelFromContext = getNestedValue(rowContext, element.key || '');
+            if (labelFromContext !== undefined && labelFromContext !== null) {
+                dynamicLabel = String(labelFromContext);
+            }
+        }
+        
         content = (
             <div className="flex items-start space-x-2">
                 <Checkbox 
@@ -818,7 +826,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 const rowData = gridData[index];
                 const formDataForEditing: Record<string, any> = {};
                  element.dataGridColumns?.forEach(col => {
-                    const elId = `${element.id}::${col.key}`;
+                    const elId = `${element.id}::${col.key}::${index}`;
                     formDataForEditing[elId] = { value: getNestedValue(rowData, col.key) };
                 })
                 setCurrentFormData(formDataForEditing);
@@ -826,7 +834,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 setEditingIndex(null);
                 const initialFormData: Record<string, any> = {};
                 element.dataGridColumns?.forEach(col => {
-                    initialFormData[`${element.id}::${col.key}`] = { value: undefined };
+                    initialFormData[`${element.id}::${col.key}::new`] = { value: undefined };
                 });
                 setCurrentFormData(initialFormData);
             }
@@ -840,7 +848,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const handleSave = () => {
             let newData = [...gridData];
             const finalDataToSave = (element.dataGridColumns || []).reduce((acc, col) => {
-                const proxyId = `${element.id}::${col.key}`;
+                const proxyId = `${element.id}::${col.key}::${editingIndex !== null ? editingIndex : 'new'}`;
                 if(currentFormData[proxyId] && currentFormData[proxyId].value !== undefined) {
                     acc[col.key] = currentFormData[proxyId].value;
                 } else if (col.element.type === 'Display') {
@@ -933,16 +941,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                             <DialogTitle>{editingIndex !== null ? 'Edit Entry' : 'Add New Entry'}</DialogTitle>
                         </DialogHeader>
                         <div className="space-y-4 py-4">
-                            {element.dataGridColumns?.map(col => {
-                                const proxyId = `${element.id}::${col.key}`;
+                            {element.dataGridColumns?.map((col, index) => {
+                                const proxyId = `${element.id}::${col.key}::${editingIndex !== null ? editingIndex : 'new'}`;
                                 const rowContextForPopup = (element.dataGridColumns || []).reduce((acc, c) => {
-                                        const currentId = `${element.id}::${c.key}`;
+                                        const currentId = `${element.id}::${c.key}::${editingIndex !== null ? editingIndex : 'new'}`;
                                         acc[c.key] = currentFormData[currentId]?.value;
                                         return acc;
                                     }, {} as Record<string, any>);
                                 return (
                                 <FormElementRenderer 
-                                    key={col.id}
+                                    key={`${proxyId}-${index}`}
                                     element={{ ...col.element, id: proxyId, label: col.label }}
                                     value={currentFormData[proxyId]?.value}
                                     onValueChange={handleFormValueChange}
@@ -1083,7 +1091,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 return (
                                 <TableRow key={originalIndex}>
                                     {element.tableColumns?.map(col => {
-                                        const proxyId = `${element.id}::${col.key}`;
+                                        const proxyId = `${element.id}::${col.key}::${originalIndex}`;
                                         let cellValue = getNestedValue(row, col.key);
 
                                         if (col.formula) {
@@ -1130,7 +1138,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         return (
                             <div key={originalIndex} className="border rounded-lg p-4 space-y-4">
                                 {element.tableColumns?.map(col => {
-                                    const proxyId = `${element.id}::${col.key}`;
+                                    const proxyId = `${element.id}::${col.key}::${originalIndex}`;
                                     let cellValue = getNestedValue(row, col.key);
 
                                     if (col.formula) {
