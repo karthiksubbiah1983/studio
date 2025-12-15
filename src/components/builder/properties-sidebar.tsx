@@ -261,11 +261,13 @@ function AlignmentRadioGroup({
 function ColumnManager({
     columns,
     onUpdate,
-    columnType
+    columnType,
+    parentFetchedKeys,
 } : {
     columns: (TableColumn | DataGridColumn | ListItemElement)[],
     onUpdate: (columns: (TableColumn | DataGridColumn | ListItemElement)[]) => void,
-    columnType: 'table' | 'datagrid' | 'listitem'
+    columnType: 'table' | 'datagrid' | 'listitem',
+    parentFetchedKeys?: string[],
 }) {
     const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
     const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
@@ -345,6 +347,7 @@ function ColumnManager({
                     onSave={handleSaveColumn}
                     column={editingColumn}
                     columnType={columnType}
+                    parentFetchedKeys={parentFetchedKeys}
                 />
             )}
         </div>
@@ -356,13 +359,15 @@ function ColumnEditorDialog({
     onOpenChange,
     onSave,
     column,
-    columnType
+    columnType,
+    parentFetchedKeys,
 }: {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
     onSave: (column: TableColumn | DataGridColumn | ListItemElement) => void;
     column: TableColumn | DataGridColumn | ListItemElement | null;
     columnType: 'table' | 'datagrid' | 'listitem';
+    parentFetchedKeys?: string[];
 }) {
     const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
 
@@ -468,6 +473,7 @@ function ColumnEditorDialog({
                                     element={editingColumn.element}
                                     onUpdate={handleElementUpdate}
                                     isColumnElement={true}
+                                    parentFetchedKeys={parentFetchedKeys}
                                 />
                             </>
                         )}
@@ -482,7 +488,7 @@ function ColumnEditorDialog({
     );
 }
 
-function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
+function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false, parentFetchedKeys }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean, parentFetchedKeys?: string[] }) {
   const { dispatch, state, sections } = useBuilder();
   const [props, setProps] = useState(element);
   const { selectedElement } = state;
@@ -492,6 +498,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
 
   const allElements = getAllElements(sections);
+  
+  const finalFetchedKeys = parentFetchedKeys || fetchedKeys;
 
   useEffect(() => {
     setProps(element);
@@ -653,10 +661,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     onValueChange={(value) => updateProperty('valueKey', value)}
                 >
                     <SelectTrigger>
-                        <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                        <SelectValue placeholder={finalFetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
                     </SelectTrigger>
                     <SelectContent>
-                        {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        {finalFetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -667,10 +675,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     onValueChange={(value) => updateProperty('labelKey', value)}
                 >
                     <SelectTrigger>
-                        <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                        <SelectValue placeholder={finalFetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
                     </SelectTrigger>
                     <SelectContent>
-                        {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        {finalFetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -1248,6 +1256,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 columns={props.tableColumns || []}
                                 onUpdate={(newColumns) => updateProperty('tableColumns', newColumns)}
                                 columnType="table"
+                                parentFetchedKeys={finalFetchedKeys}
                             />
                         </AccordionContent>
                     </AccordionItem>
