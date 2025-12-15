@@ -89,11 +89,25 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
    const isVisible = useMemo(() => {
     if (element.hidden) return false;
-    
     if (!context || !rules) return true;
 
-    const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
-    const hideRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
+    // Check for rules targeting this specific element instance
+    const elementId = element.id;
+
+    // For elements inside a table, also check for rules targeting the general column element
+    // The generic ID would be something like 'tableId::columnKey'
+    const genericColumnElementId = isTableCell ? elementId.substring(0, elementId.lastIndexOf('::')) : null;
+
+    const showRules = rules.filter(rule => 
+        rule && rule.behaviors && rule.behaviors.some(b => 
+            b.type === 'show' && (b.targetElementId === elementId || (genericColumnElementId && b.targetElementId === genericColumnElementId))
+        )
+    );
+    const hideRules = rules.filter(rule => 
+        rule && rule.behaviors && rule.behaviors.some(b => 
+            b.type === 'hide' && (b.targetElementId === elementId || (genericColumnElementId && b.targetElementId === genericColumnElementId))
+        )
+    );
     
     let visible = true; 
 
@@ -108,7 +122,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     
     return visible;
-  }, [element.id, element.hidden, context, rules, configurations]);
+  }, [element.id, element.hidden, context, rules, configurations, isTableCell]);
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
     let readOnly = false;
@@ -703,11 +717,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const isStatic = !(isTableCell && rowContext);
         let dynamicLabel = label;
         if (!isStatic) {
-            if (element.key) {
-                const labelFromContext = getNestedValue(rowContext, element.key);
-                if (labelFromContext !== undefined && labelFromContext !== null) {
-                    dynamicLabel = String(labelFromContext);
-                }
+            const labelFromContext = element.key ? getNestedValue(rowContext, element.key) : undefined;
+            if (labelFromContext !== undefined && labelFromContext !== null) {
+                dynamicLabel = String(labelFromContext);
             }
         }
         
@@ -950,15 +962,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         </DialogHeader>
                         <div className="space-y-4 py-4">
                             {element.dataGridColumns?.map((col, index) => {
-                                const proxyId = `${element.id}::${col.key}::${editingIndex !== null ? editingIndex : 'new'}`;
+                                const proxyId = `${element.id}::${col.key}::${editingIndex !== null ? editingIndex : 'new'}-${index}`;
                                 const rowContextForPopup = (element.dataGridColumns || []).reduce((acc, c) => {
-                                        const currentId = `${element.id}::${c.key}::${editingIndex !== null ? editingIndex : 'new'}`;
+                                        const currentId = `${element.id}::${c.key}::${editingIndex !== null ? editingIndex : 'new'}-${index}`;
                                         acc[c.key] = currentFormData[currentId]?.value;
                                         return acc;
                                     }, {} as Record<string, any>);
                                 return (
                                 <FormElementRenderer 
-                                    key={`${proxyId}-${col.id}`}
+                                    key={proxyId}
                                     element={{ ...col.element, id: proxyId, label: col.label }}
                                     value={currentFormData[proxyId]?.value}
                                     onValueChange={handleFormValueChange}
@@ -1098,8 +1110,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
                                 return (
                                 <TableRow key={originalIndex}>
-                                    {element.tableColumns?.map(col => {
-                                        const proxyId = `${element.id}::${col.key}::${originalIndex}`;
+                                    {element.tableColumns?.map((col, colIndex) => {
+                                        const proxyId = `${element.id}::${col.key}::${originalIndex}-${colIndex}`;
                                         let cellValue = getNestedValue(row, col.key);
 
                                         if (col.formula) {
@@ -1145,8 +1157,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
                         return (
                             <div key={originalIndex} className="border rounded-lg p-4 space-y-4">
-                                {element.tableColumns?.map(col => {
-                                    const proxyId = `${element.id}::${col.key}::${originalIndex}`;
+                                {element.tableColumns?.map((col, colIndex) => {
+                                    const proxyId = `${element.id}::${col.key}::${originalIndex}-${colIndex}`;
                                     let cellValue = getNestedValue(row, col.key);
 
                                     if (col.formula) {
@@ -1353,4 +1365,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
 
