@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 
 "use client";
@@ -218,29 +219,34 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   
   if (!isVisible) return null;
 
-  const renderLabelWithPopup = (dynamicLabel?: string) => (
-    <div className="flex items-center gap-2">
-       <Label className="text-[0.9rem]" style={appliedStyles.style}>
-        {dynamicLabel || label}
-        {required && (dynamicLabel || label) && <span className="text-destructive"> *</span>}
-      </Label>
-      {popup?.enabled && (
-        <>
-            <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setIsPopupOpen(true)}>
-                <Info className="h-4 w-4 text-muted-foreground" />
-            </Button>
-            <Popup
-                isOpen={isPopupOpen}
-                onOpenChange={setIsPopupOpen}
-                title={popup.title}
-                description={popup.description}
-                icon={PopupIcon}
-                iconColor={popup.iconColor}
-            />
-        </>
-      )}
-    </div>
-  )
+  const renderLabelWithPopup = (dynamicLabel?: string) => {
+    const finalLabel = dynamicLabel || label;
+    if (!finalLabel) return null;
+
+    return (
+        <div className="flex items-center gap-2">
+           <Label className="text-[0.9rem]" style={appliedStyles.style}>
+            {finalLabel}
+            {required && <span className="text-destructive"> *</span>}
+          </Label>
+          {popup?.enabled && (
+            <>
+                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setIsPopupOpen(true)}>
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Popup
+                    isOpen={isPopupOpen}
+                    onOpenChange={setIsPopupOpen}
+                    title={popup.title}
+                    description={popup.description}
+                    icon={PopupIcon}
+                    iconColor={popup.iconColor}
+                />
+            </>
+          )}
+        </div>
+    )
+}
 
   const renderLabel = () => {
     if (!label) return null;
@@ -697,9 +703,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const isStatic = !(isTableCell && rowContext);
         let dynamicLabel = label;
         if (!isStatic) {
-            const labelFromContext = getNestedValue(rowContext, element.key || '');
-            if (labelFromContext !== undefined && labelFromContext !== null) {
-                dynamicLabel = String(labelFromContext);
+            if (element.key) {
+                const labelFromContext = getNestedValue(rowContext, element.key);
+                if (labelFromContext !== undefined && labelFromContext !== null) {
+                    dynamicLabel = String(labelFromContext);
+                }
             }
         }
         
@@ -950,7 +958,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                     }, {} as Record<string, any>);
                                 return (
                                 <FormElementRenderer 
-                                    key={`${proxyId}-${index}`}
+                                    key={`${proxyId}-${col.id}`}
                                     element={{ ...col.element, id: proxyId, label: col.label }}
                                     value={currentFormData[proxyId]?.value}
                                     onValueChange={handleFormValueChange}
@@ -1345,3 +1353,4 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
