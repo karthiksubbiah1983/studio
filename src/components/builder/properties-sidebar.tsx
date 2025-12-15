@@ -475,12 +475,12 @@ function ColumnEditorDialog({
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="Input">Input</SelectItem>
+                                            <SelectItem value="Textarea">Textarea</SelectItem>
                                             <SelectItem value="Select">Select</SelectItem>
                                             <SelectItem value="Checkbox">Checkbox</SelectItem>
                                             <SelectItem value="RadioGroup">Radio Group</SelectItem>
                                             <SelectItem value="DatePicker">Date Picker</SelectItem>
                                             <SelectItem value="Display">Display Text</SelectItem>
-                                            <SelectItem value="RichText">Rich Text</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -1486,5 +1486,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
 
     
