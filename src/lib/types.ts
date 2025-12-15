@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview" | "FileUpload" | "List";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview" | "FileUpload" | "List" | "Combobox";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -115,10 +115,10 @@ export type FormElementInstance = {
     inputFormat?: 'text' | 'number' | 'alphanumeric';
     formula?: string;
     defaultValue?: any;
-    // For Select, RadioGroup
+    // For Select, RadioGroup, Combobox
     dataSource?: 'static' | 'dynamic';
     options?: string[];
-    // For dynamic data source (Select, List)
+    // For dynamic data source (Select, List, Combobox)
     apiUrl?: string;
     valueKey?: string; // Key in each object for option value
     labelKey?: string; // Key in each object for option label

@@ -1,6 +1,7 @@
 
+
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2, Eye, Upload } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2, Eye, Upload, ListFilter } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -12,6 +13,7 @@ export const FormElements: {
     { type: 'Input', icon: TextCursorInput, label: 'Text Input' },
     { type: 'Textarea', icon: Pilcrow, label: 'Textarea' },
     { type: 'Select', icon: ChevronsUpDown, label: 'Select' },
+    { type: 'Combobox', icon: ListFilter, label: 'Combobox' },
     { type: 'List', icon: List, label: 'List' },
     { type: 'Checkbox', icon: CheckSquare, label: 'Checkbox' },
     { type: 'RadioGroup', icon: RadioTower, label: 'Radio Group' },
@@ -45,6 +47,14 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 dataSource: 'static', 
                 placeholder: "Select an option"
             };
+        case "Combobox":
+            return {
+                ...baseElement,
+                label: "Combobox Field",
+                options: ["Option 1", "Option 2"],
+                dataSource: 'static',
+                placeholder: "Select or type...",
+            }
         case "List":
             return {
                 ...baseElement,

@@ -67,6 +67,7 @@ export function PropertiesSidebar() {
         if (selected.type === 'Table') return 'Editable Table';
         if (selected.type === 'Preview') return 'Preview Button';
         if (selected.type === 'DataGrid') return 'Data Grid';
+        if (selected.type === 'Combobox') return 'Combobox';
         return selected.type;
     }
     return "Section";
@@ -494,7 +495,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'DataGrid' || element.type === 'Table') && element.apiUrl) {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'DataGrid' || element.type === 'Table' || element.type === 'Combobox') && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -529,7 +530,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'List' || props.type === 'Table' ? props.apiUrl : undefined);
+    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'List' || props.type === 'Table' || props.type === 'Combobox' ? props.apiUrl : undefined);
     if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
@@ -1043,6 +1044,38 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                 </RadioGroup>
                             </div>
+                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
+        case "Combobox":
+            return (
+                <Accordion type="multiple" defaultValue={["general", "data"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                            {placeholderField}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <RadioGroup
+                                value={props.dataSource || 'static'}
+                                onValueChange={(val) => updateProperty('dataSource', val as 'static' | 'dynamic')}
+                                className="flex"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="static" id="source-static-combo" />
+                                    <Label htmlFor="source-static-combo">Static</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="dynamic" id="source-dynamic-combo" />
+                                    <Label htmlFor="source-dynamic-combo">Dynamic</Label>
+                                </div>
+                            </RadioGroup>
                             {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>

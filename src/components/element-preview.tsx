@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table, Table2, Link, icons, Eye, Upload, CalendarDays, Grid, List } from "lucide-react";
+import { Clock, Table, Table2, Link, icons, Eye, Upload, CalendarDays, Grid, List, ListFilter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -96,6 +96,17 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
           {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
         </div>
       );
+    case "Combobox":
+       return (
+        <div>
+          {renderLabel()}
+          <Button variant="outline" className="w-full justify-between">
+            {placeholder || "Select or type..."}
+            <ListFilter className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+          {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+        </div>
+       );
     case "List":
         const listTypeLabel = element.listType === 'checkbox' ? 'Checkboxes' : element.listType === 'radio' ? 'Radio Buttons' : 'Display Only';
         return (

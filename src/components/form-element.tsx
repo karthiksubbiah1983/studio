@@ -1,3 +1,4 @@
+
 // @ts-nocheck
 
 "use client";
@@ -21,7 +22,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -36,6 +37,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 
 type Props = {
@@ -197,7 +199,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   useEffect(() => {
-    if ((element.type === 'Select' || element.type === 'List') && element.dataSource === 'dynamic') {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.dataSource === 'dynamic') {
       
       if (element.apiUrl) {
         let finalApiUrl = element.apiUrl;
@@ -471,6 +473,87 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         </div>
       );
       break;
+    case "Combobox": {
+      const [open, setOpen] = useState(false);
+      const [inputValue, setInputValue] = useState(value || '');
+
+      const handleComboboxSelect = (currentValue: string) => {
+        const newValue = currentValue === value ? "" : currentValue;
+        onValueChange(element.id, newValue);
+        setInputValue(newValue);
+        setOpen(false);
+      };
+      
+       const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInputValue(e.target.value);
+        onValueChange(element.id, e.target.value); // Allow free text entry
+      };
+      
+      let currentOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
+
+      const filteredOptions = currentOptions.filter(option => {
+          const label = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option;
+          return label.toLowerCase().includes(inputValue.toLowerCase());
+      });
+      
+      const getDisplayValue = () => {
+          if (element.dataSource === 'dynamic') {
+              const selectedOption = currentOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === value);
+              return selectedOption ? getNestedValue(selectedOption, element.labelKey!) : value;
+          }
+          return value;
+      }
+      
+      content = (
+        <div>
+          {renderLabel()}
+            <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                    <div className="relative">
+                        <Input
+                            value={inputValue}
+                            onChange={handleInputChange}
+                            placeholder={placeholder}
+                            className="pr-8"
+                        />
+                        <ChevronsUpDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 shrink-0 opacity-50" />
+                    </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                    <Command>
+                        <CommandList>
+                             {isLoading ? (
+                                <div className="p-2 flex justify-center"><Loader2 className="h-4 w-4 animate-spin"/></div>
+                             ) : (
+                                <>
+                                    <CommandEmpty>No results found.</CommandEmpty>
+                                    <CommandGroup>
+                                        {filteredOptions.map((option, index) => {
+                                             const optionValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                                             const optionLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
+                                             return (
+                                                <CommandItem
+                                                    key={index}
+                                                    value={optionLabel}
+                                                    onSelect={() => handleComboboxSelect(optionValue)}
+                                                >
+                                                    <Check className={cn("mr-2 h-4 w-4", value === optionValue ? "opacity-100" : "opacity-0")} />
+                                                    {optionLabel}
+                                                </CommandItem>
+                                            )
+                                        })}
+                                    </CommandGroup>
+                                </>
+                             )}
+                        </CommandList>
+                    </Command>
+                </PopoverContent>
+            </Popover>
+           {helperText && (<p className="text-sm text-muted-foreground mt-1">{helperText}</p>)}
+        </div>
+      );
+      break;
+    }
     case "List": {
         const isCheckbox = element.listType === 'checkbox';
         const isRadio = element.listType === 'radio';
