@@ -50,7 +50,7 @@ type Action =
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any>, taskId?: string } }
   | { type: "SET_STATE"; payload: Partial<State> }
   | { type: "SET_SECTIONS"; payload: { sections: Section[] } }
-  | { type: "UPDATE_RULES"; payload: { rules: Rule[] } }
+  | { type: "UPDATE_RULES"; payload: { rules: Rule[], configurations: Configuration[] } }
   | { type: "UPDATE_WORKFLOWS"; payload: { workflows: Workflow[] } }
   | { type: "UPDATE_CONFIGURATIONS"; payload: { configurations: Configuration[] } }
   | { type: "SET_USER_SETTINGS", payload: { categories: Category[], sites: Site[] } }
@@ -640,7 +640,7 @@ type BuilderContextType = {
   sections: Section[];
   setSections: (sections: Section[]) => void;
   rules: Rule[];
-  updateRules: (rules: Rule[]) => void;
+  updateRules: (rules: Rule[], configurations: Configuration[]) => void;
   workflows: Workflow[];
   updateWorkflows: (workflows: Workflow[]) => void;
   configurations: Configuration[];
@@ -753,10 +753,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
   }
 
-  const updateRules = (newRules: Rule[]) => {
+  const updateRules = (newRules: Rule[], newConfigurations: Configuration[]) => {
     if (!activeForm || !firestore) return;
     const newVersions = [...activeForm.versions];
-    newVersions[0] = { ...newVersions[0], rules: newRules, timestamp: new Date().toISOString() };
+    newVersions[0] = { ...newVersions[0], rules: newRules, configurations: newConfigurations, timestamp: new Date().toISOString() };
     updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
   }
   
@@ -857,14 +857,22 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
         case "SET_SECTIONS":
-        case "UPDATE_RULES":
         case "UPDATE_WORKFLOWS":
         case "UPDATE_CONFIGURATIONS":
              if (!activeForm) return;
-             const newState = builderReducer(state, action);
-             const newActiveForm = newState.forms.find(f => f.id === state.activeFormId);
-             if (newActiveForm) {
-                updateDocumentNonBlocking(doc(firestore, 'formTemplates', newActiveForm.id), { versions: newActiveForm.versions });
+             const newStateAfterSimpleUpdate = builderReducer(state, action);
+             const newActiveFormSimple = newStateAfterSimpleUpdate.forms.find(f => f.id === state.activeFormId);
+             if (newActiveFormSimple) {
+                updateDocumentNonBlocking(doc(firestore, 'formTemplates', newActiveFormSimple.id), { versions: newActiveFormSimple.versions });
+             }
+             return;
+        case "UPDATE_RULES":
+             if (!activeForm) return;
+             const newStateAfterRules = builderReducer(state, action);
+             const newActiveFormRules = newStateAfterRules.forms.find(f => f.id === state.activeFormId);
+              if (newActiveFormRules) {
+                const latestVersion = newActiveFormRules.versions[0];
+                updateDocumentNonBlocking(doc(firestore, 'formTemplates', newActiveFormRules.id), { versions: [{...latestVersion, rules: action.payload.rules, configurations: action.payload.configurations }] });
              }
              return;
         default:

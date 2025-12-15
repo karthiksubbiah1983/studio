@@ -305,7 +305,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     <Select value={condition.value} onValueChange={(value) => handleUpdateCondition({ value: value })}>
                         <SelectTrigger><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
                         <SelectContent>
-                            {(configurations || []).map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
+                            {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 );
@@ -552,8 +552,11 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             </div>
             
             <div className="space-y-4">
-                <div className="p-3 bg-primary/10 rounded-md">
+                <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
                     <h3 className="font-semibold text-primary">Set Conditions</h3>
+                    <Button variant="outline" size="sm" onClick={handleAddCondition}>
+                        <Plus className="mr-2 h-4 w-4" /> Condition
+                    </Button>
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                     <span className="font-medium">Conditional Operator</span>
@@ -578,23 +581,20 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                         <ConditionEditor key={cond.id} condition={cond} rule={rule} />
                     ))}
                 </div>
-                <Button variant="outline" onClick={handleAddCondition}>
-                    Add Condition
-                </Button>
             </div>
             
             <div className="space-y-4">
-                 <div className="p-3 bg-primary/10 rounded-md">
+                 <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
                     <h3 className="font-semibold text-primary">Set Behaviour</h3>
+                    <Button variant="outline" size="sm" onClick={handleAddBehavior}>
+                        <Plus className="mr-2 h-4 w-4" /> Action
+                    </Button>
                 </div>
                 <div className="space-y-4">
                     {rule.behaviors.map((behavior) => (
                         <BehaviorEditor key={behavior.id} behavior={behavior} rule={rule} />
                     ))}
                 </div>
-                <Button variant="outline" onClick={handleAddBehavior}>
-                    Add Action
-                </Button>
             </div>
         </div>
       </ScrollArea>

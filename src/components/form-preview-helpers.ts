@@ -6,7 +6,7 @@ import { getAllElements, getNestedValue } from "@/lib/utils";
 
 export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: any }, configurations?: Configuration[]) => {
     
-    const getConditionValue = (type: 'source' | 'comparison', idOrKey: string | undefined): any => {
+    const getConditionValue = (type: 'source' | 'comparison', idOrKey?: string): any => {
         if (!idOrKey) return undefined;
         
         const valueType = type === 'source' ? condition.sourceType : condition.comparisonType;
@@ -44,7 +44,7 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
 
     let sourceValue: any;
     if (condition.sourceType === 'field') {
-        sourceValue = getConditionValue('source', condition.sourceElementId || '');
+        sourceValue = getConditionValue('source', condition.sourceElementId);
     } else { // 'date', 'status', 'config'
         sourceValue = getConditionValue('source', condition.sourceValue);
     }
@@ -53,7 +53,7 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
 
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
-        comparisonValue = getConditionValue('comparison', condition.comparisonElementId || '');
+        comparisonValue = getConditionValue('comparison', condition.comparisonElementId);
     } else if (condition.comparisonType === 'config') {
         comparisonValue = getConditionValue('comparison', condition.value);
     }
@@ -144,5 +144,6 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         return conditionResults.some(res => res);
     }
 };
+
 
 
