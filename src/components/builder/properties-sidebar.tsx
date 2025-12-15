@@ -1276,7 +1276,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         canAddRows: isStatic ? (props.canAddRows ?? true) : false,
                                         defaultRows: isStatic ? (props.defaultRows ?? 1) : null,
                                         apiUrl: isStatic ? null : (props.apiUrl || ''),
-                                        tableColumns: isStatic ? (props.tableColumns || []) : [],
                                     });
                                 }}
                                 className="flex"
