@@ -30,13 +30,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-if (typeof window !== 'undefined') {
-  if (window.navigator.msPointerEnabled) {
-    _addMsTouchListeners();
-  } else {
-    _addTouchListeners();
-  }
-}
 /**
  * Object used to hold the data that is being dragged during drag and drop.
  *
@@ -478,4 +471,12 @@ function _closestDraggable(e: HTMLElement | null): HTMLElement | null {
     }
   }
   return null;
+}
+
+if (typeof window !== 'undefined') {
+  if (window.navigator.msPointerEnabled) {
+    _addMsTouchListeners();
+  } else {
+    _addTouchListeners();
+  }
 }
