@@ -27,19 +27,32 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             return config?.value;
         }
 
-        if (valueType === 'field' || valueType === 'status' || valueType === 'date') {
-             const isProxyId = idOrKey.includes("::");
-            const isRowContext = state && typeof state === 'object' && !Object.values(state).some(v => typeof v === 'object' && v !== null && 'value' in v);
+        // Check if state is a row context (plain object) vs form state (object of {value, fullObject})
+        const isRowContext = state && typeof state === 'object' && !Object.values(state).some(v => typeof v === 'object' && v !== null && 'value' in v);
 
-            if (isRowContext) {
-                const key = isProxyId ? idOrKey.split('::').pop()! : idOrKey;
-                return getNestedValue(state, key);
-            } else {
-                 return getNestedValue(state, `${idOrKey}.value`);
-            }
+        // For elements within tables, state is a merge of rowContext and formState.
+        // We need to intelligently look up the value.
+        // A value in the row context (flat key-value) should take precedence.
+        // If not found, check the main form state (key -> {value}).
+        const rowValue = isRowContext ? getNestedValue(state, idOrKey) : undefined;
+        if (rowValue !== undefined) {
+            return rowValue;
+        }
+
+        // If it's a proxy ID (from a table), extract the column key and check the row context again
+        const isProxyId = idOrKey.includes("::");
+        if (isProxyId) {
+             const key = idOrKey.split('::').pop()!;
+             const proxyRowValue = getNestedValue(state, key);
+             if (proxyRowValue !== undefined) return proxyRowValue;
         }
         
-        return idOrKey; // for comparisonType 'value'
+        // Fallback to checking the main form state
+        if (state && state[idOrKey] && 'value' in state[idOrKey]) {
+            return state[idOrKey].value;
+        }
+        
+        return undefined; // If not found anywhere
     }
 
     let sourceValue: any;
@@ -144,6 +157,7 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         return conditionResults.some(res => res);
     }
 };
+
 
 
 
