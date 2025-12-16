@@ -135,8 +135,8 @@ export function Builder({ formId }: Props) {
     </div>
   );
 
+  // Consistent server render and initial client render to avoid hydration mismatch
   if (!isClient) {
-    // Keep a consistent server render to avoid hydration issues
     return (
        <div className="flex flex-col w-full h-full">
         <Header 
@@ -148,9 +148,7 @@ export function Builder({ formId }: Props) {
             <ElementsSidebar />
             <div className="flex-1 flex flex-col overflow-hidden">
                 <div className="flex-grow h-full overflow-y-auto bg-background">
-                    <div className="max-w-4xl mx-auto flex flex-col gap-4 pb-24 px-4">
-                        <p>Loading...</p>
-                    </div>
+                     {/* The canvas is rendered here in the loading state */}
                 </div>
                 <RightSidebar />
             </div>

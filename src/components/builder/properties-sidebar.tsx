@@ -840,7 +840,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="is-link">Enable as Link</Label>
-                                <Switch id="is-link" checked={!!props.isLink} onCheckedChange={(checked) => updateMultipleProperties({ isLink: checked, linkUrl: checked ? props.linkUrl || '' : null })} />
+                                <Switch id="is-link" checked={!!props.isLink} onCheckedChange={(checked) => updateMultipleProperties({ isLink: checked, linkUrl: checked ? (props.linkUrl || '') : null })} />
                             </div>
                             {props.isLink && (
                                 <>
@@ -1054,11 +1054,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     value={props.dataSource || 'static'}
                                     onValueChange={(val) => {
                                       const newDataSource = val as 'static' | 'dynamic';
-                                      const newOptions = (newDataSource === 'static' && !props.options) ? ['Option 1'] : props.options;
                                       updateMultipleProperties({
                                         dataSource: newDataSource,
-                                        options: newDataSource === 'static' ? newOptions : null,
-                                        apiUrl: newDataSource === 'dynamic' ? props.apiUrl || '' : null,
+                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : null,
+                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : null,
                                         valueKey: newDataSource === 'dynamic' ? props.valueKey : null,
                                         labelKey: newDataSource === 'dynamic' ? props.labelKey : null,
                                       })
@@ -1100,7 +1099,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                       updateMultipleProperties({
                                         dataSource: newDataSource,
                                         options: newDataSource === 'static' ? (props.options || ['Option 1']) : null,
-                                        apiUrl: newDataSource === 'dynamic' ? props.apiUrl || '' : null,
+                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : null,
                                         valueKey: newDataSource === 'dynamic' ? props.valueKey : null,
                                         labelKey: newDataSource === 'dynamic' ? props.labelKey : null,
                                       })

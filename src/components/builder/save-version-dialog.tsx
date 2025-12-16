@@ -44,6 +44,9 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
 
 
   const handleSave = () => {
+    // Log the activeForm object to the console for debugging
+    console.log("Saving form object:", activeForm);
+    
     dispatch({
       type: "SAVE_VERSION",
       payload: {
