@@ -372,6 +372,10 @@ function ColumnEditorDialog({
     const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
 
     useEffect(() => {
+        // Ensure that if a new column is being created, it has a default element.
+        if (column && !('element' in column)) {
+            (column as any).element = createNewElement('Input');
+        }
         setEditingColumn(column);
     }, [column]);
 
@@ -1537,3 +1541,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
 
     
+
