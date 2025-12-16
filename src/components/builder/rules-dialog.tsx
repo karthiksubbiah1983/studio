@@ -350,7 +350,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             <div className="grid grid-cols-1 gap-4">
                 <div className="flex flex-col gap-2">
                     <Label>Source Type *</Label>
-                    <Select value={condition.sourceType} onValueChange={(value: ConditionSourceType) => handleUpdateCondition({ sourceType: value, sourceElementId: undefined, sourceValue: '' })}>
+                    <Select value={condition.sourceType} onValueChange={(value: ConditionSourceType) => handleUpdateCondition({ sourceType: value, sourceElementId: undefined, sourceValue: condition.sourceType === 'config' ? condition.sourceValue : '' })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="field">Field</SelectItem>
