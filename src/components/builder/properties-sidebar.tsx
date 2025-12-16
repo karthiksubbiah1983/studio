@@ -279,17 +279,17 @@ function ColumnManager({
             const baseNewCol = {
                 id: `new_${crypto.randomUUID()}`,
             };
-             if (columnType === 'listitem') {
+            if (columnType === 'listitem') {
                 setEditingColumn({
                     ...baseNewCol,
                     element: createNewElement('Display')
                 });
             } else {
-                 setEditingColumn({
+                setEditingColumn({
                     ...baseNewCol,
                     key: `col_${(columns.length || 0) + 1}`,
                     label: `Column ${(columns.length || 0) + 1}`,
-                    element: createNewElement('Input')
+                    element: createNewElement('Display')
                 });
             }
         }
@@ -373,10 +373,15 @@ function ColumnEditorDialog({
 
     useEffect(() => {
         // Ensure that if a new column is being created, it has a default element.
-        if (column && !('element' in column)) {
-            (column as any).element = createNewElement('Input');
+        if (column) {
+            const newColumn = {...column};
+            if (!('element' in newColumn)) {
+                (newColumn as any).element = createNewElement('Input');
+            } else {
+                 (newColumn as any).element = { ...createNewElement(newColumn.element.type), ...newColumn.element }
+            }
+             setEditingColumn(newColumn);
         }
-        setEditingColumn(column);
     }, [column]);
 
     const handleSave = () => {
@@ -1541,4 +1546,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
 
     
+
 
