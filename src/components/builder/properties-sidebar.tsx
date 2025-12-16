@@ -1340,10 +1340,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             )}
                              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="pagination-enabled">Enable Pagination</Label>
-                                <Switch id="pagination-enabled" checked={props.paginationEnabled || false} onCheckedChange={(checked) => updateMultipleProperties({ 
-                                    paginationEnabled: checked,
-                                    pageSize: checked ? (props.pageSize ?? 5) : null
-                                 })} />
+                                <Switch 
+                                    id="pagination-enabled" 
+                                    checked={props.paginationEnabled || false} 
+                                    onCheckedChange={(checked) => updateMultipleProperties({ 
+                                        paginationEnabled: checked,
+                                        pageSize: checked ? (props.pageSize ?? 5) : null
+                                    })} 
+                                />
                             </div>
                             {props.paginationEnabled && (
                                 <div className="flex flex-col gap-2">
@@ -1531,3 +1535,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
     
 
+
+
+    
