@@ -1,4 +1,3 @@
-// @ts-nocheck
 
 "use client";
 
@@ -25,7 +24,7 @@ import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye,
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
+import { cn, findElementRecursive, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
 import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1375,8 +1374,3 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-
-
-
-    
