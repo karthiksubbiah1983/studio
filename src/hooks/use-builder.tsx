@@ -209,7 +209,12 @@ const findAndModifyElement = (elements: FormElementInstance[], action: Action): 
         }
         case "UPDATE_ELEMENT": {
             return elements.map(el => {
-                if (el.id === action.payload.element.id) return action.payload.element;
+                if (el.id === action.payload.element.id) {
+                    if (el.type === 'Table' && action.payload.element.dataSource === 'dynamic') {
+                        return { ...action.payload.element, canAddRows: false, defaultRows: null };
+                    }
+                    return action.payload.element;
+                }
                 if (el.elements) return { ...el, elements: findAndModifyElement(el.elements, action) };
                 return el;
             });
