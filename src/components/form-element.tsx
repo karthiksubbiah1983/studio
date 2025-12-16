@@ -24,7 +24,7 @@ import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye,
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn, findElementRecursive, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
+import { cn, findFirstArray, getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
 import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1142,7 +1142,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                                 element={{...col.element, id: proxyId, key: col.key}}
                                                 value={cellValue}
                                                 onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
-                                                formState={formState}
+                                                formState={{ ...formState, ...row }}
                                                 rowContext={row}
                                                 isTableCell={true}
                                             />
@@ -1185,7 +1185,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                                     element={{...col.element, id: proxyId, key: col.key }}
                                                     value={cellValue}
                                                     onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
-                                                    formState={formState}
+                                                    formState={{ ...formState, ...row }}
                                                     rowContext={row}
                                                     isTableCell={true}
                                                 />
