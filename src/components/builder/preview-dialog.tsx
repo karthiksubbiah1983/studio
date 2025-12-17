@@ -29,7 +29,7 @@ export function PreviewDialog({ isOpen, onOpenChange }: Props) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-screen max-h-[90vh] flex flex-col">
+      <DialogContent className="w-[80vw] max-w-[80vw] h-screen max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Form Preview</DialogTitle>
         </DialogHeader>

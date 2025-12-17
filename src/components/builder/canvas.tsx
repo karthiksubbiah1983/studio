@@ -45,7 +45,7 @@ export function Canvas() {
   return (
     <>
         <div
-            className="max-w-4xl mx-auto flex flex-col gap-4 pb-24 px-4"
+            className="flex flex-col gap-4 pb-24 px-6"
         >
             <FormMetadataEditor />
             {sections.map((section) => (
