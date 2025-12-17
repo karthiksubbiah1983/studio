@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { Header } from "./header";
@@ -11,9 +12,9 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { TemplatesSidebar } from "./templates-sidebar";
 import { RightSidebar } from "./right-sidebar";
 import { useBuilder } from "@/hooks/use-builder";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { Eye, Save, Send, Settings2, Code, Zap } from "lucide-react";
-import { Badge } from "../ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { PreviewDialog } from "./preview-dialog";
 import { SaveVersionDialog } from "./save-version-dialog";

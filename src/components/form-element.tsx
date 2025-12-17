@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement, Configuration } from "@/lib/types";
@@ -746,20 +745,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         break;
     }
     case "Checkbox": {
-        let dynamicLabel = label;
-        if (isTableCell && rowContext) {
-            // In a table, always get the label from the row context, not the value.
-            const labelFromContext = element.labelKey ? getNestedValue(rowContext, element.labelKey) : (element.key ? getNestedValue(rowContext, element.key) : undefined);
-            if (labelFromContext !== undefined && labelFromContext !== null) {
-                dynamicLabel = String(labelFromContext);
-            }
-        }
-        
         const isChecked = value === true;
 
         const handleCheckedChange = (checked: boolean) => {
             onValueChange(element.id, checked);
-        }
+        };
+        
+        // The label for a checkbox inside a table should come from the row context, not its own boolean value.
+        const dynamicLabel = isTableCell && rowContext && (element.labelKey || element.key)
+            ? String(getNestedValue(rowContext, element.labelKey || element.key || ''))
+            : label;
 
         content = (
           <div className="flex items-start space-x-2">
@@ -1394,3 +1389,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
 
+
+    

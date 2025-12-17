@@ -9,7 +9,7 @@ import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Copy, Trash, ClipboardCopy, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Badge } from "../ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { Layout } from "lucide-react";
 
 type Props = {

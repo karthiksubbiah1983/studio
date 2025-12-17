@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { FormPreview } from "./form-preview";
+import { FormPreview } from "../form-preview";
 import { Section } from "@/lib/types";
 
 type Props = {
@@ -41,3 +41,6 @@ export function PreviewDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
+
+    

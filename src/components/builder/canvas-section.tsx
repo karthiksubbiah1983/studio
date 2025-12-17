@@ -8,10 +8,10 @@ import { Section } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CanvasElement } from "./canvas-element";
 import { cn } from "@/lib/utils";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { Copy, GripVertical, Trash, ClipboardPaste, ClipboardCopy } from "lucide-react";
-import { Badge } from "../ui/badge";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 
 export function CanvasSection({ section }: { section: Section }) {
