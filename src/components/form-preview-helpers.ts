@@ -1,5 +1,4 @@
 
-
 import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/lib/types";
 import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
@@ -27,23 +26,20 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             return config?.value;
         }
 
-        const isRowContext = state && typeof state === 'object' && !Object.values(state).some(v => typeof v === 'object' && v !== null && v !== undefined && 'value' in v);
-
-        if (isRowContext) {
-            const rowValue = getNestedValue(state, idOrKey);
-            if (rowValue !== undefined) {
-                return rowValue;
-            }
+        // The 'state' object for a table row is a direct key-value mapping (e.g., { text_field: 'hello' })
+        // The 'state' object for the main form is { elementId: { value: '...' } }
+        // This checks if we're in a row context by looking for a direct key match.
+        if (state && state[idOrKey] !== undefined && (typeof state[idOrKey] !== 'object' || !('value' in state[idOrKey]))) {
+            return state[idOrKey];
         }
-        
+
         const isProxyId = idOrKey.includes("::");
         if (isProxyId) {
              const key = idOrKey.split('::').pop()!;
-             const proxyRowValue = getNestedValue(state, key);
-             if (proxyRowValue !== undefined) return proxyRowValue;
+             if (state && state[key] !== undefined) return state[key];
         }
         
-        // Safely check for state value
+        // Safely check for state value in the main form state structure
         const stateValue = state && state[idOrKey] ? state[idOrKey].value : undefined;
         if (stateValue !== undefined) {
             return stateValue;
@@ -163,23 +159,48 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         }
     };
 
-    // Check if any condition references a field within a table.
-    const tableCondition = rule.conditions.find(c =>
-        c.sourceType === 'field' && c.sourceElementId && c.sourceElementId.includes('::')
-    );
-    
+    // Check if any condition references a field that could be inside a table.
+    // The heuristic is that its ID will contain '::' but this might not always be a table field.
+    // A better check is to see if any sourceElementId matches a key in a table's data.
+    const tableCondition = rule.conditions.find(c => {
+        if (c.sourceType !== 'field' || !c.sourceElementId) return false;
+        const sourceElement = allElements.find(el => el.id === c.sourceElementId);
+        // If the source element is a proxy for a table column, this rule involves a table.
+        return sourceElement && String(sourceElement.id).includes('::');
+    });
+
     if (tableCondition && allElements.length > 0) {
+        // Find the table itself from the condition's source element ID
         const sourceIdParts = tableCondition.sourceElementId!.split('::');
         const tableId = sourceIdParts[0];
         const tableElement = allElements.find(el => 'id' in el && el.id === tableId) as FormElementInstance | undefined;
         
-        if (tableElement && tableElement.type === 'Table' && state[tableId]?.value) {
+        if (tableElement && (tableElement.type === 'Table' || tableElement.type === 'DataGrid') && state[tableId]?.value) {
             const tableRows = state[tableId].value as any[];
             // If any row in the table satisfies the conditions, the rule is met for the whole form.
-            return tableRows.some(row => checkConditions({ ...state, ...row }));
+            return tableRows.some(row => {
+                const rowContext: {[key: string]: any} = {};
+
+                // Create a lookup context for the row where keys are the proxy element IDs
+                if (tableElement.type === 'Table' && tableElement.tableColumns) {
+                    tableElement.tableColumns.forEach(col => {
+                        const proxyId = `${tableId}::${col.key}`;
+                        rowContext[proxyId] = row[col.key]; // Map proxy ID to value
+                    });
+                }
+                 if (tableElement.type === 'DataGrid' && tableElement.dataGridColumns) {
+                    tableElement.dataGridColumns.forEach(col => {
+                        const proxyId = `${tableId}::${col.key}`;
+                        rowContext[proxyId] = row[col.key];
+                    });
+                }
+
+                // Evaluate with a combined context: main form state + specific row values
+                return checkConditions({ ...state, ...rowContext });
+            });
         }
     }
-
+    
     // Default behavior: evaluate conditions against the main form state.
     return checkConditions(state);
 };

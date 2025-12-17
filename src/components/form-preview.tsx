@@ -138,15 +138,11 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
 
     let visible = !section.popupOnly;
 
-    // If there are rules that specifically SHOW this section
     if (showRules.length > 0) {
-        // A section is shown if ANY of its show rules are met.
         visible = showRules.some(r => evaluateRule(r, formState, configurations, sections));
     }
     
-    // If the section is currently visible, check if any HIDE rules should make it hidden
     if (visible && hideRules.length > 0) {
-        // A section is hidden if ANY of its hide rules are met.
         if (hideRules.some(r => evaluateRule(r, formState, configurations, sections))) {
             visible = false;
         }
