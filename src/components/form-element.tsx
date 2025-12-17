@@ -1098,6 +1098,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
 
         const handleAddRow = () => {
+            if (element.maxRows && tableData.length >= element.maxRows) {
+                return; // Do not add if max rows reached
+            }
             const newRow = {};
             const newRows = [...tableData, newRow];
             onValueChange(element.id, newRows);
@@ -1113,6 +1116,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         if (isTableLoading) {
             return <div><Loader2 className="animate-spin" /> Loading table data...</div>
         }
+
+        const isAddRowDisabled = !!element.maxRows && tableData.length >= element.maxRows;
 
         content = (
             <div>
@@ -1230,7 +1235,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                  </div>
 
                  {element.canAddRows && element.dataSource !== 'dynamic' && (
-                    <Button variant="outline" size="sm" className="mt-4 w-full md:w-auto" onClick={handleAddRow}>
+                    <Button variant="outline" size="sm" className="mt-4 w-full md:w-auto" onClick={handleAddRow} disabled={isAddRowDisabled}>
                         <Plus className="h-4 w-4 mr-2"/>
                         Add Row
                     </Button>

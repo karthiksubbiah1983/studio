@@ -149,6 +149,7 @@ export type FormElementInstance = {
     tableColumns?: TableColumn[];
     canAddRows?: boolean | null;
     defaultRows?: number | null;
+    maxRows?: number | null;
     enableSearch?: boolean;
     // For Preview
     previewSectionIds?: string[];

@@ -109,6 +109,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 apiUrl: null,
                 canAddRows: true,
                 defaultRows: 1,
+                maxRows: null,
                 enableSearch: false,
                 paginationEnabled: false,
                 pageSize: 5,

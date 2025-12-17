@@ -1354,6 +1354,22 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Switch id="can-add-rows" checked={props.canAddRows === false ? false : true} onCheckedChange={(checked) => updateProperty('canAddRows', checked)} />
                                 </div>
                             )}
+                             {props.canAddRows && props.dataSource !== 'dynamic' && (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="max-rows">Max Rows (Optional)</Label>
+                                    <Input
+                                        id="max-rows"
+                                        type="number"
+                                        min="0"
+                                        placeholder="No limit"
+                                        value={props.maxRows || ''}
+                                        onChange={(e) => updateProperty('maxRows', e.target.value ? parseInt(e.target.value) : null)}
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Leave blank for no limit.
+                                    </p>
+                                </div>
+                             )}
                              {props.dataSource !== 'dynamic' && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="default-rows">Default Rows</Label>
