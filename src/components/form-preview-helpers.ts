@@ -26,20 +26,16 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             return config?.value;
         }
 
-        // The 'state' object for a table row is a direct key-value mapping (e.g., { text_field: 'hello' })
-        // The 'state' object for the main form is { elementId: { value: '...' } }
-        // This checks if we're in a row context by looking for a direct key match.
-        if (state && state[idOrKey] !== undefined && (typeof state[idOrKey] !== 'object' || !('value' in state[idOrKey]))) {
+        // The 'state' object for a table row is a direct key-value mapping (e.g., { 'tableId::columnKey': 'hello' })
+        if (state && state[idOrKey] !== undefined) {
+             // Handle cases where value is in a { value: ... } object vs a direct value
+            if (typeof state[idOrKey] === 'object' && state[idOrKey] !== null && 'value' in state[idOrKey]) {
+                return state[idOrKey].value;
+            }
             return state[idOrKey];
         }
 
-        const isProxyId = idOrKey.includes("::");
-        if (isProxyId) {
-             const key = idOrKey.split('::').pop()!;
-             if (state && state[key] !== undefined) return state[key];
-        }
-        
-        // Safely check for state value in the main form state structure
+        // Fallback for main form state structure { elementId: { value: '...' } }
         const stateValue = state && state[idOrKey] ? state[idOrKey].value : undefined;
         if (stateValue !== undefined) {
             return stateValue;
@@ -158,21 +154,21 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
             return conditionResults.some(res => res);
         }
     };
-
-    // Check if any condition references a field that could be inside a table.
-    // The heuristic is that its ID will contain '::' but this might not always be a table field.
-    // A better check is to see if any sourceElementId matches a key in a table's data.
-    const tableCondition = rule.conditions.find(c => {
-        if (c.sourceType !== 'field' || !c.sourceElementId) return false;
+    
+    // Determine if any condition in the rule references a field that is part of a table.
+    const tableConditionInfo = rule.conditions.map(c => {
+        if (c.sourceType !== 'field' || !c.sourceElementId) return null;
         const sourceElement = allElements.find(el => el.id === c.sourceElementId);
-        // If the source element is a proxy for a table column, this rule involves a table.
-        return sourceElement && String(sourceElement.id).includes('::');
-    });
+        if (sourceElement && String(sourceElement.id).includes('::')) {
+            const tableId = sourceElement.id.split('::')[0];
+            return { tableId, isTableBased: true };
+        }
+        return null;
+    }).find(info => info !== null);
 
-    if (tableCondition && allElements.length > 0) {
-        // Find the table itself from the condition's source element ID
-        const sourceIdParts = tableCondition.sourceElementId!.split('::');
-        const tableId = sourceIdParts[0];
+
+    if (tableConditionInfo && tableConditionInfo.isTableBased && tableConditionInfo.tableId) {
+        const tableId = tableConditionInfo.tableId;
         const tableElement = allElements.find(el => 'id' in el && el.id === tableId) as FormElementInstance | undefined;
         
         if (tableElement && (tableElement.type === 'Table' || tableElement.type === 'DataGrid') && state[tableId]?.value) {
@@ -181,21 +177,15 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
             return tableRows.some(row => {
                 const rowContext: {[key: string]: any} = {};
 
-                // Create a lookup context for the row where keys are the proxy element IDs
-                if (tableElement.type === 'Table' && tableElement.tableColumns) {
-                    tableElement.tableColumns.forEach(col => {
-                        const proxyId = `${tableId}::${col.key}`;
-                        rowContext[proxyId] = row[col.key]; // Map proxy ID to value
-                    });
-                }
-                 if (tableElement.type === 'DataGrid' && tableElement.dataGridColumns) {
-                    tableElement.dataGridColumns.forEach(col => {
-                        const proxyId = `${tableId}::${col.key}`;
-                        rowContext[proxyId] = row[col.key];
-                    });
-                }
+                // Create a lookup context for the row where keys are the generic column element IDs
+                // e.g., { 'tableId::columnKey': 'value from row' }
+                const columns = tableElement.type === 'Table' ? tableElement.tableColumns : tableElement.dataGridColumns;
+                columns?.forEach(col => {
+                    const genericColumnId = `${tableId}::${col.key}`;
+                    rowContext[genericColumnId] = getNestedValue(row, col.key);
+                });
 
-                // Evaluate with a combined context: main form state + specific row values
+                // Evaluate with a combined context: main form state + specific row values mapped to their generic IDs
                 return checkConditions({ ...state, ...rowContext });
             });
         }
