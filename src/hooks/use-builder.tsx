@@ -11,6 +11,8 @@ import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentRefe
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
 
+const LOCAL_STORAGE_KEY = "formBuilderState";
+
 type State = {
   forms: Form[];
   categories: Category[];
@@ -240,8 +242,11 @@ const builderReducer = (state: State, action: Action): State => {
   const activeFormSections = activeForm?.versions[0]?.sections || [];
 
   switch (action.type) {
-    case "ADD_FORM":
-        return { ...state, forms: [...state.forms, action.payload] };
+    case "ADD_FORM": {
+        const newForm = action.payload;
+        const newState = { ...state, forms: [...state.forms, newForm] };
+        return newState;
+    }
     case "SET_FORMS":
         return { ...state, forms: action.payload };
     case "SET_FORM_STATE":
@@ -570,6 +575,36 @@ const builderReducer = (state: State, action: Action): State => {
             forms: state.forms.map(f => f.subCategoryId === action.payload.subCategoryId ? {...f, subCategoryId: undefined} : f)
         };
     }
+    case "SAVE_VERSION": {
+        if (!activeForm) return state;
+        const { name, description, type, sections, rules, workflows, configurations } = action.payload;
+        const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp: new Date().toISOString(), sections, rules, workflows, configurations };
+        const updatedVersions = [newVersion, ...activeForm.versions];
+        const newForms = state.forms.map(form => 
+            form.id === state.activeFormId ? { ...form, versions: updatedVersions } : form
+        );
+        return { ...state, forms: newForms };
+    }
+    case "LOAD_VERSION": {
+        if (!activeForm) return state;
+        const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
+        if (!versionToLoad) return state;
+        const otherVersions = activeForm.versions.filter(v => v.id !== action.payload.versionId);
+        const newVersions = [versionToLoad, ...otherVersions];
+        const newForms = state.forms.map(form => 
+            form.id === state.activeFormId ? { ...form, versions: newVersions } : form
+        );
+        const formState = getInitialFormState(versionToLoad.sections || []);
+        return { ...state, forms: newForms, formState };
+    }
+    case "DELETE_VERSION": {
+        if (!activeForm) return state;
+        const newVersions = activeForm.versions.filter(v => v.id !== action.payload.versionId);
+        const newForms = state.forms.map(form => 
+            form.id === state.activeFormId ? { ...form, versions: newVersions } : form
+        );
+        return { ...state, forms: newForms };
+    }
      case "SET_STATE":
       return { ...state, ...action.payload };
     default:
@@ -606,7 +641,7 @@ type AddNewFormPayload = {
 type BuilderContextType = {
   state: State;
   dispatch: (action: Action) => void;
-  addNewForm: (payload: AddNewFormPayload) => Promise<DocumentReference>;
+  addNewForm: (payload: AddNewFormPayload) => Promise<DocumentReference | null>;
   forms: Form[];
   categories: Category[];
   sites: Site[];
@@ -633,61 +668,36 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
   const [isLoaded, setIsLoaded] = useState(false);
   const { firestore, user, isUserLoading } = useFirebase();
-
-  // Firestore subscription for forms
-  useEffect(() => {
-    if (isUserLoading || !firestore || !user) {
-        if (isLoaded) dispatch({ type: "SET_FORMS", payload: [] });
-        return;
-    }
-    const q = query(collection(firestore, 'formTemplates'), where("ownerId", "==", user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-        const formsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Form));
-        dispatch({ type: "SET_FORMS", payload: formsData });
-        if (!isLoaded) setIsLoaded(true);
-    }, (error) => {
-        const contextualError = new FirestorePermissionError({
-          operation: 'list',
-          path: 'formTemplates',
-        });
-        errorEmitter.emit('permission-error', contextualError);
-        if (!isLoaded) setIsLoaded(true);
-    });
-    return () => unsubscribe();
-  }, [firestore, user, isUserLoading, isLoaded]);
-
-  // Firestore subscription for user settings (categories, sites)
-  useEffect(() => {
-    if (isUserLoading || !firestore || !user) {
-      dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: [], sites: [] } });
-      return;
-    }
-    const userSettingsDocRef = doc(firestore, 'userSettings', user.uid);
-
-    const unsubscribe = onSnapshot(userSettingsDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        dispatch({ type: 'SET_USER_SETTINGS', payload: { categories: data.categories || [], sites: data.sites || [] } });
-      } else {
-        // Document doesn't exist, create it for the new user.
-        const initialSettings = {
-            ownerId: user.uid,
-            categories: [],
-            sites: [],
-        };
-        setDocumentNonBlocking(userSettingsDocRef, initialSettings, {});
-      }
-    }, (error) => {
-        const contextualError = new FirestorePermissionError({
-            operation: 'get',
-            path: userSettingsDocRef.path,
-        });
-        errorEmitter.emit('permission-error', contextualError);
-    });
-
-    return () => unsubscribe();
-  }, [firestore, user, isUserLoading]);
+  const router = useRouter();
   
+  // Load from localStorage on initial render
+  useEffect(() => {
+    const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (savedState) {
+        try {
+            const parsedState = JSON.parse(savedState);
+            dispatch({ type: 'SET_STATE', payload: parsedState });
+        } catch (error) {
+            console.error("Failed to parse state from localStorage", error);
+        }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save to localStorage whenever relevant state changes
+  useEffect(() => {
+    if (isLoaded) {
+        const stateToSave = {
+            forms: state.forms,
+            categories: state.categories,
+            sites: state.sites,
+            tasks: state.tasks,
+            submissions: state.submissions,
+        };
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
+    }
+  }, [state.forms, state.categories, state.sites, state.tasks, state.submissions, isLoaded]);
+
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
   const sections = activeForm?.versions[0]?.sections || [];
@@ -695,58 +705,51 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
   
-  const addNewForm = async (payload: AddNewFormPayload): Promise<DocumentReference> => {
-    if (!firestore || !user) {
-        return Promise.reject("Firestore not initialized");
-    }
+  const addNewForm = async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
     const { title, description, categoryId, subCategoryId } = payload;
     const newVersion: FormVersion = {
         id: crypto.randomUUID(), name: "Version 1", description: description || "Initial version", type: "draft", timestamp: new Date().toISOString(),
         sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }], rules: [], workflows: [], configurations: []
     };
-    const newFormDocData = { 
-        title, categoryId, subCategoryId, 
-        ownerId: user.uid,
+    const newFormWithId: Form = {
+        id: crypto.randomUUID(), // Local temporary ID
+        title, categoryId, subCategoryId,
         versions: [newVersion]
     };
-    
-    const docRef = await addDoc(collection(firestore, 'formTemplates'), newFormDocData);
-    
-    const newFormWithId: Form = {
-        id: docRef.id,
-        ...newFormDocData
-    };
     dispatch({ type: "ADD_FORM", payload: newFormWithId });
-
-    return docRef;
+    return Promise.resolve(null); // Return null as we are not using Firestore doc ref now
   }
 
   const setSections = (newSections: Section[]) => {
-    if (!activeForm || !firestore) return;
+    if (!activeForm) return;
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], sections: newSections, timestamp: new Date().toISOString() };
-    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
+    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
   }
 
   const updateRules = (newRules: Rule[], newConfigurations: Configuration[]) => {
-    if (!activeForm || !firestore) return;
+    if (!activeForm) return;
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], rules: newRules, configurations: newConfigurations, timestamp: new Date().toISOString() };
-    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
+    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
   }
   
   const updateWorkflows = (newWorkflows: Workflow[]) => {
-    if (!activeForm || !firestore) return;
+    if (!activeForm) return;
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], workflows: newWorkflows, timestamp: new Date().toISOString() };
-    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
+    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
   }
 
   const updateConfigurations = (newConfigurations: Configuration[]) => {
-    if (!activeForm || !firestore) return;
+     if (!activeForm) return;
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], configurations: newConfigurations, timestamp: new Date().toISOString() };
-    updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
+    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
+    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
   }
 
   const setFormState = (newState: { [key: string]: { value: any, fullObject?: any } }) => {
@@ -758,104 +761,12 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const enhancedDispatch = (action: Action) => {
-    if (!firestore || !user) {
-        return dispatch(action);
-    }
-    const userSettingsDocRef = doc(firestore, 'userSettings', user.uid);
-    
-    // Actions that modify user settings
-    if (['ADD_CATEGORY', 'UPDATE_CATEGORY', 'DELETE_CATEGORY', 'ADD_SUBCATEGORY', 'UPDATE_SUBCATEGORY', 'DELETE_SUBCATEGORY', 'ADD_SITE', 'DELETE_SITE'].includes(action.type)) {
-        const newState = builderReducer(state, action);
-        if (userSettingsDocRef) {
-            updateDocumentNonBlocking(userSettingsDocRef, { categories: newState.categories, sites: newState.sites });
-        }
-        // Still dispatch locally for immediate UI update
-        dispatch(action);
-        if(action.type === 'ADD_CATEGORY' && action.payload.name) {
-             const newId = newState.categories.find(c => c.name === action.payload.name)?.id;
-             if(newId) (dispatch as any)({type: 'RETURN_ID', payload: newId})
-        }
-
-        return;
-    }
-
-    switch(action.type) {
-        case "DELETE_FORM":
-            deleteDocumentNonBlocking(doc(firestore, 'formTemplates', action.payload.formId));
-            return;
-        case "CLONE_FORM": {
-             const { formId, newName } = action.payload;
-             const formToClone = state.forms.find(f => f.id === formId);
-             if (!formToClone) return;
-             const latestVersionContent = formToClone.versions[0];
-             const newVersionContent = cloneWithNewIds(latestVersionContent);
-             const newFormDoc = {
-                title: newName, categoryId: formToClone.categoryId, subCategoryId: formToClone.subCategoryId, ownerId: user.uid,
-                versions: [{ ...newVersionContent, id: crypto.randomUUID(), name: "Initial Draft", description: `Cloned from "${formToClone.title}"`, type: "draft" as "draft", timestamp: new Date().toISOString() }]
-             };
-             addDocumentNonBlocking(collection(firestore, 'formTemplates'), newFormDoc);
-             return;
-        }
-        case 'UPDATE_FORM_TITLE': {
-             if (!activeForm) return;
-             updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { title: action.payload.title });
-             return;
-        }
-        case 'UPDATE_FORM_METADATA': {
-             if (!activeForm) return;
-             updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { categoryId: action.payload.categoryId, subCategoryId: action.payload.subCategoryId });
-             return;
-        }
-        case "SAVE_VERSION": {
-          if (!activeForm) return;
-          const { name, description, type, sections, rules, workflows, configurations } = action.payload;
-          const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp: new Date().toISOString(), sections, rules, workflows, configurations };
-          const updatedVersions = [newVersion, ...activeForm.versions];
-          updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: updatedVersions });
-          return;
-        }
-        case 'LOAD_VERSION': {
-            if (!activeForm) return;
-            const versionToLoad = activeForm.versions.find(v => v.id === action.payload.versionId);
-            if (!versionToLoad) return;
-            const otherVersions = activeForm.versions.filter(v => v.id !== action.payload.versionId);
-            const newVersions = [versionToLoad, ...otherVersions];
-            updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
-            const formState = getInitialFormState(versionToLoad.sections || []);
-            dispatch({ type: "SET_FORM_STATE", payload: formState });
-            return;
-        }
-        case 'DELETE_VERSION': {
-            if (!activeForm) return;
-            const newVersions = activeForm.versions.filter(v => v.id !== action.payload.versionId);
-            updateDocumentNonBlocking(doc(firestore, 'formTemplates', activeForm.id), { versions: newVersions });
-            return;
-        }
-        case "SET_SECTIONS":
-        case "UPDATE_WORKFLOWS":
-        case "UPDATE_CONFIGURATIONS":
-             if (!activeForm) return;
-             const newStateAfterSimpleUpdate = builderReducer(state, action);
-             const newActiveFormSimple = newStateAfterSimpleUpdate.forms.find(f => f.id === state.activeFormId);
-             if (newActiveFormSimple) {
-                updateDocumentNonBlocking(doc(firestore, 'formTemplates', newActiveFormSimple.id), { versions: newActiveFormSimple.versions });
-             }
-             return;
-        case "UPDATE_RULES":
-             if (!activeForm) return;
-             const newStateAfterRules = builderReducer(state, action);
-             const newActiveFormRules = newStateAfterRules.forms.find(f => f.id === state.activeFormId);
-              if (newActiveFormRules) {
-                const latestVersion = newActiveFormRules.versions[0];
-                updateDocumentNonBlocking(doc(firestore, 'formTemplates', newActiveFormRules.id), { versions: [{...latestVersion, rules: action.payload.rules, configurations: action.payload.configurations }] });
-             }
-             return;
-        default:
-            dispatch(action);
-    }
+    // All actions are now just dispatched locally.
+    // Firestore logic is bypassed.
+    dispatch(action);
   }
 
-  if (!isLoaded && isUserLoading) {
+  if (!isLoaded) {
     return (
         <main className="flex flex-col items-center justify-center w-full min-h-screen bg-background p-4 md:p-8">
             <div className="text-center">
@@ -880,3 +791,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
