@@ -8,9 +8,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  experimental: {
-    serverComponentsExternalPackages: ["@genkit-ai/googleai"],
-  },
+  serverExternalPackages: ["@genkit-ai/googleai"],
   images: {
     remotePatterns: [
       {
