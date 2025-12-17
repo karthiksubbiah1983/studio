@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement, Configuration } from "@/lib/types";
@@ -1020,7 +1019,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         );
         break;
     case "Table":
-        const [tableData, setTableData] = useState<any[]>([]);
+        const tableData: any[] = initialValue || [];
         const [isTableLoading, setIsTableLoading] = useState(false);
         const [searchTerm, setSearchTerm] = useState("");
         const [currentPage, setCurrentPage] = useState(1);
@@ -1034,31 +1033,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         const arrayData = findFirstArray(data);
                         if (arrayData) {
                             onValueChange(element.id, arrayData);
-                            setTableData(arrayData);
                         }
                     })
                     .finally(() => setIsTableLoading(false));
-            } else {
-                 const staticRows = (initialValue || []) as any[];
-                const numDefaultRows = element.defaultRows || 0;
-                if (staticRows.length < numDefaultRows) {
-                    const newRows = Array(numDefaultRows - staticRows.length).fill({}).map(() => ({}));
-                    const initialData = [...staticRows, ...newRows];
-                    onValueChange(element.id, initialData);
-                    setTableData(initialData);
-                } else if (staticRows.length > 0) {
-                     setTableData(staticRows);
-                } else {
-                    setTableData([]);
-                }
+            } else if (element.dataSource !== 'dynamic' && !initialValue) {
+                 const numDefaultRows = element.defaultRows || 0;
+                 if (numDefaultRows > 0) {
+                     const initialData = Array(numDefaultRows).fill({}).map(() => ({}));
+                     onValueChange(element.id, initialData);
+                 }
             }
         }, [element.dataSource, element.apiUrl, element.defaultRows]);
-        
-        useEffect(() => {
-            if (initialValue) {
-                setTableData(initialValue);
-            }
-        }, [initialValue]);
         
         const filteredTableData = useMemo(() => {
             if (!searchTerm) return tableData;
@@ -1094,7 +1079,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             })
 
             onValueChange(element.id, newRows);
-            setTableData(newRows);
         }
 
         const handleAddRow = () => {
@@ -1104,13 +1088,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             const newRow = {};
             const newRows = [...tableData, newRow];
             onValueChange(element.id, newRows);
-            setTableData(newRows);
         }
 
         const handleDeleteRow = (rowIndex: number) => {
             const newRows = tableData.filter((_, i) => i !== rowIndex);
             onValueChange(element.id, newRows);
-            setTableData(newRows);
         }
 
         if (isTableLoading) {
