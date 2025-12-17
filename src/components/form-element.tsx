@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement, Configuration } from "@/lib/types";
@@ -746,32 +747,32 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     case "Checkbox": {
         const isChecked = value === true;
-
+    
         const handleCheckedChange = (checked: boolean) => {
             onValueChange(element.id, checked);
         };
-        
+    
         // The label for a checkbox inside a table should come from the row context, not its own boolean value.
-        const dynamicLabel = isTableCell && rowContext && (element.labelKey || element.key)
+        const dynamicLabel = (isTableCell && rowContext && (element.labelKey || element.key))
             ? String(getNestedValue(rowContext, element.labelKey || element.key || ''))
             : label;
-
+    
         content = (
-          <div className="flex items-start space-x-2">
-            <Checkbox
-              id={element.id}
-              checked={isChecked}
-              onCheckedChange={handleCheckedChange}
-              disabled={isDisabled}
-            />
-            <div className="grid gap-1.5 leading-none">
-              {renderLabelWithPopup(dynamicLabel)}
-              {helperText && (
-                <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
-              )}
-              {renderError()}
+            <div className="flex items-start space-x-2">
+                <Checkbox
+                    id={element.id}
+                    checked={isChecked}
+                    onCheckedChange={handleCheckedChange}
+                    disabled={isDisabled}
+                />
+                <div className="grid gap-1.5 leading-none">
+                    {renderLabelWithPopup(dynamicLabel)}
+                    {helperText && (
+                        <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
+                    )}
+                    {renderError()}
+                </div>
             </div>
-          </div>
         );
         break;
     }
@@ -1048,18 +1049,24 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }, [element.dataSource, element.apiUrl, element.defaultRows]);
         
         const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
-            let newRows = [...(initialValue || [])];
+            const newRows = [...(initialValue || [])];
             if (!newRows[rowIndex]) {
                 newRows[rowIndex] = {};
             }
             newRows[rowIndex][columnKey] = cellValue;
-
-            element.tableColumns?.forEach(col => {
+        
+            // After updating the value, re-calculate all formula columns for that row
+            (element.tableColumns || []).forEach(col => {
                 if (col.formula) {
-                    const formulaResult = evaluate(col.formula, newRows[rowIndex]);
-                    newRows[rowIndex][col.key] = formulaResult;
+                    try {
+                        const formulaResult = evaluate(col.formula, newRows[rowIndex]);
+                        newRows[rowIndex][col.key] = formulaResult;
+                    } catch (e) {
+                        console.error(`Error evaluating formula for column ${col.key}:`, e);
+                        newRows[rowIndex][col.key] = "#ERROR!";
+                    }
                 }
-            })
+            });
             onValueChange(element.id, newRows);
         }
 
@@ -1138,11 +1145,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                         let cellValue = getNestedValue(row, col.key);
 
                                         if (col.formula) {
-                                          const calculatedValue = evaluate(col.formula, row);
-                                          cellValue = calculatedValue;
-                                        }
-
-                                        if (col.formula) {
                                             return (
                                                 <TableCell key={proxyId}>
                                                     <Input readOnly value={cellValue} className="border-none bg-transparent" />
@@ -1153,7 +1155,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                         return (
                                         <TableCell key={proxyId}>
                                             <FormElementRenderer 
-                                                element={{...col.element, id: proxyId, key: col.key}}
+                                                element={{...col.element, id: proxyId, key: col.key, labelKey: col.element.labelKey || col.key}}
                                                 value={cellValue}
                                                 onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
                                                 formState={{ ...formState, ...row }}
@@ -1184,11 +1186,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                     const proxyId = `${element.id}::${col.key}::${originalIndex}`;
                                     let cellValue = getNestedValue(row, col.key);
 
-                                    if (col.formula) {
-                                        const calculatedValue = evaluate(col.formula, row);
-                                        cellValue = calculatedValue;
-                                    }
-
                                     return (
                                         <div key={proxyId} className="space-y-1">
                                             <Label className="text-muted-foreground">{col.label}</Label>
@@ -1196,7 +1193,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                                 <Input readOnly value={cellValue} className="border-none bg-transparent p-0 h-auto" />
                                             ) : (
                                                 <FormElementRenderer
-                                                    element={{...col.element, id: proxyId, key: col.key }}
+                                                    element={{...col.element, id: proxyId, key: col.key, labelKey: col.element.labelKey || col.key }}
                                                     value={cellValue}
                                                     onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
                                                     formState={{ ...formState, ...row }}
@@ -1390,4 +1387,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 }
 
 
+    
     
