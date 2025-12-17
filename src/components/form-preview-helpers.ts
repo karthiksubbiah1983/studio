@@ -33,7 +33,6 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         // For elements within tables, state is a merge of rowContext and formState.
         // We need to intelligently look up the value.
         // A value in the row context (flat key-value) should take precedence.
-        // If not found, check the main form state (key -> {value}).
         const rowValue = isRowContext ? getNestedValue(state, idOrKey) : undefined;
         if (rowValue !== undefined) {
             return rowValue;
@@ -146,18 +145,37 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     }
 }
 
-export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any }, configurations?: Configuration[]): boolean => {
+export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any }, configurations?: Configuration[], sections?: Section[]): boolean => {
     if (!rule || !rule.conditions || rule.conditions.length === 0) return false;
+
+    const allElements = sections ? getAllElements(sections) : [];
+
+    const checkConditions = (context: { [key: string]: any }): boolean => {
+        const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, context, configurations));
+        if (rule.logicType === 'and') {
+            return conditionResults.every(res => res);
+        } else { // 'or'
+            return conditionResults.some(res => res);
+        }
+    };
+
+    // Check if any condition references a table cell.
+    const tableCondition = rule.conditions.find(c =>
+        c.sourceType === 'field' && c.sourceElementId && c.sourceElementId.includes('::')
+    );
     
-    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, configurations));
-
-    if (rule.logicType === 'and') {
-        return conditionResults.every(res => res);
-    } else { // 'or'
-        return conditionResults.some(res => res);
+    if (tableCondition && allElements.length > 0) {
+        const sourceIdParts = tableCondition.sourceElementId!.split('::');
+        const tableId = sourceIdParts[0];
+        const tableElement = allElements.find(el => el.id === tableId) as FormElementInstance | undefined;
+        
+        if (tableElement && tableElement.type === 'Table' && state[tableId]?.value) {
+            const tableRows = state[tableId].value as any[];
+            // If any row in the table satisfies the conditions, the rule is met.
+            return tableRows.some(row => checkConditions({ ...state, ...row }));
+        }
     }
+
+    // Default behavior: evaluate conditions against the main form state.
+    return checkConditions(state);
 };
-
-
-
-

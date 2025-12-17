@@ -61,7 +61,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
             }
         })
         
-        const isTriggered = evaluateRule(workflow, stateForEval, configurations);
+        const isTriggered = evaluateRule(workflow, stateForEval, configurations, sections);
 
         if (isTriggered) {
              for (const action of workflow.actions) {
@@ -138,11 +138,11 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     let visible = !section.popupOnly;
 
     if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, formState || {}, configurations));
+        visible = showRules.some(r => evaluateRule(r, formState || {}, configurations, sections));
     }
 
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, formState || {}, configurations))) {
+      if (hideRules.some(r => evaluateRule(r, formState || {}, configurations, sections))) {
         visible = false;
       }
     }

@@ -130,17 +130,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let visible = true; 
 
     if (showRules.length > 0) {
-      visible = showRules.some(r => evaluateRule(r, context, configurations));
+      visible = showRules.some(r => evaluateRule(r, context, configurations, sections));
     }
 
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, context, configurations))) {
+      if (hideRules.some(r => evaluateRule(r, context, configurations, sections))) {
         visible = false;
       }
     }
     
     return visible;
-  }, [element.id, element.hidden, context, rules, configurations, isTableCell]);
+  }, [element.id, element.hidden, context, rules, configurations, isTableCell, sections]);
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
     let readOnly = false;
@@ -178,7 +178,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
 
     for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, contextForEval, configurations);
+        const isRuleMet = evaluateRule(rule, contextForEval, configurations, sections);
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
                 if (behavior.type === 'set_value' && behavior.targetElementId === element.id) {
@@ -205,17 +205,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if (!context) return false;
 
     const disableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
-    if (disableRules.some(r => evaluateRule(r, context, configurations))) {
+    if (disableRules.some(r => evaluateRule(r, context, configurations, sections))) {
       return true;
     }
 
     const enableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
-      return !enableRules.some(r => evaluateRule(r, context, configurations));
+      return !enableRules.some(r => evaluateRule(r, context, configurations, sections));
     }
 
     return false;
-  }, [element.id, context, rules, configurations]);
+  }, [element.id, context, rules, configurations, sections]);
 
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
@@ -223,7 +223,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if (!context || !rules) return { style, error };
     
     for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, context, configurations);
+        const isRuleMet = evaluateRule(rule, context, configurations, sections);
 
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
@@ -239,7 +239,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
     }
     return { style, error };
-  }, [element.id, context, rules, configurations]);
+  }, [element.id, context, rules, configurations, sections]);
   
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
@@ -933,7 +933,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             const proxyId = `${element.id}::${col.key}`;
             const styles: React.CSSProperties = {};
              for (const rule of rules) {
-                const isRuleMet = evaluateRule(rule, row, configurations);
+                const isRuleMet = evaluateRule(rule, row, configurations, sections);
                 if (isRuleMet) {
                     for (const behavior of rule.behaviors) {
                         if (behavior.targetElementId === proxyId && behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
