@@ -30,7 +30,7 @@ import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { FormPreviewPopup } from "./form-preview-popup";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
@@ -257,7 +257,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.apiUrl, element.type, element.dataSource]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -746,15 +746,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     case "Checkbox": {
         const isChecked = value === true;
-    
         const handleCheckedChange = (checked: boolean) => {
             onValueChange(element.id, checked);
         };
-    
-        const dynamicLabel = (isTableCell && rowContext && (element.labelKey || element.key))
-          ? String(getNestedValue(rowContext, element.labelKey!))
-          : label;
-    
+
+        const dynamicLabel = isTableCell && rowContext && (labelKey || key)
+            ? String(getNestedValue(rowContext, labelKey || key!))
+            : label;
+
         content = (
             <div className="flex items-start space-x-2">
                 <Checkbox
@@ -765,9 +764,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 />
                 <div className="grid gap-1.5 leading-none">
                     {renderLabelWithPopup(dynamicLabel)}
-                    {helperText && (
-                        <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
-                    )}
+                    {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
                     {renderError()}
                 </div>
             </div>

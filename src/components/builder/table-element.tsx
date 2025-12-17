@@ -144,7 +144,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                     return (
                       <TableCell key={proxyId}>
                         <FormElementRenderer
-                          element={{ ...col.element, id: proxyId, key: col.key }}
+                          element={{ ...col.element, id: proxyId, key: col.key, label: '' }}
                           value={cellValue}
                           onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
                           formState={{ ...formState, ...row }} // Provide full context for rules
