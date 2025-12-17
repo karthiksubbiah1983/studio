@@ -2,9 +2,9 @@
 
 import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/lib/types";
 import { Workflow } from "@/lib/types";
-import { getAllElements, getNestedValue } from "@/lib/utils";
+import { getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
 
-export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: any }, configurations?: Configuration[]) => {
+export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: any }, allElements: (FormElementInstance | Section)[], configurations?: Configuration[]) => {
     
     const getConditionValue = (type: 'source' | 'comparison', idOrKey?: string): any => {
         if (!idOrKey) return undefined;
@@ -27,18 +27,13 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             return config?.value;
         }
 
-        // Check if state is a row context (plain object) vs form state (object of {value, fullObject})
         const isRowContext = state && typeof state === 'object' && !Object.values(state).some(v => typeof v === 'object' && v !== null && 'value' in v);
 
-        // For elements within tables, state is a merge of rowContext and formState.
-        // We need to intelligently look up the value.
-        // A value in the row context (flat key-value) should take precedence.
         const rowValue = isRowContext ? getNestedValue(state, idOrKey) : undefined;
         if (rowValue !== undefined) {
             return rowValue;
         }
 
-        // If it's a proxy ID (from a table), extract the column key and check the row context again
         const isProxyId = idOrKey.includes("::");
         if (isProxyId) {
              const key = idOrKey.split('::').pop()!;
@@ -46,16 +41,23 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
              if (proxyRowValue !== undefined) return proxyRowValue;
         }
         
-        // Fallback to checking the main form state
-        if (state && state[idOrKey] && 'value' in state[idOrKey]) {
-            return state[idOrKey].value;
+        // Safely check for state value
+        const stateValue = state && state[idOrKey] ? state[idOrKey].value : undefined;
+        if (stateValue !== undefined) {
+            return stateValue;
+        }
+
+        // Fallback to default value if not in state
+        const element = findElementRecursive(allElements as Section[], idOrKey);
+        if (element && 'defaultValue' in element) {
+            return element.defaultValue;
         }
         
         return undefined; // If not found anywhere
     }
 
     let sourceValue: any;
-    if (condition.sourceType === 'field') {
+    if (condition.sourceType === 'field' && condition.sourceElementId) {
         sourceValue = getConditionValue('source', condition.sourceElementId);
     } else { // 'date', 'status', 'config'
         sourceValue = getConditionValue('source', condition.sourceValue);
@@ -64,7 +66,7 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
 
     let comparisonValue: any;
-    if (condition.comparisonType === 'field') {
+    if (condition.comparisonType === 'field' && condition.comparisonElementId) {
         comparisonValue = getConditionValue('comparison', condition.comparisonElementId);
     } else if (condition.comparisonType === 'config') {
         comparisonValue = getConditionValue('comparison', condition.value);
@@ -151,7 +153,7 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
     const allElements = sections ? getAllElements(sections) : [];
 
     const checkConditions = (context: { [key: string]: any }): boolean => {
-        const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, context, configurations));
+        const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, context, allElements, configurations));
         if (rule.logicType === 'and') {
             return conditionResults.every(res => res);
         } else { // 'or'
@@ -167,7 +169,7 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
     if (tableCondition && allElements.length > 0) {
         const sourceIdParts = tableCondition.sourceElementId!.split('::');
         const tableId = sourceIdParts[0];
-        const tableElement = allElements.find(el => el.id === tableId) as FormElementInstance | undefined;
+        const tableElement = allElements.find(el => 'id' in el && el.id === tableId) as FormElementInstance | undefined;
         
         if (tableElement && tableElement.type === 'Table' && state[tableId]?.value) {
             const tableRows = state[tableId].value as any[];

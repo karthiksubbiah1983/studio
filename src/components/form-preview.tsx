@@ -163,7 +163,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
 
          if (section.displayMode === 'accordion') {
             return (
-                <Accordion type="single" collapsible key={section.id}>
+                <Accordion type="single" collapsible defaultValue={section.id} key={section.id}>
                     <AccordionItem value={section.id}>
                         <Card>
                             <AccordionTrigger className="w-full p-6 text-base font-medium">
