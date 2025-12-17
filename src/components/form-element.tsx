@@ -750,9 +750,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             onValueChange(element.id, checked);
         };
         
-        // This is the fix. The label is now always sourced from rowContext using the configured labelKey.
-        const dynamicLabel = isTableCell && rowContext && (labelKey || key)
-            ? String(getNestedValue(rowContext, labelKey!))
+        const dynamicLabel = (isTableCell && rowContext && (labelKey || key)) 
+            ? String(getNestedValue(rowContext, labelKey || key || '')) 
             : label;
 
         content = (
@@ -1161,3 +1160,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
+    
