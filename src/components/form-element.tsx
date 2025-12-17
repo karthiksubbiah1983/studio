@@ -749,9 +749,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const handleCheckedChange = (checked: boolean) => {
             onValueChange(element.id, checked);
         };
-
+        
+        // This is the fix. The label is now always sourced from rowContext using the configured labelKey.
         const dynamicLabel = isTableCell && rowContext && (labelKey || key)
-            ? String(getNestedValue(rowContext, labelKey || key!))
+            ? String(getNestedValue(rowContext, labelKey!))
             : label;
 
         content = (

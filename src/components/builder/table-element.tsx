@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { FormElementInstance, TableColumn } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,6 @@ type TableElementProps = {
   element: FormElementInstance;
   value: any[] | undefined;
   onValueChange: (id: string, value: any) => void;
-  isParentHorizontal?: boolean;
 };
 
 export function TableElement({ element, value: tableRows = [], onValueChange }: TableElementProps) {
@@ -31,6 +30,8 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
   const tableColumns = useMemo(() => element.tableColumns || [], [element.tableColumns]);
   const pageSize = element.pageSize || 5;
 
+  const stableOnValueChange = useCallback(onValueChange, []);
+
   // Effect to fetch initial data for dynamic tables
   useEffect(() => {
     if (element.dataSource === 'dynamic' && element.apiUrl) {
@@ -39,15 +40,15 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
         .then(data => {
           const arrayData = findFirstArray(data);
           if (arrayData) {
-            onValueChange(element.id, arrayData);
+            stableOnValueChange(element.id, arrayData);
           }
         })
         .finally(() => setIsLoading(false));
-    } else if (element.dataSource !== 'dynamic' && !tableRows && element.defaultRows) {
+    } else if (element.dataSource !== 'dynamic' && (!tableRows || tableRows.length === 0) && element.defaultRows) {
       const initialData = Array(element.defaultRows).fill({}).map(() => ({}));
-      onValueChange(element.id, initialData);
+      stableOnValueChange(element.id, initialData);
     }
-  }, [element.dataSource, element.apiUrl, element.defaultRows, onValueChange, element.id]);
+  }, [element.dataSource, element.apiUrl, element.defaultRows, stableOnValueChange, element.id]);
 
 
   const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
