@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement, Configuration } from "@/lib/types";
@@ -744,34 +745,35 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         );
         break;
     }
-    case "Checkbox":
+    case "Checkbox": {
         const isStatic = !(isTableCell && rowContext);
         let dynamicLabel = label;
-        if (!isStatic) {
-            const labelFromContext = element.key ? getNestedValue(rowContext, element.key) : undefined;
-            if (labelFromContext !== undefined && labelFromContext !== null) {
-                dynamicLabel = String(labelFromContext);
-            }
+        if (!isStatic && rowContext) {
+          const labelFromContext = element.labelKey ? getNestedValue(rowContext, element.labelKey) : (element.key ? getNestedValue(rowContext, element.key) : undefined);
+          if (labelFromContext !== undefined && labelFromContext !== null) {
+            dynamicLabel = String(labelFromContext);
+          }
         }
         
         content = (
-            <div className="flex items-start space-x-2">
-                <Checkbox 
-                    id={element.id}
-                    checked={value}
-                    onCheckedChange={(checked) => onValueChange(element.id, checked)}
-                    disabled={isDisabled}
-                />
-                <div className="grid gap-1.5 leading-none">
-                    {renderLabelWithPopup(dynamicLabel)}
-                    {helperText && (
-                        <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
-                    )}
-                    {renderError()}
-                </div>
+          <div className="flex items-start space-x-2">
+            <Checkbox
+              id={element.id}
+              checked={!!value}
+              onCheckedChange={(checked) => onValueChange(element.id, checked)}
+              disabled={isDisabled}
+            />
+            <div className="grid gap-1.5 leading-none">
+              {renderLabelWithPopup(dynamicLabel)}
+              {helperText && (
+                <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
+              )}
+              {renderError()}
             </div>
+          </div>
         );
         break;
+      }
     case "RadioGroup":
       content = (
         <div id={element.id}>
@@ -1019,7 +1021,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         );
         break;
     case "Table":
-        const tableData: any[] = initialValue || [];
         const [isTableLoading, setIsTableLoading] = useState(false);
         const [searchTerm, setSearchTerm] = useState("");
         const [currentPage, setCurrentPage] = useState(1);
@@ -1046,13 +1047,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }, [element.dataSource, element.apiUrl, element.defaultRows]);
         
         const filteredTableData = useMemo(() => {
-            if (!searchTerm) return tableData;
-            return tableData.filter(row => 
+            if (!searchTerm) return initialValue || [];
+            return (initialValue || []).filter((row: any) => 
                 Object.values(row).some(cellValue => 
                     String(cellValue).toLowerCase().includes(searchTerm.toLowerCase())
                 )
             );
-        }, [tableData, searchTerm]);
+        }, [initialValue, searchTerm]);
 
         const totalPages = element.paginationEnabled ? Math.ceil(filteredTableData.length / pageSize) : 1;
         const paginatedData = element.paginationEnabled ? filteredTableData.slice((currentPage - 1) * pageSize, currentPage * pageSize) : filteredTableData;
@@ -1065,7 +1066,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }, [searchTerm]);
 
         const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
-            let newRows = [...tableData];
+            let newRows = [...(initialValue || [])];
             if (!newRows[rowIndex]) {
                 newRows[rowIndex] = {};
             }
@@ -1082,6 +1083,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
 
         const handleAddRow = () => {
+            const tableData = initialValue || [];
             if (element.maxRows && tableData.length >= element.maxRows) {
                 return; // Do not add if max rows reached
             }
@@ -1091,7 +1093,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
 
         const handleDeleteRow = (rowIndex: number) => {
-            const newRows = tableData.filter((_, i) => i !== rowIndex);
+            const tableData = initialValue || [];
+            const newRows = tableData.filter((_: any, i: number) => i !== rowIndex);
             onValueChange(element.id, newRows);
         }
 
@@ -1099,7 +1102,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             return <div><Loader2 className="animate-spin" /> Loading table data...</div>
         }
 
-        const isAddRowDisabled = !!element.maxRows && tableData.length >= element.maxRows;
+        const isAddRowDisabled = !!element.maxRows && (initialValue || []).length >= element.maxRows;
 
         content = (
             <div>
@@ -1125,7 +1128,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {paginatedData.map((row, paginatedIndex) => {
+                            {paginatedData.map((row: any, paginatedIndex: number) => {
                                 const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
                                 return (
                                 <TableRow key={originalIndex}>
@@ -1172,7 +1175,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 </div>
                  {/* Mobile Card View */}
                  <div className="grid grid-cols-1 gap-4 md:hidden">
-                    {paginatedData.map((row, paginatedIndex) => {
+                    {paginatedData.map((row: any, paginatedIndex: number) => {
                         const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
                         return (
                             <div key={originalIndex} className="border rounded-lg p-4 space-y-4">
