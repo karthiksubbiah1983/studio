@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement, Configuration } from "@/lib/types";
@@ -30,13 +29,13 @@ import { useBuilder } from "@/hooks/use-builder";
 import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FormPreviewPopup } from "./form-preview-popup";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { TableElement } from "./builder/table-element";
 
 
 type Props = {
@@ -752,10 +751,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             onValueChange(element.id, checked);
         };
     
-        // The label for a checkbox inside a table should come from the row context, not its own boolean value.
         const dynamicLabel = (isTableCell && rowContext && (element.labelKey || element.key))
-            ? String(getNestedValue(rowContext, element.labelKey || element.key || ''))
-            : label;
+          ? String(getNestedValue(rowContext, element.labelKey!))
+          : label;
     
         content = (
             <div className="flex items-start space-x-2">
@@ -1023,232 +1021,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         );
         break;
     case "Table":
-        const [isTableLoading, setIsTableLoading] = useState(false);
-        const [searchTerm, setSearchTerm] = useState("");
-        const [currentPage, setCurrentPage] = useState(1);
-        const pageSize = element.pageSize || 5;
-
-        useEffect(() => {
-            if (element.dataSource === 'dynamic' && element.apiUrl) {
-                setIsTableLoading(true);
-                fetchFromApi(element.apiUrl)
-                    .then(data => {
-                        const arrayData = findFirstArray(data);
-                        if (arrayData) {
-                            onValueChange(element.id, arrayData);
-                        }
-                    })
-                    .finally(() => setIsTableLoading(false));
-            } else if (element.dataSource !== 'dynamic' && !initialValue) {
-                 const numDefaultRows = element.defaultRows || 0;
-                 if (numDefaultRows > 0) {
-                     const initialData = Array(numDefaultRows).fill({}).map(() => ({}));
-                     onValueChange(element.id, initialData);
-                 }
-            }
-        }, [element.dataSource, element.apiUrl, element.defaultRows]);
-        
-        const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
-            const newRows = [...(initialValue || [])];
-            if (!newRows[rowIndex]) {
-                newRows[rowIndex] = {};
-            }
-            newRows[rowIndex][columnKey] = cellValue;
-        
-            // After updating the value, re-calculate all formula columns for that row
-            (element.tableColumns || []).forEach(col => {
-                if (col.formula) {
-                    try {
-                        const formulaResult = evaluate(col.formula, newRows[rowIndex]);
-                        newRows[rowIndex][col.key] = formulaResult;
-                    } catch (e) {
-                        console.error(`Error evaluating formula for column ${col.key}:`, e);
-                        newRows[rowIndex][col.key] = "#ERROR!";
-                    }
-                }
-            });
-            onValueChange(element.id, newRows);
-        }
-
-        const filteredTableData = useMemo(() => {
-            const tableData = initialValue || [];
-            if (!searchTerm) return tableData;
-            return tableData.filter((row: any) => 
-                Object.values(row).some(cellValue => 
-                    String(cellValue).toLowerCase().includes(searchTerm.toLowerCase())
-                )
-            );
-        }, [initialValue, searchTerm]);
-
-        const totalPages = element.paginationEnabled ? Math.ceil(filteredTableData.length / pageSize) : 1;
-        const paginatedData = element.paginationEnabled ? filteredTableData.slice((currentPage - 1) * pageSize, currentPage * pageSize) : filteredTableData;
-
-        const handlePrevPage = () => setCurrentPage(p => Math.max(1, p - 1));
-        const handleNextPage = () => setCurrentPage(p => Math.min(totalPages, p + 1));
-
-        useEffect(() => {
-            setCurrentPage(1);
-        }, [searchTerm]);
-
-        const handleAddRow = () => {
-            const tableData = initialValue || [];
-            if (element.maxRows && tableData.length >= element.maxRows) {
-                return; // Do not add if max rows reached
-            }
-            const newRow = {};
-            const newRows = [...tableData, newRow];
-            onValueChange(element.id, newRows);
-        }
-
-        const handleDeleteRow = (rowIndex: number) => {
-            const tableData = initialValue || [];
-            const newRows = tableData.filter((_: any, i: number) => i !== rowIndex);
-            onValueChange(element.id, newRows);
-        }
-
-        if (isTableLoading) {
-            return <div><Loader2 className="animate-spin" /> Loading table data...</div>
-        }
-
-        const isAddRowDisabled = !!element.maxRows && (initialValue || []).length >= element.maxRows;
-
         content = (
-            <div>
-                {renderLabel()}
-                {element.enableSearch && (
-                    <div className="relative mb-4">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search table..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-8"
-                        />
-                    </div>
-                )}
-                {/* Desktop Table View */}
-                 <div className="rounded-md border hidden md:block">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                {element.tableColumns?.map(col => <TableHead key={col.id}>{col.label}</TableHead>)}
-                                {element.canAddRows && element.dataSource !== 'dynamic' && <TableHead className="w-[50px]"></TableHead>}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {paginatedData.map((row: any, paginatedIndex: number) => {
-                                const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
-                                return (
-                                <TableRow key={originalIndex}>
-                                    {element.tableColumns?.map((col, colIndex) => {
-                                        const proxyId = `${element.id}::${col.key}::${originalIndex}`;
-                                        let cellValue = getNestedValue(row, col.key);
-
-                                        if (col.formula) {
-                                            return (
-                                                <TableCell key={proxyId}>
-                                                    <Input readOnly value={cellValue} className="border-none bg-transparent" />
-                                                </TableCell>
-                                            )
-                                        }
-
-                                        return (
-                                        <TableCell key={proxyId}>
-                                            <FormElementRenderer 
-                                                element={{...col.element, id: proxyId, key: col.key, labelKey: col.element.labelKey || col.key}}
-                                                value={cellValue}
-                                                onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
-                                                formState={{ ...formState, ...row }}
-                                                rowContext={row}
-                                                isTableCell={true}
-                                            />
-                                        </TableCell>
-                                    )})}
-                                     {element.canAddRows && element.dataSource !== 'dynamic' && (
-                                        <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(originalIndex)}>
-                                                <Trash className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </TableCell>
-                                    )}
-                                </TableRow>
-                            )})}
-                        </TableBody>
-                    </Table>
-                </div>
-                 {/* Mobile Card View */}
-                 <div className="grid grid-cols-1 gap-4 md:hidden">
-                    {paginatedData.map((row: any, paginatedIndex: number) => {
-                        const originalIndex = ((currentPage - 1) * pageSize) + paginatedIndex;
-                        return (
-                            <div key={originalIndex} className="border rounded-lg p-4 space-y-4">
-                                {element.tableColumns?.map((col, colIndex) => {
-                                    const proxyId = `${element.id}::${col.key}::${originalIndex}`;
-                                    let cellValue = getNestedValue(row, col.key);
-
-                                    return (
-                                        <div key={proxyId} className="space-y-1">
-                                            <Label className="text-muted-foreground">{col.label}</Label>
-                                            {col.formula ? (
-                                                <Input readOnly value={cellValue} className="border-none bg-transparent p-0 h-auto" />
-                                            ) : (
-                                                <FormElementRenderer
-                                                    element={{...col.element, id: proxyId, key: col.key, labelKey: col.element.labelKey || col.key }}
-                                                    value={cellValue}
-                                                    onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
-                                                    formState={{ ...formState, ...row }}
-                                                    rowContext={row}
-                                                    isTableCell={true}
-                                                />
-                                            )}
-                                        </div>
-                                    )
-                                })}
-                                {element.canAddRows && element.dataSource !== 'dynamic' && (
-                                    <div className="pt-2 border-t">
-                                        <Button variant="ghost" size="sm" className="w-full justify-center text-destructive" onClick={() => handleDeleteRow(originalIndex)}>
-                                            <Trash className="h-4 w-4 mr-2" />
-                                            Delete Row
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        )
-                    })}
-                 </div>
-
-                 {element.canAddRows && element.dataSource !== 'dynamic' && (
-                    <Button variant="outline" size="sm" className="mt-4 w-full md:w-auto" onClick={handleAddRow} disabled={isAddRowDisabled}>
-                        <Plus className="h-4 w-4 mr-2"/>
-                        Add Row
-                    </Button>
-                )}
-                {element.paginationEnabled && totalPages > 1 && (
-                    <div className="flex items-center justify-end space-x-2 py-4">
-                        <div className="text-sm text-muted-foreground">
-                            Page {currentPage} of {totalPages}
-                        </div>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handlePrevPage}
-                            disabled={currentPage === 1}
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                            Previous
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleNextPage}
-                            disabled={currentPage === totalPages}
-                        >
-                            Next
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
-                    </div>
-                )}
-            </div>
+            <TableElement
+                element={element}
+                value={value}
+                onValueChange={onValueChange}
+            />
         );
         break;
     case "Preview":
@@ -1385,7 +1163,3 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-
-    
-    
