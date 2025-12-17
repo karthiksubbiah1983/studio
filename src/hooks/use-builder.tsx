@@ -249,6 +249,19 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SET_FORMS":
         return { ...state, forms: action.payload };
+    case "CLONE_FORM": {
+        const formToClone = state.forms.find(f => f.id === action.payload.formId);
+        if (!formToClone) return state;
+
+        const clonedForm = cloneWithNewIds(formToClone);
+        clonedForm.title = action.payload.newName;
+
+        const formIndex = state.forms.findIndex(f => f.id === action.payload.formId);
+        const newForms = [...state.forms];
+        newForms.splice(formIndex + 1, 0, clonedForm);
+        
+        return { ...state, forms: newForms };
+    }
     case "SET_FORM_STATE":
         return { ...state, formState: action.payload };
     case "UPDATE_FORM_STATE": {
@@ -829,5 +842,7 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
 
     
