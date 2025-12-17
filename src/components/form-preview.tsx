@@ -132,19 +132,24 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
   };
 
   const isSectionVisible = (section: Section): boolean => {
-    const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'show' && b.targetElementId === section.id));
-    const hideRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'hide' && b.targetElementId === section.id));
+    const relevantRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.targetElementId === section.id));
+    const showRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'show'));
+    const hideRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'hide'));
 
     let visible = !section.popupOnly;
 
+    // If there are rules that specifically SHOW this section
     if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, formState || {}, configurations, sections));
+        // A section is shown if ANY of its show rules are met.
+        visible = showRules.some(r => evaluateRule(r, formState, configurations, sections));
     }
-
+    
+    // If the section is currently visible, check if any HIDE rules should make it hidden
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, formState || {}, configurations, sections))) {
-        visible = false;
-      }
+        // A section is hidden if ANY of its hide rules are met.
+        if (hideRules.some(r => evaluateRule(r, formState, configurations, sections))) {
+            visible = false;
+        }
     }
     
     return visible;

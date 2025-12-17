@@ -27,13 +27,15 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             return config?.value;
         }
 
-        const isRowContext = state && typeof state === 'object' && !Object.values(state).some(v => typeof v === 'object' && v !== null && 'value' in v);
+        const isRowContext = state && typeof state === 'object' && !Object.values(state).some(v => typeof v === 'object' && v !== null && v !== undefined && 'value' in v);
 
-        const rowValue = isRowContext ? getNestedValue(state, idOrKey) : undefined;
-        if (rowValue !== undefined) {
-            return rowValue;
+        if (isRowContext) {
+            const rowValue = getNestedValue(state, idOrKey);
+            if (rowValue !== undefined) {
+                return rowValue;
+            }
         }
-
+        
         const isProxyId = idOrKey.includes("::");
         if (isProxyId) {
              const key = idOrKey.split('::').pop()!;
@@ -161,7 +163,7 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         }
     };
 
-    // Check if any condition references a table cell.
+    // Check if any condition references a field within a table.
     const tableCondition = rule.conditions.find(c =>
         c.sourceType === 'field' && c.sourceElementId && c.sourceElementId.includes('::')
     );
@@ -173,7 +175,7 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         
         if (tableElement && tableElement.type === 'Table' && state[tableId]?.value) {
             const tableRows = state[tableId].value as any[];
-            // If any row in the table satisfies the conditions, the rule is met.
+            // If any row in the table satisfies the conditions, the rule is met for the whole form.
             return tableRows.some(row => checkConditions({ ...state, ...row }));
         }
     }
