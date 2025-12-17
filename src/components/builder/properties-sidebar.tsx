@@ -285,11 +285,11 @@ function ColumnManager({
                     element: createNewElement('Display')
                 });
             } else {
-                setEditingColumn({
+                 setEditingColumn({
                     ...baseNewCol,
                     key: `col_${(columns.length || 0) + 1}`,
                     label: `Column ${(columns.length || 0) + 1}`,
-                    element: createNewElement('Display')
+                    element: createNewElement('Display') // Always create a fully initialized element
                 });
             }
         }
@@ -372,12 +372,13 @@ function ColumnEditorDialog({
     const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
 
     useEffect(() => {
-        // Ensure that if a new column is being created, it has a default element.
         if (column) {
             const newColumn = {...column};
-            if (!('element' in newColumn)) {
-                (newColumn as any).element = createNewElement('Input');
+            if (!('element' in newColumn) || !newColumn.element) {
+                // If element is missing or null, initialize it.
+                (newColumn as any).element = createNewElement('Display'); 
             } else {
+                 // Ensure the existing element is fully formed by merging with a default
                  (newColumn as any).element = { ...createNewElement(newColumn.element.type), ...newColumn.element }
             }
              setEditingColumn(newColumn);
@@ -1051,7 +1052,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {placeholderField}
+                            {props.placeholder !== undefined && placeholderField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
@@ -1095,7 +1096,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {placeholderField}
+                            {props.placeholder !== undefined && placeholderField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
@@ -1538,13 +1539,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-    
-
-    
-
-
-
-    
-
-
