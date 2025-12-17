@@ -19,7 +19,7 @@ import { Badge } from "../ui/badge";
 import { evaluateRule } from "./form-preview-helpers";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "../ui/accordion";
 import { Zap } from "lucide-react";
-import { getAllElements } from "@/lib/utils";
+import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 
@@ -132,24 +132,60 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
   };
 
   const isSectionVisible = (section: Section): boolean => {
+    const allFormElements = getAllElements(sections);
     const relevantRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.targetElementId === section.id));
     const showRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'show'));
     const hideRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'hide'));
 
     let visible = !section.popupOnly;
 
-    if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, formState, configurations, sections));
+    // A helper to determine if a rule is based on a field inside a table
+    const isRuleTableBased = (rule: Rule): [boolean, string | null] => {
+        for (const condition of rule.conditions) {
+            if (condition.sourceType === 'field' && condition.sourceElementId) {
+                 const sourceId = condition.sourceElementId;
+                 if (sourceId.includes('::')) { // Heuristic for table field proxy ID
+                    const tableId = sourceId.split('::')[0];
+                    return [true, tableId];
+                 }
+            }
+        }
+        return [false, null];
     }
     
+    // Evaluate show rules
+    if (showRules.length > 0) {
+        visible = showRules.some(rule => {
+            const [isTableBased, tableId] = isRuleTableBased(rule);
+            if (isTableBased && tableId && formState[tableId]?.value) {
+                const tableRows = formState[tableId].value as any[];
+                // If ANY row in the table satisfies the condition, the rule is met
+                return tableRows.some(row => evaluateRule(rule, { ...formState, ...row }, configurations, sections));
+            } else {
+                return evaluateRule(rule, formState, configurations, sections);
+            }
+        });
+    }
+
+    // Evaluate hide rules
     if (visible && hideRules.length > 0) {
-        if (hideRules.some(r => evaluateRule(r, formState, configurations, sections))) {
+        const shouldHide = hideRules.some(rule => {
+             const [isTableBased, tableId] = isRuleTableBased(rule);
+            if (isTableBased && tableId && formState[tableId]?.value) {
+                const tableRows = formState[tableId].value as any[];
+                return tableRows.some(row => evaluateRule(rule, { ...formState, ...row }, configurations, sections));
+            } else {
+                return evaluateRule(rule, formState, configurations, sections);
+            }
+        });
+        if (shouldHide) {
             visible = false;
         }
     }
-    
+
     return visible;
-  }
+}
+
 
   const renderSectionContent = (section: Section) => (
     <div className={cn("grid gap-4 grid-cols-1", section.displayMode !== 'accordion' && 'p-6 pt-0')}>
