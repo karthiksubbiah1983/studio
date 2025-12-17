@@ -7,7 +7,7 @@ import { FormElementInstance, Section, ElementType, FormVersion, Form, Submissio
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
-import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc } from "firebase/firestore";
+import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
 
@@ -670,19 +670,58 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const { firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
   
-  // Load from localStorage on initial render
+  // Load from localStorage or Firestore on initial render
   useEffect(() => {
-    const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (savedState) {
-        try {
-            const parsedState = JSON.parse(savedState);
-            dispatch({ type: 'SET_STATE', payload: parsedState });
-        } catch (error) {
-            console.error("Failed to parse state from localStorage", error);
+    if (isUserLoading) return;
+
+    const loadData = async () => {
+        const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (savedState) {
+            try {
+                const parsedState = JSON.parse(savedState);
+                if (parsedState.forms?.length > 0 || parsedState.categories?.length > 0) {
+                     dispatch({ type: 'SET_STATE', payload: parsedState });
+                     setIsLoaded(true);
+                     return;
+                }
+            } catch (error) {
+                console.error("Failed to parse state from localStorage", error);
+            }
         }
-    }
-    setIsLoaded(true);
-  }, []);
+        
+        // If localStorage is empty or parsing fails, fetch from Firebase
+        if (user && firestore) {
+            try {
+                const formsQuery = query(collection(firestore, "formTemplates"), where("ownerId", "==", user.uid));
+                const formsSnapshot = await getDocs(formsQuery);
+                const formsData = formsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Form));
+
+                const settingsDocRef = doc(firestore, "userSettings", user.uid);
+                const settingsSnapshot = await getDoc(settingsDocRef);
+                const settingsData = settingsSnapshot.data() as { categories: Category[], sites: Site[] } | undefined;
+                
+                const firebaseState = {
+                    forms: formsData,
+                    categories: settingsData?.categories || [],
+                    sites: settingsData?.sites || [],
+                    // Keep local tasks and submissions if any
+                    tasks: state.tasks, 
+                    submissions: state.submissions,
+                };
+
+                dispatch({ type: 'SET_STATE', payload: firebaseState });
+
+            } catch (error) {
+                console.error("Failed to fetch data from Firestore:", error);
+            }
+        }
+        
+        setIsLoaded(true);
+    };
+
+    loadData();
+
+  }, [user, firestore, isUserLoading]);
 
   // Save to localStorage whenever relevant state changes
   useEffect(() => {
@@ -762,7 +801,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
   const enhancedDispatch = (action: Action) => {
     // All actions are now just dispatched locally.
-    // Firestore logic is bypassed.
     dispatch(action);
   }
 
