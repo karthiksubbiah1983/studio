@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
 import { useEffect, useMemo, useState } from "react";
-import { FormElementInstance, Section, Workflow, WorkflowAction } from "@/lib/types";
+import { FormElementInstance, Section, Workflow, WorkflowAction, Rule } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -139,15 +139,14 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
 
     let visible = !section.popupOnly;
 
-    // A helper to determine if a rule is based on a field inside a table
+    // Helper to determine if a rule's conditions are based on a field inside a table.
+    // Returns [isTableBased, tableId or null]
     const isRuleTableBased = (rule: Rule): [boolean, string | null] => {
         for (const condition of rule.conditions) {
-            if (condition.sourceType === 'field' && condition.sourceElementId) {
-                 const sourceId = condition.sourceElementId;
-                 if (sourceId.includes('::')) { // Heuristic for table field proxy ID
-                    const tableId = sourceId.split('::')[0];
-                    return [true, tableId];
-                 }
+            // A condition sourceElementId with '::' is our heuristic for a field inside a table.
+            if (condition.sourceType === 'field' && condition.sourceElementId?.includes('::')) {
+                const tableId = condition.sourceElementId.split('::')[0];
+                return [true, tableId];
             }
         }
         return [false, null];
@@ -159,9 +158,10 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
             const [isTableBased, tableId] = isRuleTableBased(rule);
             if (isTableBased && tableId && formState[tableId]?.value) {
                 const tableRows = formState[tableId].value as any[];
-                // If ANY row in the table satisfies the condition, the rule is met
+                // If ANY row in the table satisfies the condition, the rule is met for the whole form.
                 return tableRows.some(row => evaluateRule(rule, { ...formState, ...row }, configurations, sections));
             } else {
+                // Standard evaluation for non-table-based rules.
                 return evaluateRule(rule, formState, configurations, sections);
             }
         });
@@ -173,6 +173,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
              const [isTableBased, tableId] = isRuleTableBased(rule);
             if (isTableBased && tableId && formState[tableId]?.value) {
                 const tableRows = formState[tableId].value as any[];
+                // If ANY row triggers a hide, we hide the section.
                 return tableRows.some(row => evaluateRule(rule, { ...formState, ...row }, configurations, sections));
             } else {
                 return evaluateRule(rule, formState, configurations, sections);
