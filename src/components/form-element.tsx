@@ -748,19 +748,38 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Checkbox": {
         const isStatic = !(isTableCell && rowContext);
         let dynamicLabel = label;
+        let isChecked = !!value;
+
         if (!isStatic && rowContext) {
-          const labelFromContext = element.labelKey ? getNestedValue(rowContext, element.labelKey) : (element.key ? getNestedValue(rowContext, element.key) : undefined);
-          if (labelFromContext !== undefined && labelFromContext !== null) {
-            dynamicLabel = String(labelFromContext);
-          }
+            const labelFromContext = element.labelKey ? getNestedValue(rowContext, element.labelKey) : (element.key ? getNestedValue(rowContext, element.key) : undefined);
+            if (labelFromContext !== undefined && labelFromContext !== null) {
+                dynamicLabel = String(labelFromContext);
+            }
+            
+            // For dynamic checkboxes in a table, the value might be the label itself or a boolean
+            // This logic attempts to reconcile that.
+            if (value === true || value === dynamicLabel) {
+              isChecked = true;
+            } else {
+              isChecked = false;
+            }
         }
         
+        const handleCheckedChange = (checked: boolean) => {
+            if (!isStatic) {
+                // When dynamic, the "value" is the label if checked, or false if not.
+                onValueChange(element.id, checked ? dynamicLabel : false);
+            } else {
+                onValueChange(element.id, checked);
+            }
+        }
+
         content = (
           <div className="flex items-start space-x-2">
             <Checkbox
               id={element.id}
-              checked={!!value}
-              onCheckedChange={(checked) => onValueChange(element.id, checked)}
+              checked={isChecked}
+              onCheckedChange={handleCheckedChange}
               disabled={isDisabled}
             />
             <div className="grid gap-1.5 leading-none">
@@ -773,7 +792,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           </div>
         );
         break;
-      }
+    }
     case "RadioGroup":
       content = (
         <div id={element.id}>
