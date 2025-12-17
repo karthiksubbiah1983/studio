@@ -790,7 +790,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
              )
         case "Display":
             const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "", sourceType: 'field' };
-            const linkDataSource = allElements.find(el => el.id === props.linkUrlSourceElementId);
 
             return (
                  <Accordion type="multiple" defaultValue={["general", "link", "data", "advanced"]} className="w-full">
@@ -866,12 +865,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <div className="flex flex-col gap-2">
                                         <Label>URL Data Source</Label>
                                         <Select 
-                                            value={props.linkUrlSourceElementId || ''}
-                                            onValueChange={v => updateProperty('linkUrlSourceElementId', v)}
+                                            value={props.linkUrlSourceElementId || "none"}
+                                            onValueChange={v => updateProperty('linkUrlSourceElementId', v === 'none' ? null : v)}
                                         >
                                             <SelectTrigger><SelectValue placeholder="Select a field..." /></SelectTrigger>
                                             <SelectContent>
-                                                 <SelectItem value="">None (Uses main form state)</SelectItem>
+                                                 <SelectItem value="none">None (Uses main form state)</SelectItem>
                                                  {allElements.filter(el => 'type' in el && el.type === 'Select').map(el => (
                                                     <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>
                                                  ))}
