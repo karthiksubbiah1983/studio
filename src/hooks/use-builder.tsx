@@ -83,95 +83,65 @@ const initialState: State = {
 };
 
 // Helper function to deep clone and assign new IDs
-const cloneWithNewIds = <T extends { id: string; key?: string, elements?: any[], sections?: any[], versions?: any[], rules?: any[], workflows?: any[] }>(item: T): T => {
+const cloneWithNewIds = <T extends { id: string; [key: string]: any }>(item: T): T => {
   const itemClone = JSON.parse(JSON.stringify(item));
-  
   const idMap: { [oldId: string]: string } = {};
 
-  // First pass: collect all old IDs and create new ones
+  // Recursively traverses the object to find all IDs and create new ones
   const collectIds = (obj: any) => {
-    if (obj.id) {
-        const newId = crypto.randomUUID();
-        idMap[obj.id] = newId;
-    }
-    if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(collectIds);
-    if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(collectIds);
-    if (obj.versions && Array.isArray(obj.versions)) obj.versions.forEach(collectIds);
-    const processConditions = (conditions: any[]) => {
-      if (conditions && Array.isArray(conditions)) {
-          conditions.forEach((cond: any) => {
-              if (cond.id) {
-                  const newId = crypto.randomUUID();
-                  idMap[cond.id] = newId;
-              }
-          });
+    if (obj && typeof obj === 'object') {
+      if (obj.id && typeof obj.id === 'string' && !idMap[obj.id]) {
+        idMap[obj.id] = crypto.randomUUID();
+      }
+      // Check all properties for nested objects or arrays
+      for (const key in obj) {
+        if (Array.isArray(obj[key])) {
+          obj[key].forEach(collectIds);
+        } else if (typeof obj[key] === 'object') {
+          collectIds(obj[key]);
         }
+      }
     }
-    if (obj.rules && Array.isArray(obj.rules)) obj.rules.forEach((rule: any) => {
-        if (rule.id) idMap[rule.id] = crypto.randomUUID();
-        processConditions(rule.conditions);
-         rule.behaviors.forEach((behavior: any) => {
-            if (behavior.id) idMap[behavior.id] = crypto.randomUUID();
-        });
-    });
-     if (obj.workflows && Array.isArray(obj.workflows)) obj.workflows.forEach((workflow: any) => {
-        if (workflow.id) idMap[workflow.id] = crypto.randomUUID();
-        processConditions(workflow.conditions);
-        if (workflow.actions && Array.isArray(workflow.actions)) {
-            workflow.actions.forEach((action: any) => {
-                if (action.id) idMap[action.id] = crypto.randomUUID();
-            });
-        }
-    });
-  }
+  };
+
   collectIds(itemClone);
 
-  // Second pass: update all IDs and references
+  // Recursively traverses the object to update all old IDs with new ones
   const updateIds = (obj: any) => {
-     if (obj.id && idMap[obj.id]) obj.id = idMap[obj.id];
+    if (obj && typeof obj === 'object') {
+      // Update the object's own ID
+      if (obj.id && idMap[obj.id]) {
+        obj.id = idMap[obj.id];
+      }
+      
+      // Update any property that might be an ID reference
+      const referenceKeys = ['sourceElementId', 'comparisonElementId', 'targetElementId'];
+      for (const refKey of referenceKeys) {
+          if (obj[refKey] && idMap[obj[refKey]]) {
+              obj[refKey] = idMap[obj[refKey]];
+          }
+      }
 
-     if (obj.key) obj.key = `${obj.key}_${Math.random().toString(36).substring(2, 7)}`;
+      // Update the key to be unique
+      if (obj.key && typeof obj.key === 'string') {
+        obj.key = `${obj.key}_${Math.random().toString(36).substring(2, 7)}`;
+      }
 
-     const updateConditions = (conditions: any[]) => {
-        if (conditions && Array.isArray(conditions)) {
-          conditions.forEach((cond: any) => {
-              if (cond.id && idMap[cond.id]) cond.id = idMap[cond.id];
-              if (cond.sourceElementId && idMap[cond.sourceElementId]) cond.sourceElementId = idMap[cond.sourceElementId];
-              if (cond.comparisonElementId && idMap[cond.comparisonElementId]) cond.comparisonElementId = idMap[cond.comparisonElementId];
-          });
-       }
-     }
-
-     if (obj.rules && Array.isArray(obj.rules)) obj.rules.forEach((rule: any) => {
-        if (rule.id && idMap[rule.id]) rule.id = idMap[rule.id];
-        updateConditions(rule.conditions);
-        rule.behaviors.forEach((behavior: any) => {
-            if (behavior.id && idMap[behavior.id]) behavior.id = idMap[behavior.id];
-            if (behavior.targetElementId && idMap[behavior.targetElementId]) {
-                behavior.targetElementId = idMap[behavior.targetElementId];
-            }
-        });
-     });
-
-     if (obj.workflows && Array.isArray(obj.workflows)) obj.workflows.forEach((workflow: any) => {
-        if (workflow.id && idMap[workflow.id]) workflow.id = idMap[workflow.id];
-        if (workflow.conditions) updateConditions(workflow.conditions);
-        if (workflow.actions && Array.isArray(workflow.actions)) {
-            workflow.actions.forEach((action: any) => {
-                if (action.id) idMap[action.id] = idMap[action.id];
-            });
+      // Recurse into nested objects and arrays
+      for (const key in obj) {
+        if (Array.isArray(obj[key])) {
+          obj[key].forEach(updateIds);
+        } else if (typeof obj[key] === 'object') {
+          updateIds(obj[key]);
         }
-     });
-     
-     if (obj.elements && Array.isArray(obj.elements)) obj.elements.forEach(updateIds);
-     if (obj.sections && Array.isArray(obj.sections)) obj.sections.forEach(updateIds);
-     if (obj.versions && Array.isArray(obj.versions)) obj.versions.forEach(updateIds);
-  }
+      }
+    }
+  };
+
   updateIds(itemClone);
-
-
   return itemClone;
 };
+
 
 // Recursive function to find and update/add/delete an element
 const findAndModifyElement = (elements: FormElementInstance[], action: Action): FormElementInstance[] => {
