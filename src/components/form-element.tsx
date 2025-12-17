@@ -748,6 +748,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Checkbox": {
         let dynamicLabel = label;
         if (isTableCell && rowContext) {
+            // In a table, always get the label from the row context, not the value.
             const labelFromContext = element.labelKey ? getNestedValue(rowContext, element.labelKey) : (element.key ? getNestedValue(rowContext, element.key) : undefined);
             if (labelFromContext !== undefined && labelFromContext !== null) {
                 dynamicLabel = String(labelFromContext);
@@ -1051,6 +1052,22 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             }
         }, [element.dataSource, element.apiUrl, element.defaultRows]);
         
+        const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
+            let newRows = [...(initialValue || [])];
+            if (!newRows[rowIndex]) {
+                newRows[rowIndex] = {};
+            }
+            newRows[rowIndex][columnKey] = cellValue;
+
+            element.tableColumns?.forEach(col => {
+                if (col.formula) {
+                    const formulaResult = evaluate(col.formula, newRows[rowIndex]);
+                    newRows[rowIndex][col.key] = formulaResult;
+                }
+            })
+            onValueChange(element.id, newRows);
+        }
+
         const filteredTableData = useMemo(() => {
             const tableData = initialValue || [];
             if (!searchTerm) return tableData;
@@ -1070,23 +1087,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         useEffect(() => {
             setCurrentPage(1);
         }, [searchTerm]);
-
-        const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
-            let newRows = [...(initialValue || [])];
-            if (!newRows[rowIndex]) {
-                newRows[rowIndex] = {};
-            }
-            newRows[rowIndex][columnKey] = cellValue;
-
-            element.tableColumns?.forEach(col => {
-                if (col.formula) {
-                    const formulaResult = evaluate(col.formula, newRows[rowIndex]);
-                    newRows[rowIndex][col.key] = formulaResult;
-                }
-            })
-
-            onValueChange(element.id, newRows);
-        }
 
         const handleAddRow = () => {
             const tableData = initialValue || [];
@@ -1393,3 +1393,4 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
