@@ -61,6 +61,9 @@ export const findFirstArray = (data: any): any[] | null => {
 
 export const findElementRecursive = (sections: Section[], elementId: string): FormElementInstance | null => {
     for (const section of sections) {
+        if (!section.elements) { // Safeguard added here
+            continue;
+        }
         const find = (elements: FormElementInstance[]): FormElementInstance | null => {
             for (const el of elements) {
                 if (el.id === elementId) return el;
@@ -144,7 +147,9 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
             if (section.exposeForValidation) {
                 allElementsAndSections.push({ ...section, label: section.title } as unknown as Section);
             }
-            findElementsRecursive(section.elements);
+            if (section.elements) { // Safeguard added here
+                findElementsRecursive(section.elements);
+            }
         });
     }
 
