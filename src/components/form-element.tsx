@@ -746,32 +746,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         break;
     }
     case "Checkbox": {
-        const isStatic = !(isTableCell && rowContext);
         let dynamicLabel = label;
-        let isChecked = !!value;
-
-        if (!isStatic && rowContext) {
+        if (isTableCell && rowContext) {
             const labelFromContext = element.labelKey ? getNestedValue(rowContext, element.labelKey) : (element.key ? getNestedValue(rowContext, element.key) : undefined);
             if (labelFromContext !== undefined && labelFromContext !== null) {
                 dynamicLabel = String(labelFromContext);
             }
-            
-            // For dynamic checkboxes in a table, the value might be the label itself or a boolean
-            // This logic attempts to reconcile that.
-            if (value === true || value === dynamicLabel) {
-              isChecked = true;
-            } else {
-              isChecked = false;
-            }
         }
         
+        const isChecked = value === true;
+
         const handleCheckedChange = (checked: boolean) => {
-            if (!isStatic) {
-                // When dynamic, the "value" is the label if checked, or false if not.
-                onValueChange(element.id, checked ? dynamicLabel : false);
-            } else {
-                onValueChange(element.id, checked);
-            }
+            onValueChange(element.id, checked);
         }
 
         content = (
@@ -1066,8 +1052,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }, [element.dataSource, element.apiUrl, element.defaultRows]);
         
         const filteredTableData = useMemo(() => {
-            if (!searchTerm) return initialValue || [];
-            return (initialValue || []).filter((row: any) => 
+            const tableData = initialValue || [];
+            if (!searchTerm) return tableData;
+            return tableData.filter((row: any) => 
                 Object.values(row).some(cellValue => 
                     String(cellValue).toLowerCase().includes(searchTerm.toLowerCase())
                 )
