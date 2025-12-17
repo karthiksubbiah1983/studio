@@ -119,15 +119,16 @@ export type FormElementInstance = {
     dataSource?: 'static' | 'dynamic';
     options?: string[];
     // For dynamic data source (Select, List, Combobox)
-    apiUrl?: string;
-    valueKey?: string; // Key in each object for option value
-    labelKey?: string; // Key in each object for option label
+    apiUrl?: string | null;
+    valueKey?: string | null; // Key in each object for option value
+    labelKey?: string | null; // Key in each object for option label
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     textStyle?: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
     color?: string;
     isLink?: boolean;
-    linkUrl?: string;
+    linkUrl?: string | null;
+    linkUrlSourceElementId?: string | null;
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
     // For RichText
@@ -142,12 +143,12 @@ export type FormElementInstance = {
     dataGridColumns?: DataGridColumn[];
     // For Table
     columns?: DataGridColumn[];
-    paginationEnabled?: boolean;
-    pageSize?: number;
+    paginationEnabled?: boolean | null;
+    pageSize?: number | null;
     // For Table
     tableColumns?: TableColumn[];
-    canAddRows?: boolean;
-    defaultRows?: number;
+    canAddRows?: boolean | null;
+    defaultRows?: number | null;
     enableSearch?: boolean;
     // For Preview
     previewSectionIds?: string[];
@@ -159,9 +160,9 @@ export type FormElementInstance = {
     listType?: 'checkbox' | 'radio' | 'display';
     displaySelection?: 'none' | 'selected' | 'unselected';
     listItemElements?: ListItemElement[];
-    enableScoring?: boolean;
-    scorePerItem?: number;
-    passingScore?: number;
+    enableScoring?: boolean | null;
+    scorePerItem?: number | null;
+    passingScore?: number | null;
     placeholder?: string;
 };
 

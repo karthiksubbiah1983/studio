@@ -790,6 +790,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
              )
         case "Display":
             const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "", sourceType: 'field' };
+            const linkDataSource = allElements.find(el => el.id === props.linkUrlSourceElementId);
+
             return (
                  <Accordion type="multiple" defaultValue={["general", "link", "data", "advanced"]} className="w-full">
                     <AccordionItem value="general">
@@ -855,10 +857,28 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {props.isLink && (
                                 <>
                                     <div className="flex flex-col gap-2">
-                                        <Label htmlFor="link-url">URL</Label>
-                                        <Input id="link-url" value={props.linkUrl || ''} onChange={(e) => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com" />
-                                         <p className="text-xs text-muted-foreground">
-                                            Use {'{field_key}'} to include form values.
+                                        <Label htmlFor="link-url">URL Template</Label>
+                                        <Input id="link-url" value={props.linkUrl || ''} onChange={(e) => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com/users/{id}" />
+                                        <p className="text-xs text-muted-foreground">
+                                            Use {'{key}'} to insert values from a source field.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label>URL Data Source</Label>
+                                        <Select 
+                                            value={props.linkUrlSourceElementId || ''}
+                                            onValueChange={v => updateProperty('linkUrlSourceElementId', v)}
+                                        >
+                                            <SelectTrigger><SelectValue placeholder="Select a field..." /></SelectTrigger>
+                                            <SelectContent>
+                                                 <SelectItem value="">None (Uses main form state)</SelectItem>
+                                                 {allElements.filter(el => 'type' in el && el.type === 'Select').map(el => (
+                                                    <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>
+                                                 ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">
+                                           Select a field to source the data for the URL template. This is typically a `Select` field that returns an object.
                                         </p>
                                     </div>
                                 </>

@@ -86,7 +86,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
         case "DatePicker":
             return { ...baseElement, label: "Date Picker" };
         case "Display":
-            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "", sourceType: 'field' }, exposeForValidation: false, textStyle: 'p', color: '#000000', isLink: false, linkUrl: null };
+            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "", sourceType: 'field' }, exposeForValidation: false, textStyle: 'p', color: '#000000', isLink: false, linkUrl: null, linkUrlSourceElementId: null };
         case "RichText":
             return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false, key: '' };
         case "Container":
@@ -97,8 +97,8 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 label: "Data Grid",
                 apiUrl: null,
                 dataGridColumns: [
-                    { id: crypto.randomUUID(), key: 'name', label: 'Name', visible: true, element: createNewElement('Input') },
-                    { id: crypto.randomUUID(), key: 'email', label: 'Email', visible: true, element: createNewElement('Input') },
+                    { id: crypto.randomUUID(), key: 'name', label: 'Name', element: createNewElement('Display') },
+                    { id: crypto.randomUUID(), key: 'email', label: 'Email', element: createNewElement('Display') },
                 ],
             }
         case "Table":

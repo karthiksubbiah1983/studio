@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement, Configuration } from "@/lib/types";
@@ -48,14 +49,35 @@ type Props = {
   rowContext?: any;
 };
 
-const interpolateString = (template: string, data: { sections: Section[], formState: { [key: string]: any } }): string => {
-    return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
-        // Find the element with this key
+const interpolateString = (template: string, data: { formState: { [key: string]: any }, sections: Section[] }): string => {
+    if (!template) return "";
+    return template.replace(/\{([a-zA-Z0-9_.]+)\}/g, (match, key) => {
+        // Attempt to find a direct match in the formState (could be a simple field or a row context)
+        const directValue = getNestedValue(data.formState, key);
+        if (directValue !== undefined && directValue !== null) {
+            return String(directValue);
+        }
+
+        // If not found directly, check if it's an element key in the form
         const allElements = getAllElements(data.sections || []);
         const element = allElements.find(el => 'key' in el && el.key === key);
+        
         if (element && 'id' in element && data.formState && data.formState[element.id]) {
-             return data.formState[element.id].value || match;
+            const stateValue = data.formState[element.id];
+            // If the value is from a Select with an object, it might have a `fullObject`
+            if (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) {
+                // This handles simple values and select values that aren't object-based
+                return stateValue.value || match;
+            }
+            return stateValue || match;
         }
+
+        // For nested keys like 'user.id' from a row context
+        const nestedValue = getNestedValue(data.formState, key);
+        if (nestedValue !== undefined) {
+            return String(nestedValue);
+        }
+
         return match;
     });
 }
@@ -236,7 +258,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.apiUrl, element.type, element.dataSource]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, textStyle, color, content: richTextContent, key, direction } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -337,7 +359,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
         
         if (isLink && linkUrl) {
-            const finalUrl = interpolateString(linkUrl, { formState: formState || {}, sections });
+             const stateForInterpolation = { ...formState, ...(formState?.[linkUrlSourceElementId || '']?.fullObject || {}) };
+            const finalUrl = interpolateString(linkUrl, { formState: stateForInterpolation, sections });
             return (
                     <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     <Link className="h-4 w-4" />
