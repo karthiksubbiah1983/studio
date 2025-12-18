@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { useMemo, useState, useEffect, memo } from "react";
+import { useMemo, useState, useEffect, memo, useCallback } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -671,10 +670,9 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     setSelectedRuleId(ruleId);
   }
 
-  const handleUpdateRule = (updatedRule: Rule) => {
-    const newRules = localRules.map(r => r.id === updatedRule.id ? updatedRule : r);
-    setLocalRules(newRules);
-  };
+  const handleUpdateRule = useCallback((updatedRule: Rule) => {
+    setLocalRules(currentRules => currentRules.map(r => r.id === updatedRule.id ? updatedRule : r));
+  }, []);
 
   const handleDeleteRule = (ruleId: string) => {
     const newRules = localRules.filter(r => r.id !== ruleId);
