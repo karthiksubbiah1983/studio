@@ -750,9 +750,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             onValueChange(element.id, checked);
         };
         
-        const dynamicLabel = (isTableCell && rowContext && (labelKey || key)) 
-            ? String(getNestedValue(rowContext, labelKey || key || '')) 
-            : label;
+        let finalLabel = label;
+        if (isTableCell && rowContext && (labelKey || key)) {
+            finalLabel = String(getNestedValue(rowContext, labelKey || key || ''));
+        }
 
         content = (
             <div className="flex items-start space-x-2">
@@ -763,7 +764,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     disabled={isDisabled}
                 />
                 <div className="grid gap-1.5 leading-none">
-                    {renderLabelWithPopup(dynamicLabel)}
+                    {renderLabelWithPopup(finalLabel)}
                     {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
                     {renderError()}
                 </div>
