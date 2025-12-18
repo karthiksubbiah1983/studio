@@ -598,6 +598,7 @@ const ConfigurationsEditor = memo(({
 });
 ConfigurationsEditor.displayName = 'ConfigurationsEditor';
 
+
 export function RulesDialog({ isOpen, onOpenChange }: Props) {
   const { sections, rules, configurations, updateRules, updateConfigurations } = useBuilder();
   const [localRules, setLocalRules] = useState<Rule[]>([]);
