@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, memo } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -30,125 +30,37 @@ const specialDateOptions = [
 ];
 const allStatuses: string[] = [...taskStatuses, 'Current Status'];
 
-
-export function RulesDialog({ isOpen, onOpenChange }: Props) {
-  const { sections, rules, configurations, updateRules, updateConfigurations } = useBuilder();
-  const [localRules, setLocalRules] = useState<Rule[]>([]);
-  const [localConfigs, setLocalConfigs] = useState<Configuration[]>([]);
-  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-        const initialRules = JSON.parse(JSON.stringify(rules || []));
-        setLocalRules(initialRules);
-        
-        const initialConfigs = JSON.parse(JSON.stringify(configurations || []));
-        setLocalConfigs(initialConfigs);
-
-        if (initialRules.length > 0 && !selectedRuleId) {
-            setSelectedRuleId(initialRules[0].id);
-        } else if (initialRules.length > 0 && selectedRuleId) {
-            const stillExists = initialRules.some((r: Rule) => r.id === selectedRuleId);
-            if (!stillExists) {
-                setSelectedRuleId(initialRules[0].id);
-            }
-        } else {
-            setSelectedRuleId(null);
-        }
-    }
-  }, [isOpen, rules, configurations]);
-
-  useEffect(() => {
-    if (isOpen) {
-        const stillExists = localRules.some((r: Rule) => r.id === selectedRuleId);
-        
-        if (localRules.length > 0 && !stillExists) {
-            setSelectedRuleId(localRules[0].id);
-        } else if (localRules.length === 0) {
-            setSelectedRuleId(null);
-        }
-    }
-  }, [isOpen, localRules, selectedRuleId]);
-
-  const selectableFields = useMemo(() => {
-    return getAllElements(sections);
-  }, [sections]);
-  
-  const selectedRule = localRules.find(r => r.id === selectedRuleId);
-
-  const handleAddRule = () => {
-    const newRule: Rule = {
-      id: crypto.randomUUID(),
-      name: `Rule ${localRules.length + 1}`,
-      conditions: [{
-        id: crypto.randomUUID(),
-        sourceType: 'field',
-        operator: 'equals',
-        comparisonType: 'value',
-        value: ""
-      }],
-      logicType: 'and',
-      behaviors: [{
-        id: crypto.randomUUID(),
-        type: 'show',
-        targetElementId: ""
-      }]
-    };
-    const newRules = [...localRules, newRule];
-    setLocalRules(newRules);
-    setSelectedRuleId(newRule.id);
-  };
-
-  const handleSelectRule = (ruleId: string) => {
-    setSelectedRuleId(ruleId);
-  }
-
-  const handleUpdateRule = (updatedRule: Rule) => {
-    const newRules = localRules.map(r => r.id === updatedRule.id ? updatedRule : r);
-    setLocalRules(newRules);
-  };
-
-  const handleDeleteRule = (ruleId: string) => {
-    const newRules = localRules.filter(r => r.id !== ruleId);
-    setLocalRules(newRules);
-    if (selectedRuleId === ruleId) {
-      setSelectedRuleId(newRules.length > 0 ? newRules[0].id : null);
-    }
-  };
-
-  const handleSaveChanges = () => {
-    updateRules(localRules, localConfigs);
-    onOpenChange(false);
-  }
-  
-  const handleAddConfig = () => {
-    const newConfig: Configuration = {
-        id: crypto.randomUUID(),
-        key: `config_${localConfigs.length + 1}`,
-        value: ''
-    };
-    setLocalConfigs([...localConfigs, newConfig]);
-  }
-
-  const ConditionEditor = ({ condition, rule }: { condition: Condition, rule: Rule }) => {
+const ConditionEditor = memo(({ 
+    condition, 
+    rule, 
+    selectableFields, 
+    localConfigs,
+    onUpdateRule
+}: { 
+    condition: Condition, 
+    rule: Rule,
+    selectableFields: (FormElementInstance | Section)[],
+    localConfigs: Configuration[],
+    onUpdateRule: (updatedRule: Rule) => void
+}) => {
     const sourceElement = useMemo(() => {
         if (condition.sourceType === 'field' && condition.sourceElementId) {
             return selectableFields.find(el => el.id === condition.sourceElementId) || null;
         }
         return null;
-    }, [condition.sourceType, condition.sourceElementId]);
+    }, [condition.sourceType, condition.sourceElementId, selectableFields]);
 
     const comparisonElement = useMemo(() => {
         if (condition.comparisonType === 'field' && condition.comparisonElementId) {
             return selectableFields.find(el => el.id === condition.comparisonElementId) || null;
         }
         return null;
-    }, [condition.comparisonType, condition.comparisonElementId]);
+    }, [condition.comparisonType, condition.comparisonElementId, selectableFields]);
 
 
     const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
         const newConditions = rule.conditions.map(c => c.id === condition.id ? { ...c, ...updatedCondition } : c);
-        handleUpdateRule({ ...rule, conditions: newConditions });
+        onUpdateRule({ ...rule, conditions: newConditions });
     }
 
     const handleDeleteCondition = () => {
@@ -156,7 +68,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             ...rule,
             conditions: rule.conditions.filter(c => c.id !== condition.id)
         };
-        handleUpdateRule(updatedRule);
+        onUpdateRule(updatedRule);
     }
     
     const getFieldOptions = (element: FormElementInstance | Section | null): string[] => {
@@ -395,18 +307,29 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             )}
         </div>
     )
-  }
-  
-  const BehaviorEditor = ({ behavior, rule }: { behavior: RuleBehavior, rule: Rule }) => {
+});
+ConditionEditor.displayName = 'ConditionEditor';
+
+const BehaviorEditor = memo(({ 
+    behavior, 
+    rule, 
+    selectableFields,
+    onUpdateRule
+}: { 
+    behavior: RuleBehavior, 
+    rule: Rule,
+    selectableFields: (FormElementInstance | Section)[],
+    onUpdateRule: (updatedRule: Rule) => void
+}) => {
     
     const handleUpdateBehavior = (updatedBehavior: Partial<RuleBehavior>) => {
       const newBehaviors = rule.behaviors.map(b => b.id === behavior.id ? { ...b, ...updatedBehavior } : b);
-      handleUpdateRule({ ...rule, behaviors: newBehaviors });
+      onUpdateRule({ ...rule, behaviors: newBehaviors });
     }
 
     const handleDeleteBehavior = () => {
         const newBehaviors = rule.behaviors.filter(b => b.id !== behavior.id);
-        handleUpdateRule({ ...rule, behaviors: newBehaviors });
+        onUpdateRule({ ...rule, behaviors: newBehaviors });
     }
 
     const valueSettingFields = useMemo(() => 
@@ -512,12 +435,23 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             )}
         </div>
     )
-  }
+});
+BehaviorEditor.displayName = 'BehaviorEditor';
 
-  const RuleEditor = ({ rule }: { rule: Rule }) => {
+const RuleEditor = memo(({ 
+    rule,
+    selectableFields,
+    localConfigs,
+    onUpdateRule 
+}: { 
+    rule: Rule,
+    selectableFields: (FormElementInstance | Section)[],
+    localConfigs: Configuration[],
+    onUpdateRule: (updatedRule: Rule) => void
+}) => {
 
     const handleUpdateLogicType = (logicType: 'and' | 'or') => {
-        handleUpdateRule({ ...rule, logicType });
+        onUpdateRule({ ...rule, logicType });
     }
     
     const handleAddCondition = () => {
@@ -529,7 +463,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             value: ""
         };
         const updatedRule = { ...rule, conditions: [...rule.conditions, newCondition] };
-        handleUpdateRule(updatedRule);
+        onUpdateRule(updatedRule);
     };
 
     const handleAddBehavior = () => {
@@ -539,7 +473,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             targetElementId: ""
         };
         const updatedRule = { ...rule, behaviors: [...rule.behaviors, newBehavior] };
-        handleUpdateRule(updatedRule);
+        onUpdateRule(updatedRule);
     }
 
     return (
@@ -547,7 +481,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         <div className="space-y-6 p-6">
             <div>
                 <Label>Rule Name</Label>
-                <Input value={rule.name} onChange={e => handleUpdateRule({ ...rule, name: e.target.value })} className="mt-1 bg-white" />
+                <Input value={rule.name} onChange={e => onUpdateRule({ ...rule, name: e.target.value })} className="mt-1 bg-white" />
             </div>
             
             <div className="space-y-4">
@@ -577,7 +511,14 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
 
                 <div className="space-y-4">
                     {rule.conditions.map((cond) => (
-                        <ConditionEditor key={cond.id} condition={cond} rule={rule} />
+                        <ConditionEditor 
+                            key={cond.id} 
+                            condition={cond} 
+                            rule={rule} 
+                            selectableFields={selectableFields} 
+                            localConfigs={localConfigs}
+                            onUpdateRule={onUpdateRule}
+                        />
                     ))}
                 </div>
             </div>
@@ -591,30 +532,38 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 </div>
                 <div className="space-y-4">
                     {rule.behaviors.map((behavior) => (
-                        <BehaviorEditor key={behavior.id} behavior={behavior} rule={rule} />
+                        <BehaviorEditor 
+                            key={behavior.id} 
+                            behavior={behavior} 
+                            rule={rule} 
+                            selectableFields={selectableFields}
+                            onUpdateRule={onUpdateRule}
+                        />
                     ))}
                 </div>
             </div>
         </div>
       </ScrollArea>
     )
-  }
+});
+RuleEditor.displayName = 'RuleEditor';
 
-  const ConfigurationsEditor = () => {
-    
-    const handleUpdateConfig = (id: string, updatedConfig: Partial<Configuration>) => {
-        setLocalConfigs(localConfigs.map(c => c.id === id ? { ...c, ...updatedConfig } : c));
-    }
-
-    const handleDeleteConfig = (id: string) => {
-        setLocalConfigs(localConfigs.filter(c => c.id !== id));
-    }
-    
+const ConfigurationsEditor = memo(({
+    localConfigs,
+    onAddConfig,
+    onUpdateConfig,
+    onDeleteConfig
+}: {
+    localConfigs: Configuration[],
+    onAddConfig: () => void,
+    onUpdateConfig: (id: string, updatedConfig: Partial<Configuration>) => void,
+    onDeleteConfig: (id: string) => void
+}) => {
     return (
       <div className="h-full flex flex-col bg-white">
         <div className="p-4 border-b flex justify-between items-center shrink-0">
           <h3 className="font-semibold">All Configurations</h3>
-          <Button variant="outline" size="sm" onClick={handleAddConfig}>
+          <Button variant="outline" size="sm" onClick={onAddConfig}>
             <Plus className="mr-2 h-4 w-4" /> Add Configuration
           </Button>
         </div>
@@ -625,14 +574,14 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                   <Input
                     placeholder="Key"
                     value={config.key}
-                    onChange={(e) => handleUpdateConfig(config.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                    onChange={(e) => onUpdateConfig(config.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
                   />
                   <Input
                     placeholder="Value"
                     value={config.value}
-                    onChange={(e) => handleUpdateConfig(config.id, { value: e.target.value })}
+                    onChange={(e) => onUpdateConfig(config.id, { value: e.target.value })}
                   />
-                  <Button variant="ghost" size="icon" className="shrink-0" onClick={() => handleDeleteConfig(config.id)}>
+                  <Button variant="ghost" size="icon" className="shrink-0" onClick={() => onDeleteConfig(config.id)}>
                     <Trash className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
@@ -646,8 +595,116 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         </ScrollArea>
       </div>
     )
+});
+ConfigurationsEditor.displayName = 'ConfigurationsEditor';
+
+export function RulesDialog({ isOpen, onOpenChange }: Props) {
+  const { sections, rules, configurations, updateRules, updateConfigurations } = useBuilder();
+  const [localRules, setLocalRules] = useState<Rule[]>([]);
+  const [localConfigs, setLocalConfigs] = useState<Configuration[]>([]);
+  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+        const initialRules = JSON.parse(JSON.stringify(rules || []));
+        setLocalRules(initialRules);
+        
+        const initialConfigs = JSON.parse(JSON.stringify(configurations || []));
+        setLocalConfigs(initialConfigs);
+
+        if (initialRules.length > 0 && !selectedRuleId) {
+            setSelectedRuleId(initialRules[0].id);
+        } else if (initialRules.length > 0 && selectedRuleId) {
+            const stillExists = initialRules.some((r: Rule) => r.id === selectedRuleId);
+            if (!stillExists) {
+                setSelectedRuleId(initialRules[0].id);
+            }
+        } else {
+            setSelectedRuleId(null);
+        }
+    }
+  }, [isOpen, rules, configurations]);
+
+  useEffect(() => {
+    if (isOpen) {
+        const stillExists = localRules.some((r: Rule) => r.id === selectedRuleId);
+        
+        if (localRules.length > 0 && !stillExists) {
+            setSelectedRuleId(localRules[0].id);
+        } else if (localRules.length === 0) {
+            setSelectedRuleId(null);
+        }
+    }
+  }, [isOpen, localRules, selectedRuleId]);
+
+  const selectableFields = useMemo(() => {
+    return getAllElements(sections);
+  }, [sections]);
+  
+  const selectedRule = localRules.find(r => r.id === selectedRuleId);
+
+  const handleAddRule = () => {
+    const newRule: Rule = {
+      id: crypto.randomUUID(),
+      name: `Rule ${localRules.length + 1}`,
+      conditions: [{
+        id: crypto.randomUUID(),
+        sourceType: 'field',
+        operator: 'equals',
+        comparisonType: 'value',
+        value: ""
+      }],
+      logicType: 'and',
+      behaviors: [{
+        id: crypto.randomUUID(),
+        type: 'show',
+        targetElementId: ""
+      }]
+    };
+    const newRules = [...localRules, newRule];
+    setLocalRules(newRules);
+    setSelectedRuleId(newRule.id);
+  };
+
+  const handleSelectRule = (ruleId: string) => {
+    setSelectedRuleId(ruleId);
+  }
+
+  const handleUpdateRule = (updatedRule: Rule) => {
+    const newRules = localRules.map(r => r.id === updatedRule.id ? updatedRule : r);
+    setLocalRules(newRules);
+  };
+
+  const handleDeleteRule = (ruleId: string) => {
+    const newRules = localRules.filter(r => r.id !== ruleId);
+    setLocalRules(newRules);
+    if (selectedRuleId === ruleId) {
+      setSelectedRuleId(newRules.length > 0 ? newRules[0].id : null);
+    }
+  };
+
+  const handleSaveChanges = () => {
+    updateRules(localRules, localConfigs);
+    onOpenChange(false);
   }
   
+  const handleAddConfig = () => {
+    const newConfig: Configuration = {
+        id: crypto.randomUUID(),
+        key: `config_${localConfigs.length + 1}`,
+        value: ''
+    };
+    setLocalConfigs([...localConfigs, newConfig]);
+  }
+  
+  const handleUpdateConfig = (id: string, updatedConfig: Partial<Configuration>) => {
+      setLocalConfigs(localConfigs.map(c => c.id === id ? { ...c, ...updatedConfig } : c));
+  }
+
+  const handleDeleteConfig = (id: string) => {
+      setLocalConfigs(localConfigs.filter(c => c.id !== id));
+  }
+
   const RulesEditorLayout = () => (
     <div className="flex flex-row overflow-hidden h-full bg-slate-50">
         <aside className="w-1/3 border-r flex flex-col bg-white">
@@ -682,7 +739,12 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         </aside>
         <main className="flex-1 flex flex-col min-h-0 bg-slate-50">
             {selectedRule ? (
-                <RuleEditor rule={selectedRule} />
+                <RuleEditor 
+                    rule={selectedRule} 
+                    selectableFields={selectableFields} 
+                    localConfigs={localConfigs}
+                    onUpdateRule={handleUpdateRule}
+                />
             ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
                     <Settings2 className="h-12 w-12 mb-4" />
@@ -712,7 +774,12 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                     <RulesEditorLayout />
                 </TabsContent>
                 <TabsContent value="configurations" className="flex-1 h-0 m-0">
-                    <ConfigurationsEditor />
+                    <ConfigurationsEditor 
+                        localConfigs={localConfigs}
+                        onAddConfig={handleAddConfig}
+                        onUpdateConfig={handleUpdateConfig}
+                        onDeleteConfig={handleDeleteConfig}
+                    />
                 </TabsContent>
             </Tabs>
         </div>
@@ -724,7 +791,3 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
-
-    
-
-    
