@@ -30,17 +30,17 @@ const specialDateOptions = [
 const allStatuses: string[] = [...taskStatuses, 'Current Status'];
 
 const ConditionEditor = memo(({ 
-    condition, 
-    rule, 
+    condition,
+    onUpdateCondition,
+    onDeleteCondition,
     selectableFields, 
     localConfigs,
-    onUpdateRule
 }: { 
     condition: Condition, 
-    rule: Rule,
+    onUpdateCondition: (id: string, updatedCondition: Partial<Condition>) => void,
+    onDeleteCondition: (id: string) => void,
     selectableFields: (FormElementInstance | Section)[],
     localConfigs: Configuration[],
-    onUpdateRule: (updatedRule: Rule) => void
 }) => {
     const sourceElement = useMemo(() => {
         if (condition.sourceType === 'field' && condition.sourceElementId) {
@@ -58,16 +58,11 @@ const ConditionEditor = memo(({
 
 
     const handleUpdateCondition = (updatedCondition: Partial<Condition>) => {
-        const newConditions = rule.conditions.map(c => c.id === condition.id ? { ...c, ...updatedCondition } : c);
-        onUpdateRule({ ...rule, conditions: newConditions });
+        onUpdateCondition(condition.id, updatedCondition);
     }
 
     const handleDeleteCondition = () => {
-        const updatedRule = {
-            ...rule,
-            conditions: rule.conditions.filter(c => c.id !== condition.id)
-        };
-        onUpdateRule(updatedRule);
+        onDeleteCondition(condition.id);
     }
     
     const getFieldOptions = (element: FormElementInstance | Section | null): string[] => {
@@ -310,25 +305,23 @@ const ConditionEditor = memo(({
 ConditionEditor.displayName = 'ConditionEditor';
 
 const BehaviorEditor = memo(({ 
-    behavior, 
-    rule, 
+    behavior,
+    onUpdateBehavior,
+    onDeleteBehavior,
     selectableFields,
-    onUpdateRule
 }: { 
     behavior: RuleBehavior, 
-    rule: Rule,
+    onUpdateBehavior: (id: string, updatedBehavior: Partial<RuleBehavior>) => void,
+    onDeleteBehavior: (id: string) => void,
     selectableFields: (FormElementInstance | Section)[],
-    onUpdateRule: (updatedRule: Rule) => void
 }) => {
     
     const handleUpdateBehavior = (updatedBehavior: Partial<RuleBehavior>) => {
-      const newBehaviors = rule.behaviors.map(b => b.id === behavior.id ? { ...b, ...updatedBehavior } : b);
-      onUpdateRule({ ...rule, behaviors: newBehaviors });
+      onUpdateBehavior(behavior.id, updatedBehavior);
     }
 
     const handleDeleteBehavior = () => {
-        const newBehaviors = rule.behaviors.filter(b => b.id !== behavior.id);
-        onUpdateRule({ ...rule, behaviors: newBehaviors });
+        onDeleteBehavior(behavior.id);
     }
 
     const valueSettingFields = useMemo(() => 
@@ -336,7 +329,6 @@ const BehaviorEditor = memo(({
     , [selectableFields]);
 
     const targetField = selectableFields.find(f => f.id === behavior.targetElementId);
-    
     const selectedTargetFieldLabel = targetField ? `${(targetField as any).label || (targetField as Section).title}` : "Select target field...";
 
 
@@ -437,8 +429,8 @@ const BehaviorEditor = memo(({
 });
 BehaviorEditor.displayName = 'BehaviorEditor';
 
-const RuleEditor = memo(({ 
-    rule,
+const RuleEditor = ({ 
+    rule: initialRule,
     selectableFields,
     localConfigs,
     onUpdateRule 
@@ -448,9 +440,28 @@ const RuleEditor = memo(({
     localConfigs: Configuration[],
     onUpdateRule: (updatedRule: Rule) => void
 }) => {
+    const [rule, setRule] = useState(initialRule);
+
+    useEffect(() => {
+        setRule(initialRule);
+    }, [initialRule]);
+
+    const handleUpdate = (updatedRule: Rule) => {
+        setRule(updatedRule);
+        onUpdateRule(updatedRule);
+    };
+
+    const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setRule(prev => ({ ...prev, name: e.target.value }));
+    };
+
+    const handleNameBlur = () => {
+        onUpdateRule(rule);
+    };
 
     const handleUpdateLogicType = (logicType: 'and' | 'or') => {
-        onUpdateRule({ ...rule, logicType });
+        const updatedRule = { ...rule, logicType };
+        handleUpdate(updatedRule);
     }
     
     const handleAddCondition = () => {
@@ -462,7 +473,17 @@ const RuleEditor = memo(({
             value: ""
         };
         const updatedRule = { ...rule, conditions: [...rule.conditions, newCondition] };
-        onUpdateRule(updatedRule);
+        handleUpdate(updatedRule);
+    };
+
+    const handleUpdateCondition = (id: string, updatedCondition: Partial<Condition>) => {
+        const newConditions = rule.conditions.map(c => c.id === id ? { ...c, ...updatedCondition } : c);
+        handleUpdate({ ...rule, conditions: newConditions });
+    };
+
+    const handleDeleteCondition = (id: string) => {
+        const updatedRule = { ...rule, conditions: rule.conditions.filter(c => c.id !== id) };
+        handleUpdate(updatedRule);
     };
 
     const handleAddBehavior = () => {
@@ -472,15 +493,26 @@ const RuleEditor = memo(({
             targetElementId: ""
         };
         const updatedRule = { ...rule, behaviors: [...rule.behaviors, newBehavior] };
-        onUpdateRule(updatedRule);
-    }
+        handleUpdate(updatedRule);
+    };
+
+    const handleUpdateBehavior = (id: string, updatedBehavior: Partial<RuleBehavior>) => {
+        const newBehaviors = rule.behaviors.map(b => b.id === id ? { ...b, ...updatedBehavior } : b);
+        handleUpdate({ ...rule, behaviors: newBehaviors });
+    };
+
+    const handleDeleteBehavior = (id: string) => {
+        const newBehaviors = rule.behaviors.filter(b => b.id !== id);
+        handleUpdate({ ...rule, behaviors: newBehaviors });
+    };
+
 
     return (
       <ScrollArea className="h-full">
         <div className="space-y-6 p-6">
             <div>
                 <Label>Rule Name</Label>
-                <Input value={rule.name} onChange={e => onUpdateRule({ ...rule, name: e.target.value })} className="mt-1 bg-white" />
+                <Input value={rule.name} onChange={handleNameChange} onBlur={handleNameBlur} className="mt-1 bg-white" />
             </div>
             
             <div className="space-y-4">
@@ -513,10 +545,10 @@ const RuleEditor = memo(({
                         <ConditionEditor 
                             key={cond.id} 
                             condition={cond} 
-                            rule={rule} 
+                            onUpdateCondition={handleUpdateCondition}
+                            onDeleteCondition={handleDeleteCondition}
                             selectableFields={selectableFields} 
                             localConfigs={localConfigs}
-                            onUpdateRule={onUpdateRule}
                         />
                     ))}
                 </div>
@@ -534,9 +566,9 @@ const RuleEditor = memo(({
                         <BehaviorEditor 
                             key={behavior.id} 
                             behavior={behavior} 
-                            rule={rule} 
+                            onUpdateBehavior={handleUpdateBehavior}
+                            onDeleteBehavior={handleDeleteBehavior}
                             selectableFields={selectableFields}
-                            onUpdateRule={onUpdateRule}
                         />
                     ))}
                 </div>
@@ -544,8 +576,7 @@ const RuleEditor = memo(({
         </div>
       </ScrollArea>
     )
-});
-RuleEditor.displayName = 'RuleEditor';
+};
 
 const ConfigurationsEditor = memo(({
     localConfigs,
@@ -599,7 +630,7 @@ ConfigurationsEditor.displayName = 'ConfigurationsEditor';
 
 
 export function RulesDialog({ isOpen, onOpenChange }: Props) {
-  const { sections, rules, configurations, updateRules, updateConfigurations } = useBuilder();
+  const { sections, rules, configurations, updateRules } = useBuilder();
   const [localRules, setLocalRules] = useState<Rule[]>([]);
   const [localConfigs, setLocalConfigs] = useState<Configuration[]>([]);
   const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
@@ -790,3 +821,5 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+
+    
