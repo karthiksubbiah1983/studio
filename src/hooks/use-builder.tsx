@@ -332,6 +332,46 @@ const getInitialFormState = (sections: Section[]): { [key: string]: { value: any
     return initialState;
 }
 
+type Action =
+  | { type: "SET_STATE"; payload: Partial<State> }
+  | { type: "ADD_FORM"; payload: Form }
+  | { type: "SET_FORMS"; payload: Form[] }
+  | { type: "UPDATE_FORM_METADATA"; payload: { categoryId?: string; subCategoryId?: string | null } }
+  | { type: "DELETE_FORM"; payload: { formId: string } }
+  | { type: "CLONE_FORM"; payload: { formId: string, newName: string } }
+  | { type: "SET_ACTIVE_FORM"; payload: { formId: string } }
+  | { type: "ADD_SECTION" }
+  | { type: "UPDATE_SECTION"; payload: Section }
+  | { type: "DELETE_SECTION"; payload: { sectionId: string } }
+  | { type: "CLONE_SECTION"; payload: { sectionId: string } }
+  | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number, parentId?: string, id?: string } }
+  | { type: "UPDATE_ELEMENT"; payload: { sectionId: string; element: FormElementInstance } }
+  | { type: "DELETE_ELEMENT"; payload: { sectionId: string; elementId: string } }
+  | { type: "CLONE_ELEMENT"; payload: { sectionId: string; elementId: string } }
+  | { type: "SELECT_ELEMENT"; payload: { elementId: string; sectionId: string } | null }
+  | { type: "SET_DRAGGED_ELEMENT"; payload: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null }
+  | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string, elementId: string }, to: { sectionId: string, index?: number, parentId?: string } } }
+  | { type: "MOVE_SECTION"; payload: { fromIndex: number; toIndex: number } }
+  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[]; rules: Rule[]; workflows: Workflow[]; configurations?: Configuration[] } }
+  | { type: "LOAD_VERSION"; payload: { versionId: string } }
+  | { type: "DELETE_VERSION"; payload: { versionId: string } }
+  | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any>, taskId?: string } }
+  | { type: "ADD_CATEGORY"; payload: { name: string } }
+  | { type: "UPDATE_CATEGORY"; payload: { category: Category } }
+  | { type: "DELETE_CATEGORY"; payload: { categoryId: string } }
+  | { type: "ADD_SUBCATEGORY"; payload: { categoryId: string; name: string } }
+  | { type: "UPDATE_SUBCATEGORY"; payload: { categoryId: string; subCategory: SubCategory } }
+  | { type: "DELETE_SUBCATEGORY"; payload: { categoryId: string; subCategoryId: string } }
+  | { type: "COPY_TO_CLIPBOARD"; payload: ClipboardItem | null }
+  | { type: "PASTE_FROM_CLIPBOARD"; payload: { sectionId?: string; index?: number } }
+  | { type: "ADD_SITE"; payload: { name: string } }
+  | { type: "DELETE_SITE"; payload: { siteId: string } }
+  | { type: "ADD_TASK"; payload: { formId: string; versionId: string; siteId: string } }
+  | { type: "SET_USER_SETTINGS"; payload: { categories: Category[], sites: Site[] } }
+  | { type: "SET_FORM_STATE"; payload: { [key: string]: { value: any, fullObject?: any } } }
+  | { type: "UPDATE_FORM_STATE"; payload: { elementId: string; value: any; fullObject?: any } };
+
+
 const builderReducer = (state: State, action: Action): State => {
   const activeForm = state.forms.find(f => f.id === state.activeFormId);
   const activeFormSections = activeForm?.versions[0]?.sections || [];
@@ -782,30 +822,37 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (isUserLoading) return;
 
-    const loadData = async () => {
-        const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let finalState = initialState;
+    const loadData = () => {
+        const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
+        let loadedState: Partial<State> = {};
 
-        if (savedState) {
+        if (savedStateJSON) {
             try {
-                const parsedState = JSON.parse(savedState);
-                 if (parsedState.forms?.length > 0 || parsedState.categories?.length > 0) {
-                    finalState = { ...initialState, ...parsedState };
-                 }
+                loadedState = JSON.parse(savedStateJSON);
             } catch (error) {
                 console.error("Failed to parse state from localStorage", error);
             }
         }
+        
+        const finalForms = loadedState.forms || [];
+        const finalCategories = loadedState.categories || [];
 
         // Ensure Karthik's template and its category exist
-        const templateExists = finalState.forms.some(f => f.id === 'karthik-test-template');
+        const templateExists = finalForms.some(f => f.id === 'karthik-test-template');
         if (!templateExists) {
-            finalState.forms.push(karthikTestTemplate);
+            finalForms.push(karthikTestTemplate);
         }
-        const categoryExists = finalState.categories.some(c => c.id === 'testing-category');
+        const categoryExists = finalCategories.some(c => c.id === 'testing-category');
         if (!categoryExists) {
-            finalState.categories.push({ id: 'testing-category', name: 'Testing', subCategories: [] });
+            finalCategories.push({ id: 'testing-category', name: 'Testing', subCategories: [] });
         }
+        
+        const finalState: State = {
+          ...initialState, // Start with defaults
+          ...loadedState,  // Overwrite with saved data
+          forms: finalForms, // Use the potentially merged arrays
+          categories: finalCategories,
+        };
         
         dispatch({ type: 'SET_STATE', payload: finalState });
         setIsLoaded(true);
@@ -813,7 +860,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
     loadData();
 
-  }, [user, firestore, isUserLoading]);
+  }, [isUserLoading]);
 
   // Save to localStorage whenever relevant state changes
   useEffect(() => {
