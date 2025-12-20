@@ -153,13 +153,16 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
       if (tableCondition && tableCondition.sourceElementId) {
         const tableId = tableCondition.sourceElementId.split('::')[0];
         const tableValue = formState[tableId]?.value;
+        
         if (Array.isArray(tableValue)) {
           // If ANY row in the table satisfies the condition, the rule is met for the external component.
           return tableValue.some(row => {
+            // Reconstruct a context object for the row that the rules engine can understand
             const rowContext = (findElementRecursive(sections, tableId) as any)?.tableColumns?.reduce((acc: any, col: any) => {
-              acc[col.key] = row[col.key];
+              acc[`${tableId}::${col.key}`] = { value: row[col.key] }; // Use proxy ID as key
               return acc;
             }, {});
+            
             return evaluateRule(rule, rowContext, configurations, sections);
           });
         }
@@ -232,5 +235,3 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     </div>
   );
 }
-
-    

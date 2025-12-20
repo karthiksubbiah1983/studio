@@ -27,27 +27,30 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
         }
 
         if (context) {
+            // New Robust Logic:
             const isProxyId = idOrKey.includes('::');
-            const contextIsRow = !context.hasOwnProperty(allElements[0]?.id) && Object.keys(context).length > 0;
             
+            // Context is a single table row. The idOrKey will be a column key.
             if (isProxyId) {
                 const columnKey = idOrKey.split('::')[1];
-                if (context[columnKey] !== undefined) {
+                 // Check if the current context (which should be a row object) has the key.
+                if (context.hasOwnProperty(columnKey)) {
                     const val = context[columnKey];
+                    // Handle both direct values and { value, fullObject } structures.
                     return (typeof val === 'object' && val !== null && 'value' in val) ? val.value : val;
                 }
-            } else if (contextIsRow) {
-                // If context is a row, idOrKey could be a direct key on the row object
-                 if (context[idOrKey] !== undefined) {
-                    const val = context[idOrKey];
-                    return (typeof val === 'object' && val !== null && 'value' in val) ? val.value : val;
-                 }
             }
-
-            // Fallback to searching the full form state
+            
+            // Context is the full formState object. The idOrKey will be an element's direct ID.
             if (context[idOrKey] !== undefined) {
                 const val = context[idOrKey];
                 return (typeof val === 'object' && val !== null && 'value' in val) ? val.value : val;
+            }
+            
+            // Fallback for row context where idOrKey might be a direct key
+            if (context[idOrKey] !== undefined) {
+                 const val = context[idOrKey];
+                 return (typeof val === 'object' && val !== null && 'value' in val) ? val.value : val;
             }
         }
         

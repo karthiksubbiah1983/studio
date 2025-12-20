@@ -103,7 +103,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const context = rowContext ?? formState;
     if (!context || !rules) return true;
     
-    const elementIdForRules = element.id;
+    // If inside a table, use the proxy ID. Otherwise, use the real ID.
+    const elementIdForRules = rowContext ? `${element.id}` : element.id;
 
     const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === elementIdForRules));
     const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === elementIdForRules));
@@ -187,12 +188,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const context = rowContext ?? formState;
     if (!context || !rules) return false;
 
-    const disableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'disable' && b.targetElementId === element.id));
+    // If inside a table, use the proxy ID. Otherwise, use the real ID.
+    const elementIdForRules = rowContext ? `${element.id}` : element.id;
+
+    const disableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'disable' && b.targetElementId === elementIdForRules));
     if (disableRules.some(r => evaluateRule(r, context, configurations, sections))) {
       return true;
     }
 
-    const enableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'enable' && b.targetElementId === element.id));
+    const enableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'enable' && b.targetElementId === elementIdForRules));
     if (enableRules.length > 0) {
       return !enableRules.some(r => evaluateRule(r, context, configurations, sections));
     }
@@ -205,13 +209,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let error: string | null = null;
     const context = rowContext ?? formState;
     if (!context || !rules) return { style, error };
+
+    const elementIdForRules = rowContext ? `${element.id}` : element.id;
     
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, context, configurations, sections);
 
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
-                if (behavior.targetElementId === element.id) {
+                if (behavior.targetElementId === elementIdForRules) {
                     if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
                         style[behavior.targetProperty as any] = behavior.color;
                     }
@@ -759,7 +765,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           {renderLabelWithPopup()}
           <RadioGroup 
             value={value}
-            onValueChange={(val) => onValueChange(element.id, val)}
+            onValueChange={(val) => {
+                 if (isTableCell) {
+                    onValueChange(element.id, val, { [element.key]: val });
+                 } else {
+                    onValueChange(element.id, val);
+                 }
+            }}
             className={cn("mt-3", direction === 'horizontal' ? "flex flex-row gap-4" : "grid gap-2")}
             disabled={isDisabled}
           >
