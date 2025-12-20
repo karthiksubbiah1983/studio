@@ -1,5 +1,4 @@
 
-
 import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/lib/types";
 import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
@@ -163,5 +162,3 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
         return conditionResults.some(res => res);
     }
 };
-
-    

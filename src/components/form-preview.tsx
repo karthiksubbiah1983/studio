@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -132,59 +131,70 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
   };
 
   const isSectionVisible = (section: Section): boolean => {
-    if (!rules) return !section.popupOnly; // Default behavior if no rules
+    if (!rules) return !section.popupOnly;
 
-    // This function will evaluate if a section should be visible based on all rules.
     const allFormElements = getAllElements(sections);
 
-    // Helper to determine if a rule's conditions are based on an element inside ANY table
     const isRuleTableBased = (rule: Rule): [boolean, string | null] => {
-        for (const condition of rule.conditions) {
-            // Check source element
-            const sourceElement = allFormElements.find(el => 'id' in el && el.id === condition.sourceElementId);
-            if (sourceElement) {
-                const parentTableId = findElementRecursive(sections, sourceElement.id, true);
-                if (parentTableId) return [true, parentTableId as string];
-            }
-            // Check comparison element
-            const comparisonElement = allFormElements.find(el => 'id' in el && el.id === condition.comparisonElementId);
-            if (comparisonElement) {
-                const parentTableId = findElementRecursive(sections, comparisonElement.id, true);
-                if (parentTableId) return [true, parentTableId as string];
-            }
+      for (const condition of rule.conditions) {
+        const sourceElement = allFormElements.find(
+          (el) => 'id' in el && el.id === condition.sourceElementId
+        );
+        if (sourceElement) {
+          const parentTableId = findElementRecursive(
+            sections,
+            sourceElement.id,
+            true
+          );
+          if (parentTableId) return [true, parentTableId as string];
         }
-        return [false, null];
+        const comparisonElement = allFormElements.find(
+          (el) => 'id' in el && el.id === condition.comparisonElementId
+        );
+        if (comparisonElement) {
+          const parentTableId = findElementRecursive(
+            sections,
+            comparisonElement.id,
+            true
+          );
+          if (parentTableId) return [true, parentTableId as string];
+        }
+      }
+      return [false, null];
     };
 
-    const relevantRules = rules.filter(rule => rule?.behaviors?.some(b => b.targetElementId === section.id));
-    const showRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'show'));
-    const hideRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'hide'));
+    const relevantRules = rules.filter(
+      (rule) =>
+        rule?.behaviors?.some((b) => b.targetElementId === section.id)
+    );
+    const showRules = relevantRules.filter((r) =>
+      r.behaviors.some((b) => b.type === 'show')
+    );
+    const hideRules = relevantRules.filter((r) =>
+      r.behaviors.some((b) => b.type === 'hide')
+    );
 
     let visible = !section.popupOnly;
 
-    // This function evaluates a rule, handling the special case for table-based rules
     const checkRule = (rule: Rule): boolean => {
-        const [isTableBased, tableId] = isRuleTableBased(rule);
-        
-        // If the rule is based on a table, we check if ANY row in that table meets the condition.
-        if (isTableBased && tableId && formState[tableId]?.value) {
-            const tableRows = formState[tableId].value as any[] || [];
-            // If any row satisfies the rule, the condition is met for the external component.
-            return tableRows.some(row => evaluateRule(rule, { ...formState, ...row }, configurations, sections));
-        } else {
-            // If not a table-based rule, evaluate against the global form state.
-            return evaluateRule(rule, formState, configurations, sections);
-        }
+      const [isTableBased, tableId] = isRuleTableBased(rule);
+      if (isTableBased && tableId && formState[tableId]?.value) {
+        const tableRows = (formState[tableId].value as any[]) || [];
+        return tableRows.some((row) =>
+          evaluateRule(rule, { ...formState, ...row }, configurations, sections)
+        );
+      } else {
+        return evaluateRule(rule, formState, configurations, sections);
+      }
     };
-    
-    // Determine visibility based on show/hide rules
+
     if (showRules.length > 0) {
-        visible = showRules.some(checkRule);
+      visible = showRules.some(checkRule);
     }
     if (visible && hideRules.length > 0) {
-        if (hideRules.some(checkRule)) {
-            visible = false;
-        }
+      if (hideRules.some(checkRule)) {
+        visible = false;
+      }
     }
 
     return visible;
@@ -242,5 +252,3 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     </div>
   );
 }
-
-    
