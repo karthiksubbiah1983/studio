@@ -1,4 +1,5 @@
 
+
 import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/lib/types";
 import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
@@ -150,50 +151,7 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
     
     const allElements = sections ? getAllElements(sections) : [];
     
-    const isRuleTableBased = (r: Rule | Workflow): [boolean, string | null] => {
-        for (const condition of r.conditions) {
-            const sourceElement = allElements.find(el => el.id === condition.sourceElementId);
-            if (sourceElement && findElementRecursive(sections || [], sourceElement.id, true)) {
-                return [true, findElementRecursive(sections || [], sourceElement.id, true) as string];
-            }
-            const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId);
-            if (comparisonElement && findElementRecursive(sections || [], comparisonElement.id, true)) {
-                 return [true, findElementRecursive(sections || [], comparisonElement.id, true) as string];
-            }
-        }
-        return [false, null];
-    }
-    
-    // This function checks if the state we are evaluating is a single row's context.
-    const isStateForRow = (s: any): s is Record<string, any> => {
-        // A row context is a flat object of key-value pairs, not the complex form state.
-        return s && typeof s === 'object' && !s.hasOwnProperty('forms') && !s.hasOwnProperty('categories') && !Object.values(s).some(v => typeof v === 'object' && v !== null && 'value' in v);
-    }
-
-    // If the state is a single row's data, we are evaluating for an element *inside* a table.
-    // Evaluate the rule only against this specific row's context.
-    if (isStateForRow(state)) {
-        const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, allElements, configurations));
-        return rule.logicType === 'and' ? conditionResults.every(res => res) : conditionResults.some(res => res);
-    }
-    
-    // If we reach here, we are evaluating for an element *outside* a table.
-    const [isTableBased, tableId] = isRuleTableBased(rule);
-
-    // If the rule is based on a table and we have the table's data in the main state...
-    if (isTableBased && tableId && state[tableId]?.value) {
-        const tableRows = state[tableId].value as any[];
-        // Check if ANY row in the table satisfies the rule.
-        const isAnyRowTrue = tableRows.some(row => {
-            // For each row, create the evaluation context (main form state + current row data).
-            const rowEvaluationContext = { ...state, ...row };
-            const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, rowEvaluationContext, allElements, configurations));
-            return rule.logicType === 'and' ? conditionResults.every(res => res) : conditionResults.some(res => res);
-        });
-        return isAnyRowTrue;
-    }
-
-    // If the rule is not table-based, perform a standard evaluation against the main form state.
+    // This function will evaluate the rule against a given context (which can be the main form state or a single table row).
     const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, allElements, configurations));
     
     if (rule.logicType === 'and') {

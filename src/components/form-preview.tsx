@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -131,18 +132,46 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
   };
 
   const isSectionVisible = (section: Section): boolean => {
+    const allFormElements = getAllElements(sections);
+
+    const isRuleTableBased = (rule: Rule): [boolean, string | null] => {
+        for (const condition of rule.conditions) {
+            const sourceElement = allFormElements.find(el => el.id === condition.sourceElementId);
+            if (sourceElement) {
+                const parentTableId = findElementRecursive(sections, sourceElement.id, true);
+                if (parentTableId) return [true, parentTableId as string];
+            }
+            const comparisonElement = allFormElements.find(el => el.id === condition.comparisonElementId);
+            if (comparisonElement) {
+                const parentTableId = findElementRecursive(sections, comparisonElement.id, true);
+                if (parentTableId) return [true, parentTableId as string];
+            }
+        }
+        return [false, null];
+    }
+    
     const relevantRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.targetElementId === section.id));
     const showRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'show'));
     const hideRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'hide'));
 
     let visible = !section.popupOnly;
+
+    const checkRule = (rule: Rule) => {
+        const [isTableBased, tableId] = isRuleTableBased(rule);
+        if (isTableBased && tableId && formState[tableId]?.value) {
+            const tableRows = formState[tableId].value as any[];
+            return tableRows.some(row => evaluateRule(rule, { ...formState, ...row }, configurations, sections));
+        } else {
+            return evaluateRule(rule, formState, configurations, sections);
+        }
+    };
     
     if (showRules.length > 0) {
-        visible = showRules.some(rule => evaluateRule(rule, formState, configurations, sections));
+        visible = showRules.some(checkRule);
     }
 
     if (visible && hideRules.length > 0) {
-        if (hideRules.some(rule => evaluateRule(rule, formState, configurations, sections))) {
+        if (hideRules.some(checkRule)) {
             visible = false;
         }
     }
