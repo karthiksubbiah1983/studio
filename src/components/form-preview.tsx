@@ -132,7 +132,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
 
   const isSectionVisible = (section: Section): boolean => {
     if (!rules) return !section.popupOnly;
-
+    
     const allFormElements = getAllElements(sections);
 
     const isRuleTableBased = (rule: Rule): [boolean, string | null] => {
@@ -182,7 +182,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
         const tableRows = (formState[tableId].value as any[]) || [];
         // For external components, if ANY row meets the condition, the rule is met.
         return tableRows.some((row) =>
-          evaluateRule(rule, { ...formState, ...row }, configurations, sections)
+          evaluateRule(rule, row, configurations, sections)
         );
       } else {
         // For non-table rules, evaluate against the global form state.
@@ -200,8 +200,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     }
 
     return visible;
-  }
-
+  };
 
   const renderSectionContent = (section: Section) => (
     <div className={cn("grid gap-4 grid-cols-1", section.displayMode !== 'accordion' && 'p-6 pt-0')}>

@@ -26,21 +26,29 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             return config?.value;
         }
 
-        // Check if idOrKey is an element's 'key' or 'id' in the provided context
         if (context) {
-            // First, check by ID in the context (proxy IDs like table-id::col-key::row-index)
+            // Context can be a flat object of row data or the full formState.
+            // Check for a direct key match in the context first (for rowContext).
             if (context[idOrKey] !== undefined) {
                  const val = context[idOrKey];
                  if (typeof val === 'object' && val !== null && 'value' in val) return val.value;
                  return val;
             }
-
-            // Second, check by direct key in the context (for rowContext)
+            
+            // Find element by ID or Key
             const element = allElements.find(el => ('id' in el && el.id === idOrKey) || ('key' in el && el.key === idOrKey));
-            if (element && 'key' in element && context[element.key] !== undefined) {
-                 const val = context[element.key];
-                 if (typeof val === 'object' && val !== null && 'value' in val) return val.value;
-                 return val;
+            
+            if (element) {
+                if ('id' in element && context[element.id] !== undefined) {
+                    const val = context[element.id];
+                    if (typeof val === 'object' && val !== null && 'value' in val) return val.value;
+                    return val;
+                }
+                if ('key' in element && context[element.key] !== undefined) {
+                    const val = context[element.key];
+                    if (typeof val === 'object' && val !== null && 'value' in val) return val.value;
+                    return val;
+                }
             }
         }
         

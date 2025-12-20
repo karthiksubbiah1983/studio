@@ -30,7 +30,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
   const tableColumns = useMemo(() => element.tableColumns || [], [element.tableColumns]);
   const pageSize = element.pageSize || 5;
 
-  const stableOnValueChange = useCallback(onValueChange, []);
+  const stableOnValueChange = useCallback(onValueChange, [onValueChange]);
 
   // Effect to fetch initial data for dynamic tables
   useEffect(() => {
@@ -148,7 +148,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                           element={{ ...col.element, id: proxyId, key: col.key, label: '' }}
                           value={formState[proxyId]?.value ?? cellValue}
                           onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
-                          formState={{ ...formState, ...row }}
+                          formState={formState}
                           rowContext={row}
                           isTableCell={true}
                         />
@@ -186,10 +186,10 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                       <Input readOnly value={cellValue} className="border-none bg-transparent p-0 h-auto" />
                     ) : (
                       <FormElementRenderer
-                        element={{ ...col.element, id: proxyId, key: col.key }}
+                        element={{ ...col.element, id: proxyId, key: col.key, label: col.label }}
                         value={formState[proxyId]?.value ?? cellValue}
                         onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
-                        formState={{ ...formState, ...row }}
+                        formState={formState}
                         rowContext={row}
                         isTableCell={true}
                       />
