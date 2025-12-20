@@ -25,7 +25,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const { formState } = useBuilder();
+  const { formState, updateFormState } = useBuilder();
 
   const tableColumns = useMemo(() => element.tableColumns || [], [element.tableColumns]);
   const pageSize = element.pageSize || 5;
@@ -71,7 +71,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
 
     onValueChange(element.id, newRows);
   };
-
+  
   const handleAddRow = () => {
     if (element.maxRows && (tableRows || []).length >= element.maxRows) return;
     const newRows = [...(tableRows || []), {}];
@@ -132,29 +132,28 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
           <TableBody>
             {paginatedData.map((row, paginatedIndex) => {
               const originalIndex = filteredData.indexOf(row);
+               const rowContextWithKeys = tableColumns.reduce((acc, col) => {
+                  acc[col.key] = getNestedValue(row, col.key);
+                  return acc;
+              }, {} as Record<string, any>)
+
               return (
                 <TableRow key={originalIndex}>
                   {tableColumns.map(col => {
                     const proxyId = `${element.id}::${col.key}::${originalIndex}`;
                     const cellValue = getNestedValue(row, col.key);
 
-                    if (col.formula) {
-                      return <TableCell key={proxyId}><Input readOnly value={cellValue} className="border-none bg-transparent" /></TableCell>;
-                    }
-
                     return (
-                      <TableCell key={proxyId}>
+                      <TableCell key={col.id}>
                         <FormElementRenderer
-                          element={{ ...col.element, id: proxyId, key: col.key, label: '' }}
-                          value={formState[proxyId]?.value ?? cellValue}
-                          onValueChange={(_id, val) => {
-                            const newRows = [...tableRows];
-                            if(!newRows[originalIndex]) newRows[originalIndex] = {};
-                            newRows[originalIndex][col.key] = val;
-                            onValueChange(element.id, newRows);
+                          element={{ ...col.element, id: proxyId, label: '', key: col.key }}
+                          value={cellValue}
+                          onValueChange={(id, value, fullObject) => {
+                            updateFormState(id, value, fullObject); // For immediate rule feedback
+                            handleRowValueChange(originalIndex, col.key, value);
                           }}
                           formState={formState}
-                          rowContext={row}
+                          rowContext={rowContextWithKeys}
                           isTableCell={true}
                         />
                       </TableCell>
@@ -178,6 +177,10 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {paginatedData.map((row, paginatedIndex) => {
           const originalIndex = filteredData.indexOf(row);
+           const rowContextWithKeys = tableColumns.reduce((acc, col) => {
+              acc[col.key] = getNestedValue(row, col.key);
+              return acc;
+          }, {} as Record<string, any>)
           return (
             <div key={originalIndex} className="border rounded-lg p-4 space-y-4">
               {tableColumns.map(col => {
@@ -187,23 +190,17 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                 return (
                   <div key={proxyId} className="space-y-1">
                     <Label className="text-muted-foreground">{col.label}</Label>
-                    {col.formula ? (
-                      <Input readOnly value={cellValue} className="border-none bg-transparent p-0 h-auto" />
-                    ) : (
-                      <FormElementRenderer
-                        element={{ ...col.element, id: proxyId, key: col.key, label: col.label }}
-                        value={formState[proxyId]?.value ?? cellValue}
-                        onValueChange={(_id, val) => {
-                            const newRows = [...tableRows];
-                            if(!newRows[originalIndex]) newRows[originalIndex] = {};
-                            newRows[originalIndex][col.key] = val;
-                            onValueChange(element.id, newRows);
-                          }}
-                        formState={formState}
-                        rowContext={row}
-                        isTableCell={true}
-                      />
-                    )}
+                    <FormElementRenderer
+                      element={{ ...col.element, id: proxyId, label: col.label, key: col.key }}
+                       value={cellValue}
+                       onValueChange={(id, value, fullObject) => {
+                           updateFormState(id, value, fullObject);
+                           handleRowValueChange(originalIndex, col.key, value);
+                       }}
+                       formState={formState}
+                       rowContext={rowContextWithKeys}
+                       isTableCell={true}
+                    />
                   </div>
                 );
               })}
@@ -243,3 +240,5 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
     </div>
   );
 }
+
+    

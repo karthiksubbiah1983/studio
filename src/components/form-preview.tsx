@@ -133,22 +133,6 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
   const isSectionVisible = (section: Section): boolean => {
     if (!rules) return !section.popupOnly;
     
-    const allFormElements = getAllElements(sections);
-
-    const isRuleTableBased = (rule: Rule): [boolean, string | null] => {
-      for (const condition of rule.conditions) {
-        const sourceElementId = condition.sourceElementId;
-        if (sourceElementId && sourceElementId.includes('::')) {
-            const tableId = sourceElementId.split('::')[0];
-            const tableElement = findElementRecursive(sections, tableId);
-            if (tableElement && tableElement.type === 'Table') {
-                return [true, tableId];
-            }
-        }
-      }
-      return [false, null];
-    };
-
     const relevantRules = rules.filter(
       (rule) =>
         rule?.behaviors?.some((b) => b.targetElementId === section.id)
@@ -163,17 +147,26 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     let visible = !section.popupOnly;
 
     const checkRule = (rule: Rule): boolean => {
-      const [isTableBased, tableId] = isRuleTableBased(rule);
-      if (isTableBased && tableId && formState[tableId]?.value) {
-        const tableRows = (formState[tableId].value as any[]) || [];
-        // For external components, if ANY row meets the condition, the rule is met.
-        return tableRows.some((row) =>
-          evaluateRule(rule, row, configurations, sections)
-        );
-      } else {
-        // For non-table rules, evaluate against the global form state.
-        return evaluateRule(rule, formState, configurations, sections);
+      // Find if any condition in the rule targets a table element
+      const tableCondition = rule.conditions.find(c => c.sourceElementId && c.sourceElementId.includes('::'));
+
+      if (tableCondition && tableCondition.sourceElementId) {
+        const tableId = tableCondition.sourceElementId.split('::')[0];
+        const tableValue = formState[tableId]?.value;
+        if (Array.isArray(tableValue)) {
+          // If ANY row in the table satisfies the condition, the rule is met for the external component.
+          return tableValue.some(row => {
+            const rowContext = (findElementRecursive(sections, tableId) as any)?.tableColumns?.reduce((acc: any, col: any) => {
+              acc[col.key] = row[col.key];
+              return acc;
+            }, {});
+            return evaluateRule(rule, rowContext, configurations, sections);
+          });
+        }
       }
+      
+      // Default behavior: evaluate against the global form state.
+      return evaluateRule(rule, formState, configurations, sections);
     };
 
     if (showRules.length > 0) {
@@ -239,3 +232,5 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     </div>
   );
 }
+
+    

@@ -103,8 +103,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const context = rowContext ?? formState;
     if (!context || !rules) return true;
     
-    // Create a proxy ID if inside a table cell for rule matching
-    const elementIdForRules = isTableCell ? `${element.id.split('::')[0]}::${element.key}` : element.id;
+    const elementIdForRules = element.id;
 
     const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === elementIdForRules));
     const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === elementIdForRules));
@@ -122,7 +121,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     
     return visible;
-  }, [element.id, element.hidden, element.key, isTableCell, formState, rowContext, rules, configurations, sections]);
+  }, [element.id, element.hidden, formState, rowContext, rules, configurations, sections]);
 
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
@@ -252,11 +251,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const renderLabelWithPopup = (dynamicLabel?: string) => {
     let finalLabel = dynamicLabel || label;
 
-    if (isTableCell && rowContext && (labelKey || key)) {
-      finalLabel = String(getNestedValue(rowContext, labelKey || key || ''));
-    }
-
-    if (!finalLabel) return null;
+    if (isTableCell && !finalLabel) return null; // Don't render empty labels in table cells
 
     return (
         <div className="flex items-center gap-2">
@@ -741,12 +736,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             onValueChange(element.id, checked);
         };
         
-        let finalLabel = label;
-        if (isTableCell && rowContext) {
-            const rowValue = getNestedValue(rowContext, element.key);
-            finalLabel = String(rowValue ?? finalLabel);
-        }
-
         content = (
             <div className="flex items-start space-x-2">
                 <Checkbox
@@ -756,7 +745,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     disabled={isDisabled}
                 />
                 <div className="grid gap-1.5 leading-none">
-                    {renderLabelWithPopup(finalLabel)}
+                    {renderLabelWithPopup(label)}
                     {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
                     {renderError()}
                 </div>
@@ -1153,3 +1142,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
+    
