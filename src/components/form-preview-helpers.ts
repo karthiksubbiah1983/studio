@@ -26,19 +26,25 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             return config?.value;
         }
 
-        // The 'state' object for a table row is a direct key-value mapping (e.g., { 'tableId::columnKey': 'hello' })
+        // If 'state' is the row context from a table, it has direct keys like 'column_key'
+        // If the idOrKey does not contain '::', it's a direct key from the row object.
+        const isDirectKeyLookup = !idOrKey.includes('::') && state[idOrKey] !== undefined;
+        const columnKey = idOrKey.includes('::') ? idOrKey.split('::')[1] : idOrKey;
+
+        if (state && state[columnKey] !== undefined) {
+             const val = state[columnKey];
+             if (typeof val === 'object' && val !== null && 'value' in val) {
+                return val.value;
+            }
+            return val;
+        }
+
+        // Fallback for main form state structure { elementId: { value: '...' } }
         if (state && state[idOrKey] !== undefined) {
-             // Handle cases where value is in a { value: ... } object vs a direct value
             if (typeof state[idOrKey] === 'object' && state[idOrKey] !== null && 'value' in state[idOrKey]) {
                 return state[idOrKey].value;
             }
             return state[idOrKey];
-        }
-
-        // Fallback for main form state structure { elementId: { value: '...' } }
-        const stateValue = state && state[idOrKey] ? state[idOrKey].value : undefined;
-        if (stateValue !== undefined) {
-            return stateValue;
         }
 
         // Fallback to default value if not in state
@@ -146,51 +152,13 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
 
     const allElements = sections ? getAllElements(sections) : [];
 
-    const checkConditions = (context: { [key: string]: any }): boolean => {
-        const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, context, allElements, configurations));
-        if (rule.logicType === 'and') {
-            return conditionResults.every(res => res);
-        } else { // 'or'
-            return conditionResults.some(res => res);
-        }
-    };
+    // The 'state' passed to this function can be the main form state,
+    // or a row-specific context from a table.
+    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, allElements, configurations));
     
-    // Determine if any condition in the rule references a field that is part of a table.
-    const tableConditionInfo = rule.conditions.map(c => {
-        if (c.sourceType !== 'field' || !c.sourceElementId) return null;
-        const sourceElement = allElements.find(el => el.id === c.sourceElementId);
-        if (sourceElement && String(sourceElement.id).includes('::')) {
-            const tableId = sourceElement.id.split('::')[0];
-            return { tableId, isTableBased: true };
-        }
-        return null;
-    }).find(info => info !== null);
-
-
-    if (tableConditionInfo && tableConditionInfo.isTableBased && tableConditionInfo.tableId) {
-        const tableId = tableConditionInfo.tableId;
-        const tableElement = allElements.find(el => 'id' in el && el.id === tableId) as FormElementInstance | undefined;
-        
-        if (tableElement && (tableElement.type === 'Table' || tableElement.type === 'DataGrid') && state[tableId]?.value) {
-            const tableRows = state[tableId].value as any[];
-            // If any row in the table satisfies the conditions, the rule is met for the whole form.
-            return tableRows.some(row => {
-                const rowContext: {[key: string]: any} = {};
-
-                // Create a lookup context for the row where keys are the generic column element IDs
-                // e.g., { 'tableId::columnKey': 'value from row' }
-                const columns = tableElement.type === 'Table' ? tableElement.tableColumns : tableElement.dataGridColumns;
-                columns?.forEach(col => {
-                    const genericColumnId = `${tableId}::${col.key}`;
-                    rowContext[genericColumnId] = getNestedValue(row, col.key);
-                });
-
-                // Evaluate with a combined context: main form state + specific row values mapped to their generic IDs
-                return checkConditions({ ...state, ...rowContext });
-            });
-        }
+    if (rule.logicType === 'and') {
+        return conditionResults.every(res => res);
+    } else { // 'or'
+        return conditionResults.some(res => res);
     }
-    
-    // Default behavior: evaluate conditions against the main form state.
-    return checkConditions(state);
 };
