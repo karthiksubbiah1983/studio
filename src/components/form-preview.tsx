@@ -254,5 +254,3 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     </div>
   );
 }
-
-    

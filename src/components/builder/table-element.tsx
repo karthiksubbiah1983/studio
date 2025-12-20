@@ -146,7 +146,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                       <TableCell key={proxyId}>
                         <FormElementRenderer
                           element={{ ...col.element, id: proxyId, key: col.key, label: '' }}
-                          value={cellValue}
+                          value={formState[proxyId]?.value}
                           onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
                           formState={formState}
                           rowContext={row}
@@ -187,7 +187,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                     ) : (
                       <FormElementRenderer
                         element={{ ...col.element, id: proxyId, key: col.key }}
-                        value={cellValue}
+                        value={formState[proxyId]?.value}
                         onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
                         formState={formState}
                         rowContext={row}
@@ -233,5 +233,3 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
     </div>
   );
 }
-
-    
