@@ -26,54 +26,149 @@ type State = {
   formState: { [key: string]: { value: any, fullObject?: any } };
 };
 
-type Action =
-  | { type: "ADD_FORM"; payload: Form }
-  | { type: "SET_FORMS"; payload: Form[] }
-  | { type: "UPDATE_FORM_TITLE"; payload: { formId: string, title: string } }
-  | { type: "DELETE_FORM"; payload: { formId: string } }
-  | { type: "CLONE_FORM", payload: { formId: string, newName: string } }
-  | { type: "SET_ACTIVE_FORM"; payload: { formId: string | null } }
-  | { type: "UPDATE_FORM_METADATA", payload: { categoryId: string | undefined, subCategoryId: string | null | undefined } }
-  | { type: "ADD_SECTION" }
-  | { type: "ADD_ELEMENT"; payload: { sectionId: string; type: ElementType; index?: number, parentId?: string, id?: string } }
-  | { type: "UPDATE_ELEMENT"; payload: { sectionId: string; element: FormElementInstance } }
-  | { type: "UPDATE_SECTION"; payload: Section }
-  | { type: "SELECT_ELEMENT"; payload: { elementId: string; sectionId: string } | null }
-  | { type: "DELETE_ELEMENT"; payload: { elementId: string; sectionId: string } }
-  | { type: "DELETE_SECTION"; payload: { sectionId: string } }
-  | { type: "CLONE_ELEMENT"; payload: { elementId: string; sectionId: string } }
-  | { type: "CLONE_SECTION"; payload: { sectionId: string } }
-  | { type: "SET_DRAGGED_ELEMENT"; payload: State['draggedElement'] }
-  | { type: "MOVE_SECTION"; payload: { fromIndex: number, toIndex: number } }
-  | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string; elementId: string }, to: { sectionId: string; index?: number, parentId?: string } } }
-  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[], rules: Rule[], workflows: Workflow[], configurations: Configuration[] } }
-  | { type: "LOAD_VERSION"; payload: { versionId: string } }
-  | { type: "DELETE_VERSION"; payload: { versionId: string } }
-  | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any>, taskId?: string } }
-  | { type: "SET_STATE"; payload: Partial<State> }
-  | { type: "SET_SECTIONS"; payload: { sections: Section[] } }
-  | { type: "UPDATE_RULES"; payload: { rules: Rule[], configurations: Configuration[] } }
-  | { type: "UPDATE_WORKFLOWS"; payload: { workflows: Workflow[] } }
-  | { type: "UPDATE_CONFIGURATIONS"; payload: { configurations: Configuration[] } }
-  | { type: "SET_USER_SETTINGS", payload: { categories: Category[], sites: Site[] } }
-  | { type: "ADD_CATEGORY", payload: { name: string } }
-  | { type: "UPDATE_CATEGORY", payload: { category: Category } }
-  | { type: "DELETE_CATEGORY", payload: { categoryId: string } }
-  | { type: "ADD_SUBCATEGORY", payload: { categoryId: string, name: string } }
-  | { type: "UPDATE_SUBCATEGORY", payload: { categoryId: string, subCategory: SubCategory } }
-  | { type: "DELETE_SUBCATEGORY", payload: { categoryId: string, subCategoryId: string } }
-  | { type: "ADD_SITE", payload: { name: string } }
-  | { type: "DELETE_SITE", payload: { siteId: string } }
-  | { type: "ADD_TASK", payload: { formId: string, versionId: string, siteId: string } }
-  | { type: "COPY_TO_CLIPBOARD", payload: ClipboardItem }
-  | { type: "PASTE_FROM_CLIPBOARD", payload: { sectionId?: string, index?: number } }
-  | { type: "SET_FORM_STATE", payload: { [key: string]: { value: any, fullObject?: any } } }
-  | { type: "UPDATE_FORM_STATE", payload: { elementId: string, value: any, fullObject?: any } };
+const tableRuleElementId = "table-rule-element-2";
+const tableRuleRadioId = "table-rule-element-1";
+const tableId = "table-1";
+const externalRuleElementId = "section-2";
+const internalRuleId = "internal-table-rule";
+const externalRuleId = "external-table-rule";
+
+const karthikTestTemplate: Form = {
+  id: "karthik-test-template",
+  title: "Karthik's Test Template",
+  categoryId: "testing-category",
+  subCategoryId: null,
+  versions: [
+    {
+      id: "karthik-version-1",
+      name: "Version 1",
+      description: "Initial version for testing table rules",
+      type: "draft",
+      timestamp: new Date().toISOString(),
+      sections: [
+        {
+          id: "section-1",
+          title: "Editable Table with Internal Rules",
+          elements: [
+            {
+              id: tableId,
+              type: "Table",
+              key: "test_table",
+              label: "Test Table",
+              required: false,
+              tableColumns: [
+                {
+                  id: "col-1",
+                  key: "show_field",
+                  label: "Show Field?",
+                  element: {
+                    id: tableRuleRadioId,
+                    type: "RadioGroup",
+                    key: "show_field_radio",
+                    label: "Show Field?",
+                    required: false,
+                    options: ["Yes", "No"],
+                    direction: "horizontal",
+                  } as FormElementInstance,
+                },
+                {
+                  id: "col-2",
+                  key: "conditional_field",
+                  label: "Conditional Text Field",
+                  element: {
+                    id: tableRuleElementId,
+                    type: "Input",
+                    key: "conditional_text",
+                    label: "Conditional Field",
+                    required: false,
+                    placeholder: "Visible if 'Yes' is selected",
+                    hidden: true, // Initially hidden
+                  } as FormElementInstance,
+                },
+              ],
+              canAddRows: true,
+              defaultRows: 2,
+            },
+          ],
+        },
+        {
+          id: externalRuleElementId,
+          title: "External Component",
+          hidden: true, // Initially hidden
+          elements: [
+            {
+              id: "element-3",
+              type: "Textarea",
+              key: "external_textarea",
+              label: "External Text Area",
+              required: false,
+              placeholder: "Visible if ANY row has 'Yes' selected.",
+            },
+          ],
+        },
+      ],
+      rules: [
+        {
+          id: internalRuleId,
+          name: "Show Internal Table Field",
+          conditions: [
+            {
+              id: "cond-1-internal",
+              sourceType: "field",
+              sourceElementId: `${tableId}::show_field`, // Proxy ID for the column
+              operator: "equals",
+              comparisonType: "value",
+              value: "Yes",
+            },
+          ],
+          logicType: "and",
+          behaviors: [
+            {
+              id: "beh-1-internal",
+              type: "show",
+              targetElementId: `${tableId}::conditional_field`, // Proxy ID for the target column
+            },
+          ],
+        },
+        {
+          id: externalRuleId,
+          name: "Show External Component",
+          conditions: [
+            {
+              id: "cond-1-external",
+              sourceType: "field",
+              sourceElementId: `${tableId}::show_field`,
+              operator: "equals",
+              comparisonType: "value",
+              value: "Yes",
+            },
+          ],
+          logicType: "and",
+          behaviors: [
+            {
+              id: "beh-1-external",
+              type: "show",
+              targetElementId: externalRuleElementId,
+            },
+          ],
+        },
+      ],
+      workflows: [],
+      configurations: [],
+    },
+  ],
+};
 
 
 const initialState: State = {
-  forms: [],
-  categories: [],
+  forms: [karthikTestTemplate],
+  categories: [
+    {
+      id: "testing-category",
+      name: "Testing",
+      subCategories: []
+    }
+  ],
   sites: [],
   tasks: [],
   submissions: [],
@@ -727,6 +822,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             } catch (error) {
                 console.error("Failed to fetch data from Firestore:", error);
             }
+        } else {
+             // If not logged in, use the hardcoded initial state
+             dispatch({ type: 'SET_STATE', payload: initialState });
         }
         
         setIsLoaded(true);
