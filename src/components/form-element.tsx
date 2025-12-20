@@ -24,7 +24,7 @@ import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye,
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn, findFirstArray, getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
+import { cn, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
 import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -99,30 +99,25 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const isVisible = useMemo(() => {
     if (element.hidden) return false;
     
-    // For elements inside a table, context is the row. Otherwise, it's the whole form.
-    const context = rowContext ?? formState;
-    if (!context || !rules) return true;
-    
-    // If inside a table, use the proxy ID. Otherwise, use the real ID.
-    const elementIdForRules = rowContext ? `${element.id}` : element.id;
+    if (!formState || !rules) return true;
 
-    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === elementIdForRules));
-    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === elementIdForRules));
+    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
+    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
     
     let visible = true;
     
     if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, context, configurations, sections));
+        visible = showRules.some(r => evaluateRule(r, formState, configurations, sections));
     }
     
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, context, configurations, sections))) {
+      if (hideRules.some(r => evaluateRule(r, formState, configurations, sections))) {
         visible = false;
       }
     }
     
     return visible;
-  }, [element.id, element.hidden, formState, rowContext, rules, configurations, sections]);
+  }, [element.id, element.hidden, formState, rules, configurations, sections]);
 
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
@@ -147,19 +142,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     else if (!contextForEval || !rules) return { value: initialValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
     
-    // Check if the element is part of a formula column in a table
-    if (isTableCell && !readOnly) {
-        const tableId = element.id.split('::')[0];
-        const tableElement = findElementRecursive(sections, tableId) as FormElementInstance | null;
-        if (tableElement?.type === 'Table') {
-            const columnKey = element.id.split('::')[1];
-            const column = tableElement.tableColumns?.find(c => c.key === columnKey);
-            if (column?.formula) {
-                readOnly = true;
-            }
-        }
-    }
-
     for (const rule of rules) {
         const isRuleMet = evaluateRule(rule, contextForEval, configurations, sections);
         if (isRuleMet) {
@@ -185,39 +167,31 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [calculatedValue, initialValue, onValueChange, element.id]);
   
   const isDisabled = useMemo(() => {
-    const context = rowContext ?? formState;
-    if (!context || !rules) return false;
-
-    // If inside a table, use the proxy ID. Otherwise, use the real ID.
-    const elementIdForRules = rowContext ? `${element.id}` : element.id;
-
-    const disableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'disable' && b.targetElementId === elementIdForRules));
-    if (disableRules.some(r => evaluateRule(r, context, configurations, sections))) {
+    if (!formState || !rules) return false;
+    const disableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'disable' && b.targetElementId === element.id));
+    if (disableRules.some(r => evaluateRule(r, formState, configurations, sections))) {
       return true;
     }
 
-    const enableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'enable' && b.targetElementId === elementIdForRules));
+    const enableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
-      return !enableRules.some(r => evaluateRule(r, context, configurations, sections));
+      return !enableRules.some(r => evaluateRule(r, formState, configurations, sections));
     }
 
     return false;
-  }, [element.id, formState, rowContext, rules, configurations, sections]);
+  }, [element.id, formState, rules, configurations, sections]);
 
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
     let error: string | null = null;
-    const context = rowContext ?? formState;
-    if (!context || !rules) return { style, error };
+    if (!formState || !rules) return { style, error };
 
-    const elementIdForRules = rowContext ? `${element.id}` : element.id;
-    
     for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, context, configurations, sections);
+        const isRuleMet = evaluateRule(rule, formState, configurations, sections);
 
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
-                if (behavior.targetElementId === elementIdForRules) {
+                if (behavior.targetElementId === element.id) {
                     if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
                         style[behavior.targetProperty as any] = behavior.color;
                     }
@@ -229,7 +203,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
     }
     return { style, error };
-  }, [element.id, formState, rowContext, rules, configurations, sections]);
+  }, [element.id, formState, rules, configurations, sections]);
   
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
@@ -314,20 +288,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
     case "Display": {
         let finalDisplayValue;
-        if (isTableCell && rowContext) {
-            if (element.dataSourceConfig?.sourceElementId && formState) {
-                // Special case for display elements in tables that reference form state
-                const sourceValue = formState[element.dataSourceConfig.sourceElementId];
-                 if (sourceValue?.fullObject && element.dataSourceConfig.displayKey) {
-                    finalDisplayValue = getNestedValue(sourceValue.fullObject, element.dataSourceConfig.displayKey);
-                 } else {
-                    finalDisplayValue = sourceValue?.value;
-                 }
-            } else {
-                 const keyToUse = element.dataSourceConfig?.displayKey || element.key || '';
-                 finalDisplayValue = getNestedValue(rowContext, keyToUse);
-            }
-        } else if (dataSourceConfig?.sourceType === 'currentUser') {
+        if (dataSourceConfig?.sourceType === 'currentUser') {
             finalDisplayValue = user?.username || 'Guest';
         } else if (dataSourceConfig?.sourceType === 'currentDateTime') {
             finalDisplayValue = format(currentDateTime, 'PPP p');
@@ -665,7 +626,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                              return element.listItemElements.map(itemEl => (
                                 <FormElementRenderer 
                                     key={itemEl.id}
-                                    element={{...itemEl.element, id: `${element.id}::${itemEl.element.key}`}}
+                                    element={itemEl.element}
                                     value={null}
                                     onValueChange={() => {}}
                                     rowContext={option}

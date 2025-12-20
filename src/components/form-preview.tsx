@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
 import { useEffect, useMemo, useState } from "react";
-import { FormElementInstance, Section, Workflow, WorkflowAction, Rule } from "@/lib/types";
+import { FormElementInstance, Section, Workflow, WorkflowAction } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { evaluateRule } from "./form-preview-helpers";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Zap } from "lucide-react";
-import { getAllElements, findElementRecursive } from "@/lib/utils";
+import { getAllElements } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 
@@ -132,57 +132,24 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
 
   const isSectionVisible = (section: Section): boolean => {
     if (!rules) return !section.popupOnly;
-    
-    const relevantRules = rules.filter(
-      (rule) =>
-        rule?.behaviors?.some((b) => b.targetElementId === section.id)
-    );
-    const showRules = relevantRules.filter((r) =>
-      r.behaviors.some((b) => b.type === 'show')
-    );
-    const hideRules = relevantRules.filter((r) =>
-      r.behaviors.some((b) => b.type === 'hide')
-    );
+
+    const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'show' && b.targetElementId === section.id));
+    const hideRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'hide' && b.targetElementId === section.id));
 
     let visible = !section.popupOnly;
 
-    const checkRule = (rule: Rule): boolean => {
-      // Find if any condition in the rule targets a table element
-      const tableCondition = rule.conditions.find(c => c.sourceElementId && c.sourceElementId.includes('::'));
-
-      if (tableCondition && tableCondition.sourceElementId) {
-        const tableId = tableCondition.sourceElementId.split('::')[0];
-        const tableValue = formState[tableId]?.value;
-        
-        if (Array.isArray(tableValue)) {
-          // If ANY row in the table satisfies the condition, the rule is met for the external component.
-          return tableValue.some(row => {
-            // Reconstruct a context object for the row that the rules engine can understand
-            const rowContext = (findElementRecursive(sections, tableId) as any)?.tableColumns?.reduce((acc: any, col: any) => {
-              acc[`${tableId}::${col.key}`] = { value: row[col.key] }; // Use proxy ID as key
-              return acc;
-            }, {});
-            
-            return evaluateRule(rule, rowContext, configurations, sections);
-          });
-        }
-      }
-      
-      // Default behavior: evaluate against the global form state.
-      return evaluateRule(rule, formState, configurations, sections);
-    };
-
     if (showRules.length > 0) {
-      visible = showRules.some(checkRule);
+        visible = showRules.some(r => evaluateRule(r, formState || {}, configurations, sections));
     }
+
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(checkRule)) {
+      if (hideRules.some(r => evaluateRule(r, formState || {}, configurations, sections))) {
         visible = false;
       }
     }
-
+    
     return visible;
-  };
+  }
 
   const renderSectionContent = (section: Section) => (
     <div className={cn("grid gap-4 grid-cols-1", section.displayMode !== 'accordion' && 'p-6 pt-0')}>

@@ -26,140 +26,6 @@ type State = {
   formState: { [key: string]: { value: any, fullObject?: any } };
 };
 
-const tableRuleElementId = "table-rule-element-2";
-const tableRuleRadioId = "table-rule-element-1";
-const tableId = "table-1";
-const externalRuleElementId = "section-2";
-const internalRuleId = "internal-table-rule";
-const externalRuleId = "external-table-rule";
-
-const karthikTestTemplate: Form = {
-  id: "karthik-test-template",
-  title: "Karthik's Test Template",
-  categoryId: "testing-category",
-  subCategoryId: null,
-  versions: [
-    {
-      id: "karthik-version-1",
-      name: "Version 1",
-      description: "Initial version for testing table rules",
-      type: "draft",
-      timestamp: new Date().toISOString(),
-      sections: [
-        {
-          id: "section-1",
-          title: "Editable Table with Internal Rules",
-          elements: [
-            {
-              id: tableId,
-              type: "Table",
-              key: "test_table",
-              label: "Test Table",
-              required: false,
-              tableColumns: [
-                {
-                  id: "col-1",
-                  key: "show_field",
-                  label: "Show Field?",
-                  element: {
-                    id: tableRuleRadioId,
-                    type: "RadioGroup",
-                    key: "show_field_radio",
-                    label: "Show Field?",
-                    required: false,
-                    options: ["Yes", "No"],
-                    direction: "horizontal",
-                  } as FormElementInstance,
-                },
-                {
-                  id: "col-2",
-                  key: "conditional_field",
-                  label: "Conditional Text Field",
-                  element: {
-                    id: tableRuleElementId,
-                    type: "Input",
-                    key: "conditional_text",
-                    label: "Conditional Field",
-                    required: false,
-                    placeholder: "Visible if 'Yes' is selected",
-                    hidden: true, // Initially hidden
-                  } as FormElementInstance,
-                },
-              ],
-              canAddRows: true,
-              defaultRows: 2,
-            },
-          ],
-        },
-        {
-          id: externalRuleElementId,
-          title: "External Component",
-          hidden: true, // Initially hidden
-          elements: [
-            {
-              id: "element-3",
-              type: "Textarea",
-              key: "external_textarea",
-              label: "External Text Area",
-              required: false,
-              placeholder: "Visible if ANY row has 'Yes' selected.",
-            },
-          ],
-        },
-      ],
-      rules: [
-        {
-          id: internalRuleId,
-          name: "Show Internal Table Field",
-          conditions: [
-            {
-              id: "cond-1-internal",
-              sourceType: "field",
-              sourceElementId: `${tableId}::show_field`, // Proxy ID for the column
-              operator: "equals",
-              comparisonType: "value",
-              value: "Yes",
-            },
-          ],
-          logicType: "and",
-          behaviors: [
-            {
-              id: "beh-1-internal",
-              type: "show",
-              targetElementId: `${tableId}::conditional_field`, // Proxy ID for the target column
-            },
-          ],
-        },
-        {
-          id: externalRuleId,
-          name: "Show External Component",
-          conditions: [
-            {
-              id: "cond-1-external",
-              sourceType: "field",
-              sourceElementId: `${tableId}::show_field`,
-              operator: "equals",
-              comparisonType: "value",
-              value: "Yes",
-            },
-          ],
-          logicType: "and",
-          behaviors: [
-            {
-              id: "beh-1-external",
-              type: "show",
-              targetElementId: externalRuleElementId,
-            },
-          ],
-        },
-      ],
-      workflows: [],
-      configurations: [],
-    },
-  ],
-};
-
-
 const initialState: State = {
   forms: [],
   categories: [],
@@ -818,37 +684,19 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
     const loadData = () => {
         const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let finalState: State = {
-            ...initialState,
-            forms: [karthikTestTemplate],
-            categories: [{ id: 'testing-category', name: 'Testing', subCategories: [] }]
-        };
+        let finalState: State = { ...initialState };
 
         if (savedStateJSON) {
             try {
                 const loadedState: Partial<State> = JSON.parse(savedStateJSON);
-
-                // Safely merge the loaded state over the initial state
                 finalState = {
                     ...initialState,
-                    ...loadedState,
-                    forms: loadedState.forms || [], // Ensure arrays are not undefined
+                    forms: loadedState.forms || [],
                     categories: loadedState.categories || [],
                     sites: loadedState.sites || [],
                     tasks: loadedState.tasks || [],
                     submissions: loadedState.submissions || [],
                 };
-                
-                // Now, ensure the test template and category exist
-                const templateExists = finalState.forms.some(f => f.id === 'karthik-test-template');
-                if (!templateExists) {
-                    finalState.forms.push(karthikTestTemplate);
-                }
-
-                const categoryExists = finalState.categories.some(c => c.id === 'testing-category');
-                if (!categoryExists) {
-                    finalState.categories.push({ id: 'testing-category', name: 'Testing', subCategories: [] });
-                }
 
             } catch (error) {
                 console.error("Failed to parse state from localStorage", error);

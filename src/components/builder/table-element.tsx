@@ -132,36 +132,20 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
           <TableBody>
             {paginatedData.map((row, paginatedIndex) => {
               const originalIndex = filteredData.indexOf(row);
-              
-              const rowContext = tableColumns.reduce((acc, col) => {
-                  acc[col.key] = getNestedValue(row, col.key);
-                  return acc;
-              }, {} as Record<string, any>)
-
               return (
                 <TableRow key={originalIndex}>
-                  {tableColumns.map(col => {
-                    const proxyId = `${element.id}::${col.key}`;
-                    const cellValue = getNestedValue(row, col.key);
-
-                    return (
-                      <TableCell key={col.id}>
-                        <FormElementRenderer
-                          element={{ ...col.element, id: proxyId, label: '', key: col.key }}
-                          value={cellValue}
-                          onValueChange={(id, value, fullObject) => {
-                            const newRows = [...tableRows];
-                            if(!newRows[originalIndex]) newRows[originalIndex] = {};
-                            newRows[originalIndex][col.key] = value;
-                            onValueChange(element.id, newRows)
-                          }}
-                          formState={formState}
-                          rowContext={rowContext}
-                          isTableCell={true}
-                        />
-                      </TableCell>
-                    );
-                  })}
+                  {tableColumns.map(col => (
+                    <TableCell key={col.id}>
+                      <FormElementRenderer
+                        element={{ ...col.element, label: '' }}
+                        value={getNestedValue(row, col.key)}
+                        onValueChange={(id, value) => handleRowValueChange(originalIndex, col.key, value)}
+                        formState={formState}
+                        rowContext={row}
+                        isTableCell={true}
+                      />
+                    </TableCell>
+                  ))}
                   {element.canAddRows && element.dataSource !== 'dynamic' && (
                     <TableCell>
                       <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(originalIndex)}>
@@ -180,35 +164,21 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
       <div className="grid grid-cols-1 gap-4 md:hidden">
         {paginatedData.map((row, paginatedIndex) => {
           const originalIndex = filteredData.indexOf(row);
-           const rowContext = tableColumns.reduce((acc, col) => {
-              acc[col.key] = getNestedValue(row, col.key);
-              return acc;
-          }, {} as Record<string, any>)
           return (
             <div key={originalIndex} className="border rounded-lg p-4 space-y-4">
-              {tableColumns.map(col => {
-                const proxyId = `${element.id}::${col.key}`;
-                const cellValue = getNestedValue(row, col.key);
-
-                return (
-                  <div key={proxyId} className="space-y-1">
-                    <Label className="text-muted-foreground">{col.label}</Label>
-                    <FormElementRenderer
-                      element={{ ...col.element, id: proxyId, label: col.label, key: col.key }}
-                       value={cellValue}
-                       onValueChange={(id, value, fullObject) => {
-                           const newRows = [...tableRows];
-                           if(!newRows[originalIndex]) newRows[originalIndex] = {};
-                           newRows[originalIndex][col.key] = value;
-                           onValueChange(element.id, newRows)
-                       }}
-                       formState={formState}
-                       rowContext={rowContext}
-                       isTableCell={true}
-                    />
-                  </div>
-                );
-              })}
+              {tableColumns.map(col => (
+                <div key={col.id} className="space-y-1">
+                  <Label className="text-muted-foreground">{col.label}</Label>
+                  <FormElementRenderer
+                    element={col.element}
+                    value={getNestedValue(row, col.key)}
+                    onValueChange={(id, value) => handleRowValueChange(originalIndex, col.key, value)}
+                    formState={formState}
+                    rowContext={row}
+                    isTableCell={true}
+                  />
+                </div>
+              ))}
               {element.canAddRows && element.dataSource !== 'dynamic' && (
                 <div className="pt-2 border-t">
                   <Button variant="ghost" size="sm" className="w-full justify-center text-destructive" onClick={() => handleDeleteRow(originalIndex)}>

@@ -4,7 +4,8 @@ import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
 
 export const evaluateSingleCondition = (condition: Condition, context: { [key: string]: any }, allElements: (FormElementInstance | Section)[], configurations?: Configuration[]) => {
-    
+    if (!context) return false;
+
     const getConditionValue = (type: 'source' | 'comparison', idOrKey: string | undefined): any => {
         if (!idOrKey) return undefined;
         
@@ -26,32 +27,9 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             return config?.value;
         }
 
-        if (context) {
-            // New Robust Logic:
-            const isProxyId = idOrKey.includes('::');
-            
-            // Context is a single table row. The idOrKey will be a column key.
-            if (isProxyId) {
-                const columnKey = idOrKey.split('::')[1];
-                 // Check if the current context (which should be a row object) has the key.
-                if (context.hasOwnProperty(columnKey)) {
-                    const val = context[columnKey];
-                    // Handle both direct values and { value, fullObject } structures.
-                    return (typeof val === 'object' && val !== null && 'value' in val) ? val.value : val;
-                }
-            }
-            
-            // Context is the full formState object. The idOrKey will be an element's direct ID.
-            if (context[idOrKey] !== undefined) {
-                const val = context[idOrKey];
-                return (typeof val === 'object' && val !== null && 'value' in val) ? val.value : val;
-            }
-            
-            // Fallback for row context where idOrKey might be a direct key
-            if (context[idOrKey] !== undefined) {
-                 const val = context[idOrKey];
-                 return (typeof val === 'object' && val !== null && 'value' in val) ? val.value : val;
-            }
+        const value = context[idOrKey];
+        if (value !== undefined) {
+             return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
         }
         
         return undefined;
