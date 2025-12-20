@@ -59,17 +59,39 @@ export const findFirstArray = (data: any): any[] | null => {
     return null;
 }
 
-export const findElementRecursive = (sections: Section[], elementId: string): FormElementInstance | null => {
+export const findElementRecursive = (sections: Section[], elementId: string, returnParentTableId: boolean = false): FormElementInstance | null | string => {
     for (const section of sections) {
-        if (!section.elements) { // Safeguard added here
+        if (!section.elements) { 
             continue;
         }
-        const find = (elements: FormElementInstance[]): FormElementInstance | null => {
+        const find = (elements: FormElementInstance[], parentTableId: string | null = null): FormElementInstance | null | string => {
             for (const el of elements) {
-                if (el.id === elementId) return el;
+                if (el.id === elementId) {
+                    return returnParentTableId ? parentTableId : el;
+                }
+                
+                let newParentTableId = parentTableId;
+                if(el.type === 'Table' || el.type === 'DataGrid') {
+                    newParentTableId = el.id;
+                }
+
                 if (el.elements) {
-                    const found = find(el.elements);
+                    const found = find(el.elements, newParentTableId);
                     if (found) return found;
+                }
+                 if (el.type === 'Table' && el.tableColumns) {
+                    for (const col of el.tableColumns) {
+                         if (col.element.id === elementId) { // This check might not be needed if IDs are unique
+                            return returnParentTableId ? el.id : col.element;
+                        }
+                    }
+                }
+                 if (el.type === 'DataGrid' && el.dataGridColumns) {
+                    for (const col of el.dataGridColumns) {
+                         if (col.element.id === elementId) {
+                            return returnParentTableId ? el.id : col.element;
+                        }
+                    }
                 }
             }
             return null;

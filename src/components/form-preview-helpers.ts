@@ -27,8 +27,6 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
         }
 
         // If 'state' is the row context from a table, it has direct keys like 'column_key'
-        // If the idOrKey does not contain '::', it's a direct key from the row object.
-        const isDirectKeyLookup = !idOrKey.includes('::') && state[idOrKey] !== undefined;
         const columnKey = idOrKey.includes('::') ? idOrKey.split('::')[1] : idOrKey;
 
         if (state && state[columnKey] !== undefined) {
@@ -149,39 +147,48 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
 
 export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any }, configurations?: Configuration[], sections?: Section[]): boolean => {
     if (!rule || !rule.conditions || rule.conditions.length === 0) return false;
-
+    
     const allElements = sections ? getAllElements(sections) : [];
-
+    
     const isRuleTableBased = (r: Rule | Workflow): [boolean, string | null] => {
         for (const condition of r.conditions) {
-            if (condition.sourceType === 'field' && condition.sourceElementId?.includes('::')) {
-                const tableId = condition.sourceElementId.split('::')[0];
-                return [true, tableId];
+            const sourceElement = allElements.find(el => el.id === condition.sourceElementId);
+            if (sourceElement && findElementRecursive(sections || [], sourceElement.id, true)) {
+                return [true, findElementRecursive(sections || [], sourceElement.id, true)];
             }
-             if (condition.comparisonType === 'field' && condition.comparisonElementId?.includes('::')) {
-                const tableId = condition.comparisonElementId.split('::')[0];
-                return [true, tableId];
+            const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId);
+            if (comparisonElement && findElementRecursive(sections || [], comparisonElement.id, true)) {
+                 return [true, findElementRecursive(sections || [], comparisonElement.id, true)];
             }
         }
         return [false, null];
     }
     
+    // This function is key. It determines if the state we are evaluating is a single row or the whole form state.
+    const isStateForRow = (s: any) => {
+        return s && typeof s === 'object' && !s.hasOwnProperty('forms') && !s.hasOwnProperty('categories');
+    }
+
+    // If we're evaluating for a specific row, just evaluate against that row.
+    if (isStateForRow(state)) {
+        const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, allElements, configurations));
+        return rule.logicType === 'and' ? conditionResults.every(res => res) : conditionResults.some(res => res);
+    }
+    
+    // --- Logic for evaluating against the entire form state (for external components) ---
     const [isTableBased, tableId] = isRuleTableBased(rule);
 
     if (isTableBased && tableId && state[tableId]?.value) {
         const tableRows = state[tableId].value as any[];
-        const rowResults = tableRows.map(row => {
+        // Check if ANY row in the table satisfies the rule
+        const isAnyRowTrue = tableRows.some(row => {
             const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, { ...state, ...row }, allElements, configurations));
-             if (rule.logicType === 'and') {
-                return conditionResults.every(res => res);
-            } else {
-                return conditionResults.some(res => res);
-            }
+            return rule.logicType === 'and' ? conditionResults.every(res => res) : conditionResults.some(res => res);
         });
-        return rowResults.some(res => res);
+        return isAnyRowTrue;
     }
 
-
+    // Default evaluation for non-table-based rules
     const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, allElements, configurations));
     
     if (rule.logicType === 'and') {

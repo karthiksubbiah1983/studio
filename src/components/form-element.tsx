@@ -97,18 +97,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, []);
 
   const context = useMemo(() => {
-    if (rowContext) {
-        // If we have row context, enrich it with the main form state for broader rule evaluation
-        const fullContext = { ...formState, ...rowContext };
-        return fullContext;
+    if (isTableCell && rowContext) {
+      return { ...formState, ...rowContext };
     }
     return formState;
-  }, [rowContext, formState]);
+  }, [rowContext, formState, isTableCell]);
 
-
-   const isVisible = useMemo(() => {
+  const isVisible = useMemo(() => {
     if (element.hidden) return false;
-    if (!context || !rules) return true;
+    
+    // For elements inside a table, rules must be evaluated against that row's context.
+    const evaluationContext = isTableCell ? rowContext : context;
+    if (!evaluationContext || !rules) return true;
 
     const elementId = element.id;
     // For elements inside a table, also check for rules targeting the general column element
@@ -129,17 +129,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let visible = true; 
 
     if (showRules.length > 0) {
-      visible = showRules.some(r => evaluateRule(r, context, configurations, sections));
+      visible = showRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
     }
 
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, context, configurations, sections))) {
+      if (hideRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
         visible = false;
       }
     }
     
     return visible;
-  }, [element.id, element.hidden, context, rules, configurations, isTableCell, sections]);
+  }, [element.id, element.hidden, context, rules, configurations, isTableCell, sections, rowContext]);
+
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
     let readOnly = false;
@@ -201,20 +202,21 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [calculatedValue, initialValue, onValueChange, element.id]);
   
  const isDisabled = useMemo(() => {
-    if (!context) return false;
+    const evaluationContext = isTableCell ? rowContext : context;
+    if (!evaluationContext) return false;
 
     const disableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
-    if (disableRules.some(r => evaluateRule(r, context, configurations, sections))) {
+    if (disableRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
       return true;
     }
 
     const enableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
-      return !enableRules.some(r => evaluateRule(r, context, configurations, sections));
+      return !enableRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
     }
 
     return false;
-  }, [element.id, context, rules, configurations, sections]);
+  }, [element.id, context, rowContext, isTableCell, rules, configurations, sections]);
 
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
@@ -264,7 +266,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   if (!isVisible) return null;
 
   const renderLabelWithPopup = (dynamicLabel?: string) => {
-    const finalLabel = dynamicLabel || label;
+    let finalLabel = dynamicLabel || label;
+
+    if (isTableCell && rowContext && (labelKey || key)) {
+      finalLabel = String(getNestedValue(rowContext, labelKey || key || ''));
+    }
+
     if (!finalLabel) return null;
 
     return (
