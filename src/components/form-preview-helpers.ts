@@ -152,8 +152,36 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
 
     const allElements = sections ? getAllElements(sections) : [];
 
-    // The 'state' passed to this function can be the main form state,
-    // or a row-specific context from a table.
+    const isRuleTableBased = (r: Rule | Workflow): [boolean, string | null] => {
+        for (const condition of r.conditions) {
+            if (condition.sourceType === 'field' && condition.sourceElementId?.includes('::')) {
+                const tableId = condition.sourceElementId.split('::')[0];
+                return [true, tableId];
+            }
+             if (condition.comparisonType === 'field' && condition.comparisonElementId?.includes('::')) {
+                const tableId = condition.comparisonElementId.split('::')[0];
+                return [true, tableId];
+            }
+        }
+        return [false, null];
+    }
+    
+    const [isTableBased, tableId] = isRuleTableBased(rule);
+
+    if (isTableBased && tableId && state[tableId]?.value) {
+        const tableRows = state[tableId].value as any[];
+        const rowResults = tableRows.map(row => {
+            const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, { ...state, ...row }, allElements, configurations));
+             if (rule.logicType === 'and') {
+                return conditionResults.every(res => res);
+            } else {
+                return conditionResults.some(res => res);
+            }
+        });
+        return rowResults.some(res => res);
+    }
+
+
     const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, allElements, configurations));
     
     if (rule.logicType === 'and') {

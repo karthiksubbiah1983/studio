@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -132,54 +131,18 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
   };
 
   const isSectionVisible = (section: Section): boolean => {
-    const allFormElements = getAllElements(sections);
     const relevantRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.targetElementId === section.id));
     const showRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'show'));
     const hideRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'hide'));
 
     let visible = !section.popupOnly;
-
-    // Helper to determine if a rule's condition is based on a field inside a table.
-    // Returns [isTableBased, tableId or null]
-    const isRuleTableBased = (rule: Rule): [boolean, string | null] => {
-        for (const condition of rule.conditions) {
-            // A condition sourceElementId with '::' is our heuristic for a field inside a table.
-            if (condition.sourceType === 'field' && condition.sourceElementId?.includes('::')) {
-                const tableId = condition.sourceElementId.split('::')[0];
-                return [true, tableId];
-            }
-        }
-        return [false, null];
-    }
     
-    // Evaluate show rules
     if (showRules.length > 0) {
-        visible = showRules.some(rule => {
-            const [isTableBased, tableId] = isRuleTableBased(rule);
-            if (isTableBased && tableId && formState[tableId]?.value) {
-                const tableRows = formState[tableId].value as any[];
-                // If ANY row in the table satisfies the condition, the rule is met for the whole form.
-                return tableRows.some(row => evaluateRule(rule, { ...formState, ...row }, configurations, sections));
-            } else {
-                // Standard evaluation for non-table-based rules.
-                return evaluateRule(rule, formState, configurations, sections);
-            }
-        });
+        visible = showRules.some(rule => evaluateRule(rule, formState, configurations, sections));
     }
 
-    // Evaluate hide rules
     if (visible && hideRules.length > 0) {
-        const shouldHide = hideRules.some(rule => {
-             const [isTableBased, tableId] = isRuleTableBased(rule);
-            if (isTableBased && tableId && formState[tableId]?.value) {
-                const tableRows = formState[tableId].value as any[];
-                // If ANY row triggers a hide, we hide the section.
-                return tableRows.some(row => evaluateRule(rule, { ...formState, ...row }, configurations, sections));
-            } else {
-                return evaluateRule(rule, formState, configurations, sections);
-            }
-        });
-        if (shouldHide) {
+        if (hideRules.some(rule => evaluateRule(rule, formState, configurations, sections))) {
             visible = false;
         }
     }
