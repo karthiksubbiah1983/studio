@@ -784,49 +784,30 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
     const loadData = async () => {
         const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
+        let finalState = initialState;
+
         if (savedState) {
             try {
                 const parsedState = JSON.parse(savedState);
-                if (parsedState.forms?.length > 0 || parsedState.categories?.length > 0) {
-                     dispatch({ type: 'SET_STATE', payload: parsedState });
-                     setIsLoaded(true);
-                     return;
-                }
+                 if (parsedState.forms?.length > 0 || parsedState.categories?.length > 0) {
+                    finalState = { ...initialState, ...parsedState };
+                 }
             } catch (error) {
                 console.error("Failed to parse state from localStorage", error);
             }
         }
-        
-        // If localStorage is empty or parsing fails, fetch from Firebase
-        if (user && firestore) {
-            try {
-                const formsQuery = query(collection(firestore, "formTemplates"), where("ownerId", "==", user.uid));
-                const formsSnapshot = await getDocs(formsQuery);
-                const formsData = formsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Form));
 
-                const settingsDocRef = doc(firestore, "userSettings", user.uid);
-                const settingsSnapshot = await getDoc(settingsDocRef);
-                const settingsData = settingsSnapshot.data() as { categories: Category[], sites: Site[] } | undefined;
-                
-                const firebaseState = {
-                    forms: formsData,
-                    categories: settingsData?.categories || [],
-                    sites: settingsData?.sites || [],
-                    // Keep local tasks and submissions if any
-                    tasks: state.tasks, 
-                    submissions: state.submissions,
-                };
-
-                dispatch({ type: 'SET_STATE', payload: firebaseState });
-
-            } catch (error) {
-                console.error("Failed to fetch data from Firestore:", error);
-            }
-        } else {
-             // If not logged in, use the hardcoded initial state
-             dispatch({ type: 'SET_STATE', payload: initialState });
+        // Ensure Karthik's template and its category exist
+        const templateExists = finalState.forms.some(f => f.id === 'karthik-test-template');
+        if (!templateExists) {
+            finalState.forms.push(karthikTestTemplate);
+        }
+        const categoryExists = finalState.categories.some(c => c.id === 'testing-category');
+        if (!categoryExists) {
+            finalState.categories.push({ id: 'testing-category', name: 'Testing', subCategories: [] });
         }
         
+        dispatch({ type: 'SET_STATE', payload: finalState });
         setIsLoaded(true);
     };
 
@@ -940,5 +921,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-    
