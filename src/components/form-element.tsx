@@ -97,49 +97,41 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, []);
 
   const context = useMemo(() => {
+    // For elements inside a table cell, the primary context for rule evaluation is the row's data.
+    // We merge it with the global formState to allow rules to reference fields outside the table.
     if (isTableCell && rowContext) {
       return { ...formState, ...rowContext };
     }
+    // For all other elements, the context is the global formState.
     return formState;
   }, [rowContext, formState, isTableCell]);
 
   const isVisible = useMemo(() => {
     if (element.hidden) return false;
-    
-    // For elements inside a table, rules must be evaluated against that row's context.
-    const evaluationContext = isTableCell ? rowContext : context;
-    if (!evaluationContext || !rules) return true;
+    if (!rules || !context) return true;
 
-    const elementId = element.id;
-    // For elements inside a table, also check for rules targeting the general column element
-    // The generic ID would be something like 'tableId::columnKey'
-    const genericColumnElementId = isTableCell ? element.id.split('::').slice(0, 2).join('::') : null;
+    // The evaluation context is the row context merged with the form state if available, otherwise just the form state.
+    const evaluationContext = context;
 
-    const showRules = rules.filter(rule =>
-      rule?.behaviors?.some(b =>
-        b.type === 'show' && (b.targetElementId === elementId || (genericColumnElementId && b.targetElementId === genericColumnElementId))
-      )
-    );
-    const hideRules = rules.filter(rule =>
-      rule?.behaviors?.some(b =>
-        b.type === 'hide' && (b.targetElementId === elementId || (genericColumnElementId && b.targetElementId === genericColumnElementId))
-      )
-    );
+    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
+    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
     
     let visible = true; 
 
     if (showRules.length > 0) {
+      // If there are show rules, the element is hidden by default and must be explicitly shown.
       visible = showRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
     }
 
     if (visible && hideRules.length > 0) {
+      // If hide rules exist and any are met, the element is hidden.
       if (hideRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
         visible = false;
       }
     }
     
     return visible;
-  }, [element.id, element.hidden, context, rules, configurations, isTableCell, sections, rowContext]);
+  }, [element.id, element.hidden, context, rules, configurations, sections]);
 
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
@@ -201,22 +193,23 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
   }, [calculatedValue, initialValue, onValueChange, element.id]);
   
- const isDisabled = useMemo(() => {
-    const evaluationContext = isTableCell ? rowContext : context;
-    if (!evaluationContext) return false;
+  const isDisabled = useMemo(() => {
+    if (!context || !rules) return false;
 
-    const disableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'disable' && b.targetElementId === element.id));
+    const evaluationContext = context;
+
+    const disableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'disable' && b.targetElementId === element.id));
     if (disableRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
       return true;
     }
 
-    const enableRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b.type === 'enable' && b.targetElementId === element.id));
+    const enableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
       return !enableRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
     }
 
     return false;
-  }, [element.id, context, rowContext, isTableCell, rules, configurations, sections]);
+  }, [element.id, context, rules, configurations, sections]);
 
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
@@ -758,8 +751,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         };
         
         let finalLabel = label;
-        if (isTableCell && rowContext && (labelKey || key)) {
-            finalLabel = String(getNestedValue(rowContext, labelKey || key || ''));
+        if (isTableCell && rowContext) {
+            const keyToUse = element.labelKey || element.key || '';
+            const rowValue = getNestedValue(rowContext, keyToUse);
+            finalLabel = String(rowValue ?? finalLabel);
         }
 
         content = (
@@ -1168,3 +1163,5 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
+
+    

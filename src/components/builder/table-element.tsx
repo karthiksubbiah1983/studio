@@ -148,7 +148,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                           element={{ ...col.element, id: proxyId, key: col.key, label: '' }}
                           value={cellValue}
                           onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
-                          formState={{ ...formState, ...row }} // Provide full context for rules
+                          formState={formState}
                           rowContext={row}
                           isTableCell={true}
                         />
@@ -189,7 +189,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                         element={{ ...col.element, id: proxyId, key: col.key }}
                         value={cellValue}
                         onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
-                        formState={{ ...formState, ...row }}
+                        formState={formState}
                         rowContext={row}
                         isTableCell={true}
                       />
@@ -233,3 +233,5 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
     </div>
   );
 }
+
+    

@@ -4,14 +4,14 @@ import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/
 import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
 
-export const evaluateSingleCondition = (condition: Condition, state: { [key: string]: any }, allElements: (FormElementInstance | Section)[], configurations?: Configuration[]) => {
+export const evaluateSingleCondition = (condition: Condition, context: { [key: string]: any }, allElements: (FormElementInstance | Section)[], configurations?: Configuration[]) => {
     
-    const getConditionValue = (type: 'source' | 'comparison', idOrKey?: string): any => {
+    const getConditionValue = (type: 'source' | 'comparison', idOrKey: string | undefined): any => {
         if (!idOrKey) return undefined;
         
         const valueType = type === 'source' ? condition.sourceType : condition.comparisonType;
 
-        if (idOrKey.startsWith('_')) {
+        if (idOrKey.startsWith('_')) { // Handle special date values
             switch(idOrKey) {
                 case '_current_date':
                 case '_due_date':
@@ -27,36 +27,40 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
             return config?.value;
         }
 
-        // If 'state' is the row context from a table, it has direct keys like 'column_key'
-        const columnKey = idOrKey.includes('::') ? idOrKey.split('::')[1] : idOrKey;
-
-        if (state && state[columnKey] !== undefined) {
-             const val = state[columnKey];
+        // If the context has a direct key matching idOrKey, use it. This is for rowContext.
+        if (context && context[idOrKey] !== undefined) {
+             const val = context[idOrKey];
+             // If it's a state object like { value: '...' }, extract the value.
              if (typeof val === 'object' && val !== null && 'value' in val) {
                 return val.value;
             }
             return val;
         }
 
-        // Fallback for main form state structure { elementId: { value: '...' } }
-        if (state && state[idOrKey] !== undefined) {
-            if (typeof state[idOrKey] === 'object' && state[idOrKey] !== null && 'value' in state[idOrKey]) {
-                return state[idOrKey].value;
+        // Check if idOrKey is an element's 'key' in the global form context
+        const elementByKey = allElements.find(el => 'key' in el && el.key === idOrKey);
+        if (elementByKey && 'id' in elementByKey && context && context[elementByKey.id] !== undefined) {
+            const stateValue = context[elementByKey.id];
+            if (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) {
+                return stateValue.value;
             }
-            return state[idOrKey];
+            return stateValue;
         }
 
-        // Fallback to default value if not in state
-        const element = findElementRecursive(allElements as Section[], idOrKey);
-        if (element && 'defaultValue' in element) {
-            return element.defaultValue;
+        // Check if idOrKey is an element's 'id' in the global form context
+        if (context && context[idOrKey] !== undefined) {
+            const stateValue = context[idOrKey];
+            if (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) {
+                return stateValue.value;
+            }
+            return stateValue;
         }
         
         return undefined; // If not found anywhere
     }
 
     let sourceValue: any;
-    if (condition.sourceType === 'field' && condition.sourceElementId) {
+    if (condition.sourceType === 'field') {
         sourceValue = getConditionValue('source', condition.sourceElementId);
     } else { // 'date', 'status', 'config'
         sourceValue = getConditionValue('source', condition.sourceValue);
@@ -65,12 +69,11 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
 
     let comparisonValue: any;
-    if (condition.comparisonType === 'field' && condition.comparisonElementId) {
+    if (condition.comparisonType === 'field') {
         comparisonValue = getConditionValue('comparison', condition.comparisonElementId);
     } else if (condition.comparisonType === 'config') {
         comparisonValue = getConditionValue('comparison', condition.value);
-    }
-    else if (condition.comparisonType === 'date' || condition.comparisonType === 'status') {
+    } else if (condition.comparisonType === 'date' || condition.comparisonType === 'status') {
         comparisonValue = getConditionValue('comparison', condition.value);
     } else { // 'value'
         comparisonValue = condition.value;
@@ -146,13 +149,13 @@ export const evaluateSingleCondition = (condition: Condition, state: { [key: str
     }
 }
 
-export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any }, configurations?: Configuration[], sections?: Section[]): boolean => {
+export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: any }, configurations?: Configuration[], sections?: Section[]): boolean => {
     if (!rule || !rule.conditions || rule.conditions.length === 0) return false;
     
     const allElements = sections ? getAllElements(sections) : [];
     
-    // This function will evaluate the rule against a given context (which can be the main form state or a single table row).
-    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, state, allElements, configurations));
+    // Evaluate all conditions against the provided context.
+    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, context, allElements, configurations));
     
     if (rule.logicType === 'and') {
         return conditionResults.every(res => res);
@@ -160,3 +163,5 @@ export const evaluateRule = (rule: Rule | Workflow, state: { [key: string]: any 
         return conditionResults.some(res => res);
     }
 };
+
+    
