@@ -147,7 +147,12 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                         <FormElementRenderer
                           element={{ ...col.element, id: proxyId, key: col.key, label: '' }}
                           value={formState[proxyId]?.value ?? cellValue}
-                          onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
+                          onValueChange={(_id, val) => {
+                            const newRows = [...tableRows];
+                            if(!newRows[originalIndex]) newRows[originalIndex] = {};
+                            newRows[originalIndex][col.key] = val;
+                            onValueChange(element.id, newRows);
+                          }}
                           formState={formState}
                           rowContext={row}
                           isTableCell={true}
@@ -188,7 +193,12 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                       <FormElementRenderer
                         element={{ ...col.element, id: proxyId, key: col.key, label: col.label }}
                         value={formState[proxyId]?.value ?? cellValue}
-                        onValueChange={(_id, val) => handleRowValueChange(originalIndex, col.key, val)}
+                        onValueChange={(_id, val) => {
+                            const newRows = [...tableRows];
+                            if(!newRows[originalIndex]) newRows[originalIndex] = {};
+                            newRows[originalIndex][col.key] = val;
+                            onValueChange(element.id, newRows);
+                          }}
                         formState={formState}
                         rowContext={row}
                         isTableCell={true}
@@ -233,5 +243,3 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
     </div>
   );
 }
-
-    

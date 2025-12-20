@@ -103,8 +103,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const context = rowContext ?? formState;
     if (!context || !rules) return true;
     
-    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
-    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
+    // Create a proxy ID if inside a table cell for rule matching
+    const elementIdForRules = isTableCell ? `${element.id.split('::')[0]}::${element.key}` : element.id;
+
+    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === elementIdForRules));
+    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === elementIdForRules));
     
     let visible = true;
     
@@ -119,7 +122,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     
     return visible;
-  }, [element.id, element.hidden, formState, rowContext, rules, configurations, sections]);
+  }, [element.id, element.hidden, element.key, isTableCell, formState, rowContext, rules, configurations, sections]);
 
 
   const { value, isReadOnly, calculatedValue } = useMemo(() => {
@@ -1150,5 +1153,3 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
 }
-
-    

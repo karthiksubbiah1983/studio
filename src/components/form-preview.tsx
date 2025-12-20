@@ -137,27 +137,13 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
 
     const isRuleTableBased = (rule: Rule): [boolean, string | null] => {
       for (const condition of rule.conditions) {
-        const sourceElement = allFormElements.find(
-          (el) => 'id' in el && el.id === condition.sourceElementId
-        );
-        if (sourceElement) {
-          const parentTableId = findElementRecursive(
-            sections,
-            sourceElement.id,
-            true
-          );
-          if (parentTableId) return [true, parentTableId as string];
-        }
-        const comparisonElement = allFormElements.find(
-          (el) => 'id' in el && el.id === condition.comparisonElementId
-        );
-        if (comparisonElement) {
-          const parentTableId = findElementRecursive(
-            sections,
-            comparisonElement.id,
-            true
-          );
-          if (parentTableId) return [true, parentTableId as string];
+        const sourceElementId = condition.sourceElementId;
+        if (sourceElementId && sourceElementId.includes('::')) {
+            const tableId = sourceElementId.split('::')[0];
+            const tableElement = findElementRecursive(sections, tableId);
+            if (tableElement && tableElement.type === 'Table') {
+                return [true, tableId];
+            }
         }
       }
       return [false, null];
@@ -253,5 +239,3 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     </div>
   );
 }
-
-    

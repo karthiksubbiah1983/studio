@@ -27,23 +27,28 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
         }
 
         if (context) {
-            // Context can be a flat object of row data or the full formState.
-            // Check for a direct key match in the context first (for rowContext).
-            if (context[idOrKey] !== undefined) {
-                 const val = context[idOrKey];
+            const isProxyId = idOrKey.includes('::');
+            
+            // For row context, the key might be direct
+            const directKey = isProxyId ? idOrKey.split('::')[1] : idOrKey;
+            
+            if (context[directKey] !== undefined) {
+                 const val = context[directKey];
                  if (typeof val === 'object' && val !== null && 'value' in val) return val.value;
                  return val;
             }
             
-            // Find element by ID or Key
+            // Find element by ID or Key in the full element list
             const element = allElements.find(el => ('id' in el && el.id === idOrKey) || ('key' in el && el.key === idOrKey));
             
             if (element) {
+                // If context is the full formState, it will be keyed by element ID
                 if ('id' in element && context[element.id] !== undefined) {
                     const val = context[element.id];
                     if (typeof val === 'object' && val !== null && 'value' in val) return val.value;
                     return val;
                 }
+                // If context is a row, it might be keyed by the element key
                 if ('key' in element && context[element.key] !== undefined) {
                     const val = context[element.key];
                     if (typeof val === 'object' && val !== null && 'value' in val) return val.value;
@@ -164,5 +169,3 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
     return conditionResults.some((res) => res);
   }
 };
-
-    
