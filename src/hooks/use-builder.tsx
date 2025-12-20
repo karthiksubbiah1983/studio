@@ -161,14 +161,8 @@ const karthikTestTemplate: Form = {
 
 
 const initialState: State = {
-  forms: [karthikTestTemplate],
-  categories: [
-    {
-      id: "testing-category",
-      name: "Testing",
-      subCategories: []
-    }
-  ],
+  forms: [],
+  categories: [],
   sites: [],
   tasks: [],
   submissions: [],
@@ -824,35 +818,42 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
     const loadData = () => {
         const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let loadedState: Partial<State> = {};
+        let finalState: State = {
+            ...initialState,
+            forms: [karthikTestTemplate],
+            categories: [{ id: 'testing-category', name: 'Testing', subCategories: [] }]
+        };
 
         if (savedStateJSON) {
             try {
-                loadedState = JSON.parse(savedStateJSON);
+                const loadedState: Partial<State> = JSON.parse(savedStateJSON);
+
+                // Safely merge the loaded state over the initial state
+                finalState = {
+                    ...initialState,
+                    ...loadedState,
+                    forms: loadedState.forms || [], // Ensure arrays are not undefined
+                    categories: loadedState.categories || [],
+                    sites: loadedState.sites || [],
+                    tasks: loadedState.tasks || [],
+                    submissions: loadedState.submissions || [],
+                };
+                
+                // Now, ensure the test template and category exist
+                const templateExists = finalState.forms.some(f => f.id === 'karthik-test-template');
+                if (!templateExists) {
+                    finalState.forms.push(karthikTestTemplate);
+                }
+
+                const categoryExists = finalState.categories.some(c => c.id === 'testing-category');
+                if (!categoryExists) {
+                    finalState.categories.push({ id: 'testing-category', name: 'Testing', subCategories: [] });
+                }
+
             } catch (error) {
                 console.error("Failed to parse state from localStorage", error);
             }
         }
-        
-        const finalForms = loadedState.forms || [];
-        const finalCategories = loadedState.categories || [];
-
-        // Ensure Karthik's template and its category exist
-        const templateExists = finalForms.some(f => f.id === 'karthik-test-template');
-        if (!templateExists) {
-            finalForms.push(karthikTestTemplate);
-        }
-        const categoryExists = finalCategories.some(c => c.id === 'testing-category');
-        if (!categoryExists) {
-            finalCategories.push({ id: 'testing-category', name: 'Testing', subCategories: [] });
-        }
-        
-        const finalState: State = {
-          ...initialState, // Start with defaults
-          ...loadedState,  // Overwrite with saved data
-          forms: finalForms, // Use the potentially merged arrays
-          categories: finalCategories,
-        };
         
         dispatch({ type: 'SET_STATE', payload: finalState });
         setIsLoaded(true);
