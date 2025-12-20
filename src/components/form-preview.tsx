@@ -180,10 +180,12 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
       const [isTableBased, tableId] = isRuleTableBased(rule);
       if (isTableBased && tableId && formState[tableId]?.value) {
         const tableRows = (formState[tableId].value as any[]) || [];
+        // For external components, if ANY row meets the condition, the rule is met.
         return tableRows.some((row) =>
           evaluateRule(rule, { ...formState, ...row }, configurations, sections)
         );
       } else {
+        // For non-table rules, evaluate against the global form state.
         return evaluateRule(rule, formState, configurations, sections);
       }
     };
@@ -252,3 +254,5 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     </div>
   );
 }
+
+    

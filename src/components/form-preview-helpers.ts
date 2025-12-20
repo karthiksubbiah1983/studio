@@ -26,33 +26,27 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             return config?.value;
         }
 
-        // If the context has a direct key matching idOrKey, use it. This is for rowContext.
-        if (context && context[idOrKey] !== undefined) {
-             const val = context[idOrKey];
-             // If it's a state object like { value: '...' }, extract the value.
-             if (typeof val === 'object' && val !== null && 'value' in val) {
-                return val.value;
+        // Check if idOrKey is an element's 'key' or 'id' in the provided context
+        if (context) {
+            // First, try to match by key in the context (for rowContext)
+            if (context[idOrKey] !== undefined) {
+                const val = context[idOrKey];
+                if (typeof val === 'object' && val !== null && 'value' in val) return val.value;
+                return val;
             }
-            return val;
-        }
 
-        // Check if idOrKey is an element's 'key' in the global form context
-        const elementByKey = allElements.find(el => 'key' in el && el.key === idOrKey);
-        if (elementByKey && 'id' in elementByKey && context && context[elementByKey.id] !== undefined) {
-            const stateValue = context[elementByKey.id];
-            if (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) {
-                return stateValue.value;
+            // Second, check elements to map an ID to a key for rowContext
+            const element = allElements.find(el => 'id' in el && el.id === idOrKey);
+            if (element && 'key' in element && context[element.key] !== undefined) {
+                 const val = context[element.key];
+                 if (typeof val === 'object' && val !== null && 'value' in val) return val.value;
+                 return val;
             }
-            return stateValue;
-        }
 
-        // Check if idOrKey is an element's 'id' in the global form context
-        if (context && context[idOrKey] !== undefined) {
-            const stateValue = context[idOrKey];
-            if (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) {
-                return stateValue.value;
+            // Third, for global context, check by ID
+            if (context[idOrKey] !== undefined && typeof context[idOrKey] === 'object' && context[idOrKey] !== null && 'value' in context[idOrKey]) {
+                return context[idOrKey].value;
             }
-            return stateValue;
         }
         
         return undefined; // If not found anywhere
@@ -162,3 +156,5 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
         return conditionResults.some(res => res);
     }
 };
+
+    
