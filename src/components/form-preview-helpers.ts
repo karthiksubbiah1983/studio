@@ -143,16 +143,21 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
 }
 
 export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: any }, configurations?: Configuration[], sections?: Section[]): boolean => {
-    if (!rule || !rule.conditions || rule.conditions.length === 0) return false;
-    
-    const allElements = sections ? getAllElements(sections) : [];
-    
-    // Evaluate all conditions against the provided context.
-    const conditionResults = rule.conditions.map(cond => evaluateSingleCondition(cond, context, allElements, configurations));
-    
-    if (rule.logicType === 'and') {
-        return conditionResults.every(res => res);
-    } else { // 'or'
-        return conditionResults.some(res => res);
-    }
+  if (!rule || !rule.conditions || rule.conditions.length === 0 || !context) {
+    return false;
+  }
+
+  const allElements = sections ? getAllElements(sections) : [];
+
+  // Evaluate all conditions against the provided context.
+  const conditionResults = rule.conditions.map((cond) =>
+    evaluateSingleCondition(cond, context, allElements, configurations)
+  );
+
+  if (rule.logicType === 'and') {
+    return conditionResults.every((res) => res);
+  } else {
+    // 'or'
+    return conditionResults.some((res) => res);
+  }
 };

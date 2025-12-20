@@ -98,40 +98,24 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   const isVisible = useMemo(() => {
     if (element.hidden) return false;
-    // For elements inside a table cell, visibility is determined by row-specific context
-    if (isTableCell && rowContext) {
-      if (!rules) return true;
-
-      const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
-      const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
-      
-      let visible = true; 
-      if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, rowContext, configurations, sections));
-      }
-      if (visible && hideRules.length > 0) {
-        if (hideRules.some(r => evaluateRule(r, rowContext, configurations, sections))) {
-          visible = false;
-        }
-      }
-      return visible;
-    }
-
-    // For elements outside a table, visibility is determined by the global formState
-    if (!rules || !formState) return true;
-
+    const context = isTableCell ? rowContext : formState;
+    if (!context || !rules) return true;
+    
     const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
     const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
-
+    
     let visible = true;
+    
     if (showRules.length > 0) {
-      visible = showRules.some(r => evaluateRule(r, formState, configurations, sections));
+        visible = showRules.some(r => evaluateRule(r, context, configurations, sections));
     }
+    
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, formState, configurations, sections))) {
-        visible = false;
-      }
+        if (hideRules.some(r => evaluateRule(r, context, configurations, sections))) {
+            visible = false;
+        }
     }
+    
     return visible;
   }, [element.id, element.hidden, formState, rowContext, isTableCell, rules, configurations, sections]);
 
