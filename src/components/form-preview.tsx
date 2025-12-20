@@ -139,7 +139,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
 
     let visible = !section.popupOnly;
 
-    // Helper to determine if a rule's conditions are based on a field inside a table.
+    // Helper to determine if a rule's condition is based on a field inside a table.
     // Returns [isTableBased, tableId or null]
     const isRuleTableBased = (rule: Rule): [boolean, string | null] => {
         for (const condition of rule.conditions) {
