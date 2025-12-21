@@ -5,7 +5,7 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
+import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -933,7 +933,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    const applyBehavior = (behavior: Rule['behaviors'][0], context: any) => {
+    const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean) => {
         const { type, targetElementId, value, targetConfigurationKey } = behavior;
         
         let targetId = targetElementId;
@@ -944,13 +944,30 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
         const currentTargetState = context[targetId] || {};
         
-        if ((type === 'set_value' || type === 'set_configuration') && currentTargetState.value !== value) {
-            context[targetId] = { ...currentTargetState, value };
+        if (type === 'set_value' || type === 'set_configuration') {
+            const newValue = value;
+            if (isTableRow) {
+                 if (context[targetId] !== newValue) {
+                    context[targetId] = newValue;
+                }
+            } else {
+                if (currentTargetState.value !== newValue) {
+                    context[targetId] = { ...currentTargetState, value: newValue };
+                }
+            }
         }
         
         const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
-        if (newVisibility !== undefined && currentTargetState.isVisible !== newVisibility) {
-            context[targetId] = { ...currentTargetState, isVisible: newVisibility };
+        if (newVisibility !== undefined) {
+             if (isTableRow) {
+                 // Visibility in tables is handled by hiding/showing columns,
+                 // but we can track it on a per-cell basis if needed later.
+                 // For now, let's assume `hide` rules on table columns affect all rows.
+             } else {
+                 if (currentTargetState.isVisible !== newVisibility) {
+                    context[targetId] = { ...currentTargetState, isVisible: newVisibility };
+                }
+             }
         }
     };
     
@@ -964,12 +981,12 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             const tableData: any[] = nextFormState[tableElementId].value;
             tableData.forEach(row => {
                 if (evaluateRule(rule, row, configurations, sections)) {
-                    rule.behaviors.forEach(behavior => applyBehavior(behavior, row));
+                    rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true));
                 }
             });
         } else {
              if (evaluateRule(rule, nextFormState, configurations, sections)) {
-                rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState));
+                rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState, false));
             }
         }
     });
@@ -1073,3 +1090,4 @@ export const useBuilder = () => {
   }
   return context;
 };
+
