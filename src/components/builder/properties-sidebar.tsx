@@ -455,13 +455,19 @@ function ColumnEditorDialog({
                                             <SelectValue placeholder="Select a field type" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Display">Display Text</SelectItem>
-                                            <SelectItem value="Select">Select</SelectItem>
-                                            <SelectItem value="Input">Input</SelectItem>
-                                            <SelectItem value="RadioGroup">Radio Group</SelectItem>
-                                            <SelectItem value="Checkbox">Checkbox</SelectItem>
-                                            <SelectItem value="Textarea">Textarea</SelectItem>
-                                            <SelectItem value="DatePicker">Date Picker</SelectItem>
+                                            {columnType === 'listitem' ? (
+                                                <SelectItem value="Display">Display Text</SelectItem>
+                                            ) : (
+                                                <>
+                                                    <SelectItem value="Display">Display Text</SelectItem>
+                                                    <SelectItem value="Select">Select</SelectItem>
+                                                    <SelectItem value="Input">Input</SelectItem>
+                                                    <SelectItem value="RadioGroup">Radio Group</SelectItem>
+                                                    <SelectItem value="Checkbox">Checkbox</SelectItem>
+                                                    <SelectItem value="Textarea">Textarea</SelectItem>
+                                                    <SelectItem value="DatePicker">Date Picker</SelectItem>
+                                                </>
+                                            )}
                                         </SelectContent>
                                     </Select>
                                 </div>
