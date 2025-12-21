@@ -263,101 +263,6 @@ function AlignmentRadioGroup({
     )
 }
 
-function ColumnManager({
-    columns,
-    onUpdate,
-    columnType,
-    parentFetchedKeys,
-} : {
-    columns: (TableColumn | ListItemElement)[],
-    onUpdate: (columns: (TableColumn | ListItemElement)[]) => void,
-    columnType: 'table' | 'listitem',
-    parentFetchedKeys?: string[],
-}) {
-    const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
-    const [editingColumn, setEditingColumn] = useState<TableColumn | ListItemElement | null>(null);
-
-    const openColumnEditor = (col: TableColumn | ListItemElement | null) => {
-        if (col) {
-            setEditingColumn(JSON.parse(JSON.stringify(col))); // Deep clone for editing
-        } else {
-            const baseNewCol = {
-                id: `new_${crypto.randomUUID()}`,
-            };
-            if (columnType === 'table') {
-                setEditingColumn({
-                    ...baseNewCol,
-                    label: 'New Column',
-                    element: createNewElement('Input')
-                });
-            } else { // listitem
-                setEditingColumn({
-                    ...baseNewCol,
-                    element: createNewElement('Display')
-                });
-            }
-        }
-        setIsColumnEditorOpen(true);
-    };
-
-    const handleSaveColumn = (updatedColumn: TableColumn | ListItemElement) => {
-        const isNew = 'id' in updatedColumn && updatedColumn.id.startsWith('new_');
-        const finalColumn = { ...updatedColumn, id: isNew ? crypto.randomUUID() : updatedColumn.id };
-
-        let newColumns;
-        if (isNew) {
-            newColumns = [...(columns || []), finalColumn];
-        } else {
-            newColumns = (columns || []).map(c => c.id === finalColumn.id ? finalColumn : c);
-        }
-        onUpdate(newColumns as any);
-        setIsColumnEditorOpen(false);
-        setEditingColumn(null);
-    };
-
-    const handleDeleteColumn = (columnId: string) => {
-        const newCols = columns.filter(c => c.id !== columnId);
-        onUpdate(newCols as any);
-    }
-    
-    const getLabel = (col: TableColumn | ListItemElement) => {
-        if ('label' in col) return col.label;
-        if ('element' in col) return col.element.label || col.element.type;
-        return 'Item';
-    }
-
-    return (
-        <div className="flex flex-col gap-2">
-            <Label>{columnType === 'listitem' ? 'List Item Elements' : 'Columns'}</Label>
-            {(columns || []).map((col) => (
-                <div key={col.id} className="flex items-center gap-2 p-2 border rounded-md">
-                    <div className="flex-1 text-sm">{getLabel(col)} ({'element' in col && col.element.type})</div>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openColumnEditor(col)}>
-                        <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteColumn(col.id)}>
-                        <Trash className="h-4 w-4 text-destructive" />
-                    </Button>
-                </div>
-            ))}
-            <Button variant="outline" size="sm" onClick={() => openColumnEditor(null)}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add {columnType === 'listitem' ? 'Element' : 'Column'}
-            </Button>
-            {isColumnEditorOpen && (
-                <ColumnEditorDialog
-                    isOpen={isColumnEditorOpen}
-                    onOpenChange={setIsColumnEditorOpen}
-                    onSave={handleSaveColumn}
-                    column={editingColumn}
-                    columnType={columnType}
-                    parentFetchedKeys={parentFetchedKeys}
-                />
-            )}
-        </div>
-    );
-}
-
 function ColumnEditorDialog({
     isOpen,
     onOpenChange,
@@ -410,6 +315,7 @@ function ColumnEditorDialog({
     
     const handleFieldTypeChange = (type: ElementType) => {
         if (editingColumn && 'element' in editingColumn) {
+            if (columnType === 'listitem' && type !== 'Display') return;
             const newElement = createNewElement(type);
             handleElementUpdate(newElement);
         }
@@ -656,7 +562,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             newItem['secondaryText'] = 'Secondary Text';
         }
         if (props.isSecondaryTextLink) {
-            newItem['linkUrl'] = '';
+            newItem['linkUrl'] = '#';
         }
         updateProperty('staticData', [...staticData, newItem]);
     };
@@ -680,7 +586,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <div className="flex flex-col gap-4">
             <Label>Static Items</Label>
             <div className="space-y-4">
-                {staticData.map((item, itemIndex) => (
+                {staticData.map((item) => (
                     <div key={item.id} className="border p-4 rounded-md space-y-3 relative">
                         <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => handleRemoveItem(item.id)}>
                             <Trash className="h-4 w-4 text-destructive" />
@@ -763,6 +669,38 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </SelectContent>
                 </Select>
             </div>
+            {props.hasSecondaryText && (
+                 <div className="flex flex-col gap-2">
+                    <Label htmlFor="secondaryTextKey">Secondary Text Key</Label>
+                    <Select
+                        value={props.secondaryTextKey || ''}
+                        onValueChange={(value) => updateProperty('secondaryTextKey', value)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder={finalFetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {finalFetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
+            {props.isSecondaryTextLink && (
+                <div className="flex flex-col gap-2">
+                    <Label htmlFor="linkUrlKey">Link URL Key</Label>
+                    <Select
+                        value={props.linkUrlKey || ''}
+                        onValueChange={(value) => updateProperty('linkUrlKey', value)}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder={finalFetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {finalFetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
         </>
     </div>
   );
@@ -840,10 +778,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </Accordion>
              )
         case "Display":
-            const config = props.dataSourceConfig || { sourceElementId: "", displayKey: "", sourceType: 'field' };
-
             return (
-                 <Accordion type="multiple" defaultValue={["general", "link", "data", "advanced"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "link"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -933,88 +869,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                 </>
                             )}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="data">
-                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label>Source Type</Label>
-                                <Select
-                                    value={config.sourceType || "field"}
-                                    onValueChange={(value) => {
-                                        const newConfig = { ...config, sourceType: value as any, sourceElementId: "", displayKey: "" };
-                                        updateProperty('dataSourceConfig', newConfig);
-                                    }}
-                                >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="field">Form Field</SelectItem>
-                                        <SelectItem value="currentUser">Current User</SelectItem>
-                                        <SelectItem value="currentDateTime">Current Date/Time</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {config.sourceType === "field" && (
-                                <>
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Source Field</Label>
-                                        <Select
-                                            value={config.sourceElementId || "none"}
-                                            onValueChange={(value) => {
-                                                const sourceElement = allElements.find(el => el.id === value);
-                                                const newConfig = { 
-                                                    ...config, 
-                                                    sourceElementId: value === "none" ? "" : value,
-                                                    // Reset display key if the source is not a select
-                                                    displayKey: sourceElement?.type === 'Select' ? config.displayKey : ""
-                                                };
-                                                updateProperty('dataSourceConfig', newConfig);
-                                            }}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a field..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">None</SelectItem>
-                                                {allElements.map(el => 'key' in el && el.key && (
-                                                    <SelectItem key={el.id} value={el.id}>{el.label} ({el.type})</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    { config.sourceElementId && allElements.find(el => el.id === config.sourceElementId)?.type === 'Select' && (
-                                        <div className="flex flex-col gap-2">
-                                            <Label htmlFor="display-key">Display Key (from Select object)</Label>
-                                            <Input 
-                                                id="display-key" 
-                                                value={config.displayKey}
-                                                onChange={(e) => updateProperty('dataSourceConfig', { ...config, displayKey: e.target.value })}
-                                                placeholder="e.g., 'email' or 'address.city'"
-                                            />
-                                            <p className="text-xs text-muted-foreground">Key from the selected object to display.</p>
-                                        </div>
-                                    )}
-                                </>
-                            )}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="advanced">
-                        <AccordionTrigger className="py-2">Advanced</AccordionTrigger>
-                        <AccordionContent>
-                           <div className="flex flex-col gap-2">
-                                <Label htmlFor="formula">Formula (Optional)</Label>
-                                <Input
-                                    id="formula"
-                                    value={props.formula || ''}
-                                    onChange={(e) => updateProperty('formula', e.target.value)}
-                                    placeholder="e.g., {field_a} + {field_b}"
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    If a formula is provided, this field will be read-only.
-                                </p>
-                            </div>
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>

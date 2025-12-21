@@ -615,18 +615,21 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         };
         
         const renderListItemContent = (option: any) => {
-            const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option.label);
+            const itemLabel = String(element.dataSource === 'dynamic' ? getNestedValue(option, element.labelKey!) : option.label);
+            const secondaryText = element.hasSecondaryText ? String(element.dataSource === 'dynamic' ? getNestedValue(option, element.secondaryTextKey!) : option.secondaryText) : null;
+            const linkUrl = element.isSecondaryTextLink ? String(element.dataSource === 'dynamic' ? getNestedValue(option, element.linkUrlKey!) : (option.linkUrl || '#')) : null;
+
             return (
                 <div className="flex flex-col gap-1">
                     <Label className="font-normal cursor-pointer">{itemLabel}</Label>
-                    {element.hasSecondaryText && (
-                        element.isSecondaryTextLink ? (
-                            <a href={option.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
+                     {secondaryText && (
+                        linkUrl ? (
+                            <a href={linkUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
                                 <Link className="h-3 w-3" />
-                                {option.secondaryText}
+                                {secondaryText}
                             </a>
                         ) : (
-                            <p className="text-sm text-muted-foreground">{option.secondaryText}</p>
+                            <p className="text-sm text-muted-foreground">{secondaryText}</p>
                         )
                     )}
                 </div>

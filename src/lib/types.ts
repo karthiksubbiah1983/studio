@@ -115,6 +115,8 @@ export type FormElementInstance = {
     apiUrl?: string | null;
     valueKey?: string | null; // Key in each object for option value
     labelKey?: string | null; // Key in each object for option label
+    secondaryTextKey?: string | null;
+    linkUrlKey?: string | null;
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     textStyle?: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
