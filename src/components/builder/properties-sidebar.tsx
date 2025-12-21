@@ -64,7 +64,6 @@ export function PropertiesSidebar() {
   const getSelectedElementName = () => {
     if (!selected) return 'Properties';
     if ('type' in selected) {
-        if (selected.type === 'Table') return 'Editable Table';
         if (selected.type === 'Preview') return 'Preview Button';
         if (selected.type === 'DataGrid') return 'Data Grid';
         if (selected.type === 'Combobox') return 'Combobox';
@@ -266,7 +265,7 @@ function ColumnManager({
 } : {
     columns: (TableColumn | DataGridColumn | ListItemElement)[],
     onUpdate: (columns: (TableColumn | DataGridColumn | ListItemElement)[]) => void,
-    columnType: 'table' | 'datagrid' | 'listitem',
+    columnType: 'datagrid' | 'listitem',
     parentFetchedKeys?: string[],
 }) {
     const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
@@ -366,7 +365,7 @@ function ColumnEditorDialog({
     onOpenChange: (isOpen: boolean) => void;
     onSave: (column: TableColumn | DataGridColumn | ListItemElement) => void;
     column: TableColumn | DataGridColumn | ListItemElement | null;
-    columnType: 'table' | 'datagrid' | 'listitem';
+    columnType: 'datagrid' | 'listitem',
     parentFetchedKeys?: string[];
 }) {
     const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
@@ -457,21 +456,9 @@ function ColumnEditorDialog({
                                 <Separator />
                             </>
                         )}
-                        {columnType === 'table' && 'formula' in editingColumn && (
-                             <div className="flex flex-col gap-2">
-                                <Label>Formula (Optional)</Label>
-                                <Input 
-                                    placeholder="e.g. {col_1} * {col_2}"
-                                    value={editingColumn.formula || ''}
-                                    onChange={(e) => updateColumnProperty('formula', e.target.value)}
-                                />
-                                <p className="text-xs text-muted-foreground">
-                                    If a formula is provided, this column will be read-only and calculated automatically. Use {'{column_key}'} to reference other columns.
-                                </p>
-                            </div>
-                        )}
+                        
 
-                        {'element' in editingColumn && (!('formula' in editingColumn) || !editingColumn.formula) && (
+                        {'element' in editingColumn && (
                             <>
                                 <h3 className="text-lg font-medium">Field Properties</h3>
                                 <div className="flex flex-col gap-2">
@@ -530,7 +517,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'DataGrid' || element.type === 'Table' || element.type === 'Combobox') && element.apiUrl) {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'DataGrid' || element.type === 'Combobox') && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -568,7 +555,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'List' || props.type === 'Table' || props.type === 'Combobox' ? props.apiUrl : undefined);
+    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'List' || props.type === 'Combobox' ? props.apiUrl : undefined);
     if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
@@ -1282,134 +1269,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </Accordion>
                  </>
             )
-        case "Table":
-            return (
-                <>
-                <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="data">
-                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <RadioGroup
-                                value={props.dataSource || 'static'}
-                                onValueChange={(v) => {
-                                    const isStatic = v === 'static';
-                                    updateMultipleProperties({
-                                        dataSource: v as 'static' | 'dynamic',
-                                        apiUrl: isStatic ? null : (props.apiUrl || ''),
-                                        canAddRows: isStatic ? (props.canAddRows ?? true) : false,
-                                        defaultRows: isStatic ? (props.defaultRows ?? 1) : null,
-                                    });
-                                }}
-                                className="flex"
-                            >
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="static" id="table-source-static" />
-                                    <Label htmlFor="table-source-static">Static Rows</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
-                                    <RadioGroupItem value="dynamic" id="table-source-dynamic" />
-                                    <Label htmlFor="table-source-dynamic">Dynamic Data</Label>
-                                </div>
-                            </RadioGroup>
-                            {props.dataSource === 'dynamic' && (
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="table-apiUrl">API URL</Label>
-                                    <div className="flex gap-2">
-                                        <Input id="table-apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
-                                        <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
-                                            {isFetching ? "Fetching..." : "Fetch"}
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="columns">
-                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
-                        <AccordionContent>
-                           <ColumnManager
-                                columns={props.tableColumns || []}
-                                onUpdate={(newColumns) => updateProperty('tableColumns', newColumns)}
-                                columnType="table"
-                                parentFetchedKeys={finalFetchedKeys}
-                            />
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="features">
-                        <AccordionTrigger className="py-2">Features</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="enable-search">Enable Search</Label>
-                                <Switch id="enable-search" checked={props.enableSearch || false} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
-                            </div>
-                             {props.dataSource !== 'dynamic' && (
-                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <Label htmlFor="can-add-rows">User can add rows</Label>
-                                    <Switch id="can-add-rows" checked={props.canAddRows === false ? false : true} onCheckedChange={(checked) => updateProperty('canAddRows', checked)} />
-                                </div>
-                            )}
-                             {props.canAddRows && props.dataSource !== 'dynamic' && (
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="max-rows">Max Rows (Optional)</Label>
-                                    <Input
-                                        id="max-rows"
-                                        type="number"
-                                        min="0"
-                                        placeholder="No limit"
-                                        value={props.maxRows || ''}
-                                        onChange={(e) => updateProperty('maxRows', e.target.value ? parseInt(e.target.value) : null)}
-                                    />
-                                    <p className="text-xs text-muted-foreground">
-                                        Leave blank for no limit.
-                                    </p>
-                                </div>
-                             )}
-                             {props.dataSource !== 'dynamic' && (
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="default-rows">Default Rows</Label>
-                                    <Input
-                                        id="default-rows"
-                                        type="number"
-                                        min="0"
-                                        value={props.defaultRows || 0}
-                                        onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value) || 0)}
-                                    />
-                                </div>
-                            )}
-                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="pagination-enabled">Enable Pagination</Label>
-                                <Switch 
-                                    id="pagination-enabled" 
-                                    checked={props.paginationEnabled || false} 
-                                    onCheckedChange={(checked) => updateMultipleProperties({ 
-                                        paginationEnabled: checked,
-                                        pageSize: checked ? (props.pageSize ?? 5) : null
-                                    })} 
-                                />
-                            </div>
-                            {props.paginationEnabled && (
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="page-size">Page Size</Label>
-                                    <Input 
-                                        id="page-size" 
-                                        type="number" 
-                                        value={props.pageSize || 5} 
-                                        onChange={(e) => updateProperty('pageSize', parseInt(e.target.value))}
-                                        min={1}
-                                    />
-                                </div>
-                            )}
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-                </>
-            );
         case "RadioGroup":
             return (
                  <Accordion type="multiple" defaultValue={["general", "layout"]} className="w-full">

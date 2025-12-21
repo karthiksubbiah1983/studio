@@ -10,11 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Table, Table2, Link, icons, Eye, Upload, CalendarDays, Grid, List } from "lucide-react";
+import { Table, Link, icons, Eye, Upload, CalendarDays, Grid, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
-import { format } from "date-fns";
 import { Calendar } from "../ui/calendar";
 
 export function ElementPreview({ element }: { element: FormElementInstance }) {
@@ -182,17 +181,6 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
           </div>
         </div>
        );
-    case "Table":
-        return (
-            <div>
-                {renderLabel()}
-                <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
-                    <Table2 className="h-12 w-12 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Editable Table</p>
-                    <p className="text-xs text-muted-foreground/70">{element.tableColumns?.length || 0} columns configured</p>
-                </div>
-            </div>
-        )
     case "Preview":
         return (
             <div>

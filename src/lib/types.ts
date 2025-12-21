@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Table" | "Preview" | "FileUpload" | "List" | "Combobox";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Preview" | "FileUpload" | "List" | "Combobox";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -142,16 +142,6 @@ export type FormElementInstance = {
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
     // For DataGrid
     dataGridColumns?: DataGridColumn[];
-    // For Table
-    columns?: DataGridColumn[];
-    paginationEnabled?: boolean | null;
-    pageSize?: number | null;
-    // For Table
-    tableColumns?: TableColumn[];
-    canAddRows?: boolean | null;
-    defaultRows?: number | null;
-    maxRows?: number | null;
-    enableSearch?: boolean;
     // For Preview
     previewSectionIds?: string[];
     // For FileUpload

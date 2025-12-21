@@ -44,25 +44,6 @@ const mapElementToSchemaProperty = (element: FormElementInstance): Record<string
                 schemaProperty.enum = rest.options;
             }
             break;
-        case "Table":
-            schemaProperty.type = "array";
-            schemaProperty.items = {
-                type: "object",
-                properties: {},
-                required: [],
-            };
-            if (rest.tableColumns) {
-                rest.tableColumns.forEach(col => {
-                    const colProp = mapElementToSchemaProperty(col.element);
-                    if (col.key && colProp) {
-                        schemaProperty.items.properties[col.key] = colProp;
-                        if (col.element.required) {
-                             schemaProperty.items.required.push(col.key);
-                        }
-                    }
-                });
-            }
-            break;
         case "FileUpload":
              schemaProperty.type = "array";
              schemaProperty.items = {

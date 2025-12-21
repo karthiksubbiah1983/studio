@@ -1,7 +1,7 @@
 
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Table2, Eye, Upload, ListFilter } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Eye, Upload, ListFilter } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -21,7 +21,6 @@ export const FormElements: {
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'DataGrid', icon: Grid, label: 'Data Grid'},
-    { type: 'Table', icon: Table2, label: 'Editable Table' },
     { type: 'Preview', icon: Eye, label: 'Preview Button' },
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
@@ -100,22 +99,6 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                     { id: crypto.randomUUID(), key: 'name', label: 'Name', element: createNewElement('Display') },
                     { id: crypto.randomUUID(), key: 'email', label: 'Email', element: createNewElement('Display') },
                 ],
-            }
-        case "Table":
-            return {
-                ...baseElement,
-                label: "Editable Table",
-                dataSource: 'static',
-                apiUrl: null,
-                canAddRows: true,
-                defaultRows: 1,
-                maxRows: null,
-                enableSearch: false,
-                paginationEnabled: false,
-                pageSize: 5,
-                tableColumns: [
-                    { id: crypto.randomUUID(), key: 'col_1', label: 'Column 1', element: createNewElement('Input') },
-                ]
             }
         case "Preview":
             return { ...baseElement, label: "Preview Data", previewSectionIds: [], key: '' };

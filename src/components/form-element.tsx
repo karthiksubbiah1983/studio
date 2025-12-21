@@ -35,7 +35,6 @@ import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { TableElement } from "./builder/table-element";
 
 
 type Props = {
@@ -787,15 +786,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         </div>
       );
       break;
-    case "Table":
-        content = (
-            <TableElement
-                element={element}
-                value={value}
-                onValueChange={onValueChange}
-            />
-        );
-        break;
     case "Preview":
         content = (
              <div>
