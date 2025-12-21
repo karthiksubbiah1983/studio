@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, DataGridColumn, TableColumn, ListItemElement } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -65,7 +65,6 @@ export function PropertiesSidebar() {
     if (!selected) return 'Properties';
     if ('type' in selected) {
         if (selected.type === 'Preview') return 'Preview Button';
-        if (selected.type === 'DataGrid') return 'Data Grid';
         if (selected.type === 'Combobox') return 'Combobox';
         return selected.type;
     }
@@ -263,15 +262,15 @@ function ColumnManager({
     columnType,
     parentFetchedKeys,
 } : {
-    columns: (TableColumn | DataGridColumn | ListItemElement)[],
-    onUpdate: (columns: (TableColumn | DataGridColumn | ListItemElement)[]) => void,
-    columnType: 'datagrid' | 'listitem',
+    columns: (ListItemElement)[],
+    onUpdate: (columns: (ListItemElement)[]) => void,
+    columnType: 'listitem',
     parentFetchedKeys?: string[],
 }) {
     const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
-    const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
+    const [editingColumn, setEditingColumn] = useState<ListItemElement | null>(null);
 
-    const openColumnEditor = (col: TableColumn | DataGridColumn | ListItemElement | null) => {
+    const openColumnEditor = (col: ListItemElement | null) => {
         if (col) {
             setEditingColumn(JSON.parse(JSON.stringify(col))); // Deep clone for editing
         } else {
@@ -283,19 +282,12 @@ function ColumnManager({
                     ...baseNewCol,
                     element: createNewElement('Display')
                 });
-            } else {
-                 setEditingColumn({
-                    ...baseNewCol,
-                    key: `col_${(columns.length || 0) + 1}`,
-                    label: `Column ${(columns.length || 0) + 1}`,
-                    element: createNewElement('Display') // Always create a fully initialized element
-                });
-            }
+            } 
         }
         setIsColumnEditorOpen(true);
     };
 
-    const handleSaveColumn = (updatedColumn: TableColumn | DataGridColumn | ListItemElement) => {
+    const handleSaveColumn = (updatedColumn: ListItemElement) => {
         const isNew = 'id' in updatedColumn && updatedColumn.id.startsWith('new_');
         const finalColumn = { ...updatedColumn, id: isNew ? crypto.randomUUID() : updatedColumn.id };
 
@@ -315,8 +307,7 @@ function ColumnManager({
         onUpdate(newCols as any);
     }
     
-    const getLabel = (col: TableColumn | DataGridColumn | ListItemElement) => {
-        if ('label' in col) return col.label;
+    const getLabel = (col: ListItemElement) => {
         if ('element' in col) return col.element.label || col.element.type;
         return 'Item';
     }
@@ -363,12 +354,12 @@ function ColumnEditorDialog({
 }: {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
-    onSave: (column: TableColumn | DataGridColumn | ListItemElement) => void;
-    column: TableColumn | DataGridColumn | ListItemElement | null;
-    columnType: 'datagrid' | 'listitem',
+    onSave: (column: ListItemElement) => void;
+    column: ListItemElement | null;
+    columnType: 'listitem',
     parentFetchedKeys?: string[];
 }) {
-    const [editingColumn, setEditingColumn] = useState<TableColumn | DataGridColumn | ListItemElement | null>(null);
+    const [editingColumn, setEditingColumn] = useState<ListItemElement | null>(null);
 
     useEffect(() => {
         if (column) {
@@ -427,37 +418,6 @@ function ColumnEditorDialog({
                 </DialogHeader>
                 <ScrollArea className="flex-grow -mx-6 px-6">
                     <div className="py-4 flex flex-col gap-4">
-                        {!isListItemElement && 'key' in editingColumn && (
-                             <>
-                                <div className="flex flex-col gap-2">
-                                    <Label>Column Header</Label>
-                                    <Input value={editingColumn.label} onChange={(e) => updateColumnProperty('label', e.target.value)} />
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <Label>Column Key</Label>
-                                    {parentFetchedKeys && parentFetchedKeys.length > 0 ? (
-                                        <Select
-                                            value={editingColumn.key}
-                                            onValueChange={(value) => updateColumnProperty('key', value)}
-                                        >
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a data key..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                {parentFetchedKeys.map(key => (
-                                                    <SelectItem key={key} value={key}>{key}</SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                    ) : (
-                                        <Input value={editingColumn.key} onChange={(e) => updateColumnProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
-                                    )}
-                                </div>
-                                <Separator />
-                            </>
-                        )}
-                        
-
                         {'element' in editingColumn && (
                             <>
                                 <h3 className="text-lg font-medium">Field Properties</h3>
@@ -517,7 +477,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'DataGrid' || element.type === 'Combobox') && element.apiUrl) {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -549,13 +509,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         apiUrl: newUrl,
         valueKey: undefined,
         labelKey: undefined,
-        dataGridColumns: props.type === 'DataGrid' ? props.dataGridColumns?.map(c => ({...c, key: ''})) : props.dataGridColumns,
     })
     setFetchedKeys([]);
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    let apiUrlToFetch = url || (props.type === 'DataGrid' || props.type === 'Select' || props.type === 'List' || props.type === 'Combobox' ? props.apiUrl : undefined);
+    let apiUrlToFetch = url || (props.type === 'Select' || props.type === 'List' || props.type === 'Combobox' ? props.apiUrl : undefined);
     if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
@@ -1246,29 +1205,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                  </Accordion>
             );
-        case "DataGrid":
-            return (
-                 <>
-                    <Accordion type="multiple" defaultValue={["general", "columns"]} className="w-full">
-                        <AccordionItem value="general">
-                            <AccordionTrigger className="py-2">General</AccordionTrigger>
-                            <AccordionContent className="flex flex-col gap-4">
-                                {commonFields}
-                            </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="columns">
-                            <AccordionTrigger className="py-2">Columns</AccordionTrigger>
-                            <AccordionContent>
-                                 <ColumnManager
-                                    columns={props.dataGridColumns || []}
-                                    onUpdate={(newColumns) => updateProperty('dataGridColumns', newColumns)}
-                                    columnType="datagrid"
-                                />
-                            </AccordionContent>
-                        </AccordionItem>
-                    </Accordion>
-                 </>
-            )
         case "RadioGroup":
             return (
                  <Accordion type="multiple" defaultValue={["general", "layout"]} className="w-full">

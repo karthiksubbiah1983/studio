@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "DataGrid" | "Preview" | "FileUpload" | "List" | "Combobox";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "Preview" | "FileUpload" | "List" | "Combobox";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -82,21 +82,6 @@ export type PopupConfig = {
     iconColor: string;
 }
 
-export type DataGridColumn = {
-    id: string;
-    key: string;
-    label: string;
-    element: FormElementInstance;
-};
-
-export type TableColumn = {
-    id: string;
-    key: string;
-    label: string;
-    element: FormElementInstance;
-    formula?: string;
-}
-
 export type ListItemElement = {
     id: string;
     element: FormElementInstance;
@@ -140,8 +125,6 @@ export type FormElementInstance = {
     elements?: FormElementInstance[];
     justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
-    // For DataGrid
-    dataGridColumns?: DataGridColumn[];
     // For Preview
     previewSectionIds?: string[];
     // For FileUpload

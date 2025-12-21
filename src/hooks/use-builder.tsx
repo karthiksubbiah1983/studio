@@ -137,9 +137,6 @@ const findAndModifyElement = (elements: FormElementInstance[], action: Action): 
         case "UPDATE_ELEMENT": {
             return elements.map(el => {
                 if (el.id === action.payload.element.id) {
-                    if (el.type === 'Table' && action.payload.element.dataSource === 'dynamic') {
-                        return { ...action.payload.element, canAddRows: false, defaultRows: null };
-                    }
                     return action.payload.element;
                 }
                 if (el.elements) return { ...el, elements: findAndModifyElement(el.elements, action) };
@@ -742,57 +739,43 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   
   // Reactive rules engine
   useEffect(() => {
-    if (!rules || rules.length === 0 || !isLoaded) return;
-
+    if (!rules || rules.length === 0 || !isLoaded || !state.formState) return;
+  
     const allElements = getAllElements(sections);
     let stateChanges: { [key: string]: any } = {};
-
+  
     const applyBehavior = (behavior: Rule['behaviors'][0], context: any) => {
-        const { type, targetElementId, value, targetConfigurationKey } = behavior;
-        
-        switch (type) {
-            case 'set_value':
-                if (targetElementId && state.formState[targetElementId]?.value !== value) {
-                    stateChanges[targetElementId] = { ...state.formState[targetElementId], value };
-                }
-                break;
-            case 'set_configuration':
-                if (targetConfigurationKey) {
-                    const configId = `config::${targetConfigurationKey}`;
-                    if (state.formState[configId]?.value !== value) {
-                        stateChanges[configId] = { ...state.formState[configId], value };
-                    }
-                }
-                break;
-            case 'show':
-            case 'hide':
-                if (targetElementId && state.formState[targetElementId]?.isVisible !== (type === 'show')) {
-                    stateChanges[targetElementId] = { ...state.formState[targetElementId], isVisible: type === 'show' };
-                }
-                break;
-        }
-    }
-
+      const { type, targetElementId, value, targetConfigurationKey } = behavior;
+  
+      let targetId = targetElementId;
+      if (type === 'set_configuration' && targetConfigurationKey) {
+        targetId = `config::${targetConfigurationKey}`;
+      }
+  
+      if (!targetId) return;
+  
+      switch (type) {
+        case 'set_value':
+        case 'set_configuration':
+          if (context[targetId]?.value !== value) {
+            stateChanges[targetId] = { ...context[targetId], value };
+          }
+          break;
+        case 'show':
+        case 'hide':
+          if (context[targetId]?.isVisible !== (type === 'show')) {
+            stateChanges[targetId] = { ...context[targetId], isVisible: type === 'show' };
+          }
+          break;
+      }
+    };
+  
     rules.forEach(rule => {
-        const sourceElementId = rule.conditions[0]?.sourceElementId;
-        const parentTable = sourceElementId ? findElementRecursive(sections, sourceElementId, true) : null;
-        
-        if (typeof parentTable === 'string' && state.formState[parentTable]?.value) {
-            // Rule condition is inside a table
-            const tableData = state.formState[parentTable].value as any[];
-            tableData.forEach(rowContext => {
-                if (evaluateRule(rule, rowContext, configurations, sections)) {
-                    rule.behaviors.forEach(behavior => applyBehavior(behavior, rowContext));
-                }
-            });
-        } else {
-            // Rule condition is not in a table
-            if (evaluateRule(rule, state.formState, configurations, sections)) {
-                rule.behaviors.forEach(behavior => applyBehavior(behavior, state.formState));
-            }
-        }
+      if (evaluateRule(rule, state.formState, configurations, sections)) {
+        rule.behaviors.forEach(behavior => applyBehavior(behavior, state.formState));
+      }
     });
-
+  
     if (Object.keys(stateChanges).length > 0) {
       dispatch({ type: 'SET_FORM_STATE', payload: { ...state.formState, ...stateChanges } });
     }

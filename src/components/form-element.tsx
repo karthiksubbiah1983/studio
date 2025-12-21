@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement, Configuration } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,29 +109,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   
 
   const isVisible = useMemo(() => {
-    // Hidden by property
-    if (element.hidden) return false;
-
-    // Default to visible
-    let visible = true;
-    
-    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
-    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
-
-    if (showRules.length > 0) {
-      // If any show rule is met, it becomes visible, overriding default
-      visible = showRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
-    }
-    
-    if (hideRules.length > 0) {
-      // If any hide rule is met, it becomes hidden
-      if (hideRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
-        visible = false;
-      }
-    }
-
-    return visible;
-  }, [element.id, element.hidden, evaluationContext, rules, configurations, sections]);
+    if (!formState || !evaluationContext) return !element.hidden;
+    const visibility = evaluationContext[element.id]?.isVisible;
+    return visibility !== false;
+  }, [evaluationContext, element.id, element.hidden]);
 
 
   const isDisabled = useMemo(() => {
@@ -320,23 +301,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     case "Container": {
         const { elements, direction, justify, align } = element;
-        const alignmentClasses = {
-            justify: {
-                start: 'justify-start',
-                center: 'justify-center',
-                end: 'justify-end',
-                between: 'justify-between',
-                around: 'justify-around',
-                evenly: 'justify-evenly',
-            },
-            align: {
-                start: 'items-start',
-                center: 'items-center',
-                end: 'items-end',
-                stretch: 'items-stretch',
-                baseline: 'items-baseline',
-            }
-        }
         content = (
             <div style={appliedStyles.style} className={cn("flex gap-4",
                 direction === 'horizontal' ? 'flex-row' : 'flex-col',
@@ -914,12 +878,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         )
         break;
     default:
-      // This will handle the case for DataGrid which does not have a direct renderer here
-      if (type === 'DataGrid') {
-        content = <div>DataGrid is not rendered via FormElementRenderer.</div>
-      } else {
-        content = <div>Unsupported element type: {type}</div>;
-      }
+      content = <div>Unsupported element type: {type}</div>;
       break;
   }
 

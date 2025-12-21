@@ -20,7 +20,6 @@ export const FormElements: {
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
-    { type: 'DataGrid', icon: Grid, label: 'Data Grid'},
     { type: 'Preview', icon: Eye, label: 'Preview Button' },
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
@@ -90,16 +89,6 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
             return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false, key: '' };
         case "Container":
             return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch', exposeForValidation: false, key: '' };
-        case "DataGrid":
-            return {
-                ...baseElement,
-                label: "Data Grid",
-                apiUrl: null,
-                dataGridColumns: [
-                    { id: crypto.randomUUID(), key: 'name', label: 'Name', element: createNewElement('Display') },
-                    { id: crypto.randomUUID(), key: 'email', label: 'Email', element: createNewElement('Display') },
-                ],
-            }
         case "Preview":
             return { ...baseElement, label: "Preview Data", previewSectionIds: [], key: '' };
         case "FileUpload":

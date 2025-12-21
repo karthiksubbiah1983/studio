@@ -6,7 +6,7 @@ import { useMemo, useState, useEffect, memo, useCallback } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, ElementType, DataGridColumn, TableColumn, ListItemElement, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus, Configuration } from "@/lib/types";
+import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, ElementType, ListItemElement, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus, Configuration } from "@/lib/types";
 import { Plus, Trash, X, Settings2, GitCommitHorizontal } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn, getAllElements } from "@/lib/utils";

@@ -183,17 +183,6 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         )
     case "Container":
       return null;
-    case "DataGrid":
-       return (
-         <div>
-          {renderLabel()}
-          <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
-            <Grid className="h-12 w-12 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Data Grid</p>
-            <p className="text-xs text-muted-foreground/70">{element.dataGridColumns?.length || 0} columns configured</p>
-          </div>
-        </div>
-       );
     case "Preview":
         return (
             <div>
