@@ -35,7 +35,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Link from "next/link";
-import type { Form } from "@/lib/types";
+import type { Form, FormVersion } from "@/lib/types";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/hooks/use-toast";
 
@@ -81,12 +81,9 @@ export default function Home() {
   // Assign Task Dialog State
   const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
   const [assigningFormId, setAssigningFormId] = useState<string | null>(null);
+  const [assigningVersionId, setAssigningVersionId] = useState<string | null>(null);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
-  const filteredForms = forms.filter(form => 
-    form.title.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
   const getCategoryName = (categoryId: string | undefined) => {
     if (!categoryId) return "Uncategorized";
     return categories.find(c => c.id === categoryId)?.name || "Uncategorized";
@@ -148,21 +145,22 @@ export default function Home() {
     setIsCloneDialogOpen(true);
   };
 
-  const handleOpenAssignDialog = (formId: string) => {
+  const handleOpenAssignDialog = (formId: string, versionId: string) => {
     setAssigningFormId(formId);
+    setAssigningVersionId(versionId);
     setIsAssignTaskOpen(true);
   }
 
   const handleAssignTask = () => {
-    if (!assigningFormId || !selectedSiteId) return;
+    if (!assigningFormId || !assigningVersionId || !selectedSiteId) return;
     const form = forms.find(f => f.id === assigningFormId);
-    if (!form || !form.versions[0]) return;
+    if (!form) return;
 
     dispatch({
       type: 'ADD_TASK',
       payload: {
         formId: assigningFormId,
-        versionId: form.versions[0].id,
+        versionId: assigningVersionId,
         siteId: selectedSiteId,
       }
     });
@@ -174,6 +172,7 @@ export default function Home() {
 
     setIsAssignTaskOpen(false);
     setAssigningFormId(null);
+    setAssigningVersionId(null);
     setSelectedSiteId(null);
   }
 
@@ -193,6 +192,40 @@ export default function Home() {
   };
 
   const selectedCategoryForNewTemplate = categories.find(c => c.id === selectedCategoryId);
+
+  const flattenedForms = forms.reduce((acc, form) => {
+      const { versions, ...restOfForm } = form;
+      const hasDraft = versions.some(v => v.type === 'draft');
+      const latestVersion = versions[0];
+      const publishedVersions = versions.filter(v => v.type === 'published');
+      const totalPublished = publishedVersions.length;
+
+      // Add latest draft if it exists
+      if (hasDraft && latestVersion.type === 'draft') {
+          acc.push({
+              ...restOfForm,
+              version: latestVersion,
+              isDraft: true,
+              isPublished: false,
+              versionNumber: null,
+              isLast: true, // Mark if it's the last entry for this form
+          });
+      }
+
+      // Add all published versions
+      publishedVersions.forEach((version, index) => {
+          acc.push({
+              ...restOfForm,
+              version: version,
+              isDraft: false,
+              isPublished: true,
+              versionNumber: totalPublished - index,
+              isLast: !hasDraft && index === publishedVersions.length - 1,
+          });
+      });
+
+      return acc;
+  }, [] as any[]).filter(f => f.title.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="w-full p-4 md:p-6">
@@ -280,18 +313,13 @@ export default function Home() {
                   <div className="text-right">Actions</div>
               </div>
               <div className="divide-y">
-                {filteredForms.length > 0 ? (
-                  filteredForms.map((form) => {
-                    const latestVersion = form.versions[0];
-                    const publishedVersions = form.versions.filter(v => v.type === 'published');
-                    const latestPublishedVersion = publishedVersions[0];
-                    
-                    const versionNumber = latestPublishedVersion ? publishedVersions.length : 0;
-                    const status = latestVersion.type === 'published' ? 'Published' : 'Draft';
-                    const displayVersionText = status === 'Published' ? `v${versionNumber}` : 'Draft';
+                {flattenedForms.length > 0 ? (
+                  flattenedForms.map((form) => {
+                    const displayVersionText = form.isPublished ? `v${form.versionNumber}` : 'Draft';
+                    const status = form.isPublished ? 'Published' : 'Draft';
 
                     return (
-                      <div key={form.id} className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center p-4 gap-4 md:gap-2">
+                      <div key={`${form.id}-${form.version.id}`} className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_auto] items-center p-4 gap-4 md:gap-2">
                         <div className="font-medium">{form.title}</div>
                         <div>
                             <span className="md:hidden font-medium mr-2">Category:</span>
@@ -314,10 +342,10 @@ export default function Home() {
                         </div>
                         <div>
                             <span className="md:hidden font-medium mr-2">Last Modified:</span>
-                            <FormattedDate timestamp={latestVersion.timestamp} />
+                            <FormattedDate timestamp={form.version.timestamp} />
                         </div>
                         <div className="flex justify-end gap-0">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenAssignDialog(form.id)}>
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenAssignDialog(form.id, form.version.id)} disabled={!form.isPublished}>
                               <Send className="h-4 w-4" />
                             </Button>
                              <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>
@@ -328,28 +356,30 @@ export default function Home() {
                                     <Edit className="h-4 w-4" />
                                 </Button>
                             </Link>
-                             <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <Trash className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    This action cannot be undone. This will permanently delete the template
-                                    and all its versions.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(form.id)}>
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                             {form.isLast && (
+                                <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon">
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete the template
+                                        and all its versions.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(form.id)}>
+                                        Delete
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                                </AlertDialog>
+                             )}
                           </div>
                       </div>
                     );
