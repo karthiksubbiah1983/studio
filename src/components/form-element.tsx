@@ -225,7 +225,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           });
       }
       return allListOptions;
-  }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.type, element.valueKey, element.listItemElements]);
+  }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.type, element.valueKey]);
 
   const displayedSelection = useMemo(() => {
       if (element.type !== 'List' || element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
@@ -625,18 +625,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     const itemContent = () => (
                       <div className="flex flex-col gap-1">
                         <Label htmlFor={`${element.id}-${index}`} className="font-normal cursor-pointer">{itemLabel}</Label>
-                        {(element.listItemElements || []).map(itemEl => (
-                          <div key={itemEl.id} className="pl-6">
-                            <FormElementRenderer 
-                                element={itemEl.element}
-                                value={getNestedValue(option, itemEl.element.key)}
-                                onValueChange={() => {}}
-                                rowContext={option}
-                                formState={formState}
-                                isTableCell={true}
-                            />
-                          </div>
-                        ))}
+                        {element.hasSecondaryText && (
+                            element.isSecondaryTextLink ? (
+                                <a href={option.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
+                                    <Link className="h-3 w-3" />
+                                    {option.secondaryText}
+                                </a>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">{option.secondaryText}</p>
+                            )
+                        )}
                       </div>
                     );
 

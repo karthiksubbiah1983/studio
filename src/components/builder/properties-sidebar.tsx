@@ -649,18 +649,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   
   const staticDataEditor = () => {
     const staticData = props.staticData || [];
-    const listItemElements = props.listItemElements || [];
 
     const handleAddItem = () => {
         const newItem: Record<string, any> = { id: crypto.randomUUID(), label: `Option ${staticData.length + 1}` };
-        listItemElements.forEach(el => {
-            if (el.element.key) {
-                newItem[el.element.key] = el.element.defaultValue || '';
-                 if (el.element.isLink) {
-                    newItem[`${el.element.key}__url`] = el.element.linkUrl || '';
-                 }
-            }
-        });
+        if (props.hasSecondaryText) {
+            newItem['secondaryText'] = 'Secondary Text';
+        }
+        if (props.isSecondaryTextLink) {
+            newItem['linkUrl'] = '';
+        }
         updateProperty('staticData', [...staticData, newItem]);
     };
     
@@ -696,31 +693,26 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 placeholder="Primary Label"
                             />
                         </div>
-                        {listItemElements.map(el => {
-                            if (!el.element.key) return null;
-                            return (
-                                <div key={el.id} className="space-y-2">
-                                    <div className="flex flex-col gap-1.5">
-                                        <Label className="text-xs">{el.element.label}</Label>
-                                        <Input
-                                            value={item[el.element.key] || ''}
-                                            onChange={(e) => handleItemChange(item.id, el.element.key, e.target.value)}
-                                            placeholder={el.element.label}
-                                        />
-                                    </div>
-                                    {el.element.isLink && (
-                                        <div className="flex flex-col gap-1.5">
-                                            <Label className="text-xs">{el.element.label} URL</Label>
-                                            <Input
-                                                value={item[`${el.element.key}__url`] || ''}
-                                                onChange={(e) => handleItemChange(item.id, `${el.element.key}__url`, e.target.value)}
-                                                placeholder="https://example.com"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            )
-                        })}
+                        {props.hasSecondaryText && (
+                            <div className="flex flex-col gap-1.5">
+                                <Label className="text-xs">Secondary Text</Label>
+                                <Input
+                                    value={item.secondaryText || ''}
+                                    onChange={(e) => handleItemChange(item.id, 'secondaryText', e.target.value)}
+                                    placeholder="Secondary Text"
+                                />
+                            </div>
+                        )}
+                        {props.isSecondaryTextLink && (
+                            <div className="flex flex-col gap-1.5">
+                                <Label className="text-xs">Link URL</Label>
+                                <Input
+                                    value={item.linkUrl || ''}
+                                    onChange={(e) => handleItemChange(item.id, 'linkUrl', e.target.value)}
+                                    placeholder="https://example.com"
+                                />
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>
@@ -1210,7 +1202,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "List":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "data", "scoring", "layout"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "layout", "scoring"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1250,6 +1242,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             }
                         </AccordionContent>
                     </AccordionItem>
+                     <AccordionItem value="layout">
+                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hasSecondaryText">Add Secondary Text</Label>
+                                <Switch id="hasSecondaryText" checked={props.hasSecondaryText} onCheckedChange={(checked) => updateMultipleProperties({ hasSecondaryText: checked, isSecondaryTextLink: checked ? props.isSecondaryTextLink : false })} />
+                            </div>
+                             {props.hasSecondaryText && (
+                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <Label htmlFor="isSecondaryTextLink">Enable as Link</Label>
+                                    <Switch id="isSecondaryTextLink" checked={props.isSecondaryTextLink} onCheckedChange={(checked) => updateProperty('isSecondaryTextLink', checked)} />
+                                </div>
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
                     <AccordionItem value="data">
                         <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1277,16 +1284,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 </div>
                             </RadioGroup>
                             {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : staticDataEditor()}
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="layout">
-                        <AccordionTrigger className="py-2">List Item Layout</AccordionTrigger>
-                        <AccordionContent>
-                            <ColumnManager
-                                columns={props.listItemElements || []}
-                                onUpdate={(newItems) => updateProperty('listItemElements', newItems)}
-                                columnType="listitem"
-                            />
                         </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="scoring">
