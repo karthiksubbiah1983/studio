@@ -97,7 +97,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 columns: [
                     { id: crypto.randomUUID(), label: 'Column 1', element: createNewElement('Input') }
                 ],
-                defaultRows: 1,
+                defaultRows: 0,
                 maxRows: undefined,
                 enableSearch: false,
                 key: 'editable_table_1'
