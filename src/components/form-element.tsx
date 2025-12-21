@@ -102,6 +102,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const evaluationContext = rowContext || formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
+  useEffect(() => {
+    setCurrentDateTime(new Date());
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+
   const value = useMemo(() => {
     let calculatedValue;
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) {
@@ -219,7 +225,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           });
       }
       return allListOptions;
-  }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
+  }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.type, element.valueKey, element.listItemElements]);
 
   const displayedSelection = useMemo(() => {
       if (element.type !== 'List' || element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
@@ -247,12 +253,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.type, score, element.passingScore]);
   
 
-  useEffect(() => {
-    setCurrentDateTime(new Date());
-    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
-    return () => clearInterval(timer);
-  }, []);
-  
   useEffect(() => {
     if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.dataSource === 'dynamic') {
       
