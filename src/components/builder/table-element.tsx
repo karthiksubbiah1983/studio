@@ -30,7 +30,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
   const tableColumns = useMemo(() => element.tableColumns || [], [element.tableColumns]);
   const pageSize = element.pageSize || 5;
 
-  const stableOnValueChange = useCallback(onValueChange, [onValueChange]);
+  const stableOnValueChange = useCallback(onValueChange, []);
 
   // Effect to fetch initial data for dynamic tables
   useEffect(() => {
@@ -54,8 +54,13 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
   const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any, fullObject?: any) => {
     let newRows = [...(tableRows || [])];
     if (!newRows[rowIndex]) newRows[rowIndex] = {};
-
-    const updatedRow = { ...newRows[rowIndex], [columnKey]: cellValue };
+    
+    let updatedRow = { ...newRows[rowIndex], [columnKey]: cellValue };
+    
+    // When a Select component provides a full object, merge it into the row context for formula evaluation.
+    if (fullObject) {
+      updatedRow = { ...updatedRow, ...fullObject };
+    }
 
     // Recalculate formula columns for the changed row
     tableColumns.forEach(col => {

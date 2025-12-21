@@ -89,20 +89,51 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   const evaluationContext = rowContext || formState;
 
-  const isVisible = useMemo(() => {
-    if (element.hidden) return false;
-    if (!evaluationContext) return true; // Default to visible if no context
-    
-    // The visibility is now controlled by the formState
-    return formState?.[element.id]?.isVisible !== false;
-
-  }, [element.id, element.hidden, formState]);
-
-
   const value = useMemo(() => {
-    // Value is directly from the state, which is updated by the reactive useEffect in useBuilder
-    return initialValue;
-  }, [initialValue]);
+    let calculatedValue;
+    if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) {
+      try {
+        calculatedValue = evaluate(element.formula, evaluationContext);
+      } catch (e) {
+        console.error("Formula evaluation error:", e);
+        calculatedValue = "#ERROR!";
+      }
+      
+      // If the calculated value is different, propagate the change.
+      // This handles reactive calculations.
+      if (calculatedValue !== initialValue) {
+        onValueChange(element.id, calculatedValue);
+      }
+    }
+    return calculatedValue !== undefined ? calculatedValue : initialValue;
+  }, [element.type, element.formula, element.id, evaluationContext, initialValue, onValueChange]);
+  
+
+  const isVisible = useMemo(() => {
+    // Hidden by property
+    if (element.hidden) return false;
+
+    // Default to visible
+    let visible = true;
+    
+    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
+    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
+
+    if (showRules.length > 0) {
+      // If any show rule is met, it becomes visible, overriding default
+      visible = showRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
+    }
+    
+    if (hideRules.length > 0) {
+      // If any hide rule is met, it becomes hidden
+      if (hideRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
+        visible = false;
+      }
+    }
+
+    return visible;
+  }, [element.id, element.hidden, evaluationContext, rules, configurations, sections]);
+
 
   const isDisabled = useMemo(() => {
     if (!evaluationContext || !rules) return false;
@@ -675,13 +706,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           {renderLabelWithPopup()}
           <RadioGroup 
             value={value}
-            onValueChange={(val) => {
-                 if (isTableCell) {
-                    onValueChange(element.id, val, { [element.key]: val });
-                 } else {
-                    onValueChange(element.id, val);
-                 }
-            }}
+            onValueChange={(val) => onValueChange(element.id, val)}
             className={cn("mt-3", direction === 'horizontal' ? "flex flex-row gap-4" : "grid gap-2")}
             disabled={isDisabled}
           >
@@ -762,165 +787,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         </div>
       );
       break;
-    case "DataGrid":
-        const [gridData, setGridData] = useState<any[]>(initialValue || []);
-        const [isFormOpen, setIsFormOpen] = useState(false);
-        const [editingIndex, setEditingIndex] = useState<number | null>(null);
-        const [currentFormData, setCurrentFormData] = useState<Record<string, any>>({});
-
-        useEffect(() => {
-            if(initialValue) {
-                setGridData(initialValue);
-            }
-        }, [initialValue]);
-
-        const openForm = (index: number | null = null) => {
-            if (index !== null) {
-                setEditingIndex(index);
-                const rowData = gridData[index];
-                const formDataForEditing: Record<string, any> = {};
-                 element.dataGridColumns?.forEach(col => {
-                    const elId = `${element.id}::${col.key}::${index}`;
-                    formDataForEditing[elId] = { value: getNestedValue(rowData, col.key) };
-                })
-                setCurrentFormData(formDataForEditing);
-            } else {
-                setEditingIndex(null);
-                const initialFormData: Record<string, any> = {};
-                element.dataGridColumns?.forEach(col => {
-                    initialFormData[`${element.id}::${col.key}::new`] = { value: undefined };
-                });
-                setCurrentFormData(initialFormData);
-            }
-            setIsFormOpen(true);
-        };
-        
-        const handleFormValueChange = (id: string, val: any, fullObject?: any) => {
-            setCurrentFormData(prev => ({...prev, [id]: { value: val, fullObject }}));
-        }
-
-        const handleSave = () => {
-            let newData = [...gridData];
-            const finalDataToSave = (element.dataGridColumns || []).reduce((acc, col) => {
-                const proxyId = `${element.id}::${col.key}::${editingIndex !== null ? editingIndex : 'new'}`;
-                if(currentFormData[proxyId] && currentFormData[proxyId].value !== undefined) {
-                    acc[col.key] = currentFormData[proxyId].value;
-                } else if (col.element.type === 'Display') {
-                    if (col.element.dataSourceConfig?.sourceType === 'currentUser') {
-                         acc[col.key] = user?.username || 'Guest';
-                    } else if (col.element.dataSourceConfig?.sourceType === 'currentDateTime') {
-                         acc[col.key] = new Date().toISOString();
-                    }
-                }
-                return acc;
-            }, {} as Record<string, any>);
-
-            if (editingIndex !== null) {
-                newData[editingIndex] = finalDataToSave;
-            } else {
-                newData.push(finalDataToSave);
-            }
-            setGridData(newData);
-            onValueChange(element.id, newData);
-            setIsFormOpen(false);
-        }
-        
-        const handleDelete = (index: number) => {
-            const newData = gridData.filter((_, i) => i !== index);
-            setGridData(newData);
-            onValueChange(element.id, newData);
-        }
-        
-        const getColumnStyle = (col: DataGridColumn, row: any) => {
-            const proxyId = `${element.id}::${col.key}`;
-            const styles: React.CSSProperties = {};
-             for (const rule of rules) {
-                const isRuleMet = evaluateRule(rule, row, configurations, sections);
-                if (isRuleMet) {
-                    for (const behavior of rule.behaviors) {
-                        if (behavior.targetElementId === proxyId && behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
-                            styles[behavior.targetProperty as any] = behavior.color;
-                        }
-                    }
-                }
-            }
-            return styles;
-        }
-
-        content = (
-            <div>
-                {renderLabel()}
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                {element.dataGridColumns?.map(col => <TableHead key={col.id}>{col.label}</TableHead>)}
-                                <TableHead className="w-[100px] text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {gridData.map((row, rowIndex) => (
-                                <TableRow key={rowIndex}>
-                                    {element.dataGridColumns?.map(col => (
-                                        <TableCell key={col.id} style={getColumnStyle(col, row)}>
-                                            {String(getNestedValue(row, col.key) ?? '')}
-                                        </TableCell>
-                                    ))}
-                                    <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => openForm(rowIndex)}>
-                                            <Edit className="h-4 w-4"/>
-                                        </Button>
-                                         <Button variant="ghost" size="icon" onClick={() => handleDelete(rowIndex)}>
-                                            <Trash className="h-4 w-4 text-destructive"/>
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {gridData.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={(element.dataGridColumns?.length || 0) + 1} className="text-center text-muted-foreground">
-                                        No entries yet.
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-                <Button variant="outline" className="mt-4" onClick={() => openForm()}>
-                    <Plus className="mr-2 h-4 w-4"/> Add Entry
-                </Button>
-                <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>{editingIndex !== null ? 'Edit Entry' : 'Add New Entry'}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                            {element.dataGridColumns?.map((col, index) => {
-                                const proxyId = `${element.id}::${col.key}::${editingIndex !== null ? editingIndex : 'new'}`;
-                                const rowContextForPopup = (element.dataGridColumns || []).reduce((acc, c) => {
-                                        const currentId = `${element.id}::${c.key}::${editingIndex !== null ? editingIndex : 'new'}`;
-                                        acc[c.key] = currentFormData[currentId]?.value;
-                                        return acc;
-                                    }, {} as Record<string, any>);
-                                return (
-                                <FormElementRenderer 
-                                    key={proxyId}
-                                    element={{ ...col.element, id: proxyId, label: col.label }}
-                                    value={currentFormData[proxyId]?.value}
-                                    onValueChange={handleFormValueChange}
-                                    rowContext={rowContextForPopup}
-                                />
-                            )})}
-                        </div>
-                        <DialogFooter>
-                            <Button variant="outline" onClick={() => setIsFormOpen(false)}>Cancel</Button>
-                            <Button onClick={handleSave}>Save</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
-        );
-        break;
     case "Table":
         content = (
             <TableElement
@@ -1058,7 +924,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         )
         break;
     default:
-      content = <div>Unsupported element type: {type}</div>;
+      // This will handle the case for DataGrid which does not have a direct renderer here
+      if (type === 'DataGrid') {
+        content = <div>DataGrid is not rendered via FormElementRenderer.</div>
+      } else {
+        content = <div>Unsupported element type: {type}</div>;
+      }
       break;
   }
 
