@@ -1,7 +1,7 @@
 
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Grid, Eye, Upload, ListFilter } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Eye, Upload, ListFilter } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
