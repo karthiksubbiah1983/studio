@@ -221,8 +221,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   const allListOptions = useMemo(() => {
     if (element.type !== 'List') return [];
-    return element.dataSource === 'dynamic' ? dynamicOptions : (element.options || []);
-  }, [element.type, element.dataSource, dynamicOptions, element.options]);
+    if (element.dataSource === 'dynamic') return dynamicOptions;
+    if (element.dataSource === 'static') return element.staticData || [];
+    return [];
+  }, [element.type, element.dataSource, dynamicOptions, element.staticData]);
 
   const mainListOptions = useMemo(() => {
       if (element.type !== 'List' || !currentSelection) return allListOptions;
@@ -604,7 +606,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
                     
                     const itemContent = () => {
-                        const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
                         const displayElements = (element.listItemElements || []).map(itemEl => (
                             <FormElementRenderer 
                                 key={itemEl.id}
@@ -619,7 +620,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
                         return (
                             <>
-                                <Label htmlFor={isRadio ? `${element.id}-${index}` : undefined} className="font-normal">{itemLabel}</Label>
                                 {displayElements}
                             </>
                         );
@@ -951,5 +951,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
-    

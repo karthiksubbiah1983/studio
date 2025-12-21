@@ -65,18 +65,18 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 ...baseElement,
                 label: "List Field",
                 dataSource: 'static',
-                options: ["Option 1", "Option 2"],
+                staticData: [{ id: crypto.randomUUID(), label: "Option 1" }],
+                valueKey: 'id', // Use 'id' for value in static data
+                labelKey: 'label', // Use 'label' for display in static data
                 listType: 'checkbox',
                 displaySelection: 'none',
                 listItemElements: [
-                    { id: crypto.randomUUID(), element: createNewElement('Display') }
+                     { id: crypto.randomUUID(), element: { ...createNewElement('Display'), label: 'Label', key: 'label' } }
                 ],
                 enableScoring: false,
                 scorePerItem: 1,
                 passingScore: 1,
                 apiUrl: null,
-                valueKey: null,
-                labelKey: null,
             };
         case "Checkbox":
             return { ...baseElement, label: "Checkbox Field", key: key, required: false };

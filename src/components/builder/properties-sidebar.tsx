@@ -646,6 +646,60 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         </Button>
     </div>
   );
+  
+  const staticDataEditor = () => {
+    const staticData = props.staticData || [];
+    const listItemElements = props.listItemElements || [];
+
+    const handleAddItem = () => {
+        const newItem: Record<string, any> = { id: crypto.randomUUID() };
+        listItemElements.forEach(el => {
+            newItem[el.element.key] = el.element.defaultValue || '';
+        });
+        updateProperty('staticData', [...staticData, newItem]);
+    };
+    
+    const handleRemoveItem = (index: number) => {
+        const newData = [...staticData];
+        newData.splice(index, 1);
+        updateProperty('staticData', newData);
+    };
+
+    const handleItemChange = (index: number, key: string, value: any) => {
+        const newData = [...staticData];
+        newData[index] = { ...newData[index], [key]: value };
+        updateProperty('staticData', newData);
+    }
+
+    return (
+        <div className="flex flex-col gap-4">
+            <Label>Static Data Editor</Label>
+            <div className="space-y-4">
+                {staticData.map((item, itemIndex) => (
+                    <div key={itemIndex} className="border p-4 rounded-md space-y-3 relative">
+                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => handleRemoveItem(itemIndex)}>
+                            <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
+                        <p className="text-xs font-medium text-muted-foreground">Item {itemIndex + 1}</p>
+                        {listItemElements.map(el => (
+                            <div key={el.id} className="flex flex-col gap-1.5">
+                                <Label className="text-xs">{el.element.label}</Label>
+                                <Input
+                                    value={item[el.element.key] || ''}
+                                    onChange={(e) => handleItemChange(itemIndex, el.element.key, e.target.value)}
+                                    placeholder={el.element.label}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+            <Button variant="outline" size="sm" onClick={handleAddItem}>
+                <Plus className="mr-2 h-4 w-4" /> Add Item
+            </Button>
+        </div>
+    );
+  }
 
   const dynamicDataSourceFields = () => (
     <div className="flex flex-col gap-4">
@@ -1175,10 +1229,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     const newDataSource = val as 'static' | 'dynamic';
                                     updateMultipleProperties({
                                         dataSource: newDataSource,
-                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : undefined,
+                                        staticData: newDataSource === 'static' ? (props.staticData || [{ id: crypto.randomUUID(), label: "Option 1" }]) : undefined,
                                         apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : undefined,
-                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : undefined,
-                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : undefined,
+                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : 'id',
+                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : 'label',
                                     })
                                 }}
                                 className="flex"
@@ -1192,7 +1246,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Label htmlFor="list-source-dynamic">Dynamic</Label>
                                 </div>
                             </RadioGroup>
-                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : staticDataEditor()}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="layout">
