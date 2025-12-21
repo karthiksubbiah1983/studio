@@ -1348,20 +1348,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="enable-search">Enable Search</Label>
                                 <Switch id="enable-search" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
                             </div>
-                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="enable-sorting">Enable Sorting</Label>
-                                <Switch id="enable-sorting" checked={props.enableSorting} onCheckedChange={(checked) => updateProperty('enableSorting', checked)} />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="itemsPerPage">Items Per Page</Label>
-                                <Input
-                                    id="itemsPerPage"
-                                    type="number"
-                                    min="1"
-                                    value={props.itemsPerPage || 10}
-                                    onChange={(e) => updateProperty('itemsPerPage', parseInt(e.target.value))}
-                                />
-                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

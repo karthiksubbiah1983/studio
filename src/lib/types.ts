@@ -150,8 +150,6 @@ export type FormElementInstance = {
     defaultRows?: number;
     maxRows?: number;
     enableSearch?: boolean;
-    enableSorting?: boolean;
-    itemsPerPage?: number;
 };
 
 export type Section = {
