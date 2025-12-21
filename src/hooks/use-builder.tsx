@@ -5,12 +5,11 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive } from "@/lib/utils";
+import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { evaluateRule } from "@/components/form-preview-helpers";
 
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
@@ -937,39 +936,45 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         
         const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean) => {
             const { type, targetElementId, value, targetConfigurationKey } = behavior;
-            
+            const targetElement = findElementRecursive(sections, targetElementId || '');
+            const isTargetInTable = !!targetElement?.isTableColumn;
+
             let targetId = targetElementId;
             if (type === 'set_configuration' && targetConfigurationKey) {
                 targetId = `config::${targetConfigurationKey}`;
             }
             if (!targetId) return;
-
+            
             const currentTargetState = context[targetId] || {};
             
             if (type === 'set_value' || type === 'set_configuration') {
                 const newValue = value;
-                const oldValue = context[targetId];
-
-                if (oldValue !== newValue) {
-                     if (isTableRow) {
-                        context[targetId] = newValue; // Set value directly on row context
-                    } else {
-                        context[targetId] = { ...currentTargetState, value: newValue };
+                // For in-table targets, update the row context directly.
+                // For external targets, update the main state context.
+                if (isTableRow && isTargetInTable) {
+                    if (context[targetId] !== newValue) {
+                        context[targetId] = newValue;
+                        stateChangedInPass = true;
                     }
-                    stateChangedInPass = true;
-                    if (type === 'set_configuration') {
-                        configChangedInPass = true;
-                        console.log(`Configuration '${targetConfigurationKey}' set to '${value}'.`);
+                } else {
+                     if (context[targetId]?.value !== newValue) {
+                        context[targetId] = { ...currentTargetState, value: newValue };
+                        stateChangedInPass = true;
+                        if (type === 'set_configuration') {
+                            configChangedInPass = true;
+                        }
                     }
                 }
             }
             
             const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
             if (newVisibility !== undefined) {
-                if (isTableRow) {
-                     // Visibility in tables is handled by hiding/showing columns, not individual cells in the state.
+                 if (isTableRow && isTargetInTable) {
+                    // Visibility for table columns is not managed cell by cell in the state,
+                    // but could be implemented by adding a property to the row data if needed.
+                    // For now, we assume visibility rules for table columns affect the whole column via properties-sidebar.
                 } else {
-                    if (currentTargetState.isVisible !== newVisibility) {
+                    if (context[targetId]?.isVisible !== newVisibility) {
                         context[targetId] = { ...currentTargetState, isVisible: newVisibility };
                         stateChangedInPass = true;
                     }
@@ -988,7 +993,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 tableData.forEach(row => {
                     const rowContext = { ...nextFormState, ...row };
                     if (evaluateRule(rule, rowContext, configurations, sections)) {
-                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true));
+                        rule.behaviors.forEach(behavior => applyBehavior(behavior, rowContext, true));
                     }
                 });
             } else {
@@ -1010,6 +1015,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         currentState = finalState;
         // Continue looping if the state changed, OR if a config changed (as it might trigger other rules).
         continueLooping = stateChanged || configChanged;
+        if(configChanged){
+            // If a config changed, we need to ensure the whole loop runs again to catch dependencies on it.
+            continueLooping = true;
+        }
         pass++;
     }
 
