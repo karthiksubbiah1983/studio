@@ -124,11 +124,12 @@ export type FormElementInstance = {
     isLink?: boolean;
     linkUrl?: string | null;
     linkUrlSourceElementId?: string | null;
+    leadText?: string;
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
     // For RichText
     content?: string;
-    // For Container, RadioGroup
+    // For Container, RadioGroup, Display
     direction?: 'horizontal' | 'vertical';
     // For Container
     elements?: FormElementInstance[];

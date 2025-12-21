@@ -226,8 +226,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       }
       if (element.displaySelection === 'selected') {
            return allListOptions.filter(option => {
-              const optValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
-              return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
+              const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option.id);
+              return isCheckbox ? currentSelection.includes(itemValue) : currentSelection === itemValue;
           });
       }
       return [];
@@ -276,7 +276,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [score, element.id, onValueChange, formState]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -398,7 +398,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         if (!finalStyle.color && color) { 
             finalStyle.color = color;
         }
-        content = <Tag className={cn(classes[style], 'mt-1', isTableCell && 'p-2 text-sm')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
+        
+        const mainTextContent = <Tag className={cn(classes[style])} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
+
+        content = (
+             <div className={cn(
+                "flex items-center gap-2 px-1.5",
+                direction === 'vertical' ? 'flex-col items-start' : 'flex-row'
+             )}>
+                {leadText && <Label className="text-sm font-medium">{leadText}</Label>}
+                {mainTextContent}
+            </div>
+        );
         break;
     }
     case "Container": {
@@ -617,7 +628,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const renderListItemContent = (option: any) => {
             const itemLabel = String(element.dataSource === 'dynamic' ? getNestedValue(option, element.labelKey!) : option.label);
             const secondaryText = element.hasSecondaryText ? String(element.dataSource === 'dynamic' ? getNestedValue(option, element.secondaryTextKey!) : option.secondaryText) : null;
-            const linkUrl = element.isSecondaryTextLink ? String(element.dataSource === 'dynamic' ? getNestedValue(option, element.linkUrlKey!) : (option.linkUrl || '#')) : null;
+            const linkUrl = element.isSecondaryTextLink ? (element.dataSource === 'dynamic' ? getNestedValue(option, element.linkUrlKey!) : option.linkUrl) || '#' : null;
 
             return (
                 <div className="flex flex-col gap-1">
@@ -642,7 +653,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     <Loader2 className="animate-spin" />
                 ) : mainListOptions.length > 0 ? (
                     mainListOptions.map((option, index) => {
-                        const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                        const itemValue = String(element.dataSource === 'dynamic' ? getNestedValue(option, element.valueKey!) : option.id);
                         const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
                         
                         return (
@@ -699,7 +710,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         <p className="text-sm font-medium mb-2">{element.displaySelection === 'selected' ? 'Selected' : 'Unselected'} Items:</p>
                         <div className="rounded-md border p-2 space-y-1">
                             {displayedSelection.map((option, index) => {
-                                 const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                                 const itemValue = String(element.dataSource === 'dynamic' ? getNestedValue(option, element.valueKey!) : option.id);
                                  return (
                                     <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md text-sm">
                                         <div className="flex-1">{renderListItemContent(option)}</div>
