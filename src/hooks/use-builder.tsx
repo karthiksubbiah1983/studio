@@ -5,7 +5,7 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, evaluateRule } from "@/lib/utils";
+import { getAllElements, evaluateRule, findElementRecursive } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -731,7 +731,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
   
-   // This effect creates the reactive rules engine
+  // This effect creates the reactive rules engine for state changes
   useEffect(() => {
     if (!rules || rules.length === 0) return;
 
@@ -739,28 +739,49 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     const newFormState = { ...state.formState };
     let stateChanged = false;
 
-    for (const rule of rules) {
-      const ruleMet = evaluateRule(rule, state.formState, configurations, sections);
-      if (ruleMet) {
-        for (const behavior of rule.behaviors) {
-          if (behavior.type === 'set_value' && behavior.targetElementId && behavior.value !== undefined) {
-             if (newFormState[behavior.targetElementId]?.value !== behavior.value) {
-                newFormState[behavior.targetElementId] = { value: behavior.value };
-                stateChanged = true;
-             }
-          } else if (behavior.type === 'set_configuration' && behavior.targetConfigurationKey && behavior.value !== undefined) {
-            const configKey = `config::${behavior.targetConfigurationKey}`;
-             if (newFormState[configKey]?.value !== behavior.value) {
-                newFormState[configKey] = { value: behavior.value };
-                stateChanged = true;
-             }
-          }
+    const processRule = (rule: Rule, context: any) => {
+        const ruleMet = evaluateRule(rule, context, configurations, sections);
+        if (ruleMet) {
+            for (const behavior of rule.behaviors) {
+                if (behavior.type === 'set_value' && behavior.targetElementId) {
+                    if (newFormState[behavior.targetElementId]?.value !== behavior.value) {
+                        newFormState[behavior.targetElementId] = { value: behavior.value };
+                        stateChanged = true;
+                    }
+                } else if (behavior.type === 'set_configuration' && behavior.targetConfigurationKey) {
+                    const configKey = `config::${behavior.targetConfigurationKey}`;
+                    if (newFormState[configKey]?.value !== behavior.value) {
+                        newFormState[configKey] = { value: behavior.value };
+                        stateChanged = true;
+                    }
+                }
+            }
         }
-      }
+    };
+
+    for (const rule of rules) {
+        const sourceElementId = rule.conditions[0]?.sourceElementId;
+        if (!sourceElementId) {
+            processRule(rule, state.formState);
+            continue;
+        }
+
+        const parentTableId = findElementRecursive(sections, sourceElementId, true);
+
+        if (typeof parentTableId === 'string' && state.formState[parentTableId]?.value) {
+            // Rule condition is inside a table, iterate over rows
+            const tableData = state.formState[parentTableId].value as any[];
+            tableData.forEach(rowContext => {
+                processRule(rule, rowContext);
+            });
+        } else {
+            // Rule condition is not in a table
+            processRule(rule, state.formState);
+        }
     }
 
     if (stateChanged) {
-      dispatch({ type: 'SET_FORM_STATE', payload: newFormState });
+        dispatch({ type: 'SET_FORM_STATE', payload: newFormState });
     }
   }, [state.formState, rules, sections, configurations]);
   
@@ -851,3 +872,4 @@ export const useBuilder = () => {
   }
   return context;
 };
+

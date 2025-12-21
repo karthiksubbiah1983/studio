@@ -26,24 +26,18 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             const value = context[configKey];
              return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
-
-        if (idOrKey.includes('::')) {
-            const parts = idOrKey.split('::');
-            const elementKey = parts.length > 1 ? parts[1] : parts[0]; 
-             if(context.hasOwnProperty(elementKey)) {
-                const value = context[elementKey];
-                return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
-            }
-        }
-
+        
+        // For context from table rows, keys are direct properties
         if(context.hasOwnProperty(idOrKey)) {
             const value = context[idOrKey];
             return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
         }
-        
-        const value = context[idOrKey];
-        if (value !== undefined) {
-             return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+
+        // For global formState context, keys are element IDs
+        const element = allElements.find(el => 'id' in el && el.id === idOrKey);
+        if (element && 'id' in element && context[element.id]) {
+            const stateValue = context[element.id];
+            return (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
         }
         
         return undefined;
@@ -51,7 +45,10 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
 
     let sourceValue: any;
     if (condition.sourceType === 'field') {
-        sourceValue = getConditionValue('source', condition.sourceElementId);
+        const sourceElement = allElements.find(el => el.id === condition.sourceElementId);
+        // Inside a table, context keys are column keys. Outside, they are element IDs.
+        const keyToLookup = sourceElement && 'key' in sourceElement ? sourceElement.key : condition.sourceElementId;
+        sourceValue = getConditionValue('source', keyToLookup);
     } else { // 'date', 'status', 'config'
         sourceValue = getConditionValue('source', condition.sourceValue);
     }
@@ -60,7 +57,9 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
 
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
-        comparisonValue = getConditionValue('comparison', condition.comparisonElementId);
+        const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId);
+        const keyToLookup = comparisonElement && 'key' in comparisonElement ? comparisonElement.key : condition.comparisonElementId;
+        comparisonValue = getConditionValue('comparison', keyToLookup);
     } else if (condition.comparisonType === 'config') {
         comparisonValue = getConditionValue('comparison', condition.value);
     } else if (condition.comparisonType === 'date' || condition.comparisonType === 'status') {
