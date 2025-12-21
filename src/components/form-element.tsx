@@ -51,22 +51,34 @@ type Props = {
 
 const interpolateString = (template: string, data: { formState: { [key:string]: any }, sections: Section[], rowContext?: any }): string => {
     if (!template) return "";
-    const context = data.rowContext || data.formState;
+    
+    // Create a unified context for interpolation. Row context takes precedence.
+    const context = { ...(data.formState || {}), ...(data.rowContext || {}) };
 
     return template.replace(/\{([a-zA-Z0-9_.]+)\}/g, (match, key) => {
         const allElements = getAllElements(data.sections || []);
+        
+        // Find if the key matches a form element's key
         const element = allElements.find(el => 'key' in el && el.key === key);
+        
+        let valueToInsert: any;
 
-        let valueToInsert: any = undefined;
-
-        if (element && 'id' in element && context[element.id]) {
-            const stateValue = context[element.id];
-            valueToInsert = (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
-        } else {
-            const nestedValue = getNestedValue(context, key);
-            if(nestedValue !== undefined) {
-                 valueToInsert = nestedValue;
+        if (element && 'id' in element) {
+            // Check row context first by element ID
+            if (data.rowContext && data.rowContext[element.id] !== undefined) {
+                const stateValue = data.rowContext[element.id];
+                 valueToInsert = (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
+            } 
+            // Then check global form state by element ID
+            else if (context[element.id] !== undefined) {
+                const stateValue = context[element.id];
+                valueToInsert = (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
             }
+        }
+        
+        // If not found by element key, try as a nested property of the context (for objects from Selects)
+        if (valueToInsert === undefined) {
+            valueToInsert = getNestedValue(context, key);
         }
         
         return valueToInsert !== undefined ? String(valueToInsert) : match;
@@ -357,9 +369,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             finalDisplayValue = label;
         }
         
-        if (isLink && linkUrl) {
-            const contextForInterpolation = rowContext || formState || {};
-            const finalUrl = interpolateString(linkUrl, { formState: contextForInterpolation, sections, rowContext });
+        if (isLink) {
+            let finalUrl = "";
+             // In a list context, the row data (rowContext) might contain the specific URL
+            if (rowContext && key && rowContext[`${key}__url`]) {
+                finalUrl = rowContext[`${key}__url`];
+            } 
+            // Fallback to the element's configured URL template
+            else if (linkUrl) {
+                const contextForInterpolation = rowContext || formState || {};
+                finalUrl = interpolateString(linkUrl, { formState: contextForInterpolation, sections, rowContext });
+            }
             return (
                 <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     <Link className="h-4 w-4" />

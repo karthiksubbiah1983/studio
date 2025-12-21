@@ -656,6 +656,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         listItemElements.forEach(el => {
             if (el.element.key) {
                 newItem[el.element.key] = el.element.defaultValue || '';
+                 if (el.element.isLink) {
+                    newItem[`${el.element.key}__url`] = el.element.linkUrl || '';
+                 }
             }
         });
         updateProperty('staticData', [...staticData, newItem]);
@@ -696,13 +699,25 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         {listItemElements.map(el => {
                             if (!el.element.key) return null;
                             return (
-                                <div key={el.id} className="flex flex-col gap-1.5">
-                                    <Label className="text-xs">{el.element.label}</Label>
-                                    <Input
-                                        value={item[el.element.key] || ''}
-                                        onChange={(e) => handleItemChange(item.id, el.element.key, e.target.value)}
-                                        placeholder={el.element.label}
-                                    />
+                                <div key={el.id} className="space-y-2">
+                                    <div className="flex flex-col gap-1.5">
+                                        <Label className="text-xs">{el.element.label}</Label>
+                                        <Input
+                                            value={item[el.element.key] || ''}
+                                            onChange={(e) => handleItemChange(item.id, el.element.key, e.target.value)}
+                                            placeholder={el.element.label}
+                                        />
+                                    </div>
+                                    {el.element.isLink && (
+                                        <div className="flex flex-col gap-1.5">
+                                            <Label className="text-xs">{el.element.label} URL</Label>
+                                            <Input
+                                                value={item[`${el.element.key}__url`] || ''}
+                                                onChange={(e) => handleItemChange(item.id, `${el.element.key}__url`, e.target.value)}
+                                                placeholder="https://example.com"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )
                         })}
@@ -903,7 +918,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <Label htmlFor="link-url">URL Template</Label>
                                         <Input id="link-url" value={props.linkUrl || ''} onChange={(e) => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com/users/{id}" />
                                         <p className="text-xs text-muted-foreground">
-                                            Use {'{key}'} to insert values from a source field.
+                                            Use {'{key}'} to insert values from a source field. For lists, this is sourced per item.
                                         </p>
                                     </div>
                                     <div className="flex flex-col gap-2">
