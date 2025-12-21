@@ -5,11 +5,12 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
+import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
+import { evaluateRule } from "@/components/form-preview-helpers";
 
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
@@ -901,102 +902,117 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   // Reactive rules engine
   useEffect(() => {
     if (!isLoaded || !activeForm) return;
-    
-    let nextFormState = { ...state.formState };
-    const allElements = getAllElements(sections);
 
-    // Sync default rows for editable tables based on form definition
-    allElements.forEach(el => {
-        if (el.type === 'EditableTable' && el.defaultRows) {
-            const tableState = nextFormState[el.id];
-            const currentRows = Array.isArray(tableState?.value) ? tableState.value.length : 0;
+    const runRuleEngine = (initialContext: any) => {
+        let nextFormState = { ...initialContext };
+        let stateChangedInPass = false;
+
+        const allElements = getAllElements(sections);
+
+        // Sync default rows for editable tables
+        allElements.forEach(el => {
+            if (el.type === 'EditableTable' && el.defaultRows) {
+                const tableState = nextFormState[el.id];
+                const currentRows = Array.isArray(tableState?.value) ? tableState.value.length : 0;
+                
+                if (tableState === undefined || currentRows !== el.defaultRows) {
+                    const newRows: any[] = [];
+                    for (let i = 0; i < el.defaultRows; i++) {
+                        const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
+                        el.columns?.forEach(col => {
+                            row[col.element.id] = col.element.defaultValue ?? null;
+                        });
+                        newRows.push(row);
+                    }
+                    nextFormState[el.id] = { ...tableState, value: newRows };
+                    stateChangedInPass = true;
+                }
+            }
+        });
+
+        if (!rules || rules.length === 0) {
+            return { finalState: nextFormState, stateChanged: stateChangedInPass };
+        }
+        
+        const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean) => {
+            const { type, targetElementId, value, targetConfigurationKey } = behavior;
             
-            // Only initialize if the state is not already set or doesn't match
-            if (tableState === undefined || currentRows !== el.defaultRows) {
-                 const newRows: any[] = [];
-                 for (let i = 0; i < el.defaultRows; i++) {
-                    const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
-                    el.columns?.forEach(col => {
-                        row[col.element.id] = col.element.defaultValue ?? null;
-                    });
-                    newRows.push(row);
-                }
-                nextFormState[el.id] = { ...tableState, value: newRows };
+            let targetId = targetElementId;
+            if (type === 'set_configuration' && targetConfigurationKey) {
+                targetId = `config::${targetConfigurationKey}`;
             }
-        }
-    });
+            if (!targetId) return;
 
-    if (!rules || rules.length === 0) {
-        if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
-             dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
-        }
-        return;
-    }
-    
-    const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean) => {
-        const { type, targetElementId, value, targetConfigurationKey } = behavior;
-        
-        let targetId = targetElementId;
-        if (type === 'set_configuration' && targetConfigurationKey) {
-            targetId = `config::${targetConfigurationKey}`;
-        }
-        if (!targetId) return;
+            const currentTargetState = context[targetId] || {};
+            
+            if (type === 'set_value' || type === 'set_configuration') {
+                const newValue = value;
+                const oldValue = isTableRow ? context[targetId] : currentTargetState.value;
 
-        const currentTargetState = context[targetId] || {};
-        
-        if (type === 'set_value' || type === 'set_configuration') {
-            const newValue = value;
-            if (isTableRow) {
-                 if (context[targetId] !== newValue) {
-                    context[targetId] = newValue;
+                if (oldValue !== newValue) {
+                    if (isTableRow) {
+                        context[targetId] = newValue;
+                    } else {
+                        context[targetId] = { ...currentTargetState, value: newValue };
+                    }
+                    stateChangedInPass = true;
+                    if (type === 'set_configuration') {
+                        console.log(`Configuration '${targetConfigurationKey}' set to '${value}' from within a table rule.`);
+                    }
                 }
+            }
+            
+            const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
+            if (newVisibility !== undefined) {
+                if (isTableRow) {
+                     // Visibility in tables is handled by hiding/showing columns, not individual cells in the state.
+                     // The actual visibility check will happen in the renderer.
+                } else {
+                    if (currentTargetState.isVisible !== newVisibility) {
+                        context[targetId] = { ...currentTargetState, isVisible: newVisibility };
+                        stateChangedInPass = true;
+                    }
+                }
+            }
+        };
+
+        rules.forEach(rule => {
+            const sourceElement = findElementRecursive(sections, rule.conditions[0]?.sourceElementId || '');
+            const isTableRule = !!sourceElement?.isTableColumn;
+            
+            const tableElementId = isTableRule ? allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.element.id === sourceElement!.id))?.id : undefined;
+
+            if (isTableRule && tableElementId && nextFormState[tableElementId]?.value) {
+                const tableData: any[] = nextFormState[tableElementId].value;
+                tableData.forEach(row => {
+                    const rowContext = { ...nextFormState, ...row };
+                    if (evaluateRule(rule, rowContext, configurations, sections)) {
+                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true));
+                    }
+                });
             } else {
-                if (currentTargetState.value !== newValue) {
-                    context[targetId] = { ...currentTargetState, value: newValue };
+                 if (evaluateRule(rule, nextFormState, configurations, sections)) {
+                    rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState, false));
                 }
             }
-             if (type === 'set_configuration') {
-                console.log(`Configuration '${targetConfigurationKey}' set to '${value}'`);
-            }
-        }
+        });
         
-        const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
-        if (newVisibility !== undefined) {
-             if (isTableRow) {
-                 // Visibility in tables is handled by hiding/showing columns,
-                 // but we can track it on a per-cell basis if needed later.
-                 // For now, let's assume `hide` rules on table columns affect all rows.
-             } else {
-                 if (currentTargetState.isVisible !== newVisibility) {
-                    context[targetId] = { ...currentTargetState, isVisible: newVisibility };
-                }
-             }
-        }
-    };
-    
-    rules.forEach(rule => {
-        const sourceElement = findElementRecursive(sections, rule.conditions[0]?.sourceElementId || '');
-        const isTableRule = !!sourceElement?.isTableColumn;
-        
-        const tableElementId = isTableRule ? allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.element.id === sourceElement!.id))?.id : undefined;
+        return { finalState: nextFormState, stateChanged: stateChangedInPass };
+    }
 
-        if (isTableRule && tableElementId && nextFormState[tableElementId]?.value) {
-            const tableData: any[] = nextFormState[tableElementId].value;
-            tableData.forEach(row => {
-                if (evaluateRule(rule, row, configurations, sections)) {
-                    rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true));
-                }
-            });
-        } else {
-             if (evaluateRule(rule, nextFormState, configurations, sections)) {
-                rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState, false));
-            }
-        }
-    });
-    
-    // Only dispatch if the calculated state is different from the current state
-    if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
-        dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+    // Run the engine multiple times to handle chained dependencies
+    let currentState = { ...state.formState };
+    let continueLooping = true;
+    let pass = 0;
+    while(continueLooping && pass < 5) { // Pass limit to prevent infinite loops
+        const { finalState, stateChanged } = runRuleEngine(currentState);
+        currentState = finalState;
+        continueLooping = stateChanged;
+        pass++;
+    }
+
+    if (JSON.stringify(currentState) !== JSON.stringify(state.formState)) {
+        dispatch({ type: 'SET_FORM_STATE', payload: currentState });
     }
     
   }, [userDrivenState, activeForm?.id, sections, rules, configurations, isLoaded]);
@@ -1093,5 +1109,6 @@ export const useBuilder = () => {
   }
   return context;
 };
+
 
 
