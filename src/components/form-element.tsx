@@ -617,48 +617,56 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         
         const listContent = (
             <div className="rounded-md border p-2 space-y-2">
-                {isLoading ? <Loader2 className="animate-spin" /> : mainListOptions.map((option, index) => {
-                    const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
-                    const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option.label);
-                    const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
-                    
-                    const itemContent = () => (
-                      <div className="flex flex-col gap-1">
-                        <Label htmlFor={`${element.id}-${index}`} className="font-normal cursor-pointer">{itemLabel}</Label>
-                        {element.hasSecondaryText && (
-                            element.isSecondaryTextLink ? (
-                                <a href={option.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
-                                    <Link className="h-3 w-3" />
-                                    {option.secondaryText}
-                                </a>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">{option.secondaryText}</p>
-                            )
-                        )}
-                      </div>
-                    );
+                {isLoading ? (
+                    <Loader2 className="animate-spin" />
+                ) : mainListOptions.length > 0 ? (
+                    mainListOptions.map((option, index) => {
+                        const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                        const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option.label);
+                        const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
+                        
+                        const itemContent = () => (
+                          <div className="flex flex-col gap-1">
+                            <Label htmlFor={`${element.id}-${index}`} className="font-normal cursor-pointer">{itemLabel}</Label>
+                            {element.hasSecondaryText && (
+                                element.isSecondaryTextLink ? (
+                                    <a href={option.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
+                                        <Link className="h-3 w-3" />
+                                        {option.secondaryText}
+                                    </a>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">{option.secondaryText}</p>
+                                )
+                            )}
+                          </div>
+                        );
 
-                    return (
-                        <div
-                            key={`${element.id}-item-${index}`}
-                            onClick={() => handleListChange(itemValue)}
-                            className={cn(
-                                "flex items-start gap-3 p-3 rounded-md transition-colors",
-                                !isDisplayOnly && "cursor-pointer",
-                                isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-accent"
-                            )}
-                        >
-                            {!isDisplayOnly && (
-                                <div className="flex-shrink-0 pt-0.5">
-                                    {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} id={`${element.id}-${index}`} />}
+                        return (
+                            <div
+                                key={`${element.id}-item-${index}`}
+                                onClick={() => handleListChange(itemValue)}
+                                className={cn(
+                                    "flex items-start gap-3 p-3 rounded-md transition-colors",
+                                    !isDisplayOnly && "cursor-pointer",
+                                    isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-accent"
+                                )}
+                            >
+                                {!isDisplayOnly && (
+                                    <div className="flex-shrink-0 pt-0.5">
+                                        {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} id={`${element.id}-${index}`} />}
+                                    </div>
+                                )}
+                                <div className="flex-1">
+                                    {itemContent()}
                                 </div>
-                            )}
-                            <div className="flex-1">
-                                {itemContent()}
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })
+                ) : (
+                    <div className="text-center text-sm text-muted-foreground p-4">
+                        No More Items
+                    </div>
+                )}
             </div>
         );
 
