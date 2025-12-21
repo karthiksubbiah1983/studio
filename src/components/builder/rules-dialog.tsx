@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useMemo, useState, useEffect, memo, useCallback } from "react";
@@ -346,11 +347,13 @@ const BehaviorEditor = memo(({
     onUpdateBehavior,
     onDeleteBehavior,
     selectableFields,
+    localConfigs
 }: { 
     behavior: RuleBehavior, 
     onUpdateBehavior: (id: string, updatedBehavior: RuleBehavior) => void,
     onDeleteBehavior: (id: string) => void,
     selectableFields: (FormElementInstance | Section)[],
+    localConfigs: Configuration[],
 }) => {
     const [behavior, setBehavior] = useState(initialBehavior);
 
@@ -370,6 +373,12 @@ const BehaviorEditor = memo(({
         const newBehavior = {...behavior, [field]: value};
         setBehavior(newBehavior);
         onUpdateBehavior(behavior.id, newBehavior);
+    }
+    
+    const handleComplexSelectChange = (updates: Partial<RuleBehavior>) => {
+        const updatedBehavior = { ...behavior, ...updates };
+        setBehavior(updatedBehavior);
+        onUpdateBehavior(behavior.id, updatedBehavior);
     }
 
     const handleDeleteBehavior = () => {
@@ -393,7 +402,7 @@ const BehaviorEditor = memo(({
                 <Label>Action *</Label>
                 <Select
                     value={behavior.type}
-                    onValueChange={(value) => handleSelectChange('type', value as RuleBehaviorType)}
+                    onValueChange={(value) => handleComplexSelectChange({ type: value as RuleBehaviorType, targetElementId: '' })}
                 >
                     <SelectTrigger>
                         <SelectValue />
@@ -406,24 +415,46 @@ const BehaviorEditor = memo(({
                         <SelectItem value="change_color">Change Color</SelectItem>
                         <SelectItem value="set_error">Set Error</SelectItem>
                         <SelectItem value="set_value">Set Value</SelectItem>
+                        <SelectItem value="set_configuration">Set Configuration</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
              <div className="space-y-2">
-                <Label>Target Field *</Label>
-                <Select
-                    value={behavior.targetElementId}
-                    onValueChange={(value) => handleSelectChange('targetElementId', value)}
-                >
-                    <SelectTrigger>
-                        <SelectValue>{selectedTargetFieldLabel}</SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                        {(behavior.type === 'set_value' ? valueSettingFields : selectableFields).map(el => (
-                            <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                {behavior.type !== 'set_configuration' ? (
+                    <>
+                        <Label>Target Field *</Label>
+                        <Select
+                            value={behavior.targetElementId}
+                            onValueChange={(value) => handleSelectChange('targetElementId', value)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue>{selectedTargetFieldLabel}</SelectValue>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {(behavior.type === 'set_value' ? valueSettingFields : selectableFields).map(el => (
+                                    <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </>
+                ) : (
+                    <>
+                         <Label>Target Configuration *</Label>
+                        <Select
+                            value={behavior.targetConfigurationKey}
+                            onValueChange={(value) => handleSelectChange('targetConfigurationKey', value)}
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select configuration key..."/>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {localConfigs.map(config => (
+                                    <SelectItem key={config.id} value={config.key}>{config.key}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </>
+                )}
             </div>
 
             {behavior.type === 'change_color' && (
@@ -468,7 +499,7 @@ const BehaviorEditor = memo(({
                 </div>
             )}
 
-            {behavior.type === 'set_value' && (
+            {(behavior.type === 'set_value' || behavior.type === 'set_configuration') && (
                 <div className="space-y-2">
                     <Label>Value to Set</Label>
                     <Input
@@ -624,6 +655,7 @@ const RuleEditor = ({
                             onUpdateBehavior={handleUpdateBehavior}
                             onDeleteBehavior={handleDeleteBehavior}
                             selectableFields={selectableFields}
+                            localConfigs={localConfigs}
                         />
                     ))}
                 </div>

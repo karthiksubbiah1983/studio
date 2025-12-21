@@ -1,4 +1,5 @@
 
+
 import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/lib/types";
 import { Workflow } from "@/lib/types";
 import { getAllElements, getNestedValue } from "@/lib/utils";
@@ -27,22 +28,22 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             return config?.value;
         }
 
-        // If context is a single row (rowContext), idOrKey might be a direct key on it.
-        if(context.hasOwnProperty(idOrKey)) {
-            const value = context[idOrKey];
-            return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
-        }
-
-        // Handle proxy IDs like 'table-id::column-key'
+        // Handle proxy IDs like 'table-id::column-key' by checking context first
         if (idOrKey.includes('::')) {
             const parts = idOrKey.split('::');
-            const elementKey = parts[1]; // e.g., 'show_field'
+            const elementKey = parts.length > 1 ? parts[1] : parts[0]; 
              if(context.hasOwnProperty(elementKey)) {
                 const value = context[elementKey];
                 return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
             }
         }
 
+        // If context is a single row (rowContext), idOrKey might be a direct key on it.
+        if(context.hasOwnProperty(idOrKey)) {
+            const value = context[idOrKey];
+            return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+        }
+        
         // Fallback to searching the global context by ID
         const value = context[idOrKey];
         if (value !== undefined) {

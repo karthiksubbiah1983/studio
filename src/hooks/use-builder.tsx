@@ -179,17 +179,24 @@ const findAndModifyElement = (elements: FormElementInstance[], action: Action): 
     return elements;
 };
 
-const getInitialFormState = (sections: Section[]): { [key: string]: { value: any, fullObject?: any } } => {
-    const initialState: { [key: string]: { value: any, fullObject?: any } } = {};
-    if (!sections) return initialState;
+const getInitialFormState = (sections: Section[], configurations: Configuration[] | undefined): { [key: string]: { value: any, fullObject?: any } } => {
+    const state: { [key: string]: { value: any, fullObject?: any } } = {};
+    if (!sections) return state;
     
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
         if ('defaultValue' in element && element.defaultValue !== undefined && 'id' in element) {
-            initialState[element.id] = { value: element.defaultValue };
+            state[element.id] = { value: element.defaultValue };
         }
     });
-    return initialState;
+
+    if (configurations) {
+        configurations.forEach(config => {
+            state[`config::${config.key}`] = { value: config.value };
+        });
+    }
+
+    return state;
 }
 
 type Action =
@@ -235,6 +242,7 @@ type Action =
 const builderReducer = (state: State, action: Action): State => {
   const activeForm = state.forms.find(f => f.id === state.activeFormId);
   const activeFormSections = activeForm?.versions[0]?.sections || [];
+  const activeFormConfigurations = activeForm?.versions[0]?.configurations || [];
 
   switch (action.type) {
     case "ADD_FORM": {
@@ -323,7 +331,8 @@ const builderReducer = (state: State, action: Action): State => {
     case "SET_ACTIVE_FORM": {
       const form = state.forms.find(f => f.id === action.payload.formId);
       const sections = form?.versions[0]?.sections || [];
-      const formState = getInitialFormState(sections);
+      const configurations = form?.versions[0]?.configurations;
+      const formState = getInitialFormState(sections, configurations);
       return { ...state, activeFormId: action.payload.formId, selectedElement: null, formState };
     }
     case "ADD_SECTION":
@@ -591,7 +600,8 @@ const builderReducer = (state: State, action: Action): State => {
         const newForms = state.forms.map(form => 
             form.id === state.activeFormId ? { ...form, versions: updatedVersions } : form
         );
-        return { ...state, forms: newForms };
+        const newFormState = getInitialFormState(newVersion.sections, newVersion.configurations);
+        return { ...state, forms: newForms, formState: newFormState };
     }
     case "LOAD_VERSION": {
         if (!activeForm) return state;
@@ -602,7 +612,7 @@ const builderReducer = (state: State, action: Action): State => {
         const newForms = state.forms.map(form => 
             form.id === state.activeFormId ? { ...form, versions: newVersions } : form
         );
-        const formState = getInitialFormState(versionToLoad.sections || []);
+        const formState = getInitialFormState(versionToLoad.sections, versionToLoad.configurations);
         return { ...state, forms: newForms, formState };
     }
     case "DELETE_VERSION": {
@@ -682,27 +692,33 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (isUserLoading) return;
 
-    const loadData = () => {
-        let loadedState: Partial<State> = {};
-        try {
-            const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (savedStateJSON) {
-                loadedState = JSON.parse(savedStateJSON);
-            }
-        } catch (error) {
-            console.error("Failed to parse state from localStorage", error);
+    let loadedState: Partial<State> = {};
+    try {
+        const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (savedStateJSON) {
+            loadedState = JSON.parse(savedStateJSON);
         }
-
-        const finalState: State = {
-          ...initialState,
-          ...loadedState,
-        }
-        
-        dispatch({ type: 'SET_STATE', payload: finalState });
-        setIsLoaded(true);
+    } catch (error) {
+        console.error("Failed to parse state from localStorage", error);
+    }
+    
+    // Safely merge, ensuring initial state arrays are used if localStorage is empty/corrupt
+    const finalState: State = {
+        forms: loadedState.forms || initialState.forms,
+        categories: loadedState.categories || initialState.categories,
+        sites: loadedState.sites || initialState.sites,
+        tasks: loadedState.tasks || initialState.tasks,
+        submissions: loadedState.submissions || initialState.submissions,
+        activeFormId: loadedState.activeFormId || initialState.activeFormId,
+        selectedElement: loadedState.selectedElement || initialState.selectedElement,
+        draggedElement: loadedState.draggedElement || initialState.draggedElement,
+        clipboard: loadedState.clipboard || initialState.clipboard,
+        formState: loadedState.formState || initialState.formState,
     };
+    
+    dispatch({ type: 'SET_STATE', payload: finalState });
+    setIsLoaded(true);
 
-    loadData();
 
   }, [isUserLoading]);
 
