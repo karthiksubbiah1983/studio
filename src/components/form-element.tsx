@@ -102,7 +102,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const evaluationContext = rowContext || formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
-  // All hooks called unconditionally at the top
   const value = useMemo(() => {
     let calculatedValue;
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) {
@@ -615,6 +614,25 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             }
         };
         
+        const renderListItemContent = (option: any) => {
+            const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option.label);
+            return (
+                <div className="flex flex-col gap-1">
+                    <Label className="font-normal cursor-pointer">{itemLabel}</Label>
+                    {element.hasSecondaryText && (
+                        element.isSecondaryTextLink ? (
+                            <a href={option.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
+                                <Link className="h-3 w-3" />
+                                {option.secondaryText}
+                            </a>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">{option.secondaryText}</p>
+                        )
+                    )}
+                </div>
+            );
+        };
+        
         const listContent = (
             <div className="rounded-md border p-2 space-y-2">
                 {isLoading ? (
@@ -622,25 +640,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 ) : mainListOptions.length > 0 ? (
                     mainListOptions.map((option, index) => {
                         const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
-                        const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option.label);
                         const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
                         
-                        const itemContent = () => (
-                          <div className="flex flex-col gap-1">
-                            <Label htmlFor={`${element.id}-${index}`} className="font-normal cursor-pointer">{itemLabel}</Label>
-                            {element.hasSecondaryText && (
-                                element.isSecondaryTextLink ? (
-                                    <a href={option.linkUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
-                                        <Link className="h-3 w-3" />
-                                        {option.secondaryText}
-                                    </a>
-                                ) : (
-                                    <p className="text-sm text-muted-foreground">{option.secondaryText}</p>
-                                )
-                            )}
-                          </div>
-                        );
-
                         return (
                             <div
                                 key={`${element.id}-item-${index}`}
@@ -657,7 +658,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                     </div>
                                 )}
                                 <div className="flex-1">
-                                    {itemContent()}
+                                    {renderListItemContent(option)}
                                 </div>
                             </div>
                         );
@@ -696,10 +697,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         <div className="rounded-md border p-2 space-y-1">
                             {displayedSelection.map((option, index) => {
                                  const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
-                                 const itemLabel = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option.label;
                                  return (
                                     <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md text-sm">
-                                        <span>{itemLabel}</span>
+                                        <div className="flex-1">{renderListItemContent(option)}</div>
                                         <Button
                                             variant="ghost"
                                             size="icon"
