@@ -938,41 +938,54 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             const { type, targetElementId, value, targetConfigurationKey } = behavior;
             const targetElement = findElementRecursive(sections, targetElementId || '');
             const isTargetInTable = !!targetElement?.isTableColumn;
-
+        
             let targetId = targetElementId;
             if (type === 'set_configuration' && targetConfigurationKey) {
                 targetId = `config::${targetConfigurationKey}`;
             }
             if (!targetId) return;
-            
+        
             const currentTargetState = context[targetId] || {};
-            
+        
             if (type === 'set_value' || type === 'set_configuration') {
                 const newValue = value;
-                // For in-table targets, update the row context directly.
-                // For external targets, update the main state context.
-                if (isTableRow && isTargetInTable) {
+        
+                if (isTableRow && !isTargetInTable) {
+                    // This is an in-table rule targeting an outside element
+                    if (nextFormState[targetId]?.value !== newValue) {
+                        nextFormState[targetId] = { ...nextFormState[targetId], value: newValue };
+                        stateChangedInPass = true;
+                        if (type === 'set_configuration') {
+                            console.log(`Configuration '${targetConfigurationKey}' set to '${newValue}' from within a table.`);
+                            configChangedInPass = true;
+                        }
+                    }
+                } else if (isTableRow && isTargetInTable) {
+                    // Rule within a table targeting another field in the SAME ROW
                     if (context[targetId] !== newValue) {
-                        context[targetId] = newValue;
+                        context[targetId] = newValue; // Update row context directly
                         stateChangedInPass = true;
                     }
                 } else {
-                     if (context[targetId]?.value !== newValue) {
+                    // Standard rule (outside table)
+                    if (context[targetId]?.value !== newValue) {
                         context[targetId] = { ...currentTargetState, value: newValue };
                         stateChangedInPass = true;
                         if (type === 'set_configuration') {
+                             console.log(`Configuration '${targetConfigurationKey}' set to '${newValue}'.`);
                             configChangedInPass = true;
                         }
                     }
                 }
             }
-            
+        
             const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
             if (newVisibility !== undefined) {
-                 if (isTableRow && isTargetInTable) {
-                    // Visibility for table columns is not managed cell by cell in the state,
-                    // but could be implemented by adding a property to the row data if needed.
-                    // For now, we assume visibility rules for table columns affect the whole column via properties-sidebar.
+                if (isTableRow && !isTargetInTable) {
+                     if (nextFormState[targetId]?.isVisible !== newVisibility) {
+                        nextFormState[targetId] = { ...nextFormState[targetId], isVisible: newVisibility };
+                        stateChangedInPass = true;
+                    }
                 } else {
                     if (context[targetId]?.isVisible !== newVisibility) {
                         context[targetId] = { ...currentTargetState, isVisible: newVisibility };
