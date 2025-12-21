@@ -148,6 +148,10 @@ export type FormElementInstance = {
     // For EditableTable
     columns?: TableColumn[];
     defaultRows?: number;
+    maxRows?: number;
+    enableSearch?: boolean;
+    enableSorting?: boolean;
+    itemsPerPage?: number;
 };
 
 export type Section = {

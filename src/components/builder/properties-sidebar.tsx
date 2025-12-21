@@ -1303,7 +1303,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "EditableTable":
             return (
-                <Accordion type="multiple" defaultValue={["general", "columns"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "columns", "features"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1315,7 +1315,18 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     type="number"
                                     min="0"
                                     value={props.defaultRows || 0}
-                                    onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value))}
+                                    onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value) >= 0 ? parseInt(e.target.value) : 0)}
+                                />
+                            </div>
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="maxRows">Max Rows</Label>
+                                <Input
+                                    id="maxRows"
+                                    type="number"
+                                    min="1"
+                                    placeholder="Unlimited"
+                                    value={props.maxRows || ''}
+                                    onChange={(e) => updateProperty('maxRows', e.target.value ? parseInt(e.target.value) : undefined)}
                                 />
                             </div>
                         </AccordionContent>
@@ -1328,6 +1339,29 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 onUpdate={(newColumns) => updateProperty('columns', newColumns)}
                                 columnType="table"
                             />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="features">
+                        <AccordionTrigger className="py-2">Features</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="enable-search">Enable Search</Label>
+                                <Switch id="enable-search" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="enable-sorting">Enable Sorting</Label>
+                                <Switch id="enable-sorting" checked={props.enableSorting} onCheckedChange={(checked) => updateProperty('enableSorting', checked)} />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="itemsPerPage">Items Per Page</Label>
+                                <Input
+                                    id="itemsPerPage"
+                                    type="number"
+                                    min="1"
+                                    value={props.itemsPerPage || 10}
+                                    onChange={(e) => updateProperty('itemsPerPage', parseInt(e.target.value))}
+                                />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1423,4 +1457,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
