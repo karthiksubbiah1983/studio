@@ -403,7 +403,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
         content = (
              <div className={cn(
-                "flex items-center gap-2 px-1.5",
+                "flex items-center gap-2 px-1.5 py-1",
                 direction === 'vertical' ? 'flex-col items-start' : 'flex-row'
              )}>
                 {leadText && <Label className="text-sm font-medium">{leadText}</Label>}
