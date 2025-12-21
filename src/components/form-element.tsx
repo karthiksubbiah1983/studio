@@ -25,7 +25,8 @@ import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye,
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn, findFirstArray, getAllElements, getNestedValue, evaluateRule } from "@/lib/utils";
+import { cn, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
+import { evaluateRule } from "@/components/form-preview-helpers";
 import { useBuilder } from "@/hooks/use-builder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -113,9 +114,33 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const defaultVisibility = !element.hidden;
     if (!evaluationContext) return defaultVisibility;
 
-    const visibilityState = evaluationContext[element.id]?.isVisible;
-    return visibilityState !== undefined ? visibilityState : defaultVisibility;
-  }, [evaluationContext, element.id, element.hidden]);
+    const allRules = getAllElements(sections).flatMap(el => el.rules || []);
+    
+    // In a table cell, we only care about rules that are defined within the table's columns
+    const relevantRules = isTableCell ? allRules.filter(rule => {
+      const sourceId = rule.conditions[0]?.sourceElementId;
+      const targetId = rule.behaviors[0]?.targetElementId;
+      const tableColumns = (element as any).columns?.map((c:any) => c.element.id) || [];
+      return (sourceId && tableColumns.includes(sourceId)) || (targetId && tableColumns.includes(targetId));
+    }) : rules;
+
+    const showRules = relevantRules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'show' && b.targetElementId === element.id));
+    const hideRules = relevantRules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'hide' && b.targetElementId === element.id));
+    
+    let visible = defaultVisibility;
+
+    if (showRules.length > 0) {
+      visible = showRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
+    }
+    
+    if (visible && hideRules.length > 0) {
+      if (hideRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
+        visible = false;
+      }
+    }
+    
+    return visible;
+  }, [evaluationContext, element.id, element.hidden, rules, sections, configurations, isTableCell]);
 
 
   const isDisabled = useMemo(() => {
@@ -888,4 +913,22 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }
 
   return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
+}
+
+const alignmentClasses = {
+    justify: {
+        start: 'justify-start',
+        center: 'justify-center',
+        end: 'justify-end',
+        between: 'justify-between',
+        around: 'justify-around',
+        evenly: 'justify-evenly',
+    },
+    align: {
+        start: 'items-start',
+        center: 'items-center',
+        end: 'items-end',
+        stretch: 'items-stretch',
+        baseline: 'items-baseline',
+    }
 }

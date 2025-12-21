@@ -2,7 +2,7 @@
 
 import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/lib/types";
 import { Workflow } from "@/lib/types";
-import { getAllElements, getNestedValue } from "@/lib/utils";
+import { findElementRecursive, getAllElements, getNestedValue } from "@/lib/utils";
 
 export const evaluateSingleCondition = (condition: Condition, context: { [key: string]: any }, allElements: (FormElementInstance | Section)[], configurations?: Configuration[]) => {
     if (!context) return false;
@@ -26,11 +26,12 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             const value = context[configKey];
              return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
-        
-        // For context from table rows, keys are direct properties
+
+        // For context from table rows, keys are direct properties (the element IDs of the columns)
         if(context.hasOwnProperty(idOrKey)) {
             const value = context[idOrKey];
-            return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+            // The value in a row context might not be wrapped in a {value: ...} object
+            return (value && typeof value === 'object' && 'value' in value) ? value.value : value;
         }
 
         // For global formState context, keys are element IDs
@@ -45,10 +46,7 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
 
     let sourceValue: any;
     if (condition.sourceType === 'field') {
-        const sourceElement = allElements.find(el => el.id === condition.sourceElementId);
-        // Inside a table, context keys are column keys. Outside, they are element IDs.
-        const keyToLookup = sourceElement && 'key' in sourceElement ? sourceElement.key : condition.sourceElementId;
-        sourceValue = getConditionValue('source', keyToLookup);
+        sourceValue = getConditionValue('source', condition.sourceElementId);
     } else { // 'date', 'status', 'config'
         sourceValue = getConditionValue('source', condition.sourceValue);
     }
@@ -57,9 +55,7 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
 
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
-        const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId);
-        const keyToLookup = comparisonElement && 'key' in comparisonElement ? comparisonElement.key : condition.comparisonElementId;
-        comparisonValue = getConditionValue('comparison', keyToLookup);
+        comparisonValue = getConditionValue('comparison', condition.comparisonElementId);
     } else if (condition.comparisonType === 'config') {
         comparisonValue = getConditionValue('comparison', condition.value);
     } else if (condition.comparisonType === 'date' || condition.comparisonType === 'status') {

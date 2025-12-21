@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { FormElementInstance } from '@/lib/types';
@@ -26,24 +27,21 @@ export function EditableTable({ element, value, onValueChange }: Props) {
   const rows = Array.isArray(value) ? value : [];
 
   const handleRowValueChange = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
-    const newRows = [...rows];
-    // Find the real index in the original array for rows that are filtered
     const originalIndex = rows.findIndex(r => r._rowId === filteredRows[rowIndex]._rowId);
-    
     if(originalIndex === -1) return;
 
-    const newRow = { ...rows[originalIndex], [columnId]: cellValue };
-
+    const newRows = [...rows];
+    let updatedRow = { ...newRows[originalIndex], [columnId]: cellValue };
+    
     const changedColumnElement = element.columns?.find(c => c.element.id === columnId);
-
     if (changedColumnElement?.element.type === 'Select' && changedColumnElement.element.dataSource === 'dynamic') {
-        rows[originalIndex] = { ...newRow, [`${columnId}__fullObject`]: fullObject };
-    } else {
-        rows[originalIndex] = newRow;
+        updatedRow = { ...updatedRow, [`${columnId}__fullObject`]: fullObject };
     }
-
-    onValueChange(element.id, [...rows]);
+    
+    newRows[originalIndex] = updatedRow;
+    onValueChange(element.id, newRows);
   };
+
 
   const addRow = () => {
     if (element.maxRows && rows.length >= element.maxRows) return;
@@ -106,15 +104,14 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                 {filteredRows.map((row, rowIndex) => (
                     <TableRow key={row._rowId}>
                     {element.columns?.map(col => {
-                        const rowContext = { ...formState, ...row };
                         return (
                             <TableCell key={col.id} className="min-w-[200px]">
                                 <FormElementRenderer
                                     element={col.element}
                                     value={row[col.element.id]}
                                     onValueChange={(id, val, fullObj) => handleRowValueChange(rowIndex, col.element.id, val, fullObj)}
-                                    formState={rowContext}
-                                    rowContext={rowContext}
+                                    formState={formState} // Pass global state for external dependencies
+                                    rowContext={row} // Pass row-specific data
                                     isTableCell={true}
                                 />
                             </TableCell>
