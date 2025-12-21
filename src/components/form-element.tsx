@@ -99,7 +99,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState<string | null>(null);
 
-  
   const evaluationContext = rowContext || formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
@@ -113,8 +112,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         calculatedValue = "#ERROR!";
       }
       
-      // If the calculated value is different, propagate the change.
-      // This handles reactive calculations.
       if (calculatedValue !== initialValue) {
         onValueChange(element.id, calculatedValue);
       }
@@ -129,7 +126,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const allRules = getAllElements(sections).flatMap(el => 'rules' in el && el.rules ? el.rules : []) as Rule[];
     const allFormRules = rules || [];
     
-    // In a table cell, we only care about rules that are defined within that table's columns
     const relevantRules = isTableCell ? allRules : [...allFormRules, ...allRules];
 
     const showRules = relevantRules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'show' && b.targetElementId === element.id));
@@ -667,6 +663,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 })}
             </div>
         );
+
+        const handleRemoveSelection = (itemValue: string) => {
+            if (isCheckbox) {
+                const selection = currentSelection as string[];
+                const newSelection = selection.filter((v: string) => v !== itemValue);
+                onValueChange(element.id, newSelection);
+            } else { // Radio button
+                onValueChange(element.id, '');
+            }
+        };
         
         content = (
             <div>
@@ -683,8 +689,21 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         <p className="text-sm font-medium mb-2">{element.displaySelection === 'selected' ? 'Selected' : 'Unselected'} Items:</p>
                         <div className="rounded-md border p-2 space-y-1">
                             {displayedSelection.map((option, index) => {
-                                 const itemLabel = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option;
-                                 return <div key={index} className="p-2 bg-muted/50 rounded-md text-sm">{itemLabel}</div>
+                                 const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                                 const itemLabel = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option.label;
+                                 return (
+                                    <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md text-sm">
+                                        <span>{itemLabel}</span>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                            onClick={() => handleRemoveSelection(itemValue)}
+                                        >
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                 )
                             })}
                         </div>
                     </div>
