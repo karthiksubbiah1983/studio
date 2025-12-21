@@ -1,10 +1,11 @@
 
+
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive } from "@/lib/utils";
+import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -855,12 +856,13 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const mergedState: State = { ...initialState };
-     if (loadedState) {
-        mergedState.forms = loadedState.forms || [];
-        mergedState.categories = loadedState.categories || [];
-        mergedState.sites = loadedState.sites || [];
-        mergedState.tasks = loadedState.tasks || [];
-        mergedState.submissions = loadedState.submissions || [];
+    if (loadedState) {
+        // Ensure all properties from initialState are present
+        mergedState.forms = loadedState.forms || initialState.forms;
+        mergedState.categories = loadedState.categories || initialState.categories;
+        mergedState.sites = loadedState.sites || initialState.sites;
+        mergedState.tasks = loadedState.tasks || initialState.tasks;
+        mergedState.submissions = loadedState.submissions || initialState.submissions;
     }
 
     if (!mergedState.forms.some(f => f.id === demoTemplate.id)) {
@@ -898,17 +900,19 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   
   // Reactive rules engine
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || !activeForm) return;
     
     let nextFormState = { ...state.formState };
     const allElements = getAllElements(sections);
 
-    // Sync default rows for editable tables
+    // Sync default rows for editable tables based on form definition
     allElements.forEach(el => {
-        if (el.type === 'EditableTable' && el.defaultRows && el.defaultRows > 0) {
+        if (el.type === 'EditableTable' && el.defaultRows) {
             const tableState = nextFormState[el.id];
             const currentRows = Array.isArray(tableState?.value) ? tableState.value.length : 0;
-            if (currentRows !== el.defaultRows) {
+            
+            // Only initialize if the state is not already set or doesn't match
+            if (tableState === undefined || currentRows !== el.defaultRows) {
                  const newRows: any[] = [];
                  for (let i = 0; i < el.defaultRows; i++) {
                     const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
@@ -940,18 +944,14 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         if (!targetId) return;
 
         const currentTargetState = nextFormState[targetId] || {};
-        let valueChanged = false;
-        let visibilityChanged = false;
-
+        
         if ((type === 'set_value' || type === 'set_configuration') && currentTargetState.value !== value) {
             nextFormState[targetId] = { ...currentTargetState, value };
-            valueChanged = true;
         }
         
         const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
         if (newVisibility !== undefined && currentTargetState.isVisible !== newVisibility) {
             nextFormState[targetId] = { ...currentTargetState, isVisible: newVisibility };
-            visibilityChanged = true;
         }
     };
     
@@ -974,12 +974,13 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
         }
     });
-
+    
+    // Only dispatch if the calculated state is different from the current state
     if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
         dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
     }
     
-  }, [userDrivenState, sections, rules, configurations, isLoaded]);
+  }, [userDrivenState, activeForm?.id, sections, rules, configurations, isLoaded]);
   
   const addNewForm = async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
     const { title, description, categoryId, subCategoryId } = payload;
