@@ -2,7 +2,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import type { FormElementInstance, Section } from "./types";
+import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -176,4 +176,157 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
     }
 
     return allElementsAndSections;
+};
+
+// This is a duplicate of the function in form-preview-helpers.ts to avoid circular dependencies
+// if utils are imported into form-preview-helpers.
+export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: any }, configurations?: Configuration[], sections?: Section[]): boolean => {
+  if (!rule || !rule.conditions || rule.conditions.length === 0 || !context) {
+    return false;
+  }
+
+  const allElements = sections ? getAllElements(sections) : [];
+
+  const evaluateSingleCondition = (condition: Condition) => {
+    if (!context) return false;
+
+    const getConditionValue = (type: 'source' | 'comparison', idOrKey: string | undefined): any => {
+        if (!idOrKey) return undefined;
+        
+        const valueType = type === 'source' ? condition.sourceType : condition.comparisonType;
+        
+        if (idOrKey.startsWith('_')) { // Handle special date values
+            switch(idOrKey) {
+                case '_current_date': return new Date().toISOString(); 
+                case '_due_date': return new Date().toISOString(); // Placeholder
+                case '_scheduled_date': return new Date().toISOString(); // Placeholder
+                default: return undefined;
+            }
+        }
+        
+        if (valueType === 'config') {
+            const configKey = `config::${idOrKey}`;
+            const value = context[configKey];
+             return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
+        }
+
+        if (idOrKey.includes('::')) {
+            const parts = idOrKey.split('::');
+            const elementKey = parts.length > 1 ? parts[1] : parts[0]; 
+             if(context.hasOwnProperty(elementKey)) {
+                const value = context[elementKey];
+                return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+            }
+        }
+
+        if(context.hasOwnProperty(idOrKey)) {
+            const value = context[idOrKey];
+            return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+        }
+        
+        const value = context[idOrKey];
+        if (value !== undefined) {
+             return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+        }
+        
+        return undefined;
+    }
+
+    let sourceValue: any;
+    if (condition.sourceType === 'field') {
+        sourceValue = getConditionValue('source', condition.sourceElementId);
+    } else { // 'date', 'status', 'config'
+        sourceValue = getConditionValue('source', condition.sourceValue);
+    }
+    
+    const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
+
+    let comparisonValue: any;
+    if (condition.comparisonType === 'field') {
+        comparisonValue = getConditionValue('comparison', condition.comparisonElementId);
+    } else if (condition.comparisonType === 'config') {
+        comparisonValue = getConditionValue('comparison', condition.value);
+    } else if (condition.comparisonType === 'date' || condition.comparisonType === 'status') {
+        comparisonValue = getConditionValue('comparison', condition.value);
+    } else { // 'value'
+        comparisonValue = condition.value;
+    }
+
+    const isComparisonValueEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
+    
+    const isNumericComparison = condition.operator === 'is_greater_than' || condition.operator === 'is_less_than';
+    
+    if (isNumericComparison) {
+        let numSource = parseFloat(sourceValue);
+        const numComparison = parseFloat(comparisonValue);
+
+        if (condition.offsetValue) {
+            numSource += condition.offsetValue;
+        }
+
+        if (isNaN(numSource) || isNaN(numComparison)) {
+            return false;
+        }
+        if (condition.operator === 'is_greater_than') {
+            return numSource > numComparison;
+        }
+        if (condition.operator === 'is_less_than') {
+            return numSource < numComparison;
+        }
+    }
+
+
+    if (condition.operator === 'equals') {
+        if (isSourceValueEmpty && isComparisonValueEmpty) return true;
+        return String(sourceValue) === String(comparisonValue);
+    }
+    if (condition.operator === 'not_equals') {
+        if (isSourceValueEmpty && isComparisonValueEmpty) return false;
+        return String(sourceValue) !== String(comparisonValue);
+    }
+
+    if (isSourceValueEmpty) {
+        return false;
+    }
+
+    const isDateComparison = condition.sourceType === 'date' || condition.comparisonType === 'date';
+
+    if (isDateComparison) {
+        try {
+            let dateSource = new Date(sourceValue);
+            let dateComparison = new Date(comparisonValue);
+
+            if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) return false;
+
+            dateSource.setHours(0, 0, 0, 0);
+            dateComparison.setHours(0, 0, 0, 0);
+
+            if (condition.offsetDays) {
+                dateSource.setDate(dateSource.getDate() + condition.offsetDays);
+            }
+
+            switch(condition.operator) {
+                case 'is_greater_than': return dateSource > dateComparison;
+                case 'is_less_than': return dateSource < dateComparison;
+                default: return false; 
+            }
+        } catch (e) {
+            return false;
+        }
+    }
+
+    switch (condition.operator) {
+       case 'contains': return String(sourceValue).includes(String(comparisonValue));
+       case 'not_contains': return !String(sourceValue).includes(String(comparisonValue));
+       default: return false;
+    }
+  }
+
+  const conditionResults = rule.conditions.map(evaluateSingleCondition);
+
+  if (rule.logicType === 'and') {
+    return conditionResults.every((res) => res);
+  } else {
+    return conditionResults.some((res) => res);
+  }
 };

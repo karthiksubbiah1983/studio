@@ -7,8 +7,6 @@ import { getAllElements, getNestedValue } from "@/lib/utils";
 export const evaluateSingleCondition = (condition: Condition, context: { [key: string]: any }, allElements: (FormElementInstance | Section)[], configurations?: Configuration[]) => {
     if (!context) return false;
 
-    // This function now correctly handles nested data in the context (like a table row)
-    // and proxy keys from rules (like 'table-id::column-key')
     const getConditionValue = (type: 'source' | 'comparison', idOrKey: string | undefined): any => {
         if (!idOrKey) return undefined;
         
@@ -24,11 +22,11 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
         }
         
         if (valueType === 'config') {
-            const config = (configurations || []).find(c => c.key === idOrKey);
-            return config?.value;
+            const configKey = `config::${idOrKey}`;
+            const value = context[configKey];
+             return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
 
-        // Handle proxy IDs like 'table-id::column-key' by checking context first
         if (idOrKey.includes('::')) {
             const parts = idOrKey.split('::');
             const elementKey = parts.length > 1 ? parts[1] : parts[0]; 
@@ -38,13 +36,11 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             }
         }
 
-        // If context is a single row (rowContext), idOrKey might be a direct key on it.
         if(context.hasOwnProperty(idOrKey)) {
             const value = context[idOrKey];
             return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
         }
         
-        // Fallback to searching the global context by ID
         const value = context[idOrKey];
         if (value !== undefined) {
              return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;

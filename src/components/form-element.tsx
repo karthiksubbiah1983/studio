@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, TableColumn, DataGridColumn, ListItemElement, Configuration } from "@/lib/types";
@@ -24,9 +25,8 @@ import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye,
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
+import { cn, findFirstArray, getAllElements, getNestedValue, evaluateRule } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
-import { evaluateRule } from "@/components/form-preview-helpers";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { FormPreviewPopup } from "./form-preview-popup";
@@ -48,36 +48,27 @@ type Props = {
   rowContext?: any;
 };
 
-const interpolateString = (template: string, data: { formState: { [key: string]: any }, sections: Section[] }): string => {
+const interpolateString = (template: string, data: { formState: { [key:string]: any }, sections: Section[], rowContext?: any }): string => {
     if (!template) return "";
-    return template.replace(/\{([a-zA-Z0-9_.]+)\}/g, (match, key) => {
-        // Attempt to find a direct match in the formState (could be a simple field or a row context)
-        const directValue = getNestedValue(data.formState, key);
-        if (directValue !== undefined && directValue !== null) {
-            return String(directValue);
-        }
+    const context = data.rowContext || data.formState;
 
-        // If not found directly, check if it's an element key in the form
+    return template.replace(/\{([a-zA-Z0-9_.]+)\}/g, (match, key) => {
         const allElements = getAllElements(data.sections || []);
         const element = allElements.find(el => 'key' in el && el.key === key);
-        
-        if (element && 'id' in element && data.formState && data.formState[element.id]) {
-            const stateValue = data.formState[element.id];
-            // If the value is from a Select with an object, it might have a `fullObject`
-            if (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) {
-                // This handles simple values and select values that aren't object-based
-                return stateValue.value || match;
+
+        let valueToInsert: any = undefined;
+
+        if (element && 'id' in element && context[element.id]) {
+            const stateValue = context[element.id];
+            valueToInsert = (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
+        } else {
+            const nestedValue = getNestedValue(context, key);
+            if(nestedValue !== undefined) {
+                 valueToInsert = nestedValue;
             }
-            return stateValue || match;
         }
-
-        // For nested keys like 'user.id' from a row context
-        const nestedValue = getNestedValue(data.formState, key);
-        if (nestedValue !== undefined) {
-            return String(nestedValue);
-        }
-
-        return match;
+        
+        return valueToInsert !== undefined ? String(valueToInsert) : match;
     });
 }
 
@@ -121,53 +112,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     return visible;
   }, [element.id, element.hidden, evaluationContext, rules, configurations, sections]);
 
+  const value = useMemo(() => {
+    // Value is directly from the state, which is updated by the reactive useEffect in useBuilder
+    return initialValue;
+  }, [initialValue]);
 
-  const { value, isReadOnly, calculatedValue } = useMemo(() => {
-    let readOnly = false;
-    let newCalculatedValue: any = undefined;
-    
-    const contextForEval = evaluationContext;
-
-    if ((element.type === 'Input' || element.type === 'Display') && element.formula && contextForEval) {
-        const formulaContext = Object.keys(contextForEval).reduce((acc, key) => {
-            const elKey = getAllElements(sections).find(e => e.id === key)?.key;
-            if (elKey) {
-                 acc[elKey] = contextForEval[key]?.value;
-            } else {
-                 acc[key] = contextForEval[key]; // For rowContext which has direct keys
-            }
-            return acc;
-        }, {} as Record<string, any>);
-
-        newCalculatedValue = String(evaluate(element.formula, formulaContext));
-        readOnly = true;
-    }
-    else if (!contextForEval || !rules) return { value: initialValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
-    
-    for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, contextForEval, configurations, sections);
-        if (isRuleMet) {
-            for (const behavior of rule.behaviors) {
-                if (behavior.type === 'set_value' && behavior.targetElementId === element.id) {
-                    newCalculatedValue = behavior.value;
-                    readOnly = true; 
-                }
-            }
-        }
-    }
-    
-    let finalValue = newCalculatedValue !== undefined ? newCalculatedValue : (initialValue ?? ('defaultValue' in element ? element.defaultValue : undefined));
-
-    return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
-  }, [element, initialValue, rules, evaluationContext, sections, configurations, isTableCell]);
-
-
-  useEffect(() => {
-    if (calculatedValue !== undefined && calculatedValue !== initialValue) {
-        onValueChange(element.id, calculatedValue);
-    }
-  }, [calculatedValue, initialValue, onValueChange, element.id]);
-  
   const isDisabled = useMemo(() => {
     if (!evaluationContext || !rules) return false;
     const disableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'disable' && b.targetElementId === element.id));
@@ -183,6 +132,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     return false;
   }, [element.id, evaluationContext, rules, configurations, sections]);
 
+  const isReadOnly = useMemo(() => {
+    if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) return true;
+    if (rules.some(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id && evaluateRule(rule, evaluationContext, configurations, sections)))) {
+        return true;
+    }
+    return false;
+  }, [element, evaluationContext, rules, configurations, sections]);
+  
   const appliedStyles = useMemo(() => {
     const style: React.CSSProperties = {};
     let error: string | null = null;
@@ -213,15 +170,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.dataSource === 'dynamic') {
       
       if (element.apiUrl) {
-        let finalApiUrl = element.apiUrl;
+        let finalApiUrl = interpolateString(element.apiUrl, {formState: evaluationContext, sections, rowContext});
 
         setIsLoading(true);
         fetchFromApi(finalApiUrl)
-          .then(data => setDynamicOptions(data || []))
+          .then(data => {
+            const arrayData = findFirstArray(data);
+            setDynamicOptions(arrayData || []);
+          })
           .finally(() => setIsLoading(false));
       }
     }
-  }, [element.apiUrl, element.type, element.dataSource]);
+  }, [element.apiUrl, element.type, element.dataSource, evaluationContext, sections, rowContext]);
 
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey } = element;
@@ -290,8 +250,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
     case "Display": {
         let finalDisplayValue;
-        if (dataSourceConfig?.sourceType === 'currentUser') {
-            finalDisplayValue = user?.username || 'Guest';
+        if (dataSourceConfig?.sourceType === 'currentUser' && user) {
+            finalDisplayValue = getNestedValue(user, dataSourceConfig.displayKey);
         } else if (dataSourceConfig?.sourceType === 'currentDateTime') {
             finalDisplayValue = format(currentDateTime, 'PPP p');
         } else if (isReadOnly) {
@@ -313,10 +273,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
         
         if (isLink && linkUrl) {
-             const stateForInterpolation = { ...formState, ...(formState?.[linkUrlSourceElementId || '']?.fullObject || {}) };
-            const finalUrl = interpolateString(linkUrl, { formState: stateForInterpolation, sections });
+            const contextForInterpolation = rowContext || formState || {};
+            const finalUrl = interpolateString(linkUrl, { formState: contextForInterpolation, sections, rowContext });
             return (
-                    <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
+                <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     <Link className="h-4 w-4" />
                     <span className="text-sm">{String(finalDisplayValue)}</span>
                 </a>

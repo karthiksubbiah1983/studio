@@ -5,7 +5,7 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements } from "@/lib/utils";
+import { getAllElements, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -692,33 +692,21 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (isUserLoading) return;
 
-    let loadedState: Partial<State> = {};
+    let loadedState: Partial<State> | null = null;
     try {
-        const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedStateJSON) {
-            loadedState = JSON.parse(savedStateJSON);
-        }
+      const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (savedStateJSON) {
+        loadedState = JSON.parse(savedStateJSON);
+      }
     } catch (error) {
-        console.error("Failed to parse state from localStorage", error);
+      console.error("Failed to parse state from localStorage", error);
+      loadedState = null;
     }
-    
-    // Safely merge, ensuring initial state arrays are used if localStorage is empty/corrupt
-    const finalState: State = {
-        forms: loadedState.forms || initialState.forms,
-        categories: loadedState.categories || initialState.categories,
-        sites: loadedState.sites || initialState.sites,
-        tasks: loadedState.tasks || initialState.tasks,
-        submissions: loadedState.submissions || initialState.submissions,
-        activeFormId: loadedState.activeFormId || initialState.activeFormId,
-        selectedElement: loadedState.selectedElement || initialState.selectedElement,
-        draggedElement: loadedState.draggedElement || initialState.draggedElement,
-        clipboard: loadedState.clipboard || initialState.clipboard,
-        formState: loadedState.formState || initialState.formState,
-    };
-    
+
+    const finalState = loadedState ? { ...initialState, ...loadedState } : { ...initialState };
+
     dispatch({ type: 'SET_STATE', payload: finalState });
     setIsLoaded(true);
-
 
   }, [isUserLoading]);
 
@@ -742,6 +730,39 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const rules = activeForm?.versions[0]?.rules || [];
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
+  
+   // This effect creates the reactive rules engine
+  useEffect(() => {
+    if (!rules || rules.length === 0) return;
+
+    const allElements = getAllElements(sections);
+    const newFormState = { ...state.formState };
+    let stateChanged = false;
+
+    for (const rule of rules) {
+      const ruleMet = evaluateRule(rule, state.formState, configurations, sections);
+      if (ruleMet) {
+        for (const behavior of rule.behaviors) {
+          if (behavior.type === 'set_value' && behavior.targetElementId && behavior.value !== undefined) {
+             if (newFormState[behavior.targetElementId]?.value !== behavior.value) {
+                newFormState[behavior.targetElementId] = { value: behavior.value };
+                stateChanged = true;
+             }
+          } else if (behavior.type === 'set_configuration' && behavior.targetConfigurationKey && behavior.value !== undefined) {
+            const configKey = `config::${behavior.targetConfigurationKey}`;
+             if (newFormState[configKey]?.value !== behavior.value) {
+                newFormState[configKey] = { value: behavior.value };
+                stateChanged = true;
+             }
+          }
+        }
+      }
+    }
+
+    if (stateChanged) {
+      dispatch({ type: 'SET_FORM_STATE', payload: newFormState });
+    }
+  }, [state.formState, rules, sections, configurations]);
   
   const addNewForm = async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
     const { title, description, categoryId, subCategoryId } = payload;
@@ -771,7 +792,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], rules: newRules, configurations: newConfigurations, timestamp: new Date().toISOString() };
     const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
-    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
+    const newFormState = getInitialFormState(newVersions[0].sections, newConfigurations);
+    dispatch({ type: 'SET_STATE', payload: { forms: newForms, formState: newFormState } });
   }
   
   const updateWorkflows = (newWorkflows: Workflow[]) => {
@@ -787,7 +809,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], configurations: newConfigurations, timestamp: new Date().toISOString() };
     const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
-    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
+    const newFormState = getInitialFormState(newVersions[0].sections, newConfigurations);
+    dispatch({ type: 'SET_STATE', payload: { forms: newForms, formState: newFormState } });
   }
 
   const setFormState = (newState: { [key: string]: { value: any, fullObject?: any } }) => {
