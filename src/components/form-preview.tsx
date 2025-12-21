@@ -131,43 +131,8 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
   };
 
   const isSectionVisible = (section: Section): boolean => {
-    if (!rules) return !section.popupOnly;
-
-    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === section.id));
-    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === section.id));
-
-    let visible = !section.popupOnly;
-
-    if (showRules.length > 0) {
-        let isShown = false;
-        for (const rule of showRules) {
-            const sourceElementId = rule.conditions[0]?.sourceElementId;
-            const parentTableId = sourceElementId ? findElementRecursive(sections, sourceElementId, true) : null;
-            
-            if (typeof parentTableId === 'string' && formState[parentTableId]?.value) {
-                // Rule depends on a table, check if *any* row meets condition
-                const tableData = formState[parentTableId].value as any[];
-                if (tableData.some(row => evaluateRule(rule, row, configurations, sections))) {
-                    isShown = true;
-                    break; 
-                }
-            } else {
-                 if (evaluateRule(rule, formState, configurations, sections)) {
-                    isShown = true;
-                    break;
-                }
-            }
-        }
-        visible = isShown;
-    }
-
-    if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, formState || {}, configurations, sections))) {
-        visible = false;
-      }
-    }
-    
-    return visible;
+    if (section.popupOnly) return false;
+    return formState[section.id]?.isVisible !== false;
   }
 
   const renderSectionContent = (section: Section) => (

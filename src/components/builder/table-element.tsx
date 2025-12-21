@@ -51,24 +51,26 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
   }, [element.dataSource, element.apiUrl, element.defaultRows, stableOnValueChange, element.id]);
 
 
-  const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any) => {
-    const newRows = [...(tableRows || [])];
+  const handleRowValueChange = (rowIndex: number, columnKey: string, cellValue: any, fullObject?: any) => {
+    let newRows = [...(tableRows || [])];
     if (!newRows[rowIndex]) newRows[rowIndex] = {};
-    newRows[rowIndex][columnKey] = cellValue;
+
+    const updatedRow = { ...newRows[rowIndex], [columnKey]: cellValue };
 
     // Recalculate formula columns for the changed row
     tableColumns.forEach(col => {
       if (col.formula) {
         try {
-          const formulaResult = evaluate(col.formula, newRows[rowIndex]);
-          newRows[rowIndex][col.key] = formulaResult;
+          const formulaResult = evaluate(col.formula, updatedRow);
+          updatedRow[col.key] = formulaResult;
         } catch (e) {
           console.error(`Error evaluating formula for column ${col.key}:`, e);
-          newRows[rowIndex][col.key] = "#ERROR!";
+          updatedRow[col.key] = "#ERROR!";
         }
       }
     });
 
+    newRows[rowIndex] = updatedRow;
     onValueChange(element.id, newRows);
   };
   
@@ -139,7 +141,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                       <FormElementRenderer
                         element={{ ...col.element, label: '' }}
                         value={getNestedValue(row, col.key)}
-                        onValueChange={(id, value) => handleRowValueChange(originalIndex, col.key, value)}
+                        onValueChange={(id, value, fullObject) => handleRowValueChange(originalIndex, col.key, value, fullObject)}
                         formState={formState}
                         rowContext={row}
                         isTableCell={true}
@@ -172,7 +174,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
                   <FormElementRenderer
                     element={col.element}
                     value={getNestedValue(row, col.key)}
-                    onValueChange={(id, value) => handleRowValueChange(originalIndex, col.key, value)}
+                    onValueChange={(id, value, fullObject) => handleRowValueChange(originalIndex, col.key, value, fullObject)}
                     formState={formState}
                     rowContext={row}
                     isTableCell={true}

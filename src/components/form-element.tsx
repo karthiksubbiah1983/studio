@@ -91,26 +91,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   const isVisible = useMemo(() => {
     if (element.hidden) return false;
+    if (!evaluationContext) return true; // Default to visible if no context
     
-    if (!evaluationContext || !rules) return true;
+    // The visibility is now controlled by the formState
+    return formState?.[element.id]?.isVisible !== false;
 
-    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
-    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
-    
-    let visible = true;
-    
-    if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
-    }
-    
-    if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
-        visible = false;
-      }
-    }
-    
-    return visible;
-  }, [element.id, element.hidden, evaluationContext, rules, configurations, sections]);
+  }, [element.id, element.hidden, formState]);
+
 
   const value = useMemo(() => {
     // Value is directly from the state, which is updated by the reactive useEffect in useBuilder

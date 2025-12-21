@@ -23,7 +23,7 @@ type State = {
   selectedElement: { elementId: string; sectionId: string } | null;
   draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null;
   clipboard: ClipboardItem | null;
-  formState: { [key: string]: { value: any, fullObject?: any } };
+  formState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } };
 };
 
 const initialState: State = {
@@ -179,20 +179,23 @@ const findAndModifyElement = (elements: FormElementInstance[], action: Action): 
     return elements;
 };
 
-const getInitialFormState = (sections: Section[], configurations: Configuration[] | undefined): { [key: string]: { value: any, fullObject?: any } } => {
-    const state: { [key: string]: { value: any, fullObject?: any } } = {};
+const getInitialFormState = (sections: Section[], configurations: Configuration[] | undefined): { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } => {
+    const state: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } = {};
     if (!sections) return state;
     
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
-        if ('defaultValue' in element && element.defaultValue !== undefined && 'id' in element) {
-            state[element.id] = { value: element.defaultValue };
+        if ('id' in element) {
+            state[element.id] = { 
+                value: 'defaultValue' in element ? element.defaultValue : undefined,
+                isVisible: !element.hidden
+            };
         }
     });
 
     if (configurations) {
         configurations.forEach(config => {
-            state[`config::${config.key}`] = { value: config.value };
+            state[`config::${config.key}`] = { value: config.value, isVisible: true };
         });
     }
 
@@ -235,8 +238,8 @@ type Action =
   | { type: "DELETE_SITE"; payload: { siteId: string } }
   | { type: "ADD_TASK"; payload: { formId: string; versionId: string; siteId: string } }
   | { type: "SET_USER_SETTINGS"; payload: { categories: Category[], sites: Site[] } }
-  | { type: "SET_FORM_STATE"; payload: { [key: string]: { value: any, fullObject?: any } } }
-  | { type: "UPDATE_FORM_STATE"; payload: { elementId: string; value: any; fullObject?: any } };
+  | { type: "SET_FORM_STATE"; payload: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } }
+  | { type: "UPDATE_FORM_STATE"; payload: { elementId: string; value: any; fullObject?: any, isVisible?: boolean } };
 
 
 const builderReducer = (state: State, action: Action): State => {
@@ -268,14 +271,20 @@ const builderReducer = (state: State, action: Action): State => {
     case "SET_FORM_STATE":
         return { ...state, formState: action.payload };
     case "UPDATE_FORM_STATE": {
-        const { elementId, value, fullObject } = action.payload;
-        return {
+        const { elementId, value, fullObject, isVisible } = action.payload;
+        const newState = {
             ...state,
             formState: {
                 ...state.formState,
-                [elementId]: { value, fullObject }
+                [elementId]: { 
+                    ...state.formState[elementId],
+                    value, 
+                    fullObject,
+                    isVisible: isVisible !== undefined ? isVisible : state.formState[elementId]?.isVisible
+                }
             }
         };
+        return newState;
     }
     case "ADD_SITE": {
       const newSite: Site = { id: crypto.randomUUID(), name: action.payload.name };
@@ -675,9 +684,9 @@ type BuilderContextType = {
   updateConfigurations: (configurations: Configuration[]) => void;
   clipboard: ClipboardItem | null;
   submissions: Submission[];
-  formState: { [key: string]: { value: any, fullObject?: any } };
-  setFormState: (state: { [key: string]: { value: any, fullObject?: any } }) => void;
-  updateFormState: (elementId: string, value: any, fullObject?: any) => void;
+  formState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } };
+  setFormState: (state: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } }) => void;
+  updateFormState: (elementId: string, value: any, fullObject?: any, isVisible?: boolean) => void;
 };
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
@@ -731,59 +740,63 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
   
-  // This effect creates the reactive rules engine for state changes
+  // Reactive rules engine
   useEffect(() => {
-    if (!rules || rules.length === 0) return;
+    if (!rules || rules.length === 0 || !isLoaded) return;
 
     const allElements = getAllElements(sections);
-    const newFormState = { ...state.formState };
-    let stateChanged = false;
+    let stateChanges: { [key: string]: any } = {};
 
-    const processRule = (rule: Rule, context: any) => {
-        const ruleMet = evaluateRule(rule, context, configurations, sections);
-        if (ruleMet) {
-            for (const behavior of rule.behaviors) {
-                if (behavior.type === 'set_value' && behavior.targetElementId) {
-                    if (newFormState[behavior.targetElementId]?.value !== behavior.value) {
-                        newFormState[behavior.targetElementId] = { value: behavior.value };
-                        stateChanged = true;
-                    }
-                } else if (behavior.type === 'set_configuration' && behavior.targetConfigurationKey) {
-                    const configKey = `config::${behavior.targetConfigurationKey}`;
-                    if (newFormState[configKey]?.value !== behavior.value) {
-                        newFormState[configKey] = { value: behavior.value };
-                        stateChanged = true;
+    const applyBehavior = (behavior: Rule['behaviors'][0], context: any) => {
+        const { type, targetElementId, value, targetConfigurationKey } = behavior;
+        
+        switch (type) {
+            case 'set_value':
+                if (targetElementId && state.formState[targetElementId]?.value !== value) {
+                    stateChanges[targetElementId] = { ...state.formState[targetElementId], value };
+                }
+                break;
+            case 'set_configuration':
+                if (targetConfigurationKey) {
+                    const configId = `config::${targetConfigurationKey}`;
+                    if (state.formState[configId]?.value !== value) {
+                        stateChanges[configId] = { ...state.formState[configId], value };
                     }
                 }
-            }
+                break;
+            case 'show':
+            case 'hide':
+                if (targetElementId && state.formState[targetElementId]?.isVisible !== (type === 'show')) {
+                    stateChanges[targetElementId] = { ...state.formState[targetElementId], isVisible: type === 'show' };
+                }
+                break;
         }
-    };
+    }
 
-    for (const rule of rules) {
+    rules.forEach(rule => {
         const sourceElementId = rule.conditions[0]?.sourceElementId;
-        if (!sourceElementId) {
-            processRule(rule, state.formState);
-            continue;
-        }
-
-        const parentTableId = findElementRecursive(sections, sourceElementId, true);
-
-        if (typeof parentTableId === 'string' && state.formState[parentTableId]?.value) {
-            // Rule condition is inside a table, iterate over rows
-            const tableData = state.formState[parentTableId].value as any[];
+        const parentTable = sourceElementId ? findElementRecursive(sections, sourceElementId, true) : null;
+        
+        if (typeof parentTable === 'string' && state.formState[parentTable]?.value) {
+            // Rule condition is inside a table
+            const tableData = state.formState[parentTable].value as any[];
             tableData.forEach(rowContext => {
-                processRule(rule, rowContext);
+                if (evaluateRule(rule, rowContext, configurations, sections)) {
+                    rule.behaviors.forEach(behavior => applyBehavior(behavior, rowContext));
+                }
             });
         } else {
             // Rule condition is not in a table
-            processRule(rule, state.formState);
+            if (evaluateRule(rule, state.formState, configurations, sections)) {
+                rule.behaviors.forEach(behavior => applyBehavior(behavior, state.formState));
+            }
         }
-    }
+    });
 
-    if (stateChanged) {
-        dispatch({ type: 'SET_FORM_STATE', payload: newFormState });
+    if (Object.keys(stateChanges).length > 0) {
+      dispatch({ type: 'SET_FORM_STATE', payload: { ...state.formState, ...stateChanges } });
     }
-  }, [state.formState, rules, sections, configurations]);
+  }, [state.formState, rules, sections, configurations, isLoaded]);
   
   const addNewForm = async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
     const { title, description, categoryId, subCategoryId } = payload;
@@ -834,12 +847,12 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'SET_STATE', payload: { forms: newForms, formState: newFormState } });
   }
 
-  const setFormState = (newState: { [key: string]: { value: any, fullObject?: any } }) => {
+  const setFormState = (newState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } }) => {
     dispatch({ type: 'SET_FORM_STATE', payload: newState });
   }
 
-  const updateFormState = (elementId: string, value: any, fullObject?: any) => {
-    dispatch({ type: 'UPDATE_FORM_STATE', payload: { elementId, value, fullObject } });
+  const updateFormState = (elementId: string, value: any, fullObject?: any, isVisible?: boolean) => {
+    dispatch({ type: 'UPDATE_FORM_STATE', payload: { elementId, value, fullObject, isVisible } });
   }
 
   const enhancedDispatch = (action: Action) => {
@@ -872,4 +885,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
