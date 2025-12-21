@@ -78,14 +78,14 @@ const demoTemplate: Form = {
                     name: "Toggle Notes Column",
                     conditions: [ { id: "c1", sourceType: "field", sourceElementId: "enable_notes_checkbox", operator: "equals", comparisonType: "value", value: "true" } ],
                     logicType: "and",
-                    behaviors: [ { id: "b1", type: "show", targetElementId: "col_notes" } ]
+                    behaviors: [ { id: "b1", type: "show", targetElementId: "col_notes_el" } ]
                 },
                  {
                     id: "rule_disable_notes",
                     name: "Toggle Notes Column Off",
                     conditions: [ { id: "c2", sourceType: "field", sourceElementId: "enable_notes_checkbox", operator: "not_equals", comparisonType: "value", value: "true" } ],
                     logicType: "and",
-                    behaviors: [ { id: "b2", type: "hide", targetElementId: "col_notes" } ]
+                    behaviors: [ { id: "b2", type: "hide", targetElementId: "col_notes_el" } ]
                 },
                 // Internal to Internal Rule
                 {
@@ -93,14 +93,14 @@ const demoTemplate: Form = {
                     name: "Show Justification for Other",
                     conditions: [ { id: "c3", sourceType: "field", sourceElementId: "col_category_el", operator: "equals", comparisonType: "value", value: "Other" } ],
                     logicType: "and",
-                    behaviors: [ { id: "b3", type: "show", targetElementId: "col_justification" } ]
+                    behaviors: [ { id: "b3", type: "show", targetElementId: "col_just_el" } ]
                 },
                  {
                     id: "rule_hide_justification",
                     name: "Hide Justification",
                     conditions: [ { id: "c4", sourceType: "field", sourceElementId: "col_category_el", operator: "not_equals", comparisonType: "value", value: "Other" } ],
                     logicType: "and",
-                    behaviors: [ { id: "b4", type: "hide", targetElementId: "col_justification" } ]
+                    behaviors: [ { id: "b4", type: "hide", targetElementId: "col_just_el" } ]
                 },
                 // Internal to External Rule
                 {
@@ -262,6 +262,17 @@ const findAndModifyElement = (elements: FormElementInstance[], action: Action): 
                     return action.payload.element;
                 }
                 if (el.elements) return { ...el, elements: findAndModifyElement(el.elements, action) };
+                if (el.type === 'EditableTable' && el.columns) {
+                    return {
+                        ...el,
+                        columns: el.columns.map(col => {
+                            if (col.element.id === action.payload.element.id) {
+                                return { ...col, element: action.payload.element };
+                            }
+                            return col;
+                        })
+                    };
+                }
                 return el;
             });
         }
@@ -314,7 +325,7 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
                 for (let i = 0; i < element.defaultRows; i++) {
                     const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
                     element.columns?.forEach(col => {
-                        row[col.id] = col.element.defaultValue ?? null;
+                        row[col.element.id] = col.element.defaultValue ?? null;
                     });
                     tableRows.push(row);
                 }
@@ -842,9 +853,28 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
       loadedState = null;
     }
 
-    const finalState = loadedState ? { ...initialState, ...loadedState } : { ...initialState };
+    const mergedState: State = { ...initialState };
+    if (loadedState) {
+        // Ensure initial templates/categories are always present if not already in loaded state
+        if (!loadedState.forms?.some(f => f.id === demoTemplate.id)) {
+            mergedState.forms = [...(loadedState.forms || []), demoTemplate];
+        } else {
+             mergedState.forms = loadedState.forms;
+        }
 
-    dispatch({ type: 'SET_STATE', payload: finalState });
+        if (!loadedState.categories?.some(c => c.id === demoCategory.id)) {
+            mergedState.categories = [...(loadedState.categories || []), demoCategory];
+        } else {
+            mergedState.categories = loadedState.categories;
+        }
+
+        mergedState.sites = loadedState.sites || [];
+        mergedState.tasks = loadedState.tasks || [];
+        mergedState.submissions = loadedState.submissions || [];
+    }
+
+
+    dispatch({ type: 'SET_STATE', payload: mergedState });
     setIsLoaded(true);
 
   }, [isUserLoading]);
@@ -872,92 +902,98 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   
   // Reactive rules engine
   useEffect(() => {
-    if (!rules || rules.length === 0 || !isLoaded || !state.formState) return;
+    if (!rules || rules.length === 0 || !isLoaded || !state.formState || Object.keys(state.formState).length === 0) return;
 
     const allElements = getAllElements(sections);
-    const stateChanges: { [key: string]: any } = {};
+    let stateChanges: { [key: string]: { value?: any; isVisible?: boolean } } = {};
 
-    const applyBehavior = (behavior: Rule['behaviors'][0], context: any, tableRowContext?: any) => {
+    const applyBehavior = (behavior: Rule['behaviors'][0], context: any, rowId?: string) => {
         const { type, targetElementId, value, targetConfigurationKey } = behavior;
-
+        
         let targetId = targetElementId;
         if (type === 'set_configuration' && targetConfigurationKey) {
             targetId = `config::${targetConfigurationKey}`;
         }
         if (!targetId) return;
 
-        // Determine if the target is within a table
-        const targetElement = findElementRecursive(sections, targetId);
-        const isTableTarget = !!targetElement?.isTableColumn;
-
-        const applyChange = (currentTargetId: string, currentContext: any) => {
-            switch (type) {
-                case 'set_value':
-                case 'set_configuration':
-                    if (currentContext[currentTargetId]?.value !== value) {
-                        stateChanges[currentTargetId] = { ...currentContext[currentTargetId], value };
-                    }
-                    break;
-                case 'show':
-                case 'hide':
-                    const newVisibility = type === 'show';
-                    if (currentContext[currentTargetId]?.isVisible !== newVisibility) {
-                        stateChanges[currentTargetId] = { ...currentContext[currentTargetId], isVisible: newVisibility };
-                    }
-                    break;
+        const applyChange = (currentTargetId: string, newValue?: any, newVisibility?: boolean) => {
+             if (newValue !== undefined && context[currentTargetId]?.value !== newValue) {
+                stateChanges[currentTargetId] = { ...stateChanges[currentTargetId], value: newValue };
+            }
+            if (newVisibility !== undefined && context[currentTargetId]?.isVisible !== newVisibility) {
+                stateChanges[currentTargetId] = { ...stateChanges[currentTargetId], isVisible: newVisibility };
             }
         };
 
-        if (isTableTarget && tableRowContext) {
-            applyChange(targetId, tableRowContext);
-        } else if (!isTableTarget) {
-            applyChange(targetId, state.formState);
+        const targetElement = findElementRecursive(sections, targetId);
+        
+        if (targetElement?.isTableColumn && rowId) {
+             const tableId = allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.element.id === targetId))?.id;
+             if(tableId) {
+                const targetKey = `${tableId}::${rowId}::${targetId}`;
+                const currentValue = state.formState[targetKey]?.value;
+                const currentVisibility = state.formState[targetKey]?.isVisible;
+
+                if (type === 'set_value' && currentValue !== value) {
+                    stateChanges[targetKey] = { ...stateChanges[targetKey], value };
+                }
+                if (type === 'show' && currentVisibility !== true) {
+                    stateChanges[targetKey] = { ...stateChanges[targetKey], isVisible: true };
+                }
+                if (type === 'hide' && currentVisibility !== false) {
+                     stateChanges[targetKey] = { ...stateChanges[targetKey], isVisible: false };
+                }
+             }
+        } else {
+             applyChange(targetId, type === 'set_value' || type === 'set_configuration' ? value : undefined, type === 'show' ? true : type === 'hide' ? false : undefined);
         }
     };
     
     rules.forEach(rule => {
         const sourceElement = findElementRecursive(sections, rule.conditions[0]?.sourceElementId || '');
         const isTableRule = !!sourceElement?.isTableColumn;
+        
+        const tableElementId = isTableRule ? allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.element.id === sourceElement!.id))?.id : undefined;
 
-        if (isTableRule) {
-            const tableElement = allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.id === sourceElement.id));
-            if (tableElement && state.formState[tableElement.id]?.value) {
-                const tableData = state.formState[tableElement.id].value;
-                tableData.forEach((row: any) => {
-                    if (evaluateRule(rule, row, configurations, sections)) {
-                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, row));
-                    }
-                });
-            }
+        if (isTableRule && tableElementId && state.formState[tableElementId]?.value) {
+            const tableData: any[] = state.formState[tableElementId].value;
+            tableData.forEach(row => {
+                if (evaluateRule(rule, row, configurations, sections)) {
+                    rule.behaviors.forEach(behavior => applyBehavior(behavior, row, row._rowId));
+                }
+            });
         } else {
              if (evaluateRule(rule, state.formState, configurations, sections)) {
                 rule.behaviors.forEach(behavior => applyBehavior(behavior, state.formState));
             }
         }
     });
-
+    
     if (Object.keys(stateChanges).length > 0) {
-        let finalStateChanges = { ...state.formState };
-        Object.keys(stateChanges).forEach(key => {
-            const isTableColumn = !!findElementRecursive(sections, key)?.isTableColumn;
-            if (isTableColumn) {
-                 const tableElement = allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.id === key));
-                 if (tableElement) {
-                    const newTableValue = (finalStateChanges[tableElement.id].value || []).map((row: any) => {
-                        const newRow = { ...row };
-                        if (stateChanges[key] && row[key] !== stateChanges[key].value) {
-                            newRow[key] = stateChanges[key].value;
-                        }
-                        // This logic might need to be smarter if multiple columns are changed for the same row
-                        return newRow;
-                    });
-                    finalStateChanges[tableElement.id] = { ...finalStateChanges[tableElement.id], value: newTableValue };
-                 }
-            } else {
-                 finalStateChanges[key] = stateChanges[key];
-            }
-        });
-        dispatch({ type: 'SET_FORM_STATE', payload: finalStateChanges });
+      let nextFormState = { ...state.formState };
+      for (const key in stateChanges) {
+          if (key.includes('::')) { // This is a table cell state update
+                const [tableId, rowId, elementId] = key.split('::');
+                const tableValue = [...(nextFormState[tableId]?.value || [])];
+                const rowIndex = tableValue.findIndex(r => r._rowId === rowId);
+
+                if (rowIndex !== -1) {
+                    const updatedRow = { ...tableValue[rowIndex] };
+                    if (stateChanges[key].value !== undefined) {
+                        updatedRow[elementId] = stateChanges[key].value;
+                    }
+                    if (stateChanges[key].isVisible !== undefined) {
+                        // This assumes visibility is also stored per-cell, which needs a bigger refactor.
+                        // For now, let's focus on value setting.
+                    }
+                    tableValue[rowIndex] = updatedRow;
+                    nextFormState[tableId] = { ...nextFormState[tableId], value: tableValue };
+                }
+          } else {
+            nextFormState[key] = { ...nextFormState[key], ...stateChanges[key] };
+          }
+      }
+      dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
     }
   }, [state.formState, rules, sections, configurations, isLoaded]);
   
@@ -1048,4 +1084,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
 
