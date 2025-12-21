@@ -82,14 +82,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
   const [currentDateTime, setCurrentDateTime] = useState<Date | null>(null);
-
-  useEffect(() => {
-    setCurrentDateTime(new Date());
-    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
-    return () => clearInterval(timer);
-  }, []);
-
+  const [comboboxOpen, setComboboxOpen] = useState(false);
+  const [comboboxInputValue, setComboboxInputValue] = useState(initialValue || '');
+  
   const evaluationContext = rowContext || formState;
+  const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   const value = useMemo(() => {
     let calculatedValue;
@@ -185,9 +182,52 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     return { style, error };
   }, [element.id, evaluationContext, rules, configurations, sections]);
-  
-  const allElements = useMemo(() => getAllElements(sections), [sections]);
 
+  const isCheckbox = element.type === 'List' && element.listType === 'checkbox';
+  const isRadio = element.type === 'List' && element.listType === 'radio';
+  const isDisplayOnly = element.type === 'List' && element.listType === 'display';
+  const currentSelection = isCheckbox ? (Array.isArray(value) ? value : []) : (value || '');
+  const allListOptions = element.type === 'List' ? (element.dataSource === 'dynamic' ? dynamicOptions : (element.options || [])) : [];
+
+  const mainListOptions = useMemo(() => {
+      if (element.type !== 'List') return [];
+      if (element.displaySelection === 'selected' && !isDisplayOnly) {
+          return allListOptions.filter(option => {
+              const optValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+              return isCheckbox ? !currentSelection.includes(optValue) : currentSelection !== optValue;
+          });
+      }
+      return allListOptions;
+  }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
+
+  const displayedSelection = useMemo(() => {
+      if (element.type !== 'List' || element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
+          return [];
+      }
+      if (element.displaySelection === 'selected') {
+           return allListOptions.filter(option => {
+              const optValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+              return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
+          });
+      }
+      return [];
+  }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
+
+  const score = useMemo(() => {
+      if (element.type !== 'List' || !element.enableScoring || isDisplayOnly) return null;
+      const scorePerItem = element.scorePerItem || 0;
+      const selectedCount = isCheckbox ? currentSelection.length : (currentSelection ? 1 : 0);
+      return selectedCount * scorePerItem;
+  }, [isCheckbox, isDisplayOnly, currentSelection, element]);
+  
+  const passed = score !== null && element.type === 'List' && element.passingScore !== undefined ? score >= element.passingScore : null;
+
+  useEffect(() => {
+    setCurrentDateTime(new Date());
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+  
   useEffect(() => {
     if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.dataSource === 'dynamic') {
       
@@ -204,6 +244,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       }
     }
   }, [element.apiUrl, element.type, element.dataSource, evaluationContext, sections, rowContext]);
+
+  useEffect(() => {
+      if (score !== null && (formState?.[`${element.id}::score`]?.value !== score)) {
+          onValueChange(`${element.id}::score`, score);
+      }
+  }, [score, element.id, onValueChange, formState]);
 
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey } = element;
@@ -444,18 +490,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       );
       break;
     case "Combobox": {
-      const [open, setOpen] = useState(false);
-      const [inputValue, setInputValue] = useState(value || '');
-
       const handleComboboxSelect = (currentValue: string) => {
         const newValue = currentValue === value ? "" : currentValue;
         onValueChange(element.id, newValue);
-        setInputValue(newValue);
-        setOpen(false);
+        setComboboxInputValue(newValue);
+        setComboboxOpen(false);
       };
       
        const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setInputValue(e.target.value);
+        setComboboxInputValue(e.target.value);
         onValueChange(element.id, e.target.value); // Allow free text entry
       };
       
@@ -463,7 +506,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
       const filteredOptions = currentOptions.filter(option => {
           const label = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option;
-          return label.toLowerCase().includes(inputValue.toLowerCase());
+          return label.toLowerCase().includes(comboboxInputValue.toLowerCase());
       });
       
       const getDisplayValue = () => {
@@ -477,11 +520,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       content = (
         <div>
           {renderLabel()}
-            <Popover open={open} onOpenChange={setOpen}>
+            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
                 <PopoverTrigger asChild>
                     <div className="relative">
                         <Input
-                            value={inputValue}
+                            value={comboboxInputValue}
                             onChange={handleInputChange}
                             placeholder={placeholder}
                             className="pr-8"
@@ -525,11 +568,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
     }
     case "List": {
-        const isCheckbox = element.listType === 'checkbox';
-        const isRadio = element.listType === 'radio';
-        const isDisplayOnly = element.listType === 'display';
-        const currentSelection = isCheckbox ? (Array.isArray(value) ? value : []) : (value || '');
-
         const handleListChange = (itemValue: string) => {
             if (isDisplayOnly) return;
             if (isCheckbox) {
@@ -541,46 +579,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 onValueChange(element.id, itemValue);
             }
         };
-
-        const allListOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
-        
-        const mainListOptions = useMemo(() => {
-            if (element.displaySelection === 'selected' && !isDisplayOnly) {
-                return allListOptions.filter(option => {
-                    const optValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
-                    return isCheckbox ? !currentSelection.includes(optValue) : currentSelection !== optValue;
-                });
-            }
-            return allListOptions;
-        }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.valueKey]);
-
-        const displayedSelection = useMemo(() => {
-            if (element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
-                return [];
-            }
-            if (element.displaySelection === 'selected') {
-                 return allListOptions.filter(option => {
-                    const optValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
-                    return isCheckbox ? currentSelection.includes(optValue) : currentSelection === optValue;
-                });
-            }
-            return []; // Placeholder for 'unselected', can be implemented if needed
-        }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.valueKey]);
-
-        const score = useMemo(() => {
-            if (!element.enableScoring || isDisplayOnly) return null;
-            const scorePerItem = element.scorePerItem || 0;
-            const selectedCount = isCheckbox ? currentSelection.length : (currentSelection ? 1 : 0);
-            return selectedCount * scorePerItem;
-        }, [isCheckbox, isDisplayOnly, currentSelection, element.enableScoring, element.scorePerItem]);
-        
-        useEffect(() => {
-            if (score !== null && (formState?.[`${element.id}::score`]?.value !== score)) {
-                onValueChange(`${element.id}::score`, score);
-            }
-        }, [score, element.id, onValueChange, formState]);
-
-        const passed = score !== null && element.passingScore !== undefined ? score >= element.passingScore : null;
         
         const listContent = (
             <div className="rounded-md border p-2 space-y-2">
@@ -934,3 +932,5 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
+    
