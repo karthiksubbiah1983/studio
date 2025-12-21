@@ -399,14 +399,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             finalStyle.color = color;
         }
         
-        const mainTextContent = <Tag className={cn(classes[style])} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
+        const mainTextContent = <Tag className={cn(classes[style], 'px-1.5 py-1')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
 
         content = (
              <div className={cn(
-                "flex items-center gap-2 px-1.5 py-1",
+                "flex items-center gap-2",
                 direction === 'vertical' ? 'flex-col items-start' : 'flex-row'
              )}>
-                {leadText && <Label className="text-sm font-medium">{leadText}</Label>}
+                {leadText && <Label className="text-sm font-medium px-1.5 py-1">{leadText}</Label>}
                 {mainTextContent}
             </div>
         );
