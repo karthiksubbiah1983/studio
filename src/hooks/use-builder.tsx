@@ -939,6 +939,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         let targetId = targetElementId;
         if (type === 'set_configuration' && targetConfigurationKey) {
             targetId = `config::${targetConfigurationKey}`;
+             if (isTableRow) {
+                console.log(`Setting config from table row. Key: ${targetConfigurationKey}, Value: ${value}`);
+             }
         }
         if (!targetId) return;
 
@@ -1090,3 +1093,4 @@ export const useBuilder = () => {
   }
   return context;
 };
+
