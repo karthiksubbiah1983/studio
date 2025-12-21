@@ -5,13 +5,135 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, evaluateRule, findElementRecursive } from "@/lib/utils";
+import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
+
+const demoTemplate: Form = {
+    id: "demo-expense-report",
+    title: "Advanced Expense Report",
+    categoryId: "demo-templates",
+    versions: [
+        {
+            id: crypto.randomUUID(),
+            name: "Initial Version",
+            description: "A template demonstrating the editable table features.",
+            type: "published",
+            timestamp: new Date().toISOString(),
+            sections: [
+                {
+                    id: "s1",
+                    title: "Report Header",
+                    displayMode: "default",
+                    elements: [
+                        {
+                            id: "enable_notes_checkbox",
+                            type: "Checkbox",
+                            key: "enable_notes",
+                            label: "Enable All Notes",
+                            required: false,
+                        },
+                        {
+                            id: "urgent_review_display",
+                            type: "Display",
+                            key: "urgent_review_indicator",
+                            label: "🔴 URGENT REVIEW REQUIRED",
+                            required: false,
+                            hidden: true, // Initially hidden
+                        }
+                    ],
+                },
+                {
+                    id: "s2",
+                    title: "Expenses",
+                    displayMode: "default",
+                    elements: [
+                        {
+                            id: "expense_table",
+                            type: "EditableTable",
+                            key: "expenses",
+                            label: "Expense Items",
+                            required: false,
+                            defaultRows: 1,
+                            columns: [
+                                { id: "col_date", label: "Date", element: { ...createNewElement("DatePicker"), id: "col_date_el", key: "date", label: "Date" } },
+                                { id: "col_category", label: "Category", element: { ...createNewElement("Select"), id: "col_category_el", key: "category", label: "Category", options: ["Travel", "Meal", "Software", "Other"] } },
+                                { id: "col_description", label: "Description", element: { ...createNewElement("Input"), id: "col_desc_el", key: "description", label: "Description" } },
+                                { id: "col_amount", label: "Amount", element: { ...createNewElement("Input"), id: "col_amount_el", key: "amount", label: "Amount", inputFormat: "number" } },
+                                { id: "col_justification", label: "Justification", element: { ...createNewElement("Textarea"), id: "col_just_el", key: "justification", label: "Justification", hidden: true } },
+                                { id: "col_notes", label: "Notes", element: { ...createNewElement("Textarea"), id: "col_notes_el", key: "notes", label: "Notes", hidden: true } },
+                            ],
+                        },
+                    ],
+                },
+            ],
+            rules: [
+                // External to Internal Rule
+                {
+                    id: "rule_enable_notes",
+                    name: "Toggle Notes Column",
+                    conditions: [ { id: "c1", sourceType: "field", sourceElementId: "enable_notes_checkbox", operator: "equals", comparisonType: "value", value: "true" } ],
+                    logicType: "and",
+                    behaviors: [ { id: "b1", type: "show", targetElementId: "col_notes" } ]
+                },
+                 {
+                    id: "rule_disable_notes",
+                    name: "Toggle Notes Column Off",
+                    conditions: [ { id: "c2", sourceType: "field", sourceElementId: "enable_notes_checkbox", operator: "not_equals", comparisonType: "value", value: "true" } ],
+                    logicType: "and",
+                    behaviors: [ { id: "b2", type: "hide", targetElementId: "col_notes" } ]
+                },
+                // Internal to Internal Rule
+                {
+                    id: "rule_show_justification",
+                    name: "Show Justification for Other",
+                    conditions: [ { id: "c3", sourceType: "field", sourceElementId: "col_category_el", operator: "equals", comparisonType: "value", value: "Other" } ],
+                    logicType: "and",
+                    behaviors: [ { id: "b3", type: "show", targetElementId: "col_justification" } ]
+                },
+                 {
+                    id: "rule_hide_justification",
+                    name: "Hide Justification",
+                    conditions: [ { id: "c4", sourceType: "field", sourceElementId: "col_category_el", operator: "not_equals", comparisonType: "value", value: "Other" } ],
+                    logicType: "and",
+                    behaviors: [ { id: "b4", type: "hide", targetElementId: "col_justification" } ]
+                },
+                // Internal to External Rule
+                {
+                    id: "rule_set_urgent_review",
+                    name: "Set Urgent Review Flag",
+                    conditions: [ { id: "c5", sourceType: "field", sourceElementId: "col_amount_el", operator: "is_greater_than", comparisonType: "value", value: "100" } ],
+                    logicType: "and",
+                    behaviors: [ { id: "b5", type: "set_configuration", targetConfigurationKey: "requires_urgent_review", value: "true" } ]
+                },
+                 // Rule reacting to configuration change
+                {
+                    id: "rule_show_urgent_indicator",
+                    name: "Show Urgent Indicator",
+                    conditions: [ { id: "c6", sourceType: "config", sourceValue: "requires_urgent_review", operator: "equals", comparisonType: "value", value: "true" } ],
+                    logicType: "and",
+                    behaviors: [ { id: "b6", type: "show", targetElementId: "urgent_review_display" } ]
+                },
+
+            ],
+            workflows: [],
+            configurations: [
+                { id: "config1", key: "approver_level", value: "manager" },
+                { id: "config2", key: "requires_urgent_review", value: "false" }
+            ]
+        },
+    ],
+};
+
+const demoCategory: Category = {
+    id: "demo-templates",
+    name: "Demo Templates",
+    subCategories: []
+};
 
 type State = {
   forms: Form[];
@@ -27,8 +149,8 @@ type State = {
 };
 
 const initialState: State = {
-  forms: [],
-  categories: [],
+  forms: [demoTemplate],
+  categories: [demoCategory],
   sites: [],
   tasks: [],
   submissions: [],
@@ -187,6 +309,17 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
                 value: 'defaultValue' in element ? element.defaultValue : undefined,
                 isVisible: !element.hidden
             };
+             if (element.type === 'EditableTable' && element.defaultRows) {
+                const tableRows: any[] = [];
+                for (let i = 0; i < element.defaultRows; i++) {
+                    const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
+                    element.columns?.forEach(col => {
+                        row[col.id] = col.element.defaultValue ?? null;
+                    });
+                    tableRows.push(row);
+                }
+                state[element.id] = { value: tableRows, isVisible: !element.hidden };
+            }
         }
     });
 
@@ -740,44 +873,91 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   // Reactive rules engine
   useEffect(() => {
     if (!rules || rules.length === 0 || !isLoaded || !state.formState) return;
-  
+
     const allElements = getAllElements(sections);
-    let stateChanges: { [key: string]: any } = {};
-  
-    const applyBehavior = (behavior: Rule['behaviors'][0], context: any) => {
-      const { type, targetElementId, value, targetConfigurationKey } = behavior;
-  
-      let targetId = targetElementId;
-      if (type === 'set_configuration' && targetConfigurationKey) {
-        targetId = `config::${targetConfigurationKey}`;
-      }
-  
-      if (!targetId) return;
-  
-      switch (type) {
-        case 'set_value':
-        case 'set_configuration':
-          if (context[targetId]?.value !== value) {
-            stateChanges[targetId] = { ...context[targetId], value };
-          }
-          break;
-        case 'show':
-        case 'hide':
-          if (context[targetId]?.isVisible !== (type === 'show')) {
-            stateChanges[targetId] = { ...context[targetId], isVisible: type === 'show' };
-          }
-          break;
-      }
+    const stateChanges: { [key: string]: any } = {};
+
+    const applyBehavior = (behavior: Rule['behaviors'][0], context: any, tableRowContext?: any) => {
+        const { type, targetElementId, value, targetConfigurationKey } = behavior;
+
+        let targetId = targetElementId;
+        if (type === 'set_configuration' && targetConfigurationKey) {
+            targetId = `config::${targetConfigurationKey}`;
+        }
+        if (!targetId) return;
+
+        // Determine if the target is within a table
+        const targetElement = findElementRecursive(sections, targetId);
+        const isTableTarget = !!targetElement?.isTableColumn;
+
+        const applyChange = (currentTargetId: string, currentContext: any) => {
+            switch (type) {
+                case 'set_value':
+                case 'set_configuration':
+                    if (currentContext[currentTargetId]?.value !== value) {
+                        stateChanges[currentTargetId] = { ...currentContext[currentTargetId], value };
+                    }
+                    break;
+                case 'show':
+                case 'hide':
+                    const newVisibility = type === 'show';
+                    if (currentContext[currentTargetId]?.isVisible !== newVisibility) {
+                        stateChanges[currentTargetId] = { ...currentContext[currentTargetId], isVisible: newVisibility };
+                    }
+                    break;
+            }
+        };
+
+        if (isTableTarget && tableRowContext) {
+            applyChange(targetId, tableRowContext);
+        } else if (!isTableTarget) {
+            applyChange(targetId, state.formState);
+        }
     };
-  
+    
     rules.forEach(rule => {
-      if (evaluateRule(rule, state.formState, configurations, sections)) {
-        rule.behaviors.forEach(behavior => applyBehavior(behavior, state.formState));
-      }
+        const sourceElement = findElementRecursive(sections, rule.conditions[0]?.sourceElementId || '');
+        const isTableRule = !!sourceElement?.isTableColumn;
+
+        if (isTableRule) {
+            const tableElement = allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.id === sourceElement.id));
+            if (tableElement && state.formState[tableElement.id]?.value) {
+                const tableData = state.formState[tableElement.id].value;
+                tableData.forEach((row: any) => {
+                    if (evaluateRule(rule, row, configurations, sections)) {
+                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, row));
+                    }
+                });
+            }
+        } else {
+             if (evaluateRule(rule, state.formState, configurations, sections)) {
+                rule.behaviors.forEach(behavior => applyBehavior(behavior, state.formState));
+            }
+        }
     });
-  
+
     if (Object.keys(stateChanges).length > 0) {
-      dispatch({ type: 'SET_FORM_STATE', payload: { ...state.formState, ...stateChanges } });
+        let finalStateChanges = { ...state.formState };
+        Object.keys(stateChanges).forEach(key => {
+            const isTableColumn = !!findElementRecursive(sections, key)?.isTableColumn;
+            if (isTableColumn) {
+                 const tableElement = allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.id === key));
+                 if (tableElement) {
+                    const newTableValue = (finalStateChanges[tableElement.id].value || []).map((row: any) => {
+                        const newRow = { ...row };
+                        if (stateChanges[key] && row[key] !== stateChanges[key].value) {
+                            newRow[key] = stateChanges[key].value;
+                        }
+                        // This logic might need to be smarter if multiple columns are changed for the same row
+                        return newRow;
+                    });
+                    finalStateChanges[tableElement.id] = { ...finalStateChanges[tableElement.id], value: newTableValue };
+                 }
+            } else {
+                 finalStateChanges[key] = stateChanges[key];
+            }
+        });
+        dispatch({ type: 'SET_FORM_STATE', payload: finalStateChanges });
     }
   }, [state.formState, rules, sections, configurations, isLoaded]);
   
@@ -868,3 +1048,4 @@ export const useBuilder = () => {
   }
   return context;
 };
+

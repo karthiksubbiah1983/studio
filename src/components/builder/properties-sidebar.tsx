@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -50,6 +50,13 @@ export function PropertiesSidebar() {
                 if (element.type === 'Container' && element.elements) {
                     const found = findElementRecursive(element.elements, elementId);
                     if (found) return found;
+                }
+                 if (element.type === 'EditableTable' && element.columns) {
+                    for (const col of element.columns) {
+                        if (col.element.id === elementId) {
+                            return col.element;
+                        }
+                    }
                 }
             }
             return null;
@@ -448,14 +455,13 @@ function ColumnEditorDialog({
                                             <SelectValue placeholder="Select a field type" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Input">Input</SelectItem>
-                                            <SelectItem value="Textarea">Textarea</SelectItem>
-                                            <SelectItem value="Select">Select</SelectItem>
-                                            <SelectItem value="Checkbox">Checkbox</SelectItem>
-                                            <SelectItem value="RadioGroup">Radio Group</SelectItem>
-                                            <SelectItem value="DatePicker">Date Picker</SelectItem>
                                             <SelectItem value="Display">Display Text</SelectItem>
-                                            {isTableColumn && <SelectItem value="Combobox">Combobox</SelectItem>}
+                                            <SelectItem value="Select">Select</SelectItem>
+                                            <SelectItem value="Input">Input</SelectItem>
+                                            <SelectItem value="RadioGroup">Radio Group</SelectItem>
+                                            <SelectItem value="Checkbox">Checkbox</SelectItem>
+                                            <SelectItem value="Textarea">Textarea</SelectItem>
+                                            <SelectItem value="DatePicker">Date Picker</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -1048,10 +1054,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                       const newDataSource = val as 'static' | 'dynamic';
                                       updateMultipleProperties({
                                         dataSource: newDataSource,
-                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : null,
-                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : null,
-                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : null,
-                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : null,
+                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : undefined,
+                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : undefined,
+                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : undefined,
+                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : undefined,
                                       })
                                     }}
                                     className="flex"
@@ -1090,10 +1096,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                       const newDataSource = val as 'static' | 'dynamic';
                                       updateMultipleProperties({
                                         dataSource: newDataSource,
-                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : null,
-                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : null,
-                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : null,
-                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : null,
+                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : undefined,
+                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : undefined,
+                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : undefined,
+                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : undefined,
                                       })
                                     }}
                                 className="flex"
@@ -1163,10 +1169,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     const newDataSource = val as 'static' | 'dynamic';
                                     updateMultipleProperties({
                                         dataSource: newDataSource,
-                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : null,
-                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : null,
-                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : null,
-                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : null,
+                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : undefined,
+                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : undefined,
+                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : undefined,
+                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : undefined,
                                     })
                                 }}
                                 className="flex"
@@ -1417,3 +1423,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+

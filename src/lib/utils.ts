@@ -59,20 +59,20 @@ export const findFirstArray = (data: any): any[] | null => {
     return null;
 }
 
-export const findElementRecursive = (sections: Section[], elementId: string): FormElementInstance | null => {
+export const findElementRecursive = (sections: Section[], elementId: string): (FormElementInstance & { isTableColumn?: boolean }) | null => {
     for (const section of sections) {
         if (!section.elements) { 
             continue;
         }
-        const find = (elements: FormElementInstance[]): FormElementInstance | null => {
+        const find = (elements: FormElementInstance[]): (FormElementInstance & { isTableColumn?: boolean }) | null => {
             for (const el of elements) {
                 if (el.id === elementId) {
                     return el;
                 }
-                 if (el.type === 'EditableTable' && el.columns) {
+                if (el.type === 'EditableTable' && el.columns) {
                     for (const col of el.columns) {
-                        if (col.element.id === elementId) {
-                            return col.element;
+                        if (col.element.id === elementId || col.id === elementId) {
+                            return { ...col.element, id: col.element.id, isTableColumn: true };
                         }
                     }
                 }
@@ -122,8 +122,9 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                  processedElements.add(element.id);
                  element.columns.forEach(col => {
                     // Make column elements selectable in rules
-                    allElementsAndSections.push({ ...col.element, id: col.id, label: `${element.label} > ${col.label}` });
-                    processedElements.add(col.id);
+                    const colElement = { ...col.element, id: col.element.id, label: `${element.label} > ${col.label}` };
+                    allElementsAndSections.push(colElement);
+                    processedElements.add(col.element.id);
                  })
             } else if (isSelectable) {
                 allElementsAndSections.push(element);
@@ -178,13 +179,13 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
              return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
 
-        const findElementByIdOrKey = (idOrKey: string) => {
-            // First check if a key matches in the row context (for tables)
-            if (context.hasOwnProperty(idOrKey)) {
-                return context[idOrKey];
+        const findElementByIdOrKey = (id: string) => {
+            // Check if it's a column element in row context
+            if (context[id] !== undefined) {
+                return context[id];
             }
-            // Fallback to searching all form elements by ID (for global context)
-            const element = allElements.find(el => el.id === idOrKey);
+            // Check global context by element ID
+            const element = allElements.find(el => el.id === id);
             if (element && 'id' in element) {
                 return context[element.id];
             }
@@ -293,3 +294,4 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
     return conditionResults.some((res) => res);
   }
 };
+
