@@ -84,6 +84,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [currentDateTime, setCurrentDateTime] = useState<Date | null>(null);
   const [comboboxOpen, setComboboxOpen] = useState(false);
   const [comboboxInputValue, setComboboxInputValue] = useState(initialValue || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+
   
   const evaluationContext = rowContext || formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
@@ -791,8 +794,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         );
         break;
     case "FileUpload":
-        const fileInputRef = useRef<HTMLInputElement>(null);
-        const [fileError, setFileError] = useState<string | null>(null);
         const currentFiles: File[] = (value || []) as File[];
         
         const handleFileChange = (files: FileList | null) => {
