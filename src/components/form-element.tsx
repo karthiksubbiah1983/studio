@@ -102,12 +102,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const evaluationContext = rowContext || formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
-  useEffect(() => {
-    setCurrentDateTime(new Date());
-    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
-    return () => clearInterval(timer);
-  }, []);
-
+  // All hooks called unconditionally at the top
   const value = useMemo(() => {
     let calculatedValue;
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) {
@@ -151,7 +146,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     
     return visible;
   }, [evaluationContext, element.id, element.hidden, rules, sections, configurations, isTableCell]);
-
 
   const isDisabled = useMemo(() => {
     if (!evaluationContext || !rules) return false;
@@ -214,7 +208,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if (element.dataSource === 'dynamic') return dynamicOptions;
     if (element.dataSource === 'static') return element.staticData || [];
     return [];
-  }, [element.type, element.dataSource, dynamicOptions, element.staticData]);
+  }, [element, dynamicOptions]);
 
   const mainListOptions = useMemo(() => {
       if (element.type !== 'List' || !currentSelection) return allListOptions;
@@ -225,7 +219,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           });
       }
       return allListOptions;
-  }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element.displaySelection, element.type, element.valueKey]);
+  }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
 
   const displayedSelection = useMemo(() => {
       if (element.type !== 'List' || element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
@@ -245,12 +239,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const scorePerItem = element.scorePerItem || 0;
     const selectedCount = isCheckbox ? (currentSelection as string[]).length : (currentSelection ? 1 : 0);
     return selectedCount * scorePerItem;
-  }, [element.type, element.enableScoring, isDisplayOnly, isCheckbox, currentSelection, element.scorePerItem]);
+  }, [element, isDisplayOnly, isCheckbox, currentSelection]);
   
   const passed = useMemo(() => {
     if (element.type !== 'List' || score === null || element.passingScore === undefined || element.passingScore === null) return null;
     return score >= element.passingScore;
-  }, [element.type, score, element.passingScore]);
+  }, [element, score]);
+
+  useEffect(() => {
+    setCurrentDateTime(new Date());
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
   
 
   useEffect(() => {
@@ -377,7 +377,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 finalUrl = interpolateString(linkUrl, { formState: contextForInterpolation, sections, rowContext });
             }
             return (
-                <a href={finalUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
+                <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                     <Link className="h-4 w-4" />
                     <span className="text-sm">{String(finalDisplayValue)}</span>
                 </a>
@@ -987,3 +987,5 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
+    
