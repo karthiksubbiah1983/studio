@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { evaluateRule } from "./form-preview-helpers";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Zap } from "lucide-react";
-import { getAllElements } from "@/lib/utils";
+import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 
@@ -133,13 +133,32 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
   const isSectionVisible = (section: Section): boolean => {
     if (!rules) return !section.popupOnly;
 
-    const showRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'show' && b.targetElementId === section.id));
-    const hideRules = rules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'hide' && b.targetElementId === section.id));
+    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === section.id));
+    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === section.id));
 
     let visible = !section.popupOnly;
 
     if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, formState || {}, configurations, sections));
+        let isShown = false;
+        for (const rule of showRules) {
+            const sourceElementId = rule.conditions[0]?.sourceElementId;
+            const parentTableId = sourceElementId ? findElementRecursive(sections, sourceElementId, true) : null;
+            
+            if (typeof parentTableId === 'string' && formState[parentTableId]?.value) {
+                // Rule depends on a table, check if *any* row meets condition
+                const tableData = formState[parentTableId].value as any[];
+                if (tableData.some(row => evaluateRule(rule, row, configurations, sections))) {
+                    isShown = true;
+                    break; 
+                }
+            } else {
+                 if (evaluateRule(rule, formState, configurations, sections)) {
+                    isShown = true;
+                    break;
+                }
+            }
+        }
+        visible = isShown;
     }
 
     if (visible && hideRules.length > 0) {

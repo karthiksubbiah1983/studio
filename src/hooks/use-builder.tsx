@@ -683,24 +683,19 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (isUserLoading) return;
 
     const loadData = () => {
-        const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
-        let finalState: State = { ...initialState };
-
-        if (savedStateJSON) {
-            try {
-                const loadedState: Partial<State> = JSON.parse(savedStateJSON);
-                finalState = {
-                    ...initialState,
-                    forms: loadedState.forms || [],
-                    categories: loadedState.categories || [],
-                    sites: loadedState.sites || [],
-                    tasks: loadedState.tasks || [],
-                    submissions: loadedState.submissions || [],
-                };
-
-            } catch (error) {
-                console.error("Failed to parse state from localStorage", error);
+        let loadedState: Partial<State> = {};
+        try {
+            const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (savedStateJSON) {
+                loadedState = JSON.parse(savedStateJSON);
             }
+        } catch (error) {
+            console.error("Failed to parse state from localStorage", error);
+        }
+
+        const finalState: State = {
+          ...initialState,
+          ...loadedState,
         }
         
         dispatch({ type: 'SET_STATE', payload: finalState });

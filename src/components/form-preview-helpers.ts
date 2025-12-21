@@ -1,11 +1,13 @@
 
 import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/lib/types";
 import { Workflow } from "@/lib/types";
-import { getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
+import { getAllElements, getNestedValue } from "@/lib/utils";
 
 export const evaluateSingleCondition = (condition: Condition, context: { [key: string]: any }, allElements: (FormElementInstance | Section)[], configurations?: Configuration[]) => {
     if (!context) return false;
 
+    // This function now correctly handles nested data in the context (like a table row)
+    // and proxy keys from rules (like 'table-id::column-key')
     const getConditionValue = (type: 'source' | 'comparison', idOrKey: string | undefined): any => {
         if (!idOrKey) return undefined;
         
@@ -13,12 +15,10 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
 
         if (idOrKey.startsWith('_')) { // Handle special date values
             switch(idOrKey) {
-                case '_current_date':
-                case '_due_date':
-                case '_scheduled_date':
-                    return new Date().toISOString(); 
-                default:
-                    return undefined;
+                case '_current_date': return new Date().toISOString(); 
+                case '_due_date': return new Date().toISOString(); // Placeholder
+                case '_scheduled_date': return new Date().toISOString(); // Placeholder
+                default: return undefined;
             }
         }
         
@@ -27,6 +27,23 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             return config?.value;
         }
 
+        // If context is a single row (rowContext), idOrKey might be a direct key on it.
+        if(context.hasOwnProperty(idOrKey)) {
+            const value = context[idOrKey];
+            return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+        }
+
+        // Handle proxy IDs like 'table-id::column-key'
+        if (idOrKey.includes('::')) {
+            const parts = idOrKey.split('::');
+            const elementKey = parts[1]; // e.g., 'show_field'
+             if(context.hasOwnProperty(elementKey)) {
+                const value = context[elementKey];
+                return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+            }
+        }
+
+        // Fallback to searching the global context by ID
         const value = context[idOrKey];
         if (value !== undefined) {
              return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
