@@ -5,12 +5,11 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive } from "@/lib/utils";
+import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { evaluateRule } from "@/components/form-preview-helpers";
 
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
@@ -906,6 +905,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     const runRuleEngine = (initialContext: any) => {
         let nextFormState = { ...initialContext };
         let stateChangedInPass = false;
+        let configChangedInPass = false;
 
         const allElements = getAllElements(sections);
 
@@ -950,14 +950,15 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 const oldValue = isTableRow ? context[targetId] : currentTargetState.value;
 
                 if (oldValue !== newValue) {
-                    if (isTableRow) {
-                        context[targetId] = newValue;
+                     if (isTableRow) {
+                        context[targetId] = newValue; // Set value directly on row context
                     } else {
                         context[targetId] = { ...currentTargetState, value: newValue };
                     }
                     stateChangedInPass = true;
                     if (type === 'set_configuration') {
-                        console.log(`Configuration '${targetConfigurationKey}' set to '${value}' from within a table rule.`);
+                        configChangedInPass = true;
+                        console.log(`Configuration '${targetConfigurationKey}' set to '${value}'.`);
                     }
                 }
             }
@@ -966,7 +967,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             if (newVisibility !== undefined) {
                 if (isTableRow) {
                      // Visibility in tables is handled by hiding/showing columns, not individual cells in the state.
-                     // The actual visibility check will happen in the renderer.
                 } else {
                     if (currentTargetState.isVisible !== newVisibility) {
                         context[targetId] = { ...currentTargetState, isVisible: newVisibility };
@@ -997,7 +997,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
         });
         
-        return { finalState: nextFormState, stateChanged: stateChangedInPass };
+        return { finalState: nextFormState, stateChanged: stateChangedInPass, configChanged: configChangedInPass };
     }
 
     // Run the engine multiple times to handle chained dependencies
@@ -1005,9 +1005,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     let continueLooping = true;
     let pass = 0;
     while(continueLooping && pass < 5) { // Pass limit to prevent infinite loops
-        const { finalState, stateChanged } = runRuleEngine(currentState);
+        const { finalState, stateChanged, configChanged } = runRuleEngine(currentState);
         currentState = finalState;
-        continueLooping = stateChanged;
+        // Continue looping if the state changed, OR if a config changed (as it might trigger other rules).
+        continueLooping = stateChanged || configChanged;
         pass++;
     }
 
@@ -1109,6 +1110,7 @@ export const useBuilder = () => {
   }
   return context;
 };
+
 
 
 
