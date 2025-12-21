@@ -186,30 +186,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     return { style, error };
   }, [element.id, evaluationContext, rules, configurations, sections]);
 
-  useEffect(() => {
-    setCurrentDateTime(new Date());
-    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
-    return () => clearInterval(timer);
-  }, []);
-  
-  useEffect(() => {
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.dataSource === 'dynamic') {
-      
-      if (element.apiUrl) {
-        let finalApiUrl = interpolateString(element.apiUrl, {formState: evaluationContext, sections, rowContext});
-
-        setIsLoading(true);
-        fetchFromApi(finalApiUrl)
-          .then(data => {
-            const arrayData = findFirstArray(data);
-            setDynamicOptions(arrayData || []);
-          })
-          .finally(() => setIsLoading(false));
-      }
-    }
-  }, [element.apiUrl, element.type, element.dataSource, evaluationContext, sections, rowContext]);
-
-
   const isCheckbox = useMemo(() => element.type === 'List' && element.listType === 'checkbox', [element.type, element.listType]);
   const isRadio = useMemo(() => element.type === 'List' && element.listType === 'radio', [element.type, element.listType]);
   const isDisplayOnly = useMemo(() => element.type === 'List' && element.listType === 'display', [element.type, element.listType]);
@@ -262,6 +238,30 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     return score >= element.passingScore;
   }, [element.type, score, element.passingScore]);
   
+
+  useEffect(() => {
+    setCurrentDateTime(new Date());
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
+  
+  useEffect(() => {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.dataSource === 'dynamic') {
+      
+      if (element.apiUrl) {
+        let finalApiUrl = interpolateString(element.apiUrl, {formState: evaluationContext, sections, rowContext});
+
+        setIsLoading(true);
+        fetchFromApi(finalApiUrl)
+          .then(data => {
+            const arrayData = findFirstArray(data);
+            setDynamicOptions(arrayData || []);
+          })
+          .finally(() => setIsLoading(false));
+      }
+    }
+  }, [element.apiUrl, element.type, element.dataSource, evaluationContext, sections, rowContext]);
+
   useEffect(() => {
       if (score !== null && (formState?.[`${element.id}::score`]?.value !== score)) {
           onValueChange(`${element.id}::score`, score);
@@ -603,12 +603,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             <div className="rounded-md border p-2 space-y-2">
                 {isLoading ? <Loader2 className="animate-spin" /> : mainListOptions.map((option, index) => {
                     const itemValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                    const itemLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option.label);
                     const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
                     
-                    const itemContent = () => {
-                        const displayElements = (element.listItemElements || []).map(itemEl => (
+                    const itemContent = () => (
+                      <div className="flex flex-col gap-1">
+                        <Label htmlFor={`${element.id}-${index}`} className="font-normal cursor-pointer">{itemLabel}</Label>
+                        {(element.listItemElements || []).map(itemEl => (
+                          <div key={itemEl.id} className="pl-6">
                             <FormElementRenderer 
-                                key={itemEl.id}
                                 element={itemEl.element}
                                 value={getNestedValue(option, itemEl.element.key)}
                                 onValueChange={() => {}}
@@ -616,21 +619,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 formState={formState}
                                 isTableCell={true}
                             />
-                        ));
-
-                        return (
-                            <>
-                                {displayElements}
-                            </>
-                        );
-                    }
+                          </div>
+                        ))}
+                      </div>
+                    );
 
                     return (
                         <div
                             key={`${element.id}-item-${index}`}
                             onClick={() => handleListChange(itemValue)}
                             className={cn(
-                                "flex items-start gap-4 p-3 rounded-md transition-colors",
+                                "flex items-start gap-3 p-3 rounded-md transition-colors",
                                 !isDisplayOnly && "cursor-pointer",
                                 isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-accent"
                             )}
@@ -640,7 +639,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                     {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} id={`${element.id}-${index}`} />}
                                 </div>
                             )}
-                            <div className="flex-1 space-y-1">
+                            <div className="flex-1">
                                 {itemContent()}
                             </div>
                         </div>

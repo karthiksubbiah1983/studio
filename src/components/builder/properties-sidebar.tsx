@@ -652,45 +652,60 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     const listItemElements = props.listItemElements || [];
 
     const handleAddItem = () => {
-        const newItem: Record<string, any> = { id: crypto.randomUUID() };
+        const newItem: Record<string, any> = { id: crypto.randomUUID(), label: `Option ${staticData.length + 1}` };
         listItemElements.forEach(el => {
-            newItem[el.element.key] = el.element.defaultValue || '';
+            if (el.element.key) {
+                newItem[el.element.key] = el.element.defaultValue || '';
+            }
         });
         updateProperty('staticData', [...staticData, newItem]);
     };
     
-    const handleRemoveItem = (index: number) => {
-        const newData = [...staticData];
-        newData.splice(index, 1);
+    const handleRemoveItem = (id: string) => {
+        const newData = staticData.filter(item => item.id !== id);
         updateProperty('staticData', newData);
     };
 
-    const handleItemChange = (index: number, key: string, value: any) => {
-        const newData = [...staticData];
-        newData[index] = { ...newData[index], [key]: value };
+    const handleItemChange = (id: string, key: string, value: any) => {
+        const newData = staticData.map(item => {
+            if (item.id === id) {
+                return { ...item, [key]: value };
+            }
+            return item;
+        });
         updateProperty('staticData', newData);
     }
 
     return (
         <div className="flex flex-col gap-4">
-            <Label>Static Data Editor</Label>
+            <Label>Static Items</Label>
             <div className="space-y-4">
                 {staticData.map((item, itemIndex) => (
-                    <div key={itemIndex} className="border p-4 rounded-md space-y-3 relative">
-                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => handleRemoveItem(itemIndex)}>
+                    <div key={item.id} className="border p-4 rounded-md space-y-3 relative">
+                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => handleRemoveItem(item.id)}>
                             <Trash className="h-4 w-4 text-destructive" />
                         </Button>
-                        <p className="text-xs font-medium text-muted-foreground">Item {itemIndex + 1}</p>
-                        {listItemElements.map(el => (
-                            <div key={el.id} className="flex flex-col gap-1.5">
-                                <Label className="text-xs">{el.element.label}</Label>
-                                <Input
-                                    value={item[el.element.key] || ''}
-                                    onChange={(e) => handleItemChange(itemIndex, el.element.key, e.target.value)}
-                                    placeholder={el.element.label}
-                                />
-                            </div>
-                        ))}
+                        <div className="flex flex-col gap-1.5">
+                            <Label className="text-xs">Primary Label</Label>
+                            <Input
+                                value={item.label || ''}
+                                onChange={(e) => handleItemChange(item.id, 'label', e.target.value)}
+                                placeholder="Primary Label"
+                            />
+                        </div>
+                        {listItemElements.map(el => {
+                            if (!el.element.key) return null;
+                            return (
+                                <div key={el.id} className="flex flex-col gap-1.5">
+                                    <Label className="text-xs">{el.element.label}</Label>
+                                    <Input
+                                        value={item[el.element.key] || ''}
+                                        onChange={(e) => handleItemChange(item.id, el.element.key, e.target.value)}
+                                        placeholder={el.element.label}
+                                    />
+                                </div>
+                            )
+                        })}
                     </div>
                 ))}
             </div>
