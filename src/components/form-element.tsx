@@ -98,6 +98,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [comboboxInputValue, setComboboxInputValue] = useState(initialValue || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const evaluationContext = rowContext || formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
@@ -768,22 +773,51 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       );
       break;
     case "DatePicker":
-      const dateValue = value ? new Date(value) : undefined;
+      const [dateValue, setDateValue] = useState<Date | undefined>(undefined);
+      const [timeValue, setTimeValue] = useState('');
+
+      useEffect(() => {
+        if(value) {
+            const date = new Date(value);
+            setDateValue(date);
+            setTimeValue(`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2, '0')}`);
+        } else {
+            setDateValue(undefined);
+            setTimeValue('');
+        }
+      }, [value]);
+      
       const handleDateChange = (date: Date | undefined) => {
-        const newDate = dateValue || new Date();
+        if (!isClient) return;
+        const newDate = dateValue || currentDateTime || new Date();
         if(date) {
             newDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
             onValueChange(element.id, newDate.toISOString());
         }
       }
       const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!isClient) return;
         const time = e.target.value;
         const [hours, minutes] = time.split(':').map(Number);
         const newDate = dateValue || (currentDateTime || new Date());
         newDate.setHours(hours, minutes);
         onValueChange(element.id, newDate.toISOString());
       }
-      const timeValue = dateValue ? `${String(dateValue.getHours()).padStart(2,'0')}:${String(dateValue.getMinutes()).padStart(2, '0')}` : "";
+      
+      if (!isClient) {
+        return (
+          <div>
+            {renderLabel()}
+            <Button
+              variant={"outline"}
+              className={cn("w-full justify-start text-left font-normal", !placeholder && "text-muted-foreground")}
+            >
+              <CalendarDays className="mr-2 h-4 w-4" />
+              <span>{placeholder || "Pick a date"}</span>
+            </Button>
+          </div>
+        );
+      }
 
       content = (
         <div className={cn(isDisabled && 'pointer-events-none opacity-50')}>
