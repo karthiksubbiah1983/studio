@@ -126,7 +126,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let readOnly = false;
     let newCalculatedValue: any = undefined;
     
-    const contextForEval = rowContext || formState;
+    const contextForEval = evaluationContext;
 
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && contextForEval) {
         const formulaContext = Object.keys(contextForEval).reduce((acc, key) => {
@@ -159,7 +159,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let finalValue = newCalculatedValue !== undefined ? newCalculatedValue : (initialValue ?? ('defaultValue' in element ? element.defaultValue : undefined));
 
     return { value: finalValue, isReadOnly: readOnly, calculatedValue: newCalculatedValue };
-  }, [element, initialValue, rules, formState, sections, rowContext, configurations, isTableCell]);
+  }, [element, initialValue, rules, evaluationContext, sections, configurations, isTableCell]);
 
 
   useEffect(() => {

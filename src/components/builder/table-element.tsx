@@ -25,7 +25,7 @@ export function TableElement({ element, value: tableRows = [], onValueChange }: 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const { formState } = useBuilder(); // Removed updateFormState as it's not used here
+  const { formState } = useBuilder(); 
 
   const tableColumns = useMemo(() => element.tableColumns || [], [element.tableColumns]);
   const pageSize = element.pageSize || 5;
