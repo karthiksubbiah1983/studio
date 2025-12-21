@@ -79,9 +79,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [isLoading, setIsLoading] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
-  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+  const [currentDateTime, setCurrentDateTime] = useState<Date | null>(null);
 
   useEffect(() => {
+    setCurrentDateTime(new Date());
     const timer = setInterval(() => setCurrentDateTime(new Date()), 60000); // Update every minute
     return () => clearInterval(timer);
   }, []);
@@ -250,7 +251,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         let finalDisplayValue;
         if (dataSourceConfig?.sourceType === 'currentUser' && user) {
             finalDisplayValue = getNestedValue(user, dataSourceConfig.displayKey);
-        } else if (dataSourceConfig?.sourceType === 'currentDateTime') {
+        } else if (dataSourceConfig?.sourceType === 'currentDateTime' && currentDateTime) {
             finalDisplayValue = format(currentDateTime, 'PPP p');
         } else if (isReadOnly) {
             finalDisplayValue = value;
@@ -702,7 +703,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const time = e.target.value;
         const [hours, minutes] = time.split(':').map(Number);
-        const newDate = dateValue || new Date();
+        const newDate = dateValue || (currentDateTime || new Date());
         newDate.setHours(hours, minutes);
         onValueChange(element.id, newDate.toISOString());
       }
