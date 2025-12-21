@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState } from "react";
@@ -262,32 +262,38 @@ function ColumnManager({
     columnType,
     parentFetchedKeys,
 } : {
-    columns: (ListItemElement)[],
-    onUpdate: (columns: (ListItemElement)[]) => void,
-    columnType: 'listitem',
+    columns: (TableColumn | ListItemElement)[],
+    onUpdate: (columns: (TableColumn | ListItemElement)[]) => void,
+    columnType: 'table' | 'listitem',
     parentFetchedKeys?: string[],
 }) {
     const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
-    const [editingColumn, setEditingColumn] = useState<ListItemElement | null>(null);
+    const [editingColumn, setEditingColumn] = useState<TableColumn | ListItemElement | null>(null);
 
-    const openColumnEditor = (col: ListItemElement | null) => {
+    const openColumnEditor = (col: TableColumn | ListItemElement | null) => {
         if (col) {
             setEditingColumn(JSON.parse(JSON.stringify(col))); // Deep clone for editing
         } else {
             const baseNewCol = {
                 id: `new_${crypto.randomUUID()}`,
             };
-            if (columnType === 'listitem') {
+            if (columnType === 'table') {
+                setEditingColumn({
+                    ...baseNewCol,
+                    label: 'New Column',
+                    element: createNewElement('Input')
+                });
+            } else { // listitem
                 setEditingColumn({
                     ...baseNewCol,
                     element: createNewElement('Display')
                 });
-            } 
+            }
         }
         setIsColumnEditorOpen(true);
     };
 
-    const handleSaveColumn = (updatedColumn: ListItemElement) => {
+    const handleSaveColumn = (updatedColumn: TableColumn | ListItemElement) => {
         const isNew = 'id' in updatedColumn && updatedColumn.id.startsWith('new_');
         const finalColumn = { ...updatedColumn, id: isNew ? crypto.randomUUID() : updatedColumn.id };
 
@@ -307,7 +313,8 @@ function ColumnManager({
         onUpdate(newCols as any);
     }
     
-    const getLabel = (col: ListItemElement) => {
+    const getLabel = (col: TableColumn | ListItemElement) => {
+        if ('label' in col) return col.label;
         if ('element' in col) return col.element.label || col.element.type;
         return 'Item';
     }
@@ -354,26 +361,26 @@ function ColumnEditorDialog({
 }: {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
-    onSave: (column: ListItemElement) => void;
-    column: ListItemElement | null;
-    columnType: 'listitem',
+    onSave: (column: TableColumn | ListItemElement) => void;
+    column: TableColumn | ListItemElement | null;
+    columnType: 'table' | 'listitem',
     parentFetchedKeys?: string[];
 }) {
-    const [editingColumn, setEditingColumn] = useState<ListItemElement | null>(null);
+    const [editingColumn, setEditingColumn] = useState<TableColumn | ListItemElement | null>(null);
 
     useEffect(() => {
         if (column) {
             const newColumn = {...column};
             if (!('element' in newColumn) || !newColumn.element) {
                 // If element is missing or null, initialize it.
-                (newColumn as any).element = createNewElement('Display'); 
+                (newColumn as any).element = createNewElement(columnType === 'table' ? 'Input' : 'Display'); 
             } else {
                  // Ensure the existing element is fully formed by merging with a default
                  (newColumn as any).element = { ...createNewElement(newColumn.element.type), ...newColumn.element }
             }
              setEditingColumn(newColumn);
         }
-    }, [column]);
+    }, [column, columnType]);
 
     const handleSave = () => {
         if (editingColumn) {
@@ -407,6 +414,7 @@ function ColumnEditorDialog({
 
     const title = 'id' in editingColumn && !editingColumn?.id.startsWith('new') ? 'Edit Column' : 'Add New Column';
     const description = "Configure the properties for this column.";
+    const isTableColumn = columnType === 'table';
     const isListItemElement = columnType === 'listitem';
 
     return (
@@ -418,6 +426,15 @@ function ColumnEditorDialog({
                 </DialogHeader>
                 <ScrollArea className="flex-grow -mx-6 px-6">
                     <div className="py-4 flex flex-col gap-4">
+                        {isTableColumn && 'label' in editingColumn && (
+                            <div className="flex flex-col gap-2">
+                                <Label>Column Header</Label>
+                                <Input
+                                    value={editingColumn.label}
+                                    onChange={(e) => updateColumnProperty('label', e.target.value)}
+                                />
+                            </div>
+                        )}
                         {'element' in editingColumn && (
                             <>
                                 <h3 className="text-lg font-medium">Field Properties</h3>
@@ -438,7 +455,7 @@ function ColumnEditorDialog({
                                             <SelectItem value="RadioGroup">Radio Group</SelectItem>
                                             <SelectItem value="DatePicker">Date Picker</SelectItem>
                                             <SelectItem value="Display">Display Text</SelectItem>
-                                            <SelectItem value="Combobox">Combobox</SelectItem>
+                                            {isTableColumn && <SelectItem value="Combobox">Combobox</SelectItem>}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -1274,6 +1291,37 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent>
                             {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
+        case "EditableTable":
+            return (
+                <Accordion type="multiple" defaultValue={["general", "columns"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="defaultRows">Default Rows</Label>
+                                <Input
+                                    id="defaultRows"
+                                    type="number"
+                                    min="0"
+                                    value={props.defaultRows || 0}
+                                    onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value))}
+                                />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="columns">
+                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
+                        <AccordionContent>
+                            <ColumnManager
+                                columns={props.columns || []}
+                                onUpdate={(newColumns) => updateProperty('columns', newColumns)}
+                                columnType="table"
+                            />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

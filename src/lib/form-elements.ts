@@ -1,7 +1,7 @@
 
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Eye, Upload, ListFilter } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Eye, Upload, ListFilter, Table } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -20,6 +20,7 @@ export const FormElements: {
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
+    { type: 'EditableTable', icon: Table, label: 'Editable Table' },
     { type: 'Preview', icon: Eye, label: 'Preview Button' },
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
@@ -89,6 +90,16 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
             return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false, key: '' };
         case "Container":
             return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch', exposeForValidation: false, key: '' };
+        case "EditableTable":
+            return {
+                ...baseElement,
+                label: "Editable Table",
+                columns: [
+                    { id: crypto.randomUUID(), label: 'Column 1', element: createNewElement('Input') }
+                ],
+                defaultRows: 1,
+                key: 'editable_table_1'
+            };
         case "Preview":
             return { ...baseElement, label: "Preview Data", previewSectionIds: [], key: '' };
         case "FileUpload":

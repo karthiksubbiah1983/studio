@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "Preview" | "FileUpload" | "List" | "Combobox";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "Preview" | "FileUpload" | "List" | "Combobox" | "EditableTable";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -87,6 +87,12 @@ export type ListItemElement = {
     element: FormElementInstance;
 };
 
+export type TableColumn = {
+  id: string;
+  label: string;
+  element: FormElementInstance;
+};
+
 export type FormElementInstance = {
     id: string;
     type: ElementType;
@@ -139,6 +145,9 @@ export type FormElementInstance = {
     scorePerItem?: number | null;
     passingScore?: number | null;
     placeholder?: string;
+    // For EditableTable
+    columns?: TableColumn[];
+    defaultRows?: number;
 };
 
 export type Section = {

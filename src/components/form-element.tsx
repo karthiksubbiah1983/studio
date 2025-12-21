@@ -35,6 +35,7 @@ import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { EditableTable } from "@/components/builder/editable-table";
 
 
 type Props = {
@@ -108,11 +109,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     return calculatedValue !== undefined ? calculatedValue : initialValue;
   }, [element.type, element.formula, element.id, evaluationContext, initialValue, onValueChange]);
   
-
   const isVisible = useMemo(() => {
-    if (!formState || !evaluationContext) return !element.hidden;
-    const visibility = evaluationContext[element.id]?.isVisible;
-    return visibility !== false;
+    const defaultVisibility = !element.hidden;
+    if (!evaluationContext) return defaultVisibility;
+
+    const visibilityState = evaluationContext[element.id]?.isVisible;
+    return visibilityState !== undefined ? visibilityState : defaultVisibility;
   }, [evaluationContext, element.id, element.hidden]);
 
 
@@ -878,6 +880,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             </div>
         )
         break;
+     case "EditableTable":
+        return <EditableTable element={element} value={value} onValueChange={onValueChange} />;
     default:
       content = <div>Unsupported element type: {type}</div>;
       break;

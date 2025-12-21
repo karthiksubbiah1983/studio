@@ -69,6 +69,13 @@ export const findElementRecursive = (sections: Section[], elementId: string): Fo
                 if (el.id === elementId) {
                     return el;
                 }
+                 if (el.type === 'EditableTable' && el.columns) {
+                    for (const col of el.columns) {
+                        if (col.element.id === elementId) {
+                            return col.element;
+                        }
+                    }
+                }
                 if (el.elements) {
                     const found = find(el.elements);
                     if (found) return found;
@@ -81,6 +88,7 @@ export const findElementRecursive = (sections: Section[], elementId: string): Fo
     }
     return null;
 }
+
 
 export const getAllElements = (sections: Section[]): (FormElementInstance | Section)[] => {
     const allElementsAndSections: (FormElementInstance | Section)[] = [];
@@ -109,6 +117,14 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                      required: false,
                  };
                  allElementsAndSections.push(scoreProxyElement);
+            } else if (element.type === 'EditableTable' && element.columns) {
+                 allElementsAndSections.push(element);
+                 processedElements.add(element.id);
+                 element.columns.forEach(col => {
+                    // Make column elements selectable in rules
+                    allElementsAndSections.push({ ...col.element, id: col.id, label: `${element.label} > ${col.label}` });
+                    processedElements.add(col.id);
+                 })
             } else if (isSelectable) {
                 allElementsAndSections.push(element);
                 processedElements.add(element.id);
@@ -162,20 +178,21 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
              return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
 
-        // For context from table rows, keys are direct properties
-        if(context.hasOwnProperty(idOrKey)) {
-            const value = context[idOrKey];
-            return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
+        const findElementByIdOrKey = (idOrKey: string) => {
+            // First check if a key matches in the row context (for tables)
+            if (context.hasOwnProperty(idOrKey)) {
+                return context[idOrKey];
+            }
+            // Fallback to searching all form elements by ID (for global context)
+            const element = allElements.find(el => el.id === idOrKey);
+            if (element && 'id' in element) {
+                return context[element.id];
+            }
+            return undefined;
         }
 
-        // For global formState context, keys are element IDs
-        const element = allElements.find(el => 'id' in el && el.id === idOrKey);
-        if (element && 'id' in element && context[element.id]) {
-            const stateValue = context[element.id];
-            return (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
-        }
-        
-        return undefined;
+        const stateValue = findElementByIdOrKey(idOrKey);
+        return (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
     }
 
     let sourceValue: any;
