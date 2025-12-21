@@ -5,11 +5,12 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
+import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
+import { evaluateRule } from "@/lib/utils";
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
 
@@ -832,18 +833,6 @@ type BuilderContextType = {
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
-// Custom hook for deep comparison in useEffect
-const useDeepCompareEffect = (callback: React.EffectCallback, dependencies: any[]) => {
-    const currentDependenciesRef = useRef<any[]>();
-
-    if (JSON.stringify(currentDependenciesRef.current) !== JSON.stringify(dependencies)) {
-        currentDependenciesRef.current = dependencies;
-    }
-
-    useEffect(callback, [currentDependenciesRef.current]);
-};
-
-
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -908,7 +897,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const configurations = activeForm?.versions[0]?.configurations || [];
   
   // Reactive rules engine
-  useDeepCompareEffect(() => {
+  useEffect(() => {
     if (!rules || rules.length === 0 || !isLoaded || !state.formState || Object.keys(state.formState).length === 0) return;
 
     const allElements = getAllElements(sections);
@@ -1005,7 +994,11 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             nextFormState[key] = { ...nextFormState[key], ...stateChanges[key] };
           }
       }
-      dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+      
+      // Deep comparison to prevent infinite loops
+      if (JSON.stringify(state.formState) !== JSON.stringify(nextFormState)) {
+        dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+      }
     }
   }, [state.formState, rules, sections, configurations, isLoaded]);
   
