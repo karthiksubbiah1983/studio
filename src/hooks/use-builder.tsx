@@ -5,7 +5,7 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive } from "@/lib/utils";
+import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -149,8 +149,8 @@ type State = {
 };
 
 const initialState: State = {
-  forms: [demoTemplate],
-  categories: [demoCategory],
+  forms: [],
+  categories: [],
   sites: [],
   tasks: [],
   submissions: [],
@@ -854,25 +854,20 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const mergedState: State = { ...initialState };
-    if (loadedState) {
-        // Ensure initial templates/categories are always present if not already in loaded state
-        if (!loadedState.forms?.some(f => f.id === demoTemplate.id)) {
-            mergedState.forms = [...(loadedState.forms || []), demoTemplate];
-        } else {
-             mergedState.forms = loadedState.forms;
-        }
-
-        if (!loadedState.categories?.some(c => c.id === demoCategory.id)) {
-            mergedState.categories = [...(loadedState.categories || []), demoCategory];
-        } else {
-            mergedState.categories = loadedState.categories;
-        }
-
+     if (loadedState) {
+        mergedState.forms = loadedState.forms || [];
+        mergedState.categories = loadedState.categories || [];
         mergedState.sites = loadedState.sites || [];
         mergedState.tasks = loadedState.tasks || [];
         mergedState.submissions = loadedState.submissions || [];
     }
 
+    if (!mergedState.forms.some(f => f.id === demoTemplate.id)) {
+        mergedState.forms.unshift(demoTemplate);
+    }
+    if (!mergedState.categories.some(c => c.id === demoCategory.id)) {
+        mergedState.categories.unshift(demoCategory);
+    }
 
     dispatch({ type: 'SET_STATE', payload: mergedState });
     setIsLoaded(true);
@@ -907,7 +902,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     const allElements = getAllElements(sections);
     let stateChanges: { [key: string]: { value?: any; isVisible?: boolean } } = {};
 
-    const applyBehavior = (behavior: Rule['behaviors'][0], context: any, rowId?: string) => {
+    const applyBehavior = (behavior: Rule['behaviors'][0], context: any, tableId?: string, rowId?: string) => {
         const { type, targetElementId, value, targetConfigurationKey } = behavior;
         
         let targetId = targetElementId;
@@ -927,23 +922,26 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
         const targetElement = findElementRecursive(sections, targetId);
         
-        if (targetElement?.isTableColumn && rowId) {
-             const tableId = allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.element.id === targetId))?.id;
-             if(tableId) {
-                const targetKey = `${tableId}::${rowId}::${targetId}`;
-                const currentValue = state.formState[targetKey]?.value;
-                const currentVisibility = state.formState[targetKey]?.isVisible;
+        if (targetElement?.isTableColumn && tableId && rowId) {
+            const tableData = state.formState[tableId]?.value;
+            if (!Array.isArray(tableData)) return;
 
-                if (type === 'set_value' && currentValue !== value) {
-                    stateChanges[targetKey] = { ...stateChanges[targetKey], value };
-                }
-                if (type === 'show' && currentVisibility !== true) {
-                    stateChanges[targetKey] = { ...stateChanges[targetKey], isVisible: true };
-                }
-                if (type === 'hide' && currentVisibility !== false) {
-                     stateChanges[targetKey] = { ...stateChanges[targetKey], isVisible: false };
-                }
-             }
+            const rowIndex = tableData.findIndex(r => r._rowId === rowId);
+            if (rowIndex === -1) return;
+
+            const currentCellStateKey = `${tableId}::${rowId}::${targetId}`;
+            const currentCellValue = (state.formState[currentCellStateKey] || tableData[rowIndex][targetId])?.value;
+            const currentCellVisibility = (state.formState[currentCellStateKey] || {})?.isVisible ?? !targetElement.hidden;
+            
+            if (type === 'set_value' && currentCellValue !== value) {
+                 stateChanges[currentCellStateKey] = { ...stateChanges[currentCellStateKey], value };
+            }
+            if (type === 'show' && currentCellVisibility !== true) {
+                stateChanges[currentCellStateKey] = { ...stateChanges[currentCellStateKey], isVisible: true };
+            }
+            if (type === 'hide' && currentCellVisibility !== false) {
+                 stateChanges[currentCellStateKey] = { ...stateChanges[currentCellStateKey], isVisible: false };
+            }
         } else {
              applyChange(targetId, type === 'set_value' || type === 'set_configuration' ? value : undefined, type === 'show' ? true : type === 'hide' ? false : undefined);
         }
@@ -959,7 +957,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             const tableData: any[] = state.formState[tableElementId].value;
             tableData.forEach(row => {
                 if (evaluateRule(rule, row, configurations, sections)) {
-                    rule.behaviors.forEach(behavior => applyBehavior(behavior, row, row._rowId));
+                    rule.behaviors.forEach(behavior => applyBehavior(behavior, row, tableElementId, row._rowId));
                 }
             });
         } else {
@@ -982,13 +980,15 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                     if (stateChanges[key].value !== undefined) {
                         updatedRow[elementId] = stateChanges[key].value;
                     }
-                    if (stateChanges[key].isVisible !== undefined) {
-                        // This assumes visibility is also stored per-cell, which needs a bigger refactor.
-                        // For now, let's focus on value setting.
-                    }
                     tableValue[rowIndex] = updatedRow;
                     nextFormState[tableId] = { ...nextFormState[tableId], value: tableValue };
                 }
+                
+                // Update the transient per-cell state for visibility
+                if (stateChanges[key].isVisible !== undefined) {
+                    nextFormState[key] = { ...nextFormState[key], isVisible: stateChanges[key].isVisible };
+                }
+
           } else {
             nextFormState[key] = { ...nextFormState[key], ...stateChanges[key] };
           }
@@ -1086,3 +1086,6 @@ export const useBuilder = () => {
 };
 
 
+
+
+    
