@@ -628,14 +628,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         const renderListItemContent = (option: any) => {
             const itemLabel = String(element.dataSource === 'dynamic' ? getNestedValue(option, element.labelKey!) : option.label);
             const secondaryText = element.hasSecondaryText ? String(element.dataSource === 'dynamic' ? getNestedValue(option, element.secondaryTextKey!) : option.secondaryText) : null;
-            const linkUrl = element.isSecondaryTextLink ? (element.dataSource === 'dynamic' ? getNestedValue(option, element.linkUrlKey!) : option.linkUrl) || '#' : null;
+            const linkUrlValue = (element.isSecondaryTextLink
+                ? (element.dataSource === 'dynamic' ? getNestedValue(option, element.linkUrlKey!) : option.linkUrl)
+                : null) || '#';
 
             return (
                 <div className="flex flex-col gap-1">
                     <Label className="font-normal cursor-pointer">{itemLabel}</Label>
                      {secondaryText && (
-                        linkUrl ? (
-                            <a href={linkUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
+                        linkUrlValue ? (
+                            <a href={linkUrlValue} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
                                 <Link className="h-3 w-3" />
                                 {secondaryText}
                             </a>
@@ -726,16 +728,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                  )
                             })}
                         </div>
-                    </div>
-                 )}
-                 {element.enableScoring && score !== null && (
-                    <div className="mt-4 flex justify-between items-center rounded-md border p-3 bg-muted/50">
-                        <p className="font-medium">Total Score: {score}</p>
-                        {passed !== null && (
-                            <div className={cn("font-bold px-3 py-1 rounded-full text-sm", passed ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800")}>
-                                {passed ? "Pass" : "Fail"}
-                            </div>
-                        )}
                     </div>
                  )}
             </div>
