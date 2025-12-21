@@ -4,7 +4,7 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
+import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -834,7 +834,7 @@ const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
-  const [userDrivenState, setUserDrivenState] = useState<{[key: string]: any}>({});
+  const [userDrivenState, setUserDrivenState] = useState<{ elementId: string; value: any, timestamp: number } | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const { firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
@@ -898,12 +898,39 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   
   // Reactive rules engine
   useEffect(() => {
-    if (!rules || rules.length === 0 || !isLoaded || Object.keys(userDrivenState).length === 0) return;
-
+    if (!isLoaded) return;
+    
     let nextFormState = { ...state.formState };
     const allElements = getAllElements(sections);
 
-    const applyBehavior = (behavior: Rule['behaviors'][0], context: any, tableId?: string, rowId?: string) => {
+    // Sync default rows for editable tables
+    allElements.forEach(el => {
+        if (el.type === 'EditableTable' && el.defaultRows && el.defaultRows > 0) {
+            const tableState = nextFormState[el.id];
+            const currentRows = Array.isArray(tableState?.value) ? tableState.value.length : 0;
+            if (currentRows !== el.defaultRows) {
+                 const newRows: any[] = [];
+                 for (let i = 0; i < el.defaultRows; i++) {
+                    const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
+                    el.columns?.forEach(col => {
+                        row[col.element.id] = col.element.defaultValue ?? null;
+                    });
+                    newRows.push(row);
+                }
+                nextFormState[el.id] = { ...tableState, value: newRows };
+            }
+        }
+    });
+
+    if (!rules || rules.length === 0) {
+        if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
+             dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+        }
+        return;
+    }
+    
+    // Rule evaluation logic from here
+    const applyBehavior = (behavior: Rule['behaviors'][0], context: any) => {
         const { type, targetElementId, value, targetConfigurationKey } = behavior;
         
         let targetId = targetElementId;
@@ -912,32 +939,19 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         }
         if (!targetId) return;
 
-        const applyChange = (currentTargetId: string, newValue?: any, newVisibility?: boolean) => {
-            const currentTargetState = nextFormState[currentTargetId] || {};
-             if (newValue !== undefined && currentTargetState.value !== newValue) {
-                nextFormState[currentTargetId] = { ...currentTargetState, value: newValue };
-            }
-            if (newVisibility !== undefined && currentTargetState.isVisible !== newVisibility) {
-                nextFormState[currentTargetId] = { ...currentTargetState, isVisible: newVisibility };
-            }
-        };
+        const currentTargetState = nextFormState[targetId] || {};
+        let valueChanged = false;
+        let visibilityChanged = false;
 
-        const targetElement = findElementRecursive(sections, targetId);
+        if ((type === 'set_value' || type === 'set_configuration') && currentTargetState.value !== value) {
+            nextFormState[targetId] = { ...currentTargetState, value };
+            valueChanged = true;
+        }
         
-        if (targetElement?.isTableColumn && tableId && rowId) {
-            const tableValue = [...(nextFormState[tableId]?.value || [])];
-            const rowIndex = tableValue.findIndex(r => r._rowId === rowId);
-
-            if (rowIndex !== -1) {
-                const updatedRow = { ...tableValue[rowIndex] };
-                if (type === 'set_value' && updatedRow[targetId] !== value) {
-                    updatedRow[targetId] = value;
-                    tableValue[rowIndex] = updatedRow;
-                    nextFormState[tableId] = { ...nextFormState[tableId], value: tableValue };
-                }
-            }
-        } else {
-             applyChange(targetId, type === 'set_value' || type === 'set_configuration' ? value : undefined, type === 'show' ? true : type === 'hide' ? false : undefined);
+        const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
+        if (newVisibility !== undefined && currentTargetState.isVisible !== newVisibility) {
+            nextFormState[targetId] = { ...currentTargetState, isVisible: newVisibility };
+            visibilityChanged = true;
         }
     };
     
@@ -951,7 +965,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             const tableData: any[] = nextFormState[tableElementId].value;
             tableData.forEach(row => {
                 if (evaluateRule(rule, row, configurations, sections)) {
-                    rule.behaviors.forEach(behavior => applyBehavior(behavior, row, tableElementId, row._rowId));
+                    rule.behaviors.forEach(behavior => applyBehavior(behavior, row));
                 }
             });
         } else {
@@ -961,9 +975,11 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         }
     });
 
-    dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+    if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
+        dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+    }
     
-  }, [userDrivenState, rules, sections, configurations, isLoaded]); // Depend only on user-driven changes
+  }, [userDrivenState, sections, rules, configurations, isLoaded]);
   
   const addNewForm = async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
     const { title, description, categoryId, subCategoryId } = payload;
@@ -1024,6 +1040,11 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const enhancedDispatch = (action: Action) => {
+    if (action.type === 'UPDATE_ELEMENT') {
+      const { element } = action.payload;
+      // This is a user-driven change to a property, not a value
+       setUserDrivenState({ elementId: element.id, value: 'prop_change', timestamp: Date.now() });
+    }
     dispatch(action);
   }
 
@@ -1052,6 +1073,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-
-    
