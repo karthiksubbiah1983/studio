@@ -263,6 +263,84 @@ function AlignmentRadioGroup({
     )
 }
 
+function ColumnManager({
+    columns,
+    onUpdate,
+    columnType,
+    parentFetchedKeys,
+}: {
+    columns: (TableColumn | ListItemElement)[];
+    onUpdate: (columns: (TableColumn | ListItemElement)[]) => void;
+    columnType: 'table' | 'listitem';
+    parentFetchedKeys?: string[];
+}) {
+    const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
+    const [editingColumn, setEditingColumn] = useState<TableColumn | ListItemElement | null>(null);
+
+    const handleAddColumn = () => {
+        const newColumn = { 
+            id: `new_${crypto.randomUUID()}`, 
+            label: columnType === 'table' ? `Column ${columns.length + 1}` : 'New Item',
+            element: createNewElement(columnType === 'table' ? 'Input' : 'Display')
+        };
+        setEditingColumn(newColumn as TableColumn);
+        setIsColumnEditorOpen(true);
+    };
+
+    const handleEditColumn = (column: TableColumn | ListItemElement) => {
+        setEditingColumn(column);
+        setIsColumnEditorOpen(true);
+    };
+
+    const handleSaveColumn = (updatedColumn: TableColumn | ListItemElement) => {
+        let newColumns;
+        if (updatedColumn.id.startsWith('new')) {
+            newColumns = [...columns, { ...updatedColumn, id: crypto.randomUUID() }];
+        } else {
+            newColumns = columns.map(c => c.id === updatedColumn.id ? updatedColumn : c);
+        }
+        onUpdate(newColumns);
+    };
+
+    const handleDeleteColumn = (columnId: string) => {
+        onUpdate(columns.filter(c => c.id !== columnId));
+    };
+
+    const isListItem = columnType === 'listitem';
+
+    return (
+        <div className="flex flex-col gap-2">
+            <Label>{isListItem ? 'Item Layout' : 'Columns'}</Label>
+            <div className="flex flex-col gap-2 p-2 border rounded-md">
+                {columns.map(col => (
+                    <div key={col.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+                        <span className="text-sm font-medium">{isListItem ? (col as ListItemElement).element.label : (col as TableColumn).label}</span>
+                        <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditColumn(col)}>
+                                <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteColumn(col.id)}>
+                                <Trash className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                    </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={handleAddColumn}>
+                    <Plus className="mr-2 h-4 w-4" /> Add {isListItem ? 'Element' : 'Column'}
+                </Button>
+            </div>
+            <ColumnEditorDialog
+                isOpen={isColumnEditorOpen}
+                onOpenChange={setIsColumnEditorOpen}
+                onSave={handleSaveColumn}
+                column={editingColumn}
+                columnType={columnType}
+                parentFetchedKeys={parentFetchedKeys}
+            />
+        </div>
+    );
+}
+
 function ColumnEditorDialog({
     isOpen,
     onOpenChange,
@@ -1150,6 +1228,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : undefined,
                                         valueKey: newDataSource === 'dynamic' ? props.valueKey : 'id',
                                         labelKey: newDataSource === 'dynamic' ? props.labelKey : 'label',
+                                        secondaryTextKey: newDataSource === 'dynamic' ? props.secondaryTextKey : 'secondaryText',
+                                        linkUrlKey: newDataSource === 'dynamic' ? props.linkUrlKey : 'linkUrl',
                                     })
                                 }}
                                 className="flex"
@@ -1182,10 +1262,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="score-per-item">Score per Item</Label>
                                     <Input id="score-per-item" type="number" value={props.scorePerItem || 1} onChange={(e) => updateProperty('scorePerItem', parseInt(e.target.value))} />
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="passing-score">Passing Score</Label>
-                                    <Input id="passing-score" type="number" value={props.passingScore || 1} onChange={(e) => updateProperty('passingScore', parseInt(e.target.value))} />
                                 </div>
                                 </>
                             )}

@@ -933,7 +933,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         return;
     }
     
-    // Rule evaluation logic from here
     const applyBehavior = (behavior: Rule['behaviors'][0], context: any) => {
         const { type, targetElementId, value, targetConfigurationKey } = behavior;
         
@@ -943,15 +942,15 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         }
         if (!targetId) return;
 
-        const currentTargetState = nextFormState[targetId] || {};
+        const currentTargetState = context[targetId] || {};
         
         if ((type === 'set_value' || type === 'set_configuration') && currentTargetState.value !== value) {
-            nextFormState[targetId] = { ...currentTargetState, value };
+            context[targetId] = { ...currentTargetState, value };
         }
         
         const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
         if (newVisibility !== undefined && currentTargetState.isVisible !== newVisibility) {
-            nextFormState[targetId] = { ...currentTargetState, isVisible: newVisibility };
+            context[targetId] = { ...currentTargetState, isVisible: newVisibility };
         }
     };
     

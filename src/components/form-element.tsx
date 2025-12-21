@@ -120,31 +120,31 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.type, element.formula, element.id, evaluationContext, initialValue, onValueChange]);
   
   const isVisible = useMemo(() => {
-    const defaultVisibility = !element.hidden;
-    if (!evaluationContext) return defaultVisibility;
+    let contextToCheck = evaluationContext;
+    if(isTableCell) {
+        contextToCheck = rowContext;
+    }
 
-    const allRules = getAllElements(sections).flatMap(el => 'rules' in el && el.rules ? el.rules : []) as Rule[];
-    const allFormRules = rules || [];
-    
-    const relevantRules = isTableCell ? allRules : [...allFormRules, ...allRules];
+    if (!contextToCheck) return !element.hidden;
 
-    const showRules = relevantRules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'show' && b.targetElementId === element.id));
-    const hideRules = relevantRules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'hide' && b.targetElementId === element.id));
+    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
+    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
     
-    let visible = defaultVisibility;
+    let visible = !element.hidden;
 
     if (showRules.length > 0) {
-      visible = showRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
+        visible = showRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
     }
     
     if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
-        visible = false;
-      }
+        if (hideRules.some(r => evaluateRule(r, contextToCheck, configurations, sections))) {
+            visible = false;
+        }
     }
     
     return visible;
-  }, [evaluationContext, element.id, element.hidden, rules, sections, configurations, isTableCell]);
+  }, [evaluationContext, rowContext, isTableCell, element.id, element.hidden, rules, configurations, sections]);
+
 
   const isDisabled = useMemo(() => {
     if (!evaluationContext || !rules) return false;
@@ -233,17 +233,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       return [];
   }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
   
-  const score = useMemo(() => {
-    if (element.type !== 'List' || !element.enableScoring || isDisplayOnly || !currentSelection) return null;
-    const scorePerItem = element.scorePerItem || 0;
-    const selectedCount = isCheckbox ? (currentSelection as string[]).length : (currentSelection ? 1 : 0);
-    return selectedCount * scorePerItem;
-  }, [element, isDisplayOnly, isCheckbox, currentSelection]);
-  
-  const passed = useMemo(() => {
-    if (element.type !== 'List' || score === null || element.passingScore === undefined || element.passingScore === null) return null;
-    return score >= element.passingScore;
-  }, [element, score]);
 
   useEffect(() => {
     setCurrentDateTime(new Date());
@@ -268,12 +257,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       }
     }
   }, [element.apiUrl, element.type, element.dataSource, evaluationContext, sections, rowContext]);
-
-  useEffect(() => {
-      if (score !== null && (formState?.[`${element.id}::score`]?.value !== score)) {
-          onValueChange(`${element.id}::score`, score);
-      }
-  }, [score, element.id, onValueChange, formState]);
 
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText } = element;
@@ -636,7 +619,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 <div className="flex flex-col gap-1">
                     <Label className="font-normal cursor-pointer">{itemLabel}</Label>
                      {secondaryText && (
-                        linkUrlValue ? (
+                        element.isSecondaryTextLink ? (
                             <a href={linkUrlValue} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
                                 <Link className="h-3 w-3" />
                                 {secondaryText}
@@ -1001,5 +984,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
-    
