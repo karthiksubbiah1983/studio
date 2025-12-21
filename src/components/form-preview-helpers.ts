@@ -26,12 +26,12 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             const value = context[configKey];
              return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
-
+        
         // For context from table rows, keys are direct properties (the element IDs of the columns)
         if(context.hasOwnProperty(idOrKey)) {
             const value = context[idOrKey];
             // The value in a row context might not be wrapped in a {value: ...} object
-            return (value && typeof value === 'object' && 'value' in value) ? value.value : value;
+             return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
         }
 
         // For global formState context, keys are element IDs

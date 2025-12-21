@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,15 +114,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const defaultVisibility = !element.hidden;
     if (!evaluationContext) return defaultVisibility;
 
-    const allRules = getAllElements(sections).flatMap(el => el.rules || []);
+    const allRules = getAllElements(sections).flatMap(el => 'rules' in el && el.rules ? el.rules : []) as Rule[];
+    const allFormRules = rules || [];
     
-    // In a table cell, we only care about rules that are defined within the table's columns
-    const relevantRules = isTableCell ? allRules.filter(rule => {
-      const sourceId = rule.conditions[0]?.sourceElementId;
-      const targetId = rule.behaviors[0]?.targetElementId;
-      const tableColumns = (element as any).columns?.map((c:any) => c.element.id) || [];
-      return (sourceId && tableColumns.includes(sourceId)) || (targetId && tableColumns.includes(targetId));
-    }) : rules;
+    // In a table cell, we only care about rules that are defined within that table's columns
+    const relevantRules = isTableCell ? allRules : [...allFormRules, ...allRules];
 
     const showRules = relevantRules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'show' && b.targetElementId === element.id));
     const hideRules = relevantRules.filter(rule => rule && rule.behaviors && rule.behaviors.some(b => b && b.type === 'hide' && b.targetElementId === element.id));
@@ -598,9 +594,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                                 <FormElementRenderer 
                                     key={itemEl.id}
                                     element={itemEl.element}
-                                    value={null}
+                                    value={getNestedValue(option, itemEl.element.key)}
                                     onValueChange={() => {}}
                                     rowContext={option}
+                                    formState={formState}
                                     isTableCell={true}
                                 />
                             ));
@@ -906,13 +903,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         )
         break;
      case "EditableTable":
-        return <EditableTable element={element} value={value} onValueChange={onValueChange} />;
+        return <EditableTable 
+            element={element} 
+            value={value} 
+            onValueChange={onValueChange} 
+            formState={formState} 
+        />;
     default:
       content = <div>Unsupported element type: {type}</div>;
       break;
   }
 
-  return <div className={cn(isParentHorizontal && 'flex-1')}>{content}</div>;
+  return <div className={cn(isParentHorizontal && 'flex-1', isTableCell && 'p-0')}>{content}</div>;
 }
 
 const alignmentClasses = {

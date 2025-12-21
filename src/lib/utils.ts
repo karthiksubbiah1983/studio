@@ -71,8 +71,8 @@ export const findElementRecursive = (sections: Section[], elementId: string): (F
                 }
                 if (el.type === 'EditableTable' && el.columns) {
                     for (const col of el.columns) {
-                        if (col.element.id === elementId || col.id === elementId) {
-                            return { ...col.element, id: col.element.id, isTableColumn: true };
+                        if (col.element.id === elementId) {
+                            return { ...col.element, isTableColumn: true };
                         }
                     }
                 }
@@ -182,18 +182,20 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
         const findElementByIdOrKey = (id: string) => {
             // Check if it's a column element in row context
             if (context[id] !== undefined) {
-                return context[id];
+                const rowValue = context[id];
+                return (typeof rowValue === 'object' && rowValue !== null && 'value' in rowValue) ? rowValue.value : rowValue;
             }
             // Check global context by element ID
             const element = allElements.find(el => el.id === id);
             if (element && 'id' in element) {
-                return context[element.id];
+                const globalValue = context[element.id];
+                 return (typeof globalValue === 'object' && globalValue !== null && 'value' in globalValue) ? globalValue.value : globalValue;
             }
             return undefined;
         }
 
         const stateValue = findElementByIdOrKey(idOrKey);
-        return (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
+        return stateValue;
     }
 
     let sourceValue: any;
@@ -294,4 +296,3 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
     return conditionResults.some((res) => res);
   }
 };
-
