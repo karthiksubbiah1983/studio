@@ -1,16 +1,15 @@
 
-
 "use client";
 
-import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive } from "@/lib/utils";
+import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { evaluateRule } from "@/lib/utils";
+
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
 
@@ -381,7 +380,7 @@ type Action =
   | { type: "ADD_TASK"; payload: { formId: string; versionId: string; siteId: string } }
   | { type: "SET_USER_SETTINGS"; payload: { categories: Category[], sites: Site[] } }
   | { type: "SET_FORM_STATE"; payload: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } }
-  | { type: "UPDATE_FORM_STATE"; payload: { elementId: string; value: any; fullObject?: any, isVisible?: boolean } };
+  | { type: "UPDATE_USER_DRIVEN_STATE"; payload: { elementId: string; value: any; fullObject?: any, isVisible?: boolean } };
 
 
 const builderReducer = (state: State, action: Action): State => {
@@ -412,7 +411,7 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SET_FORM_STATE":
         return { ...state, formState: action.payload };
-    case "UPDATE_FORM_STATE": {
+    case "UPDATE_USER_DRIVEN_STATE": {
         const { elementId, value, fullObject, isVisible } = action.payload;
         const newState = {
             ...state,
@@ -835,6 +834,7 @@ const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
+  const [userDrivenState, setUserDrivenState] = useState<{[key: string]: any}>({});
   const [isLoaded, setIsLoaded] = useState(false);
   const { firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
@@ -898,10 +898,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   
   // Reactive rules engine
   useEffect(() => {
-    if (!rules || rules.length === 0 || !isLoaded || !state.formState || Object.keys(state.formState).length === 0) return;
+    if (!rules || rules.length === 0 || !isLoaded || Object.keys(userDrivenState).length === 0) return;
 
+    let nextFormState = { ...state.formState };
     const allElements = getAllElements(sections);
-    let stateChanges: { [key: string]: { value?: any; isVisible?: boolean } } = {};
 
     const applyBehavior = (behavior: Rule['behaviors'][0], context: any, tableId?: string, rowId?: string) => {
         const { type, targetElementId, value, targetConfigurationKey } = behavior;
@@ -913,35 +913,28 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         if (!targetId) return;
 
         const applyChange = (currentTargetId: string, newValue?: any, newVisibility?: boolean) => {
-             if (newValue !== undefined && context[currentTargetId]?.value !== newValue) {
-                stateChanges[currentTargetId] = { ...stateChanges[currentTargetId], value: newValue };
+            const currentTargetState = nextFormState[currentTargetId] || {};
+             if (newValue !== undefined && currentTargetState.value !== newValue) {
+                nextFormState[currentTargetId] = { ...currentTargetState, value: newValue };
             }
-            if (newVisibility !== undefined && context[currentTargetId]?.isVisible !== newVisibility) {
-                stateChanges[currentTargetId] = { ...stateChanges[currentTargetId], isVisible: newVisibility };
+            if (newVisibility !== undefined && currentTargetState.isVisible !== newVisibility) {
+                nextFormState[currentTargetId] = { ...currentTargetState, isVisible: newVisibility };
             }
         };
 
         const targetElement = findElementRecursive(sections, targetId);
         
         if (targetElement?.isTableColumn && tableId && rowId) {
-            const tableData = state.formState[tableId]?.value;
-            if (!Array.isArray(tableData)) return;
+            const tableValue = [...(nextFormState[tableId]?.value || [])];
+            const rowIndex = tableValue.findIndex(r => r._rowId === rowId);
 
-            const rowIndex = tableData.findIndex(r => r._rowId === rowId);
-            if (rowIndex === -1) return;
-
-            const currentCellStateKey = `${tableId}::${rowId}::${targetId}`;
-            const currentCellValue = (state.formState[currentCellStateKey] || tableData[rowIndex][targetId])?.value;
-            const currentCellVisibility = (state.formState[currentCellStateKey] || {})?.isVisible ?? !targetElement.hidden;
-            
-            if (type === 'set_value' && currentCellValue !== value) {
-                 stateChanges[currentCellStateKey] = { ...stateChanges[currentCellStateKey], value };
-            }
-            if (type === 'show' && currentCellVisibility !== true) {
-                stateChanges[currentCellStateKey] = { ...stateChanges[currentCellStateKey], isVisible: true };
-            }
-            if (type === 'hide' && currentCellVisibility !== false) {
-                 stateChanges[currentCellStateKey] = { ...stateChanges[currentCellStateKey], isVisible: false };
+            if (rowIndex !== -1) {
+                const updatedRow = { ...tableValue[rowIndex] };
+                if (type === 'set_value' && updatedRow[targetId] !== value) {
+                    updatedRow[targetId] = value;
+                    tableValue[rowIndex] = updatedRow;
+                    nextFormState[tableId] = { ...nextFormState[tableId], value: tableValue };
+                }
             }
         } else {
              applyChange(targetId, type === 'set_value' || type === 'set_configuration' ? value : undefined, type === 'show' ? true : type === 'hide' ? false : undefined);
@@ -954,53 +947,23 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         
         const tableElementId = isTableRule ? allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.element.id === sourceElement!.id))?.id : undefined;
 
-        if (isTableRule && tableElementId && state.formState[tableElementId]?.value) {
-            const tableData: any[] = state.formState[tableElementId].value;
+        if (isTableRule && tableElementId && nextFormState[tableElementId]?.value) {
+            const tableData: any[] = nextFormState[tableElementId].value;
             tableData.forEach(row => {
                 if (evaluateRule(rule, row, configurations, sections)) {
                     rule.behaviors.forEach(behavior => applyBehavior(behavior, row, tableElementId, row._rowId));
                 }
             });
         } else {
-             if (evaluateRule(rule, state.formState, configurations, sections)) {
-                rule.behaviors.forEach(behavior => applyBehavior(behavior, state.formState));
+             if (evaluateRule(rule, nextFormState, configurations, sections)) {
+                rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState));
             }
         }
     });
+
+    dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
     
-    if (Object.keys(stateChanges).length > 0) {
-      let nextFormState = { ...state.formState };
-      for (const key in stateChanges) {
-          if (key.includes('::')) { // This is a table cell state update
-                const [tableId, rowId, elementId] = key.split('::');
-                const tableValue = [...(nextFormState[tableId]?.value || [])];
-                const rowIndex = tableValue.findIndex(r => r._rowId === rowId);
-
-                if (rowIndex !== -1) {
-                    const updatedRow = { ...tableValue[rowIndex] };
-                    if (stateChanges[key].value !== undefined) {
-                        updatedRow[elementId] = stateChanges[key].value;
-                    }
-                    tableValue[rowIndex] = updatedRow;
-                    nextFormState[tableId] = { ...nextFormState[tableId], value: tableValue };
-                }
-                
-                // Update the transient per-cell state for visibility
-                if (stateChanges[key].isVisible !== undefined) {
-                    nextFormState[key] = { ...nextFormState[key], isVisible: stateChanges[key].isVisible };
-                }
-
-          } else {
-            nextFormState[key] = { ...nextFormState[key], ...stateChanges[key] };
-          }
-      }
-      
-      // Deep comparison to prevent infinite loops
-      if (JSON.stringify(state.formState) !== JSON.stringify(nextFormState)) {
-        dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
-      }
-    }
-  }, [state.formState, rules, sections, configurations, isLoaded]);
+  }, [userDrivenState, rules, sections, configurations, isLoaded]); // Depend only on user-driven changes
   
   const addNewForm = async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
     const { title, description, categoryId, subCategoryId } = payload;
@@ -1056,11 +1019,11 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const updateFormState = (elementId: string, value: any, fullObject?: any, isVisible?: boolean) => {
-    dispatch({ type: 'UPDATE_FORM_STATE', payload: { elementId, value, fullObject, isVisible } });
+    dispatch({ type: 'UPDATE_USER_DRIVEN_STATE', payload: { elementId, value, fullObject, isVisible } });
+    setUserDrivenState({ elementId, value, timestamp: Date.now() });
   }
 
   const enhancedDispatch = (action: Action) => {
-    // All actions are now just dispatched locally.
     dispatch(action);
   }
 
@@ -1089,8 +1052,6 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-
 
 
     
