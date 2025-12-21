@@ -1189,18 +1189,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
-                    { (props.listType === 'display') &&
-                        <AccordionItem value="layout">
-                            <AccordionTrigger className="py-2">List Item Layout</AccordionTrigger>
-                            <AccordionContent>
-                                <ColumnManager
-                                    columns={props.listItemElements || []}
-                                    onUpdate={(newItems) => updateProperty('listItemElements', newItems)}
-                                    columnType="listitem"
-                                />
-                            </AccordionContent>
-                        </AccordionItem>
-                    }
+                    <AccordionItem value="layout">
+                        <AccordionTrigger className="py-2">List Item Layout</AccordionTrigger>
+                        <AccordionContent>
+                            <ColumnManager
+                                columns={props.listItemElements || []}
+                                onUpdate={(newItems) => updateProperty('listItemElements', newItems)}
+                                columnType="listitem"
+                            />
+                        </AccordionContent>
+                    </AccordionItem>
                      <AccordionItem value="scoring">
                         <AccordionTrigger className="py-2">Scoring</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
