@@ -5,11 +5,12 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
+import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
+import { evaluateRule } from "@/components/form-preview-helpers";
 
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
@@ -931,7 +932,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         });
 
         if (!rules || rules.length === 0) {
-            return { finalState: nextFormState, stateChanged: stateChangedInPass };
+            return { finalState: nextFormState, stateChanged: stateChangedInPass, configChanged: false };
         }
         
         const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean) => {
@@ -947,7 +948,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             
             if (type === 'set_value' || type === 'set_configuration') {
                 const newValue = value;
-                const oldValue = isTableRow ? context[targetId] : currentTargetState.value;
+                const oldValue = context[targetId];
 
                 if (oldValue !== newValue) {
                      if (isTableRow) {
@@ -1110,7 +1111,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-
-
-
