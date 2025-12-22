@@ -348,76 +348,76 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       content = <Separator />;
       break;
     case "Display": {
-        let finalDisplayValue;
-        if (dataSourceConfig?.sourceType === 'currentUser' && user) {
-            finalDisplayValue = getNestedValue(user, dataSourceConfig.displayKey);
-        } else if (dataSourceConfig?.sourceType === 'currentDateTime' && currentDateTime) {
-            finalDisplayValue = format(currentDateTime, 'PPP p');
-        } else if (isReadOnly) {
-            finalDisplayValue = value;
-        } else if (dataSourceConfig?.sourceElementId && formState) {
-            const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
-            const sourceValue = formState[dataSourceConfig.sourceElementId];
-            if (sourceElement && sourceValue) {
-                if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
-                    finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
-                } else {
-                    finalDisplayValue = sourceValue.value;
-                }
-            }
-        }
+      let finalDisplayValue;
+      if (element.formula) {
+          finalDisplayValue = value; // Use the formula-calculated value
+      } else if (dataSourceConfig?.sourceType === 'currentUser' && user) {
+          finalDisplayValue = getNestedValue(user, dataSourceConfig.displayKey);
+      } else if (dataSourceConfig?.sourceType === 'currentDateTime' && currentDateTime) {
+          finalDisplayValue = format(currentDateTime, 'PPP p');
+      } else if (dataSourceConfig?.sourceElementId && formState) {
+          const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
+          const sourceValue = formState[dataSourceConfig.sourceElementId];
+          if (sourceElement && sourceValue) {
+              if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
+                  finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
+              } else {
+                  finalDisplayValue = sourceValue.value;
+              }
+          }
+      }
+      
+      if (finalDisplayValue === undefined || finalDisplayValue === null) {
+          finalDisplayValue = label;
+      }
         
-        if (finalDisplayValue === undefined || finalDisplayValue === null) {
-            finalDisplayValue = label;
-        }
-        
-        if (isLink) {
-            let finalUrl = "";
-             // In a list context, the row data (rowContext) might contain the specific URL
-            if (rowContext && key && rowContext[`${key}__url`]) {
-                finalUrl = rowContext[`${key}__url`];
-            } 
-            // Fallback to the element's configured URL template
-            else if (linkUrl) {
-                const contextForInterpolation = rowContext || formState || {};
-                finalUrl = interpolateString(linkUrl, { formState: contextForInterpolation, sections, rowContext });
-            }
-            return (
-                <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
-                    <Link className="h-4 w-4" />
-                    <span className="text-sm">{String(finalDisplayValue)}</span>
-                </a>
-            )
-        }
+      if (isLink) {
+          let finalUrl = "";
+           // In a list context, the row data (rowContext) might contain the specific URL
+          if (rowContext && key && rowContext[`${key}__url`]) {
+              finalUrl = rowContext[`${key}__url`];
+          } 
+          // Fallback to the element's configured URL template
+          else if (linkUrl) {
+              const contextForInterpolation = rowContext || formState || {};
+              finalUrl = interpolateString(linkUrl, { formState: contextForInterpolation, sections, rowContext });
+          }
+          return (
+              <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
+                  <Link className="h-4 w-4" />
+                  <span className="text-sm">{String(finalDisplayValue)}</span>
+              </a>
+          )
+      }
 
-        const style = textStyle || 'p';
-        const classes = {
-            p: 'text-muted-foreground text-sm',
-            h1: 'text-4xl font-bold',
-            h2: 'text-3xl font-bold',
-            h3: 'text-2xl font-bold',
-            h4: 'text-xl font-bold',
-            h5: 'text-lg font-bold',
-            h6: 'text-base font-bold',
-        };
-        const Tag = style === 'p' ? 'p' : style;
-        const finalStyle = { ...appliedStyles.style };
-        if (!finalStyle.color && color) { 
-            finalStyle.color = color;
-        }
-        
-        const mainTextContent = <Tag className={cn(classes[style], 'px-1.5 py-1')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
+      const style = textStyle || 'p';
+      const classes = {
+          p: 'text-muted-foreground text-sm',
+          h1: 'text-4xl font-bold',
+          h2: 'text-3xl font-bold',
+          h3: 'text-2xl font-bold',
+          h4: 'text-xl font-bold',
+          h5: 'text-lg font-bold',
+          h6: 'text-base font-bold',
+      };
+      const Tag = style === 'p' ? 'p' : style;
+      const finalStyle = { ...appliedStyles.style };
+      if (!finalStyle.color && color) { 
+          finalStyle.color = color;
+      }
+      
+      const mainTextContent = <Tag className={cn(classes[style], 'px-1.5 py-1')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
 
-        content = (
-             <div className={cn(
-                "flex items-center gap-2",
-                direction === 'vertical' ? 'flex-col items-start' : 'flex-row'
-             )}>
-                {leadText && <Label className="text-sm font-medium px-1.5 py-1">{leadText}</Label>}
-                {mainTextContent}
-            </div>
-        );
-        break;
+      content = (
+           <div className={cn(
+              "flex items-center gap-2",
+              direction === 'vertical' ? 'flex-col items-start' : 'flex-row'
+           )}>
+              {leadText && <Label className="text-sm font-medium px-1.5 py-1">{leadText}</Label>}
+              {mainTextContent}
+          </div>
+      );
+      break;
     }
     case "Container": {
         const { elements, direction, justify, align } = element;
@@ -1059,6 +1059,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
