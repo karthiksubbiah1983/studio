@@ -26,19 +26,25 @@ export function evaluate(formula: string, context: Record<string, any>, allEleme
         }
       }
       
+      // Intelligent value conversion
+      if (typeof value === 'string' && value.includes('%')) {
+        const num = parseFloat(value.replace('%', ''));
+        return isNaN(num) ? '0' : `(${num / 100})`;
+      }
+
       const numValue = parseFloat(value);
       return isNaN(numValue) ? '0' : String(numValue);
     });
     
-    // 2. Handle percentage values (e.g., "10%") by converting them to decimals
+    // 2. Handle percentage literals in the formula itself (e.g., "10%")
     processedFormula = processedFormula.replace(/(\d+(\.\d+)?)%/g, (match, number) => {
         return `(${parseFloat(number) / 100})`;
     });
 
 
     // 3. Basic validation to prevent arbitrary code execution
-    // Allows numbers, arithmetic operators, parentheses, whitespace, and the % symbol.
-    if (/[^0-9.+\-*/\s()%]/.test(processedFormula)) {
+    // Allows numbers, arithmetic operators, parentheses, whitespace.
+    if (/[^0-9.+\-*/\s().]/.test(processedFormula)) {
       console.error("Invalid characters in formula:", processedFormula);
       return "#FORMULA!";
     }
