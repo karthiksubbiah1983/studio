@@ -26,6 +26,7 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
 
   const handleRowChange = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
     const newRows = [...rows];
+    // Find the original index in the unfiltered `rows` array based on the unique _rowId
     const originalRowIndex = rows.findIndex(r => r._rowId === filteredRows[rowIndex]._rowId);
     
     if (originalRowIndex !== -1) {
@@ -102,6 +103,7 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
                     <TableRow key={row._rowId}>
                     {element.columns?.map(col => {
                         const cellState = row[col.element.id];
+                        // Correctly extract the primitive value if it's wrapped in an object
                         const cellValue = (cellState && typeof cellState === 'object' && 'value' in cellState) ? cellState.value : cellState;
                         return (
                             <TableCell key={col.id} className="min-w-[200px]">
