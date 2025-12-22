@@ -99,6 +99,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 defaultRows: 0,
                 maxRows: undefined,
                 enableSearch: false,
+                allowUserToAddRows: true,
                 key: 'editable_table_1'
             };
         case "Preview":

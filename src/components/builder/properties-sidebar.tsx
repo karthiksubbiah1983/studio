@@ -577,7 +577,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       {(props.type !== 'Display' || isColumnElement) && props.type !== 'Container' ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="key">Field Key</Label>
-            <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+            <Input id="key" value={props.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
           </div>
        ) : null}
       <div className="flex flex-col gap-2">
@@ -1390,6 +1390,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="enable-search">Enable Search</Label>
                                 <Switch id="enable-search" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="allow-user-add-rows">Allow User to Add Rows</Label>
+                                <Switch id="allow-user-add-rows" checked={props.allowUserToAddRows} onCheckedChange={(checked) => updateProperty('allowUserToAddRows', checked)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>

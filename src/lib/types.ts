@@ -155,6 +155,7 @@ export type FormElementInstance = {
     defaultRows?: number;
     maxRows?: number;
     enableSearch?: boolean;
+    allowUserToAddRows?: boolean;
 };
 
 export type Section = {

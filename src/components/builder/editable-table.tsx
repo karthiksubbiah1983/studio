@@ -7,12 +7,10 @@ import { useBuilder } from '@/hooks/use-builder';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FormElementRenderer } from '@/components/form-element';
-import { Plus, Trash, Search, ArrowUpDown, ChevronLeft, ChevronRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Plus, Trash, Search } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '../ui/scroll-area';
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Input } from '../ui/input';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 
 type Props = {
   element: FormElementInstance;
@@ -21,8 +19,8 @@ type Props = {
   formState?: { [key: string]: any };
 };
 
-export function EditableTable({ element, value, onValueChange }: Props) {
-  const { formState, updateFormState } = useBuilder();
+export function EditableTable({ element, value, onValueChange: onParentValueChange, formState }: Props) {
+  const { updateFormState } = useBuilder();
   const [searchTerm, setSearchTerm] = useState('');
   
   const rows = Array.isArray(value) ? value : [];
@@ -34,7 +32,8 @@ export function EditableTable({ element, value, onValueChange }: Props) {
     const newRows = rows.map(row => {
         if (row._rowId === originalRowId) {
             const updatedRow = { ...row, [columnId]: cellValue };
-            if (fullObject) {
+             if (fullObject) {
+                // This allows storing the complete object from a Select dropdown, for example
                 updatedRow[`${columnId}__fullObject`] = fullObject;
             }
             return updatedRow;
@@ -42,7 +41,8 @@ export function EditableTable({ element, value, onValueChange }: Props) {
         return row;
     });
     
-    onValueChange(element.id, newRows);
+    // Use the function from the main context to ensure the global state is updated
+    updateFormState(element.id, newRows);
   };
 
 
@@ -52,11 +52,11 @@ export function EditableTable({ element, value, onValueChange }: Props) {
     element.columns?.forEach(col => {
       newRow[col.element.id] = col.element.defaultValue ?? '';
     });
-    onValueChange(element.id, [...rows, newRow]);
+    updateFormState(element.id, [...rows, newRow]);
   };
 
   const removeRow = (rowId: string) => {
-    onValueChange(element.id, rows.filter(row => row._rowId !== rowId));
+    updateFormState(element.id, rows.filter(row => row._rowId !== rowId));
   };
   
   const filteredRows = useMemo(() => {
@@ -132,15 +132,17 @@ export function EditableTable({ element, value, onValueChange }: Props) {
             <ScrollBar orientation="horizontal" />
         </ScrollArea>
         <div className="flex items-center justify-between">
-             <Button 
-                variant="outline" 
-                onClick={addRow} 
-                className='w-fit'
-                disabled={element.maxRows !== undefined && rows.length >= element.maxRows}
-             >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Row
-            </Button>
+             {element.allowUserToAddRows && (
+                <Button 
+                    variant="outline" 
+                    onClick={addRow} 
+                    className='w-fit'
+                    disabled={element.maxRows !== undefined && rows.length >= element.maxRows}
+                >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Row
+                </Button>
+             )}
         </div>
     </div>
   );
