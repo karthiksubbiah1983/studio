@@ -117,7 +117,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                      required: false,
                  };
                  allElementsAndSections.push(scoreProxyElement);
-            } else if (element.type === 'EditableTable' && element.columns) {
+            } else if ((element.type === 'EditableTable' || element.type === 'PayrollTable') && element.columns) {
                  allElementsAndSections.push(element);
                  processedElements.add(element.id);
                  element.columns.forEach(col => {
@@ -220,7 +220,7 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
 
     const isComparisonValueEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
     
-    const isNumericComparison = condition.operator === 'is_greater_than' || condition.operator === 'is_less_than';
+    const isNumericComparison = ['is_greater_than', 'is_less_than', 'is_greater_than_or_equal_to', 'is_less_than_or_equal_to'].includes(condition.operator);
     
     if (isNumericComparison) {
         let numSource = parseFloat(sourceValue);
@@ -233,12 +233,10 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
         if (isNaN(numSource) || isNaN(numComparison)) {
             return false;
         }
-        if (condition.operator === 'is_greater_than') {
-            return numSource > numComparison;
-        }
-        if (condition.operator === 'is_less_than') {
-            return numSource < numComparison;
-        }
+        if (condition.operator === 'is_greater_than') return numSource > numComparison;
+        if (condition.operator === 'is_less_than') return numSource < numComparison;
+        if (condition.operator === 'is_greater_than_or_equal_to') return numSource >= numComparison;
+        if (condition.operator === 'is_less_than_or_equal_to') return numSource <= numComparison;
     }
 
 
@@ -274,6 +272,8 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
             switch(condition.operator) {
                 case 'is_greater_than': return dateSource > dateComparison;
                 case 'is_less_than': return dateSource < dateComparison;
+                case 'is_greater_than_or_equal_to': return dateSource >= dateComparison;
+                case 'is_less_than_or_equal_to': return dateSource <= dateComparison;
                 default: return false; 
             }
         } catch (e) {

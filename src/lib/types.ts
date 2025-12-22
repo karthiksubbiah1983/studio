@@ -1,12 +1,14 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "Preview" | "FileUpload" | "List" | "Combobox" | "EditableTable";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "Preview" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable";
 
 export type RuleConditionOperator = 
     | 'equals' 
     | 'not_equals' 
     | 'is_greater_than' 
     | 'is_less_than'
+    | 'is_greater_than_or_equal_to'
+    | 'is_less_than_or_equal_to'
     | 'contains'
     | 'not_contains';
 
@@ -152,7 +154,7 @@ export type FormElementInstance = {
     scorePerItem?: number | null;
     passingScore?: number | null;
     placeholder?: string;
-    // For EditableTable
+    // For EditableTable / PayrollTable
     columns?: TableColumn[];
     defaultRows?: number;
     maxRows?: number;

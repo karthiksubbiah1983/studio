@@ -295,6 +295,8 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
                             <SelectItem value="not_equals">Not Equals</SelectItem>
                             <SelectItem value="is_greater_than">Is Greater Than</SelectItem>
                             <SelectItem value="is_less_than">Is Less Than</SelectItem>
+                            <SelectItem value="is_greater_than_or_equal_to">Is Greater Than or Equal To</SelectItem>
+                            <SelectItem value="is_less_than_or_equal_to">Is Less Than or Equal To</SelectItem>
                             <SelectItem value="contains">Contains</SelectItem>
                             <SelectItem value="not_contains">Does Not Contain</SelectItem>
                         </SelectContent>
@@ -532,5 +534,3 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
-
-    

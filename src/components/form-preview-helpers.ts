@@ -66,7 +66,7 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
 
     const isComparisonValueEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
 
-    const isNumericComparison = condition.operator === 'is_greater_than' || condition.operator === 'is_less_than';
+    const isNumericComparison = ['is_greater_than', 'is_less_than', 'is_greater_than_or_equal_to', 'is_less_than_or_equal_to'].includes(condition.operator);
     
     if (isNumericComparison) {
         let numSource = parseFloat(sourceValue);
@@ -79,12 +79,10 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
         if (isNaN(numSource) || isNaN(numComparison)) {
             return false;
         }
-        if (condition.operator === 'is_greater_than') {
-            return numSource > numComparison;
-        }
-        if (condition.operator === 'is_less_than') {
-            return numSource < numComparison;
-        }
+        if (condition.operator === 'is_greater_than') return numSource > numComparison;
+        if (condition.operator === 'is_less_than') return numSource < numComparison;
+        if (condition.operator === 'is_greater_than_or_equal_to') return numSource >= numComparison;
+        if (condition.operator === 'is_less_than_or_equal_to') return numSource <= numComparison;
     }
 
 
@@ -120,6 +118,8 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             switch(condition.operator) {
                 case 'is_greater_than': return dateSource > dateComparison;
                 case 'is_less_than': return dateSource < dateComparison;
+                case 'is_greater_than_or_equal_to': return dateSource >= dateComparison;
+                case 'is_less_than_or_equal_to': return dateSource <= dateComparison;
                 default: return false; 
             }
         } catch (e) {
