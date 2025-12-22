@@ -108,20 +108,31 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   const value = useMemo(() => {
-    let calculatedValue;
+    let finalValue = initialValue;
+
+    // If the initial value is an object like { value: '...'}, extract the inner value.
+    // This handles cases where a rule sets a value inside an editable table cell.
+    if (typeof finalValue === 'object' && finalValue !== null && 'value' in finalValue && Object.keys(finalValue).length === 1) {
+        finalValue = finalValue.value;
+    }
+
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) {
       try {
-        calculatedValue = evaluate(element.formula, evaluationContext, allElements);
+        const calculatedValue = evaluate(element.formula, evaluationContext, allElements);
+         if (calculatedValue !== finalValue) {
+            onValueChange(element.id, calculatedValue);
+            return calculatedValue;
+        }
       } catch (e) {
         console.error("Formula evaluation error:", e);
-        calculatedValue = "#ERROR!";
-      }
-      
-      if (calculatedValue !== initialValue) {
-        onValueChange(element.id, calculatedValue);
+        const errorValue = "#ERROR!";
+        if (errorValue !== finalValue) {
+            onValueChange(element.id, errorValue);
+        }
+        return errorValue;
       }
     }
-    return calculatedValue !== undefined ? calculatedValue : initialValue;
+    return finalValue;
   }, [element.type, element.formula, element.id, evaluationContext, initialValue, onValueChange, allElements]);
   
   const isVisible = useMemo(() => {
@@ -1018,3 +1029,5 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
+    
