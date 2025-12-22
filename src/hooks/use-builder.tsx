@@ -5,7 +5,7 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive } from "@/lib/utils";
+import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -965,17 +965,15 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
             if (!targetId) return;
 
-            const isTargetSection = sections.some(s => s.id === targetId);
-
+            const targetIsSection = sections.some(s => s.id === targetId);
+            
             let contextToUpdate: any;
             let needsGlobalUpdate = false;
 
-            // If the target is outside the table OR is a section, always update the global state.
-            if (!findElementRecursive(sections, targetId)?.isTableColumn || isTargetSection) {
+            if (!findElementRecursive(sections, targetId)?.isTableColumn || targetIsSection) {
                  contextToUpdate = nextFormState;
                  needsGlobalUpdate = true;
             } else {
-                 // Otherwise, update the local row context
                  contextToUpdate = context;
             }
         
@@ -1143,6 +1141,8 @@ export const useBuilder = () => {
 
 
 
+
+    
 
     
 
