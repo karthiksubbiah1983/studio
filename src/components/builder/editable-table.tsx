@@ -19,8 +19,7 @@ type Props = {
   formState?: { [key: string]: any };
 };
 
-export function EditableTable({ element, value, onValueChange: onParentValueChange, formState }: Props) {
-  const { updateFormState } = useBuilder();
+export function EditableTable({ element, value, onValueChange, formState }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   
   const rows = Array.isArray(value) ? value : [];
@@ -41,8 +40,7 @@ export function EditableTable({ element, value, onValueChange: onParentValueChan
         return row;
     });
     
-    // Use the function from the main context to ensure the global state is updated
-    updateFormState(element.id, newRows);
+    onValueChange(element.id, newRows);
   };
 
 
@@ -52,11 +50,11 @@ export function EditableTable({ element, value, onValueChange: onParentValueChan
     element.columns?.forEach(col => {
       newRow[col.element.id] = col.element.defaultValue ?? '';
     });
-    updateFormState(element.id, [...rows, newRow]);
+    onValueChange(element.id, [...rows, newRow]);
   };
 
   const removeRow = (rowId: string) => {
-    updateFormState(element.id, rows.filter(row => row._rowId !== rowId));
+    onValueChange(element.id, rows.filter(row => row._rowId !== rowId));
   };
   
   const filteredRows = useMemo(() => {

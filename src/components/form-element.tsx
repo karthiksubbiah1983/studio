@@ -87,7 +87,7 @@ const interpolateString = (template: string, data: { formState: { [key:string]: 
 
 
 export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext }: Props) {
-  const { rules, sections, configurations } = useBuilder();
+  const { rules, sections, configurations, updateFormState } = useBuilder();
   const { user } = useAuth();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -990,7 +990,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         return <EditableTable 
             element={element} 
             value={value} 
-            onValueChange={onValueChange} 
+            onValueChange={updateFormState} 
             formState={formState} 
         />;
     default:
