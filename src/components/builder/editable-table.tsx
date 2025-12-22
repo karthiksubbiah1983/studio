@@ -18,6 +18,7 @@ type Props = {
   element: FormElementInstance;
   value: any[];
   onValueChange: (id: string, value: any) => void;
+  formState?: { [key: string]: any };
 };
 
 export function EditableTable({ element, value, onValueChange }: Props) {
@@ -26,15 +27,17 @@ export function EditableTable({ element, value, onValueChange }: Props) {
   
   const rows = Array.isArray(value) ? value : [];
 
-  const handleRowValueChange = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
+  const handleRowChangeWithFormula = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
     const originalIndex = rows.findIndex(r => r._rowId === filteredRows[rowIndex]._rowId);
     if(originalIndex === -1) return;
 
     const newRows = [...rows];
-    let updatedRow = { ...newRows[originalIndex], [columnId]: cellValue };
+    let updatedRow = { ...newRows[originalIndex] };
+    
+    // Update the value that was actually changed by the user
+    updatedRow[columnId] = cellValue;
     
     // If the changed column was a Select with dynamic data, we also store the full object
-    // This allows other 'Display' elements to reference nested properties from it.
     const changedColumnElement = element.columns?.find(c => c.element.id === columnId);
     if (changedColumnElement?.element.type === 'Select' && changedColumnElement.element.dataSource === 'dynamic') {
         updatedRow = { ...updatedRow, [`${columnId}__fullObject`]: fullObject };
@@ -111,7 +114,7 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                                 <FormElementRenderer
                                     element={col.element}
                                     value={row[col.element.id]}
-                                    onValueChange={(id, val, fullObj) => handleRowValueChange(rowIndex, col.element.id, val, fullObj)}
+                                    onValueChange={(id, val, fullObj) => handleRowChangeWithFormula(rowIndex, col.element.id, val, fullObj)}
                                     formState={formState} // Pass global state for external dependencies
                                     rowContext={row} // Pass row-specific data
                                     isTableCell={true}
