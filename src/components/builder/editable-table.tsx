@@ -26,7 +26,6 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
 
   const handleRowChange = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
     const newRows = [...rows];
-    // Find the original index in the unfiltered `rows` array based on the unique _rowId
     const originalRowIndex = rows.findIndex(r => r._rowId === filteredRows[rowIndex]._rowId);
     
     if (originalRowIndex !== -1) {
@@ -47,7 +46,6 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
       newRow[col.element.id] = col.element.defaultValue ?? '';
     });
 
-    // Directly call the onValueChange prop with the new state
     onValueChange(element.id, [...rows, newRow]);
   };
   
@@ -59,7 +57,6 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
   const filteredRows = useMemo(() => {
     let searchableItems = [...rows];
 
-    // Filtering
     if (element.enableSearch && searchTerm) {
       searchableItems = searchableItems.filter(row => {
         return Object.values(row).some(val => 
@@ -104,14 +101,17 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
                 {filteredRows.map((row, rowIndex) => (
                     <TableRow key={row._rowId}>
                     {element.columns?.map(col => {
+                        // THIS IS THE FIX: Check if the value for the cell is an object and extract the primitive 'value'
+                        const cellState = row[col.element.id];
+                        const cellValue = (cellState && typeof cellState === 'object' && 'value' in cellState) ? cellState.value : cellState;
                         return (
                             <TableCell key={col.id} className="min-w-[200px]">
                                 <FormElementRenderer
                                     element={col.element}
-                                    value={row[col.element.id]}
+                                    value={cellValue}
                                     onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
-                                    formState={formState} // Pass global state for external dependencies
-                                    rowContext={row} // Pass row-specific data
+                                    formState={formState}
+                                    rowContext={row}
                                     isTableCell={true}
                                 />
                             </TableCell>
