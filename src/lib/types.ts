@@ -105,6 +105,8 @@ export type FormElementInstance = {
     exposeForValidation?: boolean; // New property
     // For Input
     inputFormat?: 'text' | 'number' | 'alphanumeric';
+    fixedLength?: number;
+    leadingChar?: string;
     formula?: string;
     defaultValue?: any;
     // For Select, RadioGroup, Combobox

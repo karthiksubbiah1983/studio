@@ -153,9 +153,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     
     if (visible && hideRules.length > 0) {
-        if (hideRules.some(r => evaluateRule(r, contextToCheck, configurations, sections))) {
-            visible = false;
-        }
+      if (hideRules.some(r => evaluateRule(r, contextToCheck, configurations, sections))) {
+        visible = false;
+      }
     }
     
     return visible;
@@ -275,7 +275,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.apiUrl, element.type, element.dataSource, evaluationContext, sections, rowContext]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -443,6 +443,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
         onValueChange(element.id, val);
       };
+      
+      const handleBlur = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (inputFormat === 'number' && fixedLength && leadingChar) {
+            let val = e.target.value;
+            if (val.length > 0 && val.length < fixedLength) {
+                const paddedValue = val.padStart(fixedLength, leadingChar);
+                onValueChange(element.id, paddedValue);
+            }
+        }
+      }
+
       content = (
         <div>
           {renderLabel()}
@@ -450,6 +461,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             placeholder={placeholder}
             value={value || ""}
             onChange={handleInputChange}
+            onBlur={handleBlur}
             style={appliedStyles.style}
             className={cn(appliedStyles.error && "border-destructive")}
             disabled={isDisabled || isReadOnly}
@@ -1033,3 +1045,4 @@ const alignmentClasses = {
     
 
     
+

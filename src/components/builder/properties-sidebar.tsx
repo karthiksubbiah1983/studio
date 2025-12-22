@@ -1046,7 +1046,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                     <AccordionItem value="advanced">
                         <AccordionTrigger className="py-2">Advanced</AccordionTrigger>
-                        <AccordionContent>
+                        <AccordionContent className="flex flex-col gap-4">
                            <div className="flex flex-col gap-2">
                                 <Label htmlFor="formula">Formula (Optional)</Label>
                                 <Input
@@ -1059,6 +1059,30 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     Use the 'Field Key' from another column. You can find this by editing the column.
                                 </p>
                             </div>
+                            {props.inputFormat === 'number' && (
+                                <div className="space-y-4 pt-2 border-t">
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="fixed-length">Fixed Digit Length</Label>
+                                        <Input
+                                            id="fixed-length"
+                                            type="number"
+                                            placeholder="e.g., 8"
+                                            value={props.fixedLength || ''}
+                                            onChange={(e) => updateProperty('fixedLength', e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="leading-char">Leading Character (for padding)</Label>
+                                        <Input
+                                            id="leading-char"
+                                            placeholder="e.g., 0"
+                                            value={props.leadingChar || ''}
+                                            onChange={(e) => updateProperty('leadingChar', e.target.value)}
+                                            maxLength={1}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                  </Accordion>
@@ -1504,5 +1528,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 }
 
     
+
 
 
