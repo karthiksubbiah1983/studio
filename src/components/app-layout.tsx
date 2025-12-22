@@ -8,7 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useBuilder } from "@/hooks/use-builder";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
-import { FormPreview } from "./builder/form-preview";
+import { FormPreview } from "./form-preview";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

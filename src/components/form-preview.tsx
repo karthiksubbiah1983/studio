@@ -93,7 +93,7 @@ const SectionRenderer = ({ section }: { section: Section }) => {
 }
 
 
-export function FormPreview({ showSubmitButton = true, sections, taskId }: Props) {
+export function FormPreview({ showSubmitButton = true, sections, taskId }: { showSubmitButton?: boolean; sections: Section[]; taskId?: string; }) {
   const { rules, workflows, configurations, dispatch, activeForm, state, formState, setFormState, updateFormState } = useBuilder();
   const router = useRouter();
   const { toast } = useToast();
