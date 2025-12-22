@@ -313,6 +313,13 @@ const findAndModifyElement = (elements: FormElementInstance[], action: Action): 
 const getInitialFormState = (sections: Section[], configurations: Configuration[] | undefined): { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } => {
     const state: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } = {};
     if (!sections) return state;
+
+    sections.forEach(section => {
+        state[section.id] = {
+            value: undefined,
+            isVisible: !section.popupOnly
+        }
+    });
     
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
@@ -945,23 +952,21 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
             const targetIsSection = sections.some(s => s.id === targetId);
             const targetElement = findElementRecursive(sections, targetId);
+            
+            // Check if the target is an element within a table, which signifies an "internal-to-internal" table rule.
             const isTargetInTable = !!targetElement?.isTableColumn;
         
-            if (isTableRow && !isTargetInTable && !targetIsSection) {
-                // This is a cross-row rule, so we record an intention instead of acting immediately.
-                if (!tableIntentions[targetId]) {
-                    tableIntentions[targetId] = [];
-                }
-                tableIntentions[targetId].push({ behaviorType: type, value: value });
-                return; // Don't act yet
-            }
-
-            const currentTargetState = context[targetId] || {};
+            // This is the fix for OUTWARD-flowing rules.
+            // If the rule is triggered by a table row but targets something outside the table (or a section),
+            // we should apply the change directly to the main `nextFormState`, not the temporary `row` context.
+            let contextToUpdate = (isTableRow && !isTargetInTable) ? nextFormState : context;
+            
+            const currentTargetState = contextToUpdate[targetId] || {};
 
             if (type === 'set_value' || type === 'set_configuration') {
                 const newValue = value;
-                if (context[targetId]?.value !== newValue) {
-                    context[targetId] = { ...currentTargetState, value: newValue };
+                if (contextToUpdate[targetId]?.value !== newValue) {
+                    contextToUpdate[targetId] = { ...currentTargetState, value: newValue };
                     stateChangedInPass = true;
                     if (type === 'set_configuration') configChangedInPass = true;
                 }
@@ -969,8 +974,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         
             const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
             if (newVisibility !== undefined) {
-                if (context[targetId]?.isVisible !== newVisibility) {
-                    context[targetId] = { ...currentTargetState, isVisible: newVisibility };
+                if (contextToUpdate[targetId]?.isVisible !== newVisibility) {
+                    contextToUpdate[targetId] = { ...currentTargetState, isVisible: newVisibility };
                     stateChangedInPass = true;
                 }
             }
@@ -1006,8 +1011,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             if (intentions.length > 0) {
                 // For now, simple 'any' logic for show/hide.
                 const shouldShow = intentions.some(i => i.behaviorType === 'show');
-                const shouldHide = intentions.some(i => i.behaviorType === 'hide');
-
+                
                 let finalVisibility: boolean | undefined = undefined;
                 if(shouldShow) finalVisibility = true;
                 // Add more complex logic here if needed, e.g. if 'all' rows must match
@@ -1136,4 +1140,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
 
