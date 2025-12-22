@@ -21,28 +21,23 @@ type Props = {
 
 export function EditableTable({ element, value, onValueChange, formState }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const { updateFormState } = useBuilder();
+
   const rows = Array.isArray(value) ? value : [];
 
   const handleRowChange = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
-    const originalRowId = filteredRows[rowIndex]?._rowId;
-    if (!originalRowId) return;
-
-    const newRows = rows.map(row => {
-        if (row._rowId === originalRowId) {
-            const updatedRow = { ...row, [columnId]: cellValue };
-             if (fullObject) {
-                // This allows storing the complete object from a Select dropdown, for example
-                updatedRow[`${columnId}__fullObject`] = fullObject;
-            }
-            return updatedRow;
-        }
-        return row;
-    });
+    const newRows = [...rows];
+    const originalRowIndex = rows.findIndex(r => r._rowId === filteredRows[rowIndex]._rowId);
     
-    onValueChange(element.id, newRows);
+    if (originalRowIndex !== -1) {
+        const updatedRow = { ...newRows[originalRowIndex], [columnId]: cellValue };
+        if (fullObject) {
+            updatedRow[`${columnId}__fullObject`] = fullObject;
+        }
+        newRows[originalRowIndex] = updatedRow;
+        onValueChange(element.id, newRows);
+    }
   };
-
 
   const addRow = () => {
     if (element.maxRows && rows.length >= element.maxRows) return;
@@ -50,11 +45,13 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
     element.columns?.forEach(col => {
       newRow[col.element.id] = col.element.defaultValue ?? '';
     });
+    // Directly call the onValueChange prop with the new state
     onValueChange(element.id, [...rows, newRow]);
   };
-
+  
   const removeRow = (rowId: string) => {
-    onValueChange(element.id, rows.filter(row => row._rowId !== rowId));
+    const newRows = rows.filter(row => row._rowId !== rowId);
+    onValueChange(element.id, newRows);
   };
   
   const filteredRows = useMemo(() => {
