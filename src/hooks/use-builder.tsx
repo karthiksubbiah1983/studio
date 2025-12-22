@@ -5,7 +5,7 @@
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
-import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
+import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
@@ -916,6 +916,21 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
         const allElements = getAllElements(sections);
 
+        // Pre-calculate scores for all relevant lists
+        allElements.forEach(element => {
+            if (element.type === 'List' && element.enableScoring) {
+                const listState = nextFormState[element.id];
+                const selection = Array.isArray(listState?.value) ? listState.value : [];
+                const score = selection.length * (element.scorePerItem || 0);
+                const scoreId = `${element.id}::score`;
+
+                if (nextFormState[scoreId]?.value !== score) {
+                    nextFormState[scoreId] = { ...nextFormState[scoreId], value: score };
+                    stateChangedInPass = true;
+                }
+            }
+        });
+
         // Sync default rows for editable tables
         allElements.forEach(el => {
             if (el.type === 'EditableTable' && el.defaultRows) {
@@ -950,9 +965,19 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
             if (!targetId) return;
 
-            const targetIsSection = sections.some(s => s.id === targetId);
-            
-            let contextToUpdate = (isTableRow && !targetIsSection && !findElementRecursive(sections, targetId)) ? nextFormState : context;
+            const isTargetSection = sections.some(s => s.id === targetId);
+
+            let contextToUpdate: any;
+            let needsGlobalUpdate = false;
+
+            // If the target is outside the table OR is a section, always update the global state.
+            if (!findElementRecursive(sections, targetId)?.isTableColumn || isTargetSection) {
+                 contextToUpdate = nextFormState;
+                 needsGlobalUpdate = true;
+            } else {
+                 // Otherwise, update the local row context
+                 contextToUpdate = context;
+            }
         
             const currentTargetState = contextToUpdate[targetId] || {};
 
@@ -960,8 +985,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 const newValue = value;
                 if (contextToUpdate[targetId]?.value !== newValue) {
                     contextToUpdate[targetId] = { ...currentTargetState, value: newValue };
-                    stateChangedInPass = true;
-                    if (type === 'set_configuration') configChangedInPass = true;
+                    if (needsGlobalUpdate) stateChangedInPass = true;
+                    if (type === 'set_configuration' && needsGlobalUpdate) configChangedInPass = true;
                 }
             }
         
@@ -969,7 +994,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             if (newVisibility !== undefined) {
                 if (contextToUpdate[targetId]?.isVisible !== newVisibility) {
                     contextToUpdate[targetId] = { ...currentTargetState, isVisible: newVisibility };
-                    stateChangedInPass = true;
+                    if (needsGlobalUpdate) stateChangedInPass = true;
                 }
             }
         };
