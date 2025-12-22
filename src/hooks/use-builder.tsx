@@ -910,17 +910,26 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (!isLoaded || !activeForm) return;
 
     const runRuleEngine = () => {
-        const allElements = getAllElements(sections);
-        
-        // 1. Initialize a new state object based on default values and keep user-driven values.
+        // 1. Create a fresh state object based on the form's default structure.
         let nextFormState = getInitialFormState(sections, configurations);
+
+        // 2. Preserve user-driven input values from the previous state.
         for (const key in state.formState) {
             if (Object.prototype.hasOwnProperty.call(state.formState, key) && !key.startsWith('config::')) {
-                nextFormState[key] = { ...nextFormState[key], ...state.formState[key] };
+                // If a user has input a value, keep it.
+                if (state.formState[key]?.value !== undefined) {
+                    nextFormState[key] = { ...nextFormState[key], ...state.formState[key] };
+                }
             }
         }
+        
+        if (!rules || rules.length === 0) {
+            dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+            return;
+        }
 
-        // 2. Pre-calculate scores for all relevant lists
+        // 3. Pre-calculate scores for all relevant lists
+        const allElements = getAllElements(sections);
         allElements.forEach(element => {
             if (element.type === 'List' && element.enableScoring) {
                 const listState = nextFormState[element.id];
@@ -931,30 +940,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
         });
 
-        // 3. Sync default rows for editable tables
-        allElements.forEach(el => {
-            if (el.type === 'EditableTable' && el.defaultRows) {
-                const tableState = nextFormState[el.id];
-                if (tableState === undefined) {
-                    const newRows: any[] = Array.from({ length: el.defaultRows }, () => {
-                        const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
-                        el.columns?.forEach(col => {
-                            row[col.element.id] = col.element.defaultValue ?? null;
-                        });
-                        return row;
-                    });
-                    nextFormState[el.id] = { ...tableState, value: newRows };
-                }
-            }
-        });
-        
-        if (!rules || rules.length === 0) {
-            dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
-            return;
-        }
-        
-        // 4. Create a map of active behaviors by iterating through all rules
-        const activeBehaviors = new Map<string, RuleBehavior>();
+        // 4. Create a map to collect all active behaviors for each target.
+        const activeBehaviors = new Map<string, RuleBehavior[]>();
         const applyBehavior = (behavior: RuleBehavior, rowContext?: any) => {
             const { type, targetElementId, targetConfigurationKey } = behavior;
             let targetId = targetElementId;
@@ -963,8 +950,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
             if (!targetId) return;
 
-            // In table rules, behaviors might target other columns in the same row
-            if(rowContext && findElementRecursive(sections, targetId)?.isTableColumn) {
+            // In table rules, behaviors apply directly to the row's context.
+            if (rowContext && findElementRecursive(sections, targetId)?.isTableColumn) {
                 const currentTargetState = rowContext[targetId] || {};
                 if (type === 'set_value') {
                     rowContext[targetId] = { ...currentTargetState, value: behavior.value };
@@ -974,12 +961,15 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                     rowContext[targetId] = { ...currentTargetState, isVisible: newVisibility };
                 }
             } else {
-                 // For global elements, we just record the latest active behavior.
-                 // The last rule in the list wins in case of conflict.
-                 activeBehaviors.set(targetId, behavior);
+                 // For global elements, collect all behaviors.
+                if (!activeBehaviors.has(targetId)) {
+                    activeBehaviors.set(targetId, []);
+                }
+                activeBehaviors.get(targetId)!.push(behavior);
             }
         };
 
+        // 5. Evaluate all rules and apply their behaviors.
         rules.forEach(rule => {
             const sourceElement = findElementRecursive(sections, rule.conditions[0]?.sourceElementId || '');
             const isTableRule = !!sourceElement?.isTableColumn;
@@ -999,20 +989,25 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
         });
 
-        // 5. Apply the collected active behaviors to the nextFormState
-        activeBehaviors.forEach((behavior, targetId) => {
-            const { type, value } = behavior;
+        // 6. Apply all collected global behaviors to the nextFormState.
+        activeBehaviors.forEach((behaviors, targetId) => {
             const currentTargetState = nextFormState[targetId] || {};
-            if (type === 'set_value' || type === 'set_configuration') {
-                 nextFormState[targetId] = { ...currentTargetState, value: value };
+            let finalState = { ...currentTargetState };
+
+            for (const behavior of behaviors) {
+                const { type, value } = behavior;
+                if (type === 'set_value' || type === 'set_configuration') {
+                    finalState.value = value;
+                }
+                const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
+                if (newVisibility !== undefined) {
+                    finalState.isVisible = newVisibility;
+                }
             }
-            const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
-            if (newVisibility !== undefined) {
-                 nextFormState[targetId] = { ...currentTargetState, isVisible: newVisibility };
-            }
+            nextFormState[targetId] = finalState;
         });
         
-        // 6. Compare and dispatch if the state has changed.
+        // 7. Compare and dispatch if the state has changed.
         if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
              dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
         }
@@ -1114,3 +1109,4 @@ export const useBuilder = () => {
   }
   return context;
 };
+
