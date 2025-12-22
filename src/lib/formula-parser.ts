@@ -1,23 +1,28 @@
 
 
+import { FormElementInstance } from "./types";
+
 // A very simple, not-so-safe formula evaluator.
 // Supports basic arithmetic operations and variable substitution from a context object.
 // Variables in the formula should be enclosed in curly braces, e.g., {varName}.
 
-export function evaluate(formula: string, context: Record<string, any>): number | string {
+export function evaluate(formula: string, context: Record<string, any>, allElements: FormElementInstance[]): number | string {
   if (!formula) return '';
   try {
     // Replace {key} with context[key]
     const sanitizedFormula = formula.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
-      // In a table row context, the `context` object's keys might be element IDs,
-      // but the formula uses the element's `key` property. We need to find the element
-      // with the matching `key` and then get its value from the context using its ID.
-      const elementId = Object.keys(context).find(id => context[id] && context[id].key === key);
-      
-      let value = context[key]; // Direct match for fields outside tables
+      // Find the element with the matching `key`
+      const element = allElements.find(el => el.key === key);
+      let value: any;
 
-      if (elementId && context[elementId]) {
-         value = context[elementId]; // Use value from table row context by element ID
+      if (element) {
+        // If the element ID exists as a key in the current context (e.g., a table row)
+        if (context.hasOwnProperty(element.id)) {
+            value = context[element.id];
+        } else if (context[element.id]) {
+            // Fallback to the main form state if not in row context
+             value = context[element.id]?.value;
+        }
       }
       
       // Ensure the value is a number or 0 if not present/valid

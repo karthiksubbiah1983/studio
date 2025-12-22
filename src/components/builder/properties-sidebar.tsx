@@ -574,7 +574,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const commonFields = (
     <>
-      {props.type !== 'Display' || isColumnElement ? (
+      {(props.type !== 'Display' || isColumnElement) && props.type !== 'Container' ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="key">Field Key</Label>
             <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />

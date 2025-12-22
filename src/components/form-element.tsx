@@ -111,7 +111,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     let calculatedValue;
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) {
       try {
-        calculatedValue = evaluate(element.formula, evaluationContext);
+        calculatedValue = evaluate(element.formula, evaluationContext, allElements);
       } catch (e) {
         console.error("Formula evaluation error:", e);
         calculatedValue = "#ERROR!";
@@ -122,7 +122,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       }
     }
     return calculatedValue !== undefined ? calculatedValue : initialValue;
-  }, [element.type, element.formula, element.id, evaluationContext, initialValue, onValueChange]);
+  }, [element.type, element.formula, element.id, evaluationContext, initialValue, onValueChange, allElements]);
   
   const isVisible = useMemo(() => {
     let contextToCheck = evaluationContext;
