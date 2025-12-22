@@ -7,7 +7,7 @@ import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, ElementType, ListItemElement, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus, Configuration } from "@/lib/types";
-import { Plus, Trash, X, Settings2, GitCommitHorizontal } from "lucide-react";
+import { Plus, Trash, X, Settings2, GitCommitHorizontal, Copy } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn, getAllElements } from "@/lib/utils";
 import { Label } from "../ui/label";
@@ -806,6 +806,23 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     }
   };
 
+  const handleCopyRule = (ruleId: string) => {
+    const ruleToCopy = localRules.find(r => r.id === ruleId);
+    if (!ruleToCopy) return;
+
+    const newRule = JSON.parse(JSON.stringify(ruleToCopy));
+    newRule.id = crypto.randomUUID();
+    newRule.name = `Copy of ${ruleToCopy.name}`;
+    newRule.conditions.forEach((c: Condition) => c.id = crypto.randomUUID());
+    newRule.behaviors.forEach((b: RuleBehavior) => b.id = crypto.randomUUID());
+    
+    const ruleIndex = localRules.findIndex(r => r.id === ruleId);
+    const newRules = [...localRules];
+    newRules.splice(ruleIndex + 1, 0, newRule);
+    setLocalRules(newRules);
+    setSelectedRuleId(newRule.id);
+  }
+
   const handleSaveChanges = () => {
     updateRules(localRules, localConfigs);
     onOpenChange(false);
@@ -843,14 +860,24 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                              <button onClick={() => handleSelectRule(rule.id)} className={cn("w-full text-left px-3 py-2 truncate text-sm rounded-md", selectedRuleId === rule.id ? 'bg-blue-50 font-semibold text-primary' : 'hover:bg-accent/50')}>
                                 {rule.name}
                             </button>
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 opacity-0 group-hover/rule:opacity-100"
-                                onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
-                            >
-                                <Trash className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <div className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-12 flex opacity-0 group-hover/rule:opacity-100">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={(e) => {e.stopPropagation(); handleCopyRule(rule.id)}}
+                                >
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6"
+                                    onClick={(e) => {e.stopPropagation(); handleDeleteRule(rule.id)}}
+                                >
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </div>
                         </div>
                     )) : (
                         <div className="text-center text-sm text-muted-foreground pt-10">
