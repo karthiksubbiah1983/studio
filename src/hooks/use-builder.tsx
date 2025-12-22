@@ -934,7 +934,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             return { finalState: nextFormState, stateChanged: stateChangedInPass, configChanged: false };
         }
         
-        const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean) => {
+        const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean, tableIntentions: any) => {
             const { type, targetElementId, value, targetConfigurationKey } = behavior;
         
             let targetId = targetElementId;
@@ -943,64 +943,41 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
             if (!targetId) return;
 
-            const targetSection = sections.find(s => s.id === targetId);
+            const targetIsSection = sections.some(s => s.id === targetId);
             const targetElement = findElementRecursive(sections, targetId);
             const isTargetInTable = !!targetElement?.isTableColumn;
+        
+            if (isTableRow && !isTargetInTable && !targetIsSection) {
+                // This is a cross-row rule, so we record an intention instead of acting immediately.
+                if (!tableIntentions[targetId]) {
+                    tableIntentions[targetId] = [];
+                }
+                tableIntentions[targetId].push({ behaviorType: type, value: value });
+                return; // Don't act yet
+            }
+
             const currentTargetState = context[targetId] || {};
 
             if (type === 'set_value' || type === 'set_configuration') {
                 const newValue = value;
-                // Rule from inside a table targeting an outside element/config
-                if (isTableRow && !isTargetInTable) {
-                    if (state.formState[targetId]?.value !== newValue) {
-                        nextFormState[targetId] = { ...state.formState[targetId], value: newValue };
-                        stateChangedInPass = true;
-                        if (type === 'set_configuration') configChangedInPass = true;
-                    }
-                } 
-                // Rule inside a table targeting another element in the SAME ROW
-                else if (isTableRow && isTargetInTable) {
-                    if (context[targetId] !== newValue) {
-                        context[targetId] = newValue; // Update row context directly
-                        stateChangedInPass = true;
-                    }
-                }
-                // Standard rule (element to element, config to element, etc.)
-                else {
-                    if (context[targetId]?.value !== newValue) {
-                        context[targetId] = { ...currentTargetState, value: newValue };
-                        stateChangedInPass = true;
-                        if (type === 'set_configuration') configChangedInPass = true;
-                    }
+                if (context[targetId]?.value !== newValue) {
+                    context[targetId] = { ...currentTargetState, value: newValue };
+                    stateChangedInPass = true;
+                    if (type === 'set_configuration') configChangedInPass = true;
                 }
             }
         
             const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
             if (newVisibility !== undefined) {
-                // If the target is a section
-                if (targetSection) {
-                    if(nextFormState[targetId]?.isVisible !== newVisibility){
-                       nextFormState[targetId] = { ...nextFormState[targetId], isVisible: newVisibility };
-                       stateChangedInPass = true;
-                    }
-                } 
-                // If rule is from table row targeting an outside element
-                else if (isTableRow && !isTargetInTable) {
-                    if (nextFormState[targetId]?.isVisible !== newVisibility) {
-                        nextFormState[targetId] = { ...nextFormState[targetId], isVisible: newVisibility };
-                        stateChangedInPass = true;
-                    }
-                }
-                // Standard element rule
-                else {
-                    if (context[targetId]?.isVisible !== newVisibility) {
-                        context[targetId] = { ...currentTargetState, isVisible: newVisibility };
-                        stateChangedInPass = true;
-                    }
+                if (context[targetId]?.isVisible !== newVisibility) {
+                    context[targetId] = { ...currentTargetState, isVisible: newVisibility };
+                    stateChangedInPass = true;
                 }
             }
         };
 
+
+        const tableIntentions: Record<string, { behaviorType: RuleBehaviorType, value?: string }[]> = {};
 
         rules.forEach(rule => {
             const sourceElement = findElementRecursive(sections, rule.conditions[0]?.sourceElementId || '');
@@ -1013,15 +990,34 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 tableData.forEach(row => {
                     const rowContext = { ...nextFormState, ...row };
                     if (evaluateRule(rule, rowContext, configurations, sections)) {
-                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true));
+                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true, tableIntentions));
                     }
                 });
             } else {
                  if (evaluateRule(rule, nextFormState, configurations, sections)) {
-                    rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState, false));
+                    rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState, false, tableIntentions));
                 }
             }
         });
+        
+        // Process aggregated intentions from table rules
+        for (const targetId in tableIntentions) {
+            const intentions = tableIntentions[targetId];
+            if (intentions.length > 0) {
+                // For now, simple 'any' logic for show/hide.
+                const shouldShow = intentions.some(i => i.behaviorType === 'show');
+                const shouldHide = intentions.some(i => i.behaviorType === 'hide');
+
+                let finalVisibility: boolean | undefined = undefined;
+                if(shouldShow) finalVisibility = true;
+                // Add more complex logic here if needed, e.g. if 'all' rows must match
+                
+                if (finalVisibility !== undefined && nextFormState[targetId]?.isVisible !== finalVisibility) {
+                     nextFormState[targetId] = { ...nextFormState[targetId], isVisible: finalVisibility };
+                     stateChangedInPass = true;
+                }
+            }
+        }
         
         return { finalState: nextFormState, stateChanged: stateChangedInPass, configChanged: configChangedInPass };
     }
@@ -1140,3 +1136,4 @@ export const useBuilder = () => {
   }
   return context;
 };
+
