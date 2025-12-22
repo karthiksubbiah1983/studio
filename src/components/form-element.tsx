@@ -99,10 +99,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  
+  // Local state for text-based inputs to improve performance
+  const [localValue, setLocalValue] = useState(initialValue || "");
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    // Sync local state when the global state (initialValue) changes from rules or external updates
+    setLocalValue(initialValue || "");
+  }, [initialValue]);
 
   const evaluationContext = isTableCell ? rowContext : formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
@@ -434,24 +442,22 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         break;
     }
     case "Input":
-      const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const handleLocalInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         let val = e.target.value;
         if (inputFormat === 'number') {
             val = val.replace(/[^0-9.]/g, '');
         } else if (inputFormat === 'alphanumeric') {
             val = val.replace(/[^a-zA-Z0-9]/g, '');
         }
-        onValueChange(element.id, val);
+        setLocalValue(val);
       };
       
       const handleBlur = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (inputFormat === 'number' && fixedLength && leadingChar) {
-            let val = e.target.value;
-            if (val.length > 0 && val.length < fixedLength) {
-                const paddedValue = val.padStart(fixedLength, leadingChar);
-                onValueChange(element.id, paddedValue);
-            }
+        let finalValue = localValue;
+        if (inputFormat === 'number' && fixedLength && leadingChar && finalValue.length > 0 && finalValue.length < fixedLength) {
+            finalValue = finalValue.padStart(fixedLength, leadingChar);
         }
+        onValueChange(element.id, finalValue);
       }
 
       content = (
@@ -459,8 +465,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           {renderLabel()}
           <Input 
             placeholder={placeholder}
-            value={value || ""}
-            onChange={handleInputChange}
+            value={localValue}
+            onChange={handleLocalInputChange}
             onBlur={handleBlur}
             style={appliedStyles.style}
             className={cn(appliedStyles.error && "border-destructive")}
@@ -475,13 +481,21 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       );
       break;
     case "Textarea":
+       const handleLocalTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+            setLocalValue(e.target.value);
+        };
+
+        const handleTextareaBlur = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+            onValueChange(element.id, e.target.value);
+        };
       content = (
         <div>
           {renderLabel()}
           <Textarea 
             placeholder={placeholder}
-            value={value || ""}
-            onChange={(e) => onValueChange(element.id, e.target.value)}
+            value={localValue}
+            onChange={handleLocalTextareaChange}
+            onBlur={handleTextareaBlur}
             style={appliedStyles.style}
             className={cn(appliedStyles.error && "border-destructive")}
             disabled={isDisabled}
@@ -1045,6 +1059,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
