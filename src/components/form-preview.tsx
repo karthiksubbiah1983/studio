@@ -22,12 +22,6 @@ import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 
 
-type Props = {
-    showSubmitButton?: boolean;
-    sections: Section[];
-    taskId?: string;
-}
-
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
     const submission: Record<string, any> = {};
     const allElements = getAllElements(elements as Section[]);
@@ -38,6 +32,66 @@ const generateSubmissionJson = (elements: (FormElementInstance | Section)[], for
     });
     return submission;
 };
+
+const SectionRenderer = ({ section }: { section: Section }) => {
+    const { formState, updateFormState } = useBuilder();
+
+    const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
+        return elements.map(element => (
+            <FormElementRenderer
+                key={element.id}
+                element={element}
+                value={formState[element.id]?.value}
+                onValueChange={updateFormState}
+                formState={formState}
+                isParentHorizontal={isParentHorizontal}
+            />
+        ));
+    };
+
+    const renderSectionContent = (section: Section) => (
+        <div className={cn("grid gap-4 grid-cols-1", section.displayMode !== 'accordion' && 'p-6 pt-0')}>
+            {renderElements(section.elements)}
+        </div>
+    );
+    
+    if (formState[section.id]?.isVisible === false) {
+        return null;
+    }
+
+    if (section.displayMode === 'accordion') {
+        return (
+            <Accordion type="single" collapsible defaultValue={section.id} key={section.id}>
+                <AccordionItem value={section.id}>
+                    <Card>
+                        <AccordionTrigger className="w-full p-6 text-base font-medium">
+                           {section.title}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <CardContent>
+                                {renderSectionContent(section)}
+                            </CardContent>
+                        </AccordionContent>
+                    </Card>
+                </AccordionItem>
+            </Accordion>
+        );
+    }
+
+    return (
+        <Card key={section.id}>
+            <CardHeader>
+                <CardTitle className="text-base font-medium">
+                    {section.title}
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                {renderSectionContent(section)}
+            </CardContent>
+        </Card>
+    );
+}
+
 
 export function FormPreview({ showSubmitButton = true, sections, taskId }: Props) {
   const { rules, workflows, configurations, dispatch, activeForm, state, formState, setFormState, updateFormState } = useBuilder();
@@ -117,62 +171,11 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
     }
   }
 
-  const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
-      return elements.map(element => (
-          <FormElementRenderer
-              key={element.id}
-              element={element}
-              value={formState[element.id]?.value}
-              onValueChange={handleValueChange}
-              formState={formState}
-              isParentHorizontal={isParentHorizontal}
-          />
-      ));
-  };
-
-  const renderSectionContent = (section: Section) => (
-    <div className={cn("grid gap-4 grid-cols-1", section.displayMode !== 'accordion' && 'p-6 pt-0')}>
-        {renderElements(section.elements)}
-    </div>
-  );
-
   return (
     <div className="p-4 space-y-4">
-      {sections.map((section) => {
-         if (formState[section.id]?.isVisible === false) return null;
-
-         if (section.displayMode === 'accordion') {
-            return (
-                <Accordion type="single" collapsible defaultValue={section.id} key={section.id}>
-                    <AccordionItem value={section.id}>
-                        <Card>
-                            <AccordionTrigger className="w-full p-6 text-base font-medium">
-                               {section.title}
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <CardContent>
-                                    {renderSectionContent(section)}
-                                </CardContent>
-                            </AccordionContent>
-                        </Card>
-                    </AccordionItem>
-                </Accordion>
-            );
-         }
-
-        return (
-          <Card key={section.id}>
-            <CardHeader>
-                <CardTitle className="text-base font-medium">
-                    {section.title}
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderSectionContent(section)}
-            </CardContent>
-          </Card>
-        );
-      })}
+      {sections.map((section) => (
+         <SectionRenderer key={section.id} section={section} />
+      ))}
        {showSubmitButton && <div className="flex justify-end mt-8">
             <Button onClick={handleSubmit}>
                 Submit Form
