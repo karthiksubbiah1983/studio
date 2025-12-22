@@ -1363,17 +1363,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 />
                                 {props.allowUserToAddRows && <p className="text-xs text-muted-foreground -mt-1">Disable "Allow User to Add Rows" to set default rows.</p>}
                             </div>
-                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="maxRows">Max Rows</Label>
-                                <Input
-                                    id="maxRows"
-                                    type="number"
-                                    min="1"
-                                    placeholder="Unlimited"
-                                    value={props.maxRows || ''}
-                                    onChange={(e) => updateProperty('maxRows', e.target.value ? parseInt(e.target.value) : undefined)}
-                                />
-                            </div>
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="columns">
@@ -1393,16 +1382,31 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="enable-search">Enable Search</Label>
                                 <Switch id="enable-search" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
                             </div>
-                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="allow-user-add-rows" className={cn((props.defaultRows || 0) > 0 && 'text-muted-foreground')}>Allow User to Add Rows</Label>
-                                <Switch 
-                                    id="allow-user-add-rows" 
-                                    checked={props.allowUserToAddRows} 
-                                    onCheckedChange={(checked) => updateProperty('allowUserToAddRows', checked)}
-                                    disabled={(props.defaultRows || 0) > 0}
-                                />
+                             <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <Label htmlFor="allow-user-add-rows" className={cn((props.defaultRows || 0) > 0 && 'text-muted-foreground')}>Allow User to Add Rows</Label>
+                                    <Switch 
+                                        id="allow-user-add-rows" 
+                                        checked={props.allowUserToAddRows} 
+                                        onCheckedChange={(checked) => updateProperty('allowUserToAddRows', checked)}
+                                        disabled={(props.defaultRows || 0) > 0}
+                                    />
+                                </div>
+                                {(props.defaultRows || 0) > 0 && <p className="text-xs text-muted-foreground -mt-3 pl-3">Set "Default Rows" to 0 to enable this.</p>}
                             </div>
-                             {(props.defaultRows || 0) > 0 && <p className="text-xs text-muted-foreground -mt-3 pl-3">Set "Default Rows" to 0 to enable this.</p>}
+                            {props.allowUserToAddRows && (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="maxRows">Max Rows</Label>
+                                    <Input
+                                        id="maxRows"
+                                        type="number"
+                                        min="1"
+                                        placeholder="Unlimited"
+                                        value={props.maxRows || ''}
+                                        onChange={(e) => updateProperty('maxRows', e.target.value ? parseInt(e.target.value) : undefined)}
+                                    />
+                                </div>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1500,4 +1504,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 }
 
     
+
 
