@@ -1352,14 +1352,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="defaultRows">Default Rows</Label>
+                                <Label htmlFor="defaultRows" className={cn(props.allowUserToAddRows && 'text-muted-foreground')}>Default Rows</Label>
                                 <Input
                                     id="defaultRows"
                                     type="number"
                                     min="0"
                                     value={props.defaultRows || 0}
                                     onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value) >= 0 ? parseInt(e.target.value) : 0)}
+                                    disabled={props.allowUserToAddRows}
                                 />
+                                {props.allowUserToAddRows && <p className="text-xs text-muted-foreground -mt-1">Disable "Allow User to Add Rows" to set default rows.</p>}
                             </div>
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="maxRows">Max Rows</Label>
@@ -1392,9 +1394,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Switch id="enable-search" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="allow-user-add-rows">Allow User to Add Rows</Label>
-                                <Switch id="allow-user-add-rows" checked={props.allowUserToAddRows} onCheckedChange={(checked) => updateProperty('allowUserToAddRows', checked)} />
+                                <Label htmlFor="allow-user-add-rows" className={cn((props.defaultRows || 0) > 0 && 'text-muted-foreground')}>Allow User to Add Rows</Label>
+                                <Switch 
+                                    id="allow-user-add-rows" 
+                                    checked={props.allowUserToAddRows} 
+                                    onCheckedChange={(checked) => updateProperty('allowUserToAddRows', checked)}
+                                    disabled={(props.defaultRows || 0) > 0}
+                                />
                             </div>
+                             {(props.defaultRows || 0) > 0 && <p className="text-xs text-muted-foreground -mt-3 pl-3">Set "Default Rows" to 0 to enable this.</p>}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1492,3 +1500,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 }
 
     
+
