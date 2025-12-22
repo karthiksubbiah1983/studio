@@ -1054,7 +1054,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     placeholder="e.g., {field_a} + {field_b}"
                                 />
                                 <p className="text-xs text-muted-foreground">
-                                    If a formula is provided, this field will be read-only.
+                                    Use the 'Field Key' from another column. You can find this by editing the column.
                                 </p>
                             </div>
                         </AccordionContent>
