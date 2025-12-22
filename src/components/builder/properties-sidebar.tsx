@@ -574,10 +574,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const commonFields = (
     <>
-      {(!isColumnElement || (props.type === 'Display')) && <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="key">Field Key</Label>
         <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
-      </div>}
+      </div>
       <div className="flex flex-col gap-2">
         <Label htmlFor="label">Label</Label>
         <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
@@ -1484,3 +1484,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
