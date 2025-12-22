@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, RuleBehavior } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
@@ -909,140 +909,116 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (!isLoaded || !activeForm) return;
 
-    const runRuleEngine = (initialContext: any) => {
-        let nextFormState = { ...initialContext };
-        let stateChangedInPass = false;
-        let configChangedInPass = false;
-
+    const runRuleEngine = () => {
         const allElements = getAllElements(sections);
+        
+        // 1. Initialize a new state object based on default values and keep user-driven values.
+        let nextFormState = getInitialFormState(sections, configurations);
+        for (const key in state.formState) {
+            if (Object.prototype.hasOwnProperty.call(state.formState, key) && !key.startsWith('config::')) {
+                nextFormState[key] = { ...nextFormState[key], ...state.formState[key] };
+            }
+        }
 
-        // Pre-calculate scores for all relevant lists
+        // 2. Pre-calculate scores for all relevant lists
         allElements.forEach(element => {
             if (element.type === 'List' && element.enableScoring) {
                 const listState = nextFormState[element.id];
                 const selection = Array.isArray(listState?.value) ? listState.value : [];
                 const score = selection.length * (element.scorePerItem || 0);
                 const scoreId = `${element.id}::score`;
-
-                if (nextFormState[scoreId]?.value !== score) {
-                    nextFormState[scoreId] = { ...nextFormState[scoreId], value: score };
-                    stateChangedInPass = true;
-                }
+                nextFormState[scoreId] = { ...nextFormState[scoreId], value: score };
             }
         });
 
-        // Sync default rows for editable tables
+        // 3. Sync default rows for editable tables
         allElements.forEach(el => {
             if (el.type === 'EditableTable' && el.defaultRows) {
                 const tableState = nextFormState[el.id];
-                const currentRows = Array.isArray(tableState?.value) ? tableState.value.length : 0;
-                
-                if (tableState === undefined || currentRows !== el.defaultRows) {
-                    const newRows: any[] = [];
-                    for (let i = 0; i < el.defaultRows; i++) {
+                if (tableState === undefined) {
+                    const newRows: any[] = Array.from({ length: el.defaultRows }, () => {
                         const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
                         el.columns?.forEach(col => {
                             row[col.element.id] = col.element.defaultValue ?? null;
                         });
-                        newRows.push(row);
-                    }
+                        return row;
+                    });
                     nextFormState[el.id] = { ...tableState, value: newRows };
-                    stateChangedInPass = true;
                 }
             }
         });
-
+        
         if (!rules || rules.length === 0) {
-            return { finalState: nextFormState, stateChanged: stateChangedInPass, configChanged: false };
+            dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+            return;
         }
         
-        const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean) => {
-            const { type, targetElementId, value, targetConfigurationKey } = behavior;
-        
+        // 4. Create a map of active behaviors by iterating through all rules
+        const activeBehaviors = new Map<string, RuleBehavior>();
+        const applyBehavior = (behavior: RuleBehavior, rowContext?: any) => {
+            const { type, targetElementId, targetConfigurationKey } = behavior;
             let targetId = targetElementId;
             if (type === 'set_configuration' && targetConfigurationKey) {
                 targetId = `config::${targetConfigurationKey}`;
             }
             if (!targetId) return;
 
-            const targetIsSection = sections.some(s => s.id === targetId);
-            
-            let contextToUpdate: any;
-            let needsGlobalUpdate = false;
-
-            if (!findElementRecursive(sections, targetId)?.isTableColumn || targetIsSection) {
-                 contextToUpdate = nextFormState;
-                 needsGlobalUpdate = true;
+            // In table rules, behaviors might target other columns in the same row
+            if(rowContext && findElementRecursive(sections, targetId)?.isTableColumn) {
+                const currentTargetState = rowContext[targetId] || {};
+                if (type === 'set_value') {
+                    rowContext[targetId] = { ...currentTargetState, value: behavior.value };
+                }
+                const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
+                if (newVisibility !== undefined) {
+                    rowContext[targetId] = { ...currentTargetState, isVisible: newVisibility };
+                }
             } else {
-                 contextToUpdate = context;
-            }
-        
-            const currentTargetState = contextToUpdate[targetId] || {};
-
-            if (type === 'set_value' || type === 'set_configuration') {
-                const newValue = value;
-                if (contextToUpdate[targetId]?.value !== newValue) {
-                    contextToUpdate[targetId] = { ...currentTargetState, value: newValue };
-                    if (needsGlobalUpdate) stateChangedInPass = true;
-                    if (type === 'set_configuration' && needsGlobalUpdate) configChangedInPass = true;
-                }
-            }
-        
-            const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
-            if (newVisibility !== undefined) {
-                if (contextToUpdate[targetId]?.isVisible !== newVisibility) {
-                    contextToUpdate[targetId] = { ...currentTargetState, isVisible: newVisibility };
-                    if (needsGlobalUpdate) stateChangedInPass = true;
-                }
+                 // For global elements, we just record the latest active behavior.
+                 // The last rule in the list wins in case of conflict.
+                 activeBehaviors.set(targetId, behavior);
             }
         };
-
-
-        const tableIntentions: Record<string, { behaviorType: RuleBehaviorType, value?: string }[]> = {};
 
         rules.forEach(rule => {
             const sourceElement = findElementRecursive(sections, rule.conditions[0]?.sourceElementId || '');
             const isTableRule = !!sourceElement?.isTableColumn;
-            
             const tableElementId = isTableRule ? allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.element.id === sourceElement!.id))?.id : undefined;
 
             if (isTableRule && tableElementId && nextFormState[tableElementId]?.value) {
-                const tableData: any[] = nextFormState[tableElementId].value;
-                tableData.forEach(row => {
+                (nextFormState[tableElementId].value as any[]).forEach(row => {
                     const rowContext = { ...nextFormState, ...row };
-                    if (evaluateRule(rule, rowContext, configurations, sections)) {
-                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true));
+                     if (evaluateRule(rule, rowContext, configurations, sections)) {
+                        rule.behaviors.forEach(b => applyBehavior(b, row));
                     }
                 });
             } else {
-                 if (evaluateRule(rule, nextFormState, configurations, sections)) {
-                    rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState, false));
+                if (evaluateRule(rule, nextFormState, configurations, sections)) {
+                    rule.behaviors.forEach(b => applyBehavior(b));
                 }
             }
         });
+
+        // 5. Apply the collected active behaviors to the nextFormState
+        activeBehaviors.forEach((behavior, targetId) => {
+            const { type, value } = behavior;
+            const currentTargetState = nextFormState[targetId] || {};
+            if (type === 'set_value' || type === 'set_configuration') {
+                 nextFormState[targetId] = { ...currentTargetState, value: value };
+            }
+            const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
+            if (newVisibility !== undefined) {
+                 nextFormState[targetId] = { ...currentTargetState, isVisible: newVisibility };
+            }
+        });
         
-        return { finalState: nextFormState, stateChanged: stateChangedInPass, configChanged: configChangedInPass };
-    }
-
-    // Run the engine multiple times to handle chained dependencies
-    let currentState = { ...state.formState };
-    let continueLooping = true;
-    let pass = 0;
-    while(continueLooping && pass < 5) { // Pass limit to prevent infinite loops
-        const { finalState, stateChanged, configChanged } = runRuleEngine(currentState);
-        currentState = finalState;
-        // Continue looping if the state changed, OR if a config changed (as it might trigger other rules).
-        continueLooping = stateChanged || configChanged;
-        if(configChanged){
-            // If a config changed, we need to ensure the whole loop runs again to catch dependencies on it.
-            continueLooping = true;
+        // 6. Compare and dispatch if the state has changed.
+        if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
+             dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
         }
-        pass++;
     }
 
-    if (JSON.stringify(currentState) !== JSON.stringify(state.formState)) {
-        dispatch({ type: 'SET_FORM_STATE', payload: currentState });
-    }
+    runRuleEngine();
     
   }, [userDrivenState, activeForm?.id, sections, rules, configurations, isLoaded]);
   
@@ -1138,12 +1114,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-
-
-
-    
-
-    
-
-    
