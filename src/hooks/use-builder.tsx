@@ -941,7 +941,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             return { finalState: nextFormState, stateChanged: stateChangedInPass, configChanged: false };
         }
         
-        const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean, tableIntentions: any) => {
+        const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean) => {
             const { type, targetElementId, value, targetConfigurationKey } = behavior;
         
             let targetId = targetElementId;
@@ -951,16 +951,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             if (!targetId) return;
 
             const targetIsSection = sections.some(s => s.id === targetId);
-            const targetElement = findElementRecursive(sections, targetId);
             
-            // Check if the target is an element within a table, which signifies an "internal-to-internal" table rule.
-            const isTargetInTable = !!targetElement?.isTableColumn;
+            let contextToUpdate = (isTableRow && !targetIsSection && !findElementRecursive(sections, targetId)) ? nextFormState : context;
         
-            // This is the fix for OUTWARD-flowing rules.
-            // If the rule is triggered by a table row but targets something outside the table (or a section),
-            // we should apply the change directly to the main `nextFormState`, not the temporary `row` context.
-            let contextToUpdate = (isTableRow && !isTargetInTable) ? nextFormState : context;
-            
             const currentTargetState = contextToUpdate[targetId] || {};
 
             if (type === 'set_value' || type === 'set_configuration') {
@@ -995,33 +988,15 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 tableData.forEach(row => {
                     const rowContext = { ...nextFormState, ...row };
                     if (evaluateRule(rule, rowContext, configurations, sections)) {
-                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true, tableIntentions));
+                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true));
                     }
                 });
             } else {
                  if (evaluateRule(rule, nextFormState, configurations, sections)) {
-                    rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState, false, tableIntentions));
+                    rule.behaviors.forEach(behavior => applyBehavior(behavior, nextFormState, false));
                 }
             }
         });
-        
-        // Process aggregated intentions from table rules
-        for (const targetId in tableIntentions) {
-            const intentions = tableIntentions[targetId];
-            if (intentions.length > 0) {
-                // For now, simple 'any' logic for show/hide.
-                const shouldShow = intentions.some(i => i.behaviorType === 'show');
-                
-                let finalVisibility: boolean | undefined = undefined;
-                if(shouldShow) finalVisibility = true;
-                // Add more complex logic here if needed, e.g. if 'all' rows must match
-                
-                if (finalVisibility !== undefined && nextFormState[targetId]?.isVisible !== finalVisibility) {
-                     nextFormState[targetId] = { ...nextFormState[targetId], isVisible: finalVisibility };
-                     stateChangedInPass = true;
-                }
-            }
-        }
         
         return { finalState: nextFormState, stateChanged: stateChangedInPass, configChanged: configChangedInPass };
     }
@@ -1142,3 +1117,6 @@ export const useBuilder = () => {
 };
 
 
+
+
+    
