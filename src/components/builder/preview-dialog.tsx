@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import {
   Dialog,
@@ -19,7 +19,16 @@ type Props = {
 };
 
 export function PreviewDialog({ isOpen, onOpenChange }: Props) {
-  const { sections } = useBuilder();
+  const { sections, dispatch } = useBuilder();
+
+  useEffect(() => {
+    if (isOpen) {
+      // Create an empty state object to reset the form
+      const emptyState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } = {};
+      dispatch({ type: 'SET_FORM_STATE', payload: emptyState });
+    }
+  }, [isOpen, dispatch]);
+
 
   // Filter out sections that are designated for popups only for the main preview.
   const sectionsForMainPreview: Section[] = useMemo(() => {

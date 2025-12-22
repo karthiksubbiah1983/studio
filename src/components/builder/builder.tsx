@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import { RulesDialog } from "./rules-dialog";
 import { JsonPreviewDialog } from "./json-preview-dialog";
 import { WorkflowsDialog } from "./workflows-dialog";
+import { useIsClient } from "@/hooks/use-is-client";
 
 type Props = {
     formId: string;
@@ -31,7 +32,7 @@ export function Builder({ formId }: Props) {
   const { state, dispatch, setSections } = useBuilder();
   const router = useRouter();
   
-  const [isClient, setIsClient] = useState(false);
+  const isClient = useIsClient();
   const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
   const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
   const [isTemplatesSidebarOpen, setIsTemplatesSidebarOpen] = useState(false);
@@ -47,10 +48,6 @@ export function Builder({ formId }: Props) {
   const [activeVersionId, setActiveVersionId] = useState<string | undefined>();
   const isMobileView = useIsMobile();
 
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   useEffect(() => {
     const formExists = state.forms.some(f => f.id === formId);

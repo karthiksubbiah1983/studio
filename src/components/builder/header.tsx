@@ -1,10 +1,11 @@
 
+
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { PanelLeft, Settings, LayoutTemplate } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useEffect, useState } from "react";
+import { useIsClient } from "@/hooks/use-is-client";
 
 type Props = {
   onLeftSidebarToggle?: () => void;
@@ -14,11 +15,7 @@ type Props = {
 
 export function Header({ onLeftSidebarToggle, onRightSidebarToggle, onTemplatesSidebarToggle }: Props) {
   const isMobileView = useIsMobile();
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const isClient = useIsClient();
 
   const isMobile = isClient && isMobileView;
 

@@ -7,49 +7,39 @@ import { Sidebar, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useBuilder } from "@/hooks/use-builder";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect } from "react";
-import { FormPreview } from "./form-preview";
+import { useEffect, useState } from "react";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { activeForm, tasks, state } = useBuilder();
+  const { activeForm } = useBuilder();
   const { user, isLoading } = useAuth();
+  const [isClient, setIsClient] = useState(false);
   const isBuilderPage = pathname.startsWith('/builder');
   const isLoginPage = pathname === '/login';
-  const isMyTasksPage = pathname.startsWith('/my-tasks/');
-
-  useEffect(() => {
-    // Dynamically import and run the polyfill only on the client-side
-    // after the component has mounted to prevent hydration errors.
-    import('@/lib/dnd-touch-polyfill');
-  }, []);
   
   useEffect(() => {
-    if (isLoading) return;
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      import('@/lib/dnd-touch-polyfill');
+    }
+  }, [isClient]);
+  
+  useEffect(() => {
+    if (!isClient || isLoading) return;
 
     if (!user && !isLoginPage) {
       router.replace('/login');
     } else if (user && isLoginPage) {
       router.replace('/');
     }
-  }, [user, isLoading, isLoginPage, router, pathname]);
+  }, [user, isLoading, isLoginPage, router, pathname, isClient]);
   
-  if (isMyTasksPage) {
-      const taskId = pathname.split('/')[2];
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) {
-          return <div>Task not found</div>
-      }
-      const form = state.forms.find(f => f.id === task.formId);
-      const version = form?.versions.find(v => v.id === task.versionId);
-      if (!form || !version) {
-          return <div>Form or version not found</div>;
-      }
-      return <FormPreview sections={version.sections} showSubmitButton={true} taskId={taskId} />;
-  }
 
-  if (isLoading || (!user && !isLoginPage)) {
+  if (!isClient || isLoading || (!user && !isLoginPage)) {
     return (
       <div className="flex items-center justify-center h-screen">
         <p>Loading...</p>
@@ -79,6 +69,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   } else if (pathname === '/my-tasks') {
     title = 'My Assigned Tasks';
     description = 'View and complete tasks that have been assigned to you.';
+  } else if (pathname.startsWith('/my-tasks/')) {
+    title = 'Fill Form';
+    description = 'Complete the required fields and submit the form.';
   } else if (pathname === '/all-tasks') {
     title = 'All Tasks';
     description = 'View and track all assigned and submitted tasks across all sites.';
