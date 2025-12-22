@@ -104,7 +104,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     setIsClient(true);
   }, []);
 
-  const evaluationContext = rowContext || formState;
+  const evaluationContext = isTableCell ? rowContext : formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   const value = useMemo(() => {

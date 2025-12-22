@@ -21,12 +21,12 @@ type Props = {
 
 export function EditableTable({ element, value, onValueChange, formState }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
-  const { updateFormState } = useBuilder();
-
+  
   const rows = Array.isArray(value) ? value : [];
 
   const handleRowChange = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
     const newRows = [...rows];
+    // Find the original index in the unfiltered `rows` array based on the unique _rowId
     const originalRowIndex = rows.findIndex(r => r._rowId === filteredRows[rowIndex]._rowId);
     
     if (originalRowIndex !== -1) {
@@ -41,10 +41,12 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
 
   const addRow = () => {
     if (element.maxRows && rows.length >= element.maxRows) return;
+    
     const newRow: Record<string, any> = { _rowId: crypto.randomUUID() };
     element.columns?.forEach(col => {
       newRow[col.element.id] = col.element.defaultValue ?? '';
     });
+
     // Directly call the onValueChange prop with the new state
     onValueChange(element.id, [...rows, newRow]);
   };
