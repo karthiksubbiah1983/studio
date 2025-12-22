@@ -1062,23 +1062,25 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {props.inputFormat === 'number' && (
                                 <div className="space-y-4 pt-2 border-t">
                                     <div className="flex flex-col gap-2">
-                                        <Label htmlFor="fixed-length">Fixed Digit Length</Label>
+                                        <Label htmlFor="fixed-length" className={cn(!!props.formula && 'text-muted-foreground')}>Fixed Digit Length</Label>
                                         <Input
                                             id="fixed-length"
                                             type="number"
                                             placeholder="e.g., 8"
                                             value={props.fixedLength || ''}
                                             onChange={(e) => updateProperty('fixedLength', e.target.value ? parseInt(e.target.value, 10) : undefined)}
+                                            disabled={!!props.formula}
                                         />
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <Label htmlFor="leading-char">Leading Character (for padding)</Label>
+                                        <Label htmlFor="leading-char" className={cn(!!props.formula && 'text-muted-foreground')}>Leading Character (for padding)</Label>
                                         <Input
                                             id="leading-char"
                                             placeholder="e.g., 0"
                                             value={props.leadingChar || ''}
                                             onChange={(e) => updateProperty('leadingChar', e.target.value)}
                                             maxLength={1}
+                                            disabled={!!props.formula}
                                         />
                                     </div>
                                 </div>
@@ -1528,6 +1530,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 }
 
     
+
 
 
 
