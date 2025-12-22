@@ -21,7 +21,7 @@ type Props = {
 };
 
 export function EditableTable({ element, value, onValueChange }: Props) {
-  const { formState } = useBuilder();
+  const { formState, updateFormState } = useBuilder();
   const [searchTerm, setSearchTerm] = useState('');
   
   const rows = Array.isArray(value) ? value : [];
@@ -39,6 +39,34 @@ export function EditableTable({ element, value, onValueChange }: Props) {
     }
     
     newRows[originalIndex] = updatedRow;
+    onValueChange(element.id, newRows);
+  };
+
+   const handleRowChangeWithFormula = (rowIndex: number, columnId: string, cellValue: any) => {
+    const originalIndex = rows.findIndex(r => r._rowId === filteredRows[rowIndex]._rowId);
+    if (originalIndex === -1) return;
+
+    let newRows = [...rows];
+    let changedRow = { ...newRows[originalIndex], [columnId]: cellValue };
+
+    // Create a context for formula evaluation based on the updated row
+    const rowContextForEval: { [key: string]: any } = {};
+    element.columns?.forEach(col => {
+      // The context needs both the value and the element's `key` for the formula parser to work
+      rowContextForEval[col.element.id] = { value: changedRow[col.element.id], key: col.element.key };
+    });
+
+    // Re-evaluate any formulas in other columns of the same row
+    element.columns?.forEach(col => {
+        if (col.element.formula) {
+            const calculatedValue = evaluate(col.element.formula, rowContextForEval);
+            if (calculatedValue !== changedRow[col.element.id]) {
+                changedRow[col.element.id] = calculatedValue;
+            }
+        }
+    });
+
+    newRows[originalIndex] = changedRow;
     onValueChange(element.id, newRows);
   };
 
@@ -109,7 +137,7 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                                 <FormElementRenderer
                                     element={col.element}
                                     value={row[col.element.id]}
-                                    onValueChange={(id, val, fullObj) => handleRowValueChange(rowIndex, col.element.id, val, fullObj)}
+                                    onValueChange={(id, val, fullObj) => handleRowChangeWithFormula(rowIndex, col.element.id, val)}
                                     formState={formState} // Pass global state for external dependencies
                                     rowContext={row} // Pass row-specific data
                                     isTableCell={true}
@@ -141,4 +169,32 @@ export function EditableTable({ element, value, onValueChange }: Props) {
         </div>
     </div>
   );
+}
+
+function evaluate(formula: string, context: Record<string, any>): number | string {
+  if (!formula) return '';
+  try {
+    const sanitizedFormula = formula.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key) => {
+      const elementId = Object.keys(context).find(id => context[id] && context[id].key === key);
+      let value = context[key];
+      if (elementId && context[elementId]) {
+        value = context[elementId].value;
+      }
+      const numValue = parseFloat(value);
+      return isNaN(numValue) ? '0' : String(numValue);
+    });
+
+    if (/[^0-9.+\-*/\s()]/.test(sanitizedFormula)) {
+      console.error("Invalid characters in formula:", sanitizedFormula);
+      return "#FORMULA!";
+    }
+    const result = new Function(`return ${sanitizedFormula}`)();
+    if (typeof result !== 'number' || !isFinite(result)) {
+      return "#VALUE!";
+    }
+    return result;
+  } catch (error) {
+    console.error("Formula evaluation error:", error);
+    return "#ERROR!";
+  }
 }
