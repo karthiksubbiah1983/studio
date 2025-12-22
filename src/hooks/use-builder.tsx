@@ -323,7 +323,7 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
     
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
-        if ('id' in element) {
+        if ('id' in element && !state[element.id]) { // Ensure not to overwrite section state
             state[element.id] = { 
                 value: 'defaultValue' in element ? element.defaultValue : undefined,
                 isVisible: !element.hidden
@@ -1118,5 +1118,7 @@ export const useBuilder = () => {
 
 
 
+
+    
 
     
