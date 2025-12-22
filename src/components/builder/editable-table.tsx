@@ -101,7 +101,6 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
                 {filteredRows.map((row, rowIndex) => (
                     <TableRow key={row._rowId}>
                     {element.columns?.map(col => {
-                        // THIS IS THE FIX: Check if the value for the cell is an object and extract the primitive 'value'
                         const cellState = row[col.element.id];
                         const cellValue = (cellState && typeof cellState === 'object' && 'value' in cellState) ? cellState.value : cellState;
                         return (
