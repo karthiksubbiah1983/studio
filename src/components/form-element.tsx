@@ -990,7 +990,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         return <EditableTable 
             element={element} 
             value={value} 
-            onValueChange={updateFormState} 
+            onValueChange={onValueChange}
             formState={formState} 
         />;
     default:
