@@ -937,64 +937,62 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         const applyBehavior = (behavior: Rule['behaviors'][0], context: any, isTableRow: boolean) => {
             const { type, targetElementId, value, targetConfigurationKey } = behavior;
         
-            // Find target element OR check if the target is a section
-            const targetElement = findElementRecursive(sections, targetElementId || '');
-            const targetSection = sections.find(s => s.id === targetElementId);
-            const isTargetInTable = !!targetElement?.isTableColumn;
-        
             let targetId = targetElementId;
             if (type === 'set_configuration' && targetConfigurationKey) {
                 targetId = `config::${targetConfigurationKey}`;
             }
             if (!targetId) return;
-        
+
+            const targetSection = sections.find(s => s.id === targetId);
+            const targetElement = findElementRecursive(sections, targetId);
+            const isTargetInTable = !!targetElement?.isTableColumn;
             const currentTargetState = context[targetId] || {};
-        
+
             if (type === 'set_value' || type === 'set_configuration') {
                 const newValue = value;
+                // Rule from inside a table targeting an outside element/config
                 if (isTableRow && !isTargetInTable) {
-                    // This is an in-table rule targeting an outside element. Act on global state.
-                    if (nextFormState[targetId]?.value !== newValue) {
-                        nextFormState[targetId] = { ...nextFormState[targetId], value: newValue };
+                    if (state.formState[targetId]?.value !== newValue) {
+                        nextFormState[targetId] = { ...state.formState[targetId], value: newValue };
                         stateChangedInPass = true;
-                        if (type === 'set_configuration') {
-                            configChangedInPass = true;
-                        }
+                        if (type === 'set_configuration') configChangedInPass = true;
                     }
-                } else if (isTableRow && isTargetInTable) {
-                    // Rule within a table targeting another field in the SAME ROW
+                } 
+                // Rule inside a table targeting another element in the SAME ROW
+                else if (isTableRow && isTargetInTable) {
                     if (context[targetId] !== newValue) {
                         context[targetId] = newValue; // Update row context directly
                         stateChangedInPass = true;
                     }
-                } else {
-                    // Standard rule (outside table or external config)
+                }
+                // Standard rule (element to element, config to element, etc.)
+                else {
                     if (context[targetId]?.value !== newValue) {
                         context[targetId] = { ...currentTargetState, value: newValue };
                         stateChangedInPass = true;
-                        if (type === 'set_configuration') {
-                            configChangedInPass = true;
-                        }
+                        if (type === 'set_configuration') configChangedInPass = true;
                     }
                 }
             }
         
             const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
             if (newVisibility !== undefined) {
-                // If the target is a section, its ID is directly in the context.
+                // If the target is a section
                 if (targetSection) {
-                    if (context[targetId]?.isVisible !== newVisibility) {
-                         context[targetId] = { ...currentTargetState, isVisible: newVisibility };
-                         stateChangedInPass = true;
+                    if(nextFormState[targetId]?.isVisible !== newVisibility){
+                       nextFormState[targetId] = { ...nextFormState[targetId], isVisible: newVisibility };
+                       stateChangedInPass = true;
                     }
-                } else if (isTableRow && !isTargetInTable) {
-                    // Rule from inside a table targeting an outside element
+                } 
+                // If rule is from table row targeting an outside element
+                else if (isTableRow && !isTargetInTable) {
                     if (nextFormState[targetId]?.isVisible !== newVisibility) {
                         nextFormState[targetId] = { ...nextFormState[targetId], isVisible: newVisibility };
                         stateChangedInPass = true;
                     }
-                } else {
-                    // Standard element rule (inside or outside table)
+                }
+                // Standard element rule
+                else {
                     if (context[targetId]?.isVisible !== newVisibility) {
                         context[targetId] = { ...currentTargetState, isVisible: newVisibility };
                         stateChangedInPass = true;
@@ -1002,6 +1000,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 }
             }
         };
+
 
         rules.forEach(rule => {
             const sourceElement = findElementRecursive(sections, rule.conditions[0]?.sourceElementId || '');
@@ -1014,7 +1013,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 tableData.forEach(row => {
                     const rowContext = { ...nextFormState, ...row };
                     if (evaluateRule(rule, rowContext, configurations, sections)) {
-                        rule.behaviors.forEach(behavior => applyBehavior(behavior, rowContext, true));
+                        rule.behaviors.forEach(behavior => applyBehavior(behavior, row, true));
                     }
                 });
             } else {
