@@ -130,11 +130,6 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
       ));
   };
 
-  const isSectionVisible = (section: Section): boolean => {
-    if (section.popupOnly) return false;
-    return formState[section.id]?.isVisible !== false;
-  }
-
   const renderSectionContent = (section: Section) => (
     <div className={cn("grid gap-4 grid-cols-1", section.displayMode !== 'accordion' && 'p-6 pt-0')}>
         {renderElements(section.elements)}
@@ -144,7 +139,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: Props
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => {
-         if (!isSectionVisible(section)) return null;
+         if (formState[section.id]?.isVisible === false) return null;
 
          if (section.displayMode === 'accordion') {
             return (
