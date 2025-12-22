@@ -28,7 +28,11 @@ export function EditableTable({ element, value, onValueChange }: Props) {
   const rows = Array.isArray(value) ? value : [];
 
   const handleRowChangeWithFormula = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
-    const originalIndex = rows.findIndex(r => r._rowId === filteredRows[rowIndex]._rowId);
+    // Find the original index of the row in the unfiltered `rows` array
+    const originalRowId = filteredRows[rowIndex]?._rowId;
+    if (!originalRowId) return;
+
+    const originalIndex = rows.findIndex(r => r._rowId === originalRowId);
     if(originalIndex === -1) return;
 
     const newRows = [...rows];
@@ -37,13 +41,14 @@ export function EditableTable({ element, value, onValueChange }: Props) {
     // Update the value that was actually changed by the user
     updatedRow[columnId] = cellValue;
     
-    // If the changed column was a Select with dynamic data, we also store the full object
     const changedColumnElement = element.columns?.find(c => c.element.id === columnId);
     if (changedColumnElement?.element.type === 'Select' && changedColumnElement.element.dataSource === 'dynamic') {
         updatedRow = { ...updatedRow, [`${columnId}__fullObject`]: fullObject };
     }
-    
+
     newRows[originalIndex] = updatedRow;
+    
+    // Dispatch the update for the entire table
     onValueChange(element.id, newRows);
   };
 
