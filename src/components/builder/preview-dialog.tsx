@@ -2,7 +2,6 @@
 
 "use client";
 
-import { useEffect, useMemo } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import {
   Dialog,
@@ -11,7 +10,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { FormPreview } from "@/components/form-preview";
-import { Section } from "@/lib/types";
 
 type Props = {
   isOpen: boolean;
@@ -19,22 +17,7 @@ type Props = {
 };
 
 export function PreviewDialog({ isOpen, onOpenChange }: Props) {
-  const { sections, dispatch } = useBuilder();
-
-  useEffect(() => {
-    if (isOpen) {
-      // Create an empty state object to reset the form
-      const emptyState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } = {};
-      dispatch({ type: 'SET_FORM_STATE', payload: emptyState });
-    }
-  }, [isOpen, dispatch]);
-
-
-  // Filter out sections that are designated for popups only for the main preview.
-  const sectionsForMainPreview: Section[] = useMemo(() => {
-    return sections.filter(section => !section.popupOnly);
-  }, [sections]);
-
+  const { sections } = useBuilder();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -43,8 +26,7 @@ export function PreviewDialog({ isOpen, onOpenChange }: Props) {
           <DialogTitle>Form Preview</DialogTitle>
         </DialogHeader>
         <div className="flex-grow overflow-y-auto min-h-0">
-          {/* The FormPreview component now receives the pre-filtered list of sections */}
-          <FormPreview sections={sectionsForMainPreview} showSubmitButton={true} />
+          <FormPreview sections={sections} showSubmitButton={true} />
         </div>
       </DialogContent>
     </Dialog>
