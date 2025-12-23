@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import { useMemo, useState, useEffect, memo, useCallback } from "react";
+import { useMemo, useState, useEffect, memo, useCallback, useRef } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -44,32 +43,27 @@ const ConditionEditor = memo(({
     localConfigs: Configuration[],
 }) => {
     const [condition, setCondition] = useState(initialCondition);
+    const isMounted = useRef(false);
 
     useEffect(() => {
         setCondition(initialCondition);
     }, [initialCondition]);
 
-    const handleUpdate = (field: keyof Condition, value: any) => {
-        const updatedCondition = { ...condition, [field]: value };
-        setCondition(updatedCondition);
-    }
-    
-    const handleBlur = (field: keyof Condition, value: any) => {
-        const updatedCondition = { ...condition, [field]: value };
-        onUpdateCondition(condition.id, updatedCondition);
-    }
+    useEffect(() => {
+        if (isMounted.current) {
+             onUpdateCondition(condition.id, condition);
+        } else {
+            isMounted.current = true;
+        }
+    }, [condition]);
 
-    const handleSelectChange = (field: keyof Condition, value: any) => {
-        const updatedCondition = { ...condition, [field]: value };
-        // For selects, we can update immediately
-        setCondition(updatedCondition);
-        onUpdateCondition(condition.id, updatedCondition);
+
+    const handleUpdate = (field: keyof Condition, value: any) => {
+        setCondition(prev => ({ ...prev, [field]: value }));
     }
     
     const handleComplexSelectChange = (updates: Partial<Condition>) => {
-        const updatedCondition = { ...condition, ...updates };
-        setCondition(updatedCondition);
-        onUpdateCondition(condition.id, updatedCondition);
+        setCondition(prev => ({ ...prev, ...updates }));
     }
 
     const sourceElement = useMemo(() => {
@@ -123,7 +117,7 @@ const ConditionEditor = memo(({
                 return (
                     <div className='flex flex-col gap-2'>
                         <Label>Source Field *</Label>
-                        <Select value={condition.sourceElementId} onValueChange={(value) => handleSelectChange('sourceElementId', value)}>
+                        <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdate('sourceElementId', value)}>
                             <SelectTrigger><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                             <SelectContent>
                                 {selectableFields.map(el => (
@@ -137,7 +131,7 @@ const ConditionEditor = memo(({
                  return (
                     <div className='flex flex-col gap-2'>
                         <Label>Source Value *</Label>
-                        <Select value={condition.sourceValue} onValueChange={(value) => handleSelectChange('sourceValue', value)}>
+                        <Select value={condition.sourceValue} onValueChange={(value) => handleUpdate('sourceValue', value)}>
                             <SelectTrigger><SelectValue placeholder="Select a date..." /></SelectTrigger>
                             <SelectContent>
                                 {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
@@ -156,7 +150,7 @@ const ConditionEditor = memo(({
                 return (
                     <div className='flex flex-col gap-2'>
                         <Label>Source Value *</Label>
-                        <Select value={condition.sourceValue} onValueChange={(value) => handleSelectChange('sourceValue', value)}>
+                        <Select value={condition.sourceValue} onValueChange={(value) => handleUpdate('sourceValue', value)}>
                             <SelectTrigger><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
                             <SelectContent>
                                 {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
@@ -190,7 +184,7 @@ const ConditionEditor = memo(({
                 const sourceFieldOptions = getFieldOptions(sourceElement);
                  if (sourceFieldOptions.length > 0) {
                     comparisonValueInput = (
-                        <Select value={condition.value} onValueChange={(value) => handleSelectChange('value', value)}>
+                        <Select value={condition.value} onValueChange={(value) => handleUpdate('value', value)}>
                             <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
                             <SelectContent>{sourceFieldOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
                         </Select>
@@ -200,13 +194,12 @@ const ConditionEditor = memo(({
                         placeholder="Value" 
                         value={condition.value} 
                         onChange={(e) => handleUpdate('value', e.target.value)} 
-                        onBlur={(e) => handleBlur('value', e.target.value)}
                     />;
                  }
                 break;
             case 'date':
                 comparisonValueInput = (
-                    <Select value={condition.value} onValueChange={(value) => handleSelectChange('value', value)}>
+                    <Select value={condition.value} onValueChange={(value) => handleUpdate('value', value)}>
                         <SelectTrigger><SelectValue placeholder="Select a date..." /></SelectTrigger>
                         <SelectContent>
                             {specialDateOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
@@ -216,7 +209,7 @@ const ConditionEditor = memo(({
                 break;
             case 'field':
                 comparisonValueInput = (
-                     <Select value={condition.comparisonElementId} onValueChange={(value) => handleSelectChange('comparisonElementId', value)}>
+                     <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdate('comparisonElementId', value)}>
                         <SelectTrigger><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
                             {selectableFields.map(el => (
@@ -228,7 +221,7 @@ const ConditionEditor = memo(({
                 break;
             case 'status':
                  comparisonValueInput = (
-                    <Select value={condition.value} onValueChange={(value) => handleSelectChange('value', value)}>
+                    <Select value={condition.value} onValueChange={(value) => handleUpdate('value', value)}>
                         <SelectTrigger><SelectValue placeholder="Select a status..." /></SelectTrigger>
                         <SelectContent>
                             {allStatuses.map(status => <SelectItem key={status} value={status}>{status}</SelectItem>)}
@@ -238,7 +231,7 @@ const ConditionEditor = memo(({
                 break;
             case 'config':
                  comparisonValueInput = (
-                    <Select value={condition.value} onValueChange={(value) => handleSelectChange('value', value)}>
+                    <Select value={condition.value} onValueChange={(value) => handleUpdate('value', value)}>
                         <SelectTrigger><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
                         <SelectContent>
                             {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
@@ -251,7 +244,6 @@ const ConditionEditor = memo(({
                     placeholder="Value" 
                     value={condition.value} 
                     onChange={(e) => handleUpdate('value', e.target.value)}
-                    onBlur={(e) => handleBlur('value', e.target.value)} 
                 />;
         }
         return (
@@ -259,7 +251,7 @@ const ConditionEditor = memo(({
                 <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
                         <Label>Operator *</Label>
-                        <Select value={condition.operator} onValueChange={(value) => handleSelectChange('operator', value as Condition['operator'])}>
+                        <Select value={condition.operator} onValueChange={(value) => handleUpdate('operator', value as Condition['operator'])}>
                             <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="equals">Equals</SelectItem>
@@ -316,7 +308,6 @@ const ConditionEditor = memo(({
                             placeholder="e.g., 2 or -2"
                             value={condition.offsetDays || ''}
                             onChange={(e) => handleUpdate('offsetDays', e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                            onBlur={(e) => handleBlur('offsetDays', e.target.value ? parseInt(e.target.value, 10) : undefined)}
                             className="h-8 text-xs"
                         />
                     </div>
@@ -332,7 +323,6 @@ const ConditionEditor = memo(({
                             placeholder="e.g., 5 or -10"
                             value={condition.offsetValue || ''}
                             onChange={(e) => handleUpdate('offsetValue', e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                            onBlur={(e) => handleBlur('offsetValue', e.target.value ? parseInt(e.target.value, 10) : undefined)}
                             className="h-8 text-xs"
                         />
                     </div>
@@ -358,29 +348,27 @@ const BehaviorEditor = memo(({
     localConfigs: Configuration[],
 }) => {
     const [behavior, setBehavior] = useState(initialBehavior);
+    const isMounted = useRef(false);
 
     useEffect(() => {
         setBehavior(initialBehavior);
     }, [initialBehavior]);
 
+    useEffect(() => {
+        if (isMounted.current) {
+            onUpdateBehavior(behavior.id, behavior);
+        } else {
+            isMounted.current = true;
+        }
+    }, [behavior]);
+
+
     const handleUpdate = (field: keyof RuleBehavior, value: any) => {
         setBehavior(prev => ({...prev, [field]: value}));
     }
-
-    const handleBlur = (field: keyof RuleBehavior, value: any) => {
-        onUpdateBehavior(behavior.id, {...behavior, [field]: value});
-    }
-
-    const handleSelectChange = (field: keyof RuleBehavior, value: any) => {
-        const newBehavior = {...behavior, [field]: value};
-        setBehavior(newBehavior);
-        onUpdateBehavior(behavior.id, newBehavior);
-    }
     
     const handleComplexSelectChange = (updates: Partial<RuleBehavior>) => {
-        const updatedBehavior = { ...behavior, ...updates };
-        setBehavior(updatedBehavior);
-        onUpdateBehavior(behavior.id, updatedBehavior);
+        setBehavior(prev => ({...prev, ...updates}));
     }
 
     const handleDeleteBehavior = () => {
@@ -427,7 +415,7 @@ const BehaviorEditor = memo(({
                         <Label>Target Field *</Label>
                         <Select
                             value={behavior.targetElementId}
-                            onValueChange={(value) => handleSelectChange('targetElementId', value)}
+                            onValueChange={(value) => handleUpdate('targetElementId', value)}
                         >
                             <SelectTrigger>
                                 <SelectValue>{selectedTargetFieldLabel}</SelectValue>
@@ -444,7 +432,7 @@ const BehaviorEditor = memo(({
                          <Label>Target Configuration *</Label>
                         <Select
                             value={behavior.targetConfigurationKey}
-                            onValueChange={(value) => handleSelectChange('targetConfigurationKey', value)}
+                            onValueChange={(value) => handleUpdate('targetConfigurationKey', value)}
                         >
                             <SelectTrigger>
                                 <SelectValue placeholder="Select configuration key..."/>
@@ -465,7 +453,7 @@ const BehaviorEditor = memo(({
                         <Label>Property</Label>
                         <Select 
                             value={behavior.targetProperty}
-                            onValueChange={(value) => handleSelectChange('targetProperty', value as 'color' | 'backgroundColor')}
+                            onValueChange={(value) => handleUpdate('targetProperty', value as 'color' | 'backgroundColor')}
                         >
                             <SelectTrigger>
                                 <SelectValue placeholder="Target" />
@@ -482,7 +470,6 @@ const BehaviorEditor = memo(({
                             type="color"
                             value={behavior.color || '#000000'}
                             onChange={(e) => handleUpdate('color', e.target.value)}
-                            onBlur={(e) => handleBlur('color', e.target.value)}
                             className="p-1 h-10"
                         />
                     </div>
@@ -496,7 +483,6 @@ const BehaviorEditor = memo(({
                         placeholder="e.g. Value must be greater than 10"
                         value={behavior.message}
                         onChange={(e) => handleUpdate('message', e.target.value)}
-                        onBlur={(e) => handleBlur('message', e.target.value)}
                     />
                 </div>
             )}
@@ -508,7 +494,6 @@ const BehaviorEditor = memo(({
                         placeholder="Enter the value to set"
                         value={behavior.value || ''}
                         onChange={(e) => handleUpdate('value', e.target.value)}
-                        onBlur={(e) => handleBlur('value', e.target.value)}
                     />
                 </div>
             )}
@@ -517,8 +502,8 @@ const BehaviorEditor = memo(({
 });
 BehaviorEditor.displayName = 'BehaviorEditor';
 
-const RuleEditor = ({ 
-    rule: initialRule,
+const RuleEditor = memo(({ 
+    rule,
     selectableFields,
     localConfigs,
     onUpdateRule 
@@ -528,28 +513,17 @@ const RuleEditor = ({
     localConfigs: Configuration[],
     onUpdateRule: (updatedRule: Rule) => void
 }) => {
-    const [rule, setRule] = useState(initialRule);
-
-    useEffect(() => {
-        setRule(initialRule);
-    }, [initialRule]);
-
+    
     const handleUpdate = (updatedRule: Rule) => {
-        setRule(updatedRule);
         onUpdateRule(updatedRule);
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setRule(prev => ({ ...prev, name: e.target.value }));
-    };
-
-    const handleNameBlur = () => {
-        onUpdateRule(rule);
+        handleUpdate({ ...rule, name: e.target.value });
     };
 
     const handleUpdateLogicType = (logicType: 'and' | 'or') => {
-        const updatedRule = { ...rule, logicType };
-        handleUpdate(updatedRule);
+        handleUpdate({ ...rule, logicType });
     }
     
     const handleAddCondition = () => {
@@ -560,8 +534,7 @@ const RuleEditor = ({
             comparisonType: 'value',
             value: ""
         };
-        const updatedRule = { ...rule, conditions: [...rule.conditions, newCondition] };
-        handleUpdate(updatedRule);
+        handleUpdate({ ...rule, conditions: [...rule.conditions, newCondition] });
     };
 
     const handleUpdateCondition = (id: string, updatedCondition: Condition) => {
@@ -570,8 +543,7 @@ const RuleEditor = ({
     };
 
     const handleDeleteCondition = (id: string) => {
-        const updatedRule = { ...rule, conditions: rule.conditions.filter(c => c.id !== id) };
-        handleUpdate(updatedRule);
+        handleUpdate({ ...rule, conditions: rule.conditions.filter(c => c.id !== id) });
     };
 
     const handleAddBehavior = () => {
@@ -580,8 +552,7 @@ const RuleEditor = ({
             type: 'show',
             targetElementId: ""
         };
-        const updatedRule = { ...rule, behaviors: [...rule.behaviors, newBehavior] };
-        handleUpdate(updatedRule);
+        handleUpdate({ ...rule, behaviors: [...rule.behaviors, newBehavior] });
     };
 
     const handleUpdateBehavior = (id: string, updatedBehavior: RuleBehavior) => {
@@ -590,8 +561,7 @@ const RuleEditor = ({
     };
 
     const handleDeleteBehavior = (id: string) => {
-        const newBehaviors = rule.behaviors.filter(b => b.id !== id);
-        handleUpdate({ ...rule, behaviors: newBehaviors });
+        handleUpdate({ ...rule, behaviors: rule.behaviors.filter(b => b.id !== id) });
     };
 
 
@@ -600,7 +570,7 @@ const RuleEditor = ({
         <div className="space-y-6 p-6">
             <div>
                 <Label>Rule Name</Label>
-                <Input value={rule.name} onChange={handleNameChange} onBlur={handleNameBlur} className="mt-1 bg-white" />
+                <Input value={rule.name} onChange={handleNameChange} className="mt-1 bg-white" />
             </div>
             
             <div className="space-y-4">
@@ -665,7 +635,7 @@ const RuleEditor = ({
         </div>
       </ScrollArea>
     )
-};
+});
 RuleEditor.displayName = "RuleEditor";
 
 const ConfigurationsEditor = memo(({
@@ -727,8 +697,8 @@ ConfigurationsEditor.displayName = 'ConfigurationsEditor';
 export function RulesDialog({ isOpen, onOpenChange }: Props) {
   const { sections, rules, configurations, updateRules } = useBuilder();
   const [localRules, setLocalRules] = useState<Rule[]>([]);
+  const [activeRule, setActiveRule] = useState<Rule | null>(null);
   const [localConfigs, setLocalConfigs] = useState<Configuration[]>([]);
-  const [selectedRuleId, setSelectedRuleId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -738,36 +708,17 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         const initialConfigs = JSON.parse(JSON.stringify(configurations || []));
         setLocalConfigs(initialConfigs);
 
-        if (initialRules.length > 0 && !selectedRuleId) {
-            setSelectedRuleId(initialRules[0].id);
-        } else if (initialRules.length > 0 && selectedRuleId) {
-            const stillExists = initialRules.some((r: Rule) => r.id === selectedRuleId);
-            if (!stillExists) {
-                setSelectedRuleId(initialRules[0].id);
-            }
+        if (initialRules.length > 0) {
+            setActiveRule(initialRules[0]);
         } else {
-            setSelectedRuleId(null);
+            setActiveRule(null);
         }
     }
   }, [isOpen, rules, configurations]);
 
-  useEffect(() => {
-    if (isOpen) {
-        const stillExists = localRules.some((r: Rule) => r.id === selectedRuleId);
-        
-        if (localRules.length > 0 && !stillExists) {
-            setSelectedRuleId(localRules[0].id);
-        } else if (localRules.length === 0) {
-            setSelectedRuleId(null);
-        }
-    }
-  }, [isOpen, localRules, selectedRuleId]);
-
   const selectableFields = useMemo(() => {
     return getAllElements(sections);
   }, [sections]);
-  
-  const selectedRule = localRules.find(r => r.id === selectedRuleId);
 
   const handleAddRule = () => {
     const newRule: Rule = {
@@ -789,27 +740,31 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     };
     const newRules = [...localRules, newRule];
     setLocalRules(newRules);
-    setSelectedRuleId(newRule.id);
+    setActiveRule(newRule);
   };
 
-  const handleSelectRule = (ruleId: string) => {
-    setSelectedRuleId(ruleId);
+  const handleSelectRule = (rule: Rule) => {
+    // Before switching, save the current active rule state back to the main list
+    if (activeRule) {
+      setLocalRules(prevRules => prevRules.map(r => r.id === activeRule.id ? activeRule : r));
+    }
+    setActiveRule(rule);
   }
 
-  const handleUpdateRule = useCallback((updatedRule: Rule) => {
-    setLocalRules(currentRules => currentRules.map(r => r.id === updatedRule.id ? updatedRule : r));
+  const handleUpdateActiveRule = useCallback((updatedRule: Rule) => {
+    setActiveRule(updatedRule);
   }, []);
 
   const handleDeleteRule = (ruleId: string) => {
     const newRules = localRules.filter(r => r.id !== ruleId);
     setLocalRules(newRules);
-    if (selectedRuleId === ruleId) {
-      setSelectedRuleId(newRules.length > 0 ? newRules[0].id : null);
+    if (activeRule?.id === ruleId) {
+      setActiveRule(newRules.length > 0 ? newRules[0] : null);
     }
   };
 
   const handleCopyRule = (ruleId: string) => {
-    const ruleToCopy = localRules.find(r => r.id === ruleId);
+    const ruleToCopy = localRules.find(r => r.id === ruleId) || (activeRule?.id === ruleId ? activeRule : null);
     if (!ruleToCopy) return;
 
     const newRule = JSON.parse(JSON.stringify(ruleToCopy));
@@ -818,15 +773,25 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     newRule.conditions.forEach((c: Condition) => c.id = crypto.randomUUID());
     newRule.behaviors.forEach((b: RuleBehavior) => b.id = crypto.randomUUID());
     
-    const ruleIndex = localRules.findIndex(r => r.id === ruleId);
-    const newRules = [...localRules];
+    // Save current active rule before adding new one
+    let rulesWithCurrentSaved = localRules;
+    if(activeRule) {
+        rulesWithCurrentSaved = localRules.map(r => r.id === activeRule.id ? activeRule : r);
+    }
+    const ruleIndex = rulesWithCurrentSaved.findIndex(r => r.id === ruleId);
+    const newRules = [...rulesWithCurrentSaved];
     newRules.splice(ruleIndex + 1, 0, newRule);
+    
     setLocalRules(newRules);
-    setSelectedRuleId(newRule.id);
+    setActiveRule(newRule);
   }
 
   const handleSaveChanges = () => {
-    updateRules(localRules, localConfigs);
+    let finalRules = localRules;
+    if(activeRule) {
+        finalRules = localRules.map(r => r.id === activeRule.id ? activeRule : r);
+    }
+    updateRules(finalRules, localConfigs);
     onOpenChange(false);
   }
   
@@ -859,8 +824,8 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 <div className="p-4 space-y-2">
                     {localRules.length > 0 ? localRules.map(rule => (
                         <div key={rule.id} className="relative group/rule">
-                             <button onClick={() => handleSelectRule(rule.id)} className={cn("w-full text-left px-3 py-2 truncate text-sm rounded-md", selectedRuleId === rule.id ? 'bg-blue-50 font-semibold text-primary' : 'hover:bg-accent/50')}>
-                                {rule.name}
+                             <button onClick={() => handleSelectRule(rule)} className={cn("w-full text-left px-3 py-2 truncate text-sm rounded-md", activeRule?.id === rule.id ? 'bg-blue-50 font-semibold text-primary' : 'hover:bg-accent/50')}>
+                                {(activeRule?.id === rule.id ? activeRule.name : rule.name)}
                             </button>
                             <div className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-12 flex opacity-0 group-hover/rule:opacity-100">
                                 <Button
@@ -890,12 +855,12 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
             </ScrollArea>
         </aside>
         <main className="flex-1 flex flex-col min-h-0 bg-slate-50">
-            {selectedRule ? (
+            {activeRule ? (
                 <RuleEditor 
-                    rule={selectedRule} 
+                    rule={activeRule} 
                     selectableFields={selectableFields} 
                     localConfigs={localConfigs}
-                    onUpdateRule={handleUpdateRule}
+                    onUpdateRule={handleUpdateActiveRule}
                 />
             ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
