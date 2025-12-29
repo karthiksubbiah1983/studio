@@ -32,6 +32,7 @@ import { Checkbox } from "../ui/checkbox";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { LexicalEditor } from "../lexical/lexical-editor";
 import { ScrollArea } from "../ui/scroll-area";
+import { ListOptionsDialog } from "./list-options-dialog";
 
 
 export function PropertiesSidebar() {
@@ -504,6 +505,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [isFetching, setIsFetching] = useState(false);
   const [isFetchedJsonDialogOpen, setIsFetchedJsonDialogOpen] = useState(false);
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
+  const [isListOptionsOpen, setIsListOptionsOpen] = useState(false);
 
   const allElements = getAllElements(sections);
   
@@ -677,77 +679,20 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   );
   
   const staticDataEditor = () => {
-    const staticData = props.staticData || [];
-
-    const handleAddItem = () => {
-        const newItem: Record<string, any> = { id: crypto.randomUUID(), label: `Option ${staticData.length + 1}` };
-        if (props.hasSecondaryText) {
-            newItem['secondaryText'] = 'Secondary Text';
-        }
-        if (props.isSecondaryTextLink) {
-            newItem['linkUrl'] = '#';
-        }
-        updateProperty('staticData', [...staticData, newItem]);
-    };
-    
-    const handleRemoveItem = (id: string) => {
-        const newData = staticData.filter(item => item.id !== id);
-        updateProperty('staticData', newData);
-    };
-
-    const handleItemChange = (id: string, key: string, value: any) => {
-        const newData = staticData.map(item => {
-            if (item.id === id) {
-                return { ...item, [key]: value };
-            }
-            return item;
-        });
-        updateProperty('staticData', newData);
-    }
-
     return (
         <div className="flex flex-col gap-4">
             <Label>Static Items</Label>
-            <div className="space-y-4">
-                {staticData.map((item) => (
-                    <div key={item.id} className="border p-4 rounded-md space-y-3 relative">
-                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6" onClick={() => handleRemoveItem(item.id)}>
-                            <Trash className="h-4 w-4 text-destructive" />
-                        </Button>
-                        <div className="flex flex-col gap-1.5">
-                            <Label className="text-xs">Primary Label</Label>
-                            <Input
-                                value={item.label || ''}
-                                onChange={(e) => handleItemChange(item.id, 'label', e.target.value)}
-                                placeholder="Primary Label"
-                            />
-                        </div>
-                        {props.hasSecondaryText && (
-                            <div className="flex flex-col gap-1.5">
-                                <Label className="text-xs">Secondary Text</Label>
-                                <Input
-                                    value={item.secondaryText || ''}
-                                    onChange={(e) => handleItemChange(item.id, 'secondaryText', e.target.value)}
-                                    placeholder="Secondary Text"
-                                />
-                            </div>
-                        )}
-                        {props.isSecondaryTextLink && (
-                            <div className="flex flex-col gap-1.5">
-                                <Label className="text-xs">Link URL</Label>
-                                <Input
-                                    value={item.linkUrl || ''}
-                                    onChange={(e) => handleItemChange(item.id, 'linkUrl', e.target.value)}
-                                    placeholder="https://example.com"
-                                />
-                            </div>
-                        )}
-                    </div>
-                ))}
-            </div>
-            <Button variant="outline" size="sm" onClick={handleAddItem}>
-                <Plus className="mr-2 h-4 w-4" /> Add Item
+            <Button variant="outline" onClick={() => setIsListOptionsOpen(true)}>
+                Manage Items ({props.staticData?.length || 0})
             </Button>
+            <ListOptionsDialog
+                isOpen={isListOptionsOpen}
+                onOpenChange={setIsListOptionsOpen}
+                staticData={props.staticData || []}
+                onSave={(data) => updateProperty('staticData', data)}
+                hasSecondaryText={!!props.hasSecondaryText}
+                isSecondaryTextLink={!!props.isSecondaryTextLink}
+            />
         </div>
     );
   }
