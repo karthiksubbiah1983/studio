@@ -317,7 +317,7 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
     sections.forEach(section => {
         state[section.id] = {
             value: undefined,
-            isVisible: !section.popupOnly
+            isVisible: !section.popupOnly && !section.hidden
         }
     });
     
@@ -371,7 +371,7 @@ type Action =
   | { type: "SET_DRAGGED_ELEMENT"; payload: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null }
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string, elementId: string }, to: { sectionId: string, index?: number, parentId?: string } } }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number; toIndex: number } }
-  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[]; rules: Rule[]; workflows: Workflow[]; configurations?: Configuration[] } }
+  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[]; rules: Rule[]; workflows: Workflow[]; configurations?: Configuration[], timestamp: string; } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any>, taskId?: string } }
@@ -385,7 +385,7 @@ type Action =
   | { type: "PASTE_FROM_CLIPBOARD"; payload: { sectionId?: string; index?: number } }
   | { type: "ADD_SITE"; payload: { name: string } }
   | { type: "DELETE_SITE"; payload: { siteId: string } }
-  | { type: "ADD_TASK"; payload: { formId: string; versionId: string; siteId: string } }
+  | { type: "ADD_TASK"; payload: { formId: string; versionId: string; siteId: string; assignedAt: string; } }
   | { type: "SET_USER_SETTINGS"; payload: { categories: Category[], sites: Site[] } }
   | { type: "SET_FORM_STATE"; payload: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } }
   | { type: "UPDATE_USER_DRIVEN_STATE"; payload: { elementId: string; value: any; fullObject?: any, isVisible?: boolean } };
@@ -443,14 +443,14 @@ const builderReducer = (state: State, action: Action): State => {
       return { ...state, sites: state.sites.filter(s => s.id !== action.payload.siteId) };
     }
     case "ADD_TASK": {
-      const { formId, versionId, siteId } = action.payload;
+      const { formId, versionId, siteId, assignedAt } = action.payload;
       const newTask: Task = {
         id: crypto.randomUUID(),
         formId,
         versionId,
         siteId,
         status: 'Assigned',
-        assignedAt: new Date().toISOString(),
+        assignedAt,
       };
       return { ...state, tasks: [...state.tasks, newTask] };
     }
@@ -752,8 +752,8 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SAVE_VERSION": {
         if (!activeForm) return state;
-        const { name, description, type, sections, rules, workflows, configurations } = action.payload;
-        const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp: new Date().toISOString(), sections, rules, workflows, configurations };
+        const { name, description, type, sections, rules, workflows, configurations, timestamp } = action.payload;
+        const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp, sections, rules, workflows, configurations };
         const updatedVersions = [newVersion, ...activeForm.versions];
         const newForms = state.forms.map(form => 
             form.id === state.activeFormId ? { ...form, versions: updatedVersions } : form
@@ -1109,4 +1109,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-

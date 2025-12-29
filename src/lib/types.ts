@@ -93,6 +93,7 @@ export type TableColumn = {
   id: string;
   label: string;
   element: FormElementInstance;
+  labelKey?: string;
 };
 
 export type FormElementInstance = {
@@ -100,6 +101,7 @@ export type FormElementInstance = {
     type: ElementType;
     key: string; // Unique key for JSON schema
     label: string;
+    labelKey?: string;
     required: boolean;
     hidden?: boolean;
     description?: string; // Corresponds to JSON Schema description

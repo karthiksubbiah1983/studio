@@ -12,7 +12,7 @@ import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, A
 import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Select,
   SelectContent,
@@ -113,6 +113,14 @@ function SectionProperties({ section }: { section: Section }) {
                                 id="expose-for-validation"
                                 checked={section.exposeForValidation || false}
                                 onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, exposeForValidation: checked } })}
+                            />
+                        </div>
+                         <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                            <Label htmlFor="section-hidden">Hidden in Form</Label>
+                            <Switch
+                                id="section-hidden"
+                                checked={section.hidden || false}
+                                onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, hidden: checked } })}
                             />
                         </div>
                     </AccordionContent>
@@ -267,12 +275,12 @@ function ColumnManager({
     columns,
     onUpdate,
     columnType,
-    parentFetchedKeys,
+    parentFetchedData,
 }: {
     columns: (TableColumn | ListItemElement)[];
     onUpdate: (columns: (TableColumn | ListItemElement)[]) => void;
     columnType: 'table' | 'listitem';
-    parentFetchedKeys?: string[];
+    parentFetchedData?: Record<string,any> | null;
 }) {
     const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
     const [editingColumn, setEditingColumn] = useState<TableColumn | ListItemElement | null>(null);
@@ -335,7 +343,7 @@ function ColumnManager({
                 onSave={handleSaveColumn}
                 column={editingColumn}
                 columnType={columnType}
-                parentFetchedKeys={parentFetchedKeys}
+                parentFetchedData={parentFetchedData}
             />
         </div>
     );
@@ -347,14 +355,14 @@ function ColumnEditorDialog({
     onSave,
     column,
     columnType,
-    parentFetchedKeys,
+    parentFetchedData,
 }: {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
     onSave: (column: TableColumn | ListItemElement) => void;
     column: TableColumn | ListItemElement | null;
     columnType: 'table' | 'listitem',
-    parentFetchedKeys?: string[];
+    parentFetchedData?: Record<string, any> | null;
 }) {
     const [editingColumn, setEditingColumn] = useState<TableColumn | ListItemElement | null>(null);
 
@@ -426,6 +434,19 @@ function ColumnEditorDialog({
                                 />
                             </div>
                         )}
+                         {isTableColumn && 'labelKey' in editingColumn && parentFetchedData && (
+                            <div className="flex flex-col gap-2">
+                                <Label>Header Label Key</Label>
+                                <Select value={editingColumn.labelKey || ''} onValueChange={(value) => updateColumnProperty('labelKey', value)}>
+                                    <SelectTrigger><SelectValue placeholder="Select a key..."/></SelectTrigger>
+                                    <SelectContent>
+                                        {Object.keys(parentFetchedData).map(key => (
+                                            <SelectItem key={key} value={key}>{key}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        )}
                         {'element' in editingColumn && (
                             <>
                                 <h3 className="text-lg font-medium">Field Properties</h3>
@@ -460,7 +481,7 @@ function ColumnEditorDialog({
                                     element={editingColumn.element}
                                     onUpdate={handleElementUpdate}
                                     isColumnElement={true}
-                                    parentFetchedKeys={parentFetchedKeys}
+                                    parentFetchedData={parentFetchedData}
                                 />
                             </>
                         )}
@@ -475,7 +496,7 @@ function ColumnEditorDialog({
     );
 }
 
-function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false, parentFetchedKeys }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean, parentFetchedKeys?: string[] }) {
+function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false, parentFetchedData }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean, parentFetchedData?: Record<string, any> | null }) {
   const { dispatch, state, sections } = useBuilder();
   const [props, setProps] = useState(element);
   const { selectedElement } = state;
@@ -486,11 +507,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const allElements = getAllElements(sections);
   
-  const finalFetchedKeys = parentFetchedKeys || fetchedKeys;
+  const finalFetchedKeys = useMemo(() => {
+    if (parentFetchedData) {
+        return Object.keys(flattenObject(parentFetchedData));
+    }
+    return fetchedKeys;
+  }, [parentFetchedData, fetchedKeys]);
 
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.apiUrl) {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'EditableTable') && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -551,17 +577,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 setFetchedJsonData(rawData);
                 setIsFetchedJsonDialogOpen(true);
             }
-            const dataArray = findFirstArray(rawData);
-            
-            if (dataArray && dataArray.length > 0) {
-                const sample = dataArray[0];
-                if (typeof sample === 'object' && sample !== null) {
-                    setFetchedKeys(Object.keys(flattenObject(sample)));
-                } else {
-                     setFetchedKeys([]);
-                }
+            if (props.type === 'EditableTable') {
+                const flatData = flattenObject(rawData);
+                setFetchedKeys(Object.keys(flatData));
             } else {
-                setFetchedKeys([]);
+                const dataArray = findFirstArray(rawData);
+                if (dataArray && dataArray.length > 0) {
+                    const sample = dataArray[0];
+                    if (typeof sample === 'object' && sample !== null) {
+                        setFetchedKeys(Object.keys(flattenObject(sample)));
+                    } else {
+                         setFetchedKeys([]);
+                    }
+                } else {
+                    setFetchedKeys([]);
+                }
             }
         }
     } catch (error) {
@@ -584,6 +614,19 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <Label htmlFor="label">Label</Label>
         <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
       </div>
+      { isColumnElement && parentFetchedData && (
+         <div className="flex flex-col gap-2">
+            <Label htmlFor="labelKey">Label Key</Label>
+            <Select value={props.labelKey || ''} onValueChange={(value) => updateProperty('labelKey', value)}>
+                <SelectTrigger><SelectValue placeholder="Select a key..."/></SelectTrigger>
+                <SelectContent>
+                    {Object.keys(parentFetchedData).map(key => (
+                        <SelectItem key={key} value={key}>{key}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+      )}
       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
         <Label htmlFor="required">Required</Label>
         <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
@@ -1389,7 +1432,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "EditableTable":
             return (
-                <Accordion type="multiple" defaultValue={["general", "columns", "features"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1408,6 +1451,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                         </AccordionContent>
                     </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">API Data Binding (Labels)</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="apiUrl">API URL</Label>
+                                <div className="flex gap-2">
+                                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
+                                    <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
+                                        {isFetching ? "Fetching..." : "Fetch"}
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-muted-foreground">Fetch data to dynamically assign to column headers or field labels.</p>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
                     <AccordionItem value="columns">
                         <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                         <AccordionContent>
@@ -1415,6 +1473,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 columns={props.columns || []}
                                 onUpdate={(newColumns) => updateProperty('columns', newColumns)}
                                 columnType="table"
+                                parentFetchedData={fetchedJsonData}
                             />
                         </AccordionContent>
                     </AccordionItem>
@@ -1545,12 +1604,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-    
-
-
-
-
-
-
-
