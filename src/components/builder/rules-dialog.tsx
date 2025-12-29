@@ -491,19 +491,25 @@ const BehaviorEditor = memo(({
 BehaviorEditor.displayName = 'BehaviorEditor';
 
 const RuleEditor = memo(({ 
-    rule,
+    initialRule,
     selectableFields,
     localConfigs,
-    onUpdateRule 
+    onUpdate
 }: { 
-    rule: Rule,
+    initialRule: Rule,
     selectableFields: (FormElementInstance | Section)[],
     localConfigs: Configuration[],
-    onUpdateRule: (updatedRule: Rule) => void
+    onUpdate: (updatedRule: Rule) => void
 }) => {
-    
+    const [rule, setRule] = useState(initialRule);
+
+    useEffect(() => {
+        setRule(initialRule);
+    }, [initialRule]);
+
     const handleUpdate = (updatedRule: Rule) => {
-        onUpdateRule(updatedRule);
+        setRule(updatedRule);
+        onUpdate(updatedRule);
     };
 
     const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -558,7 +564,7 @@ const RuleEditor = memo(({
         <div className="space-y-6 p-6">
             <div>
                 <Label>Rule Name</Label>
-                <Input defaultValue={rule.name} onBlur={handleNameChange} className="mt-1 bg-white" />
+                <Input value={rule.name} onChange={handleNameChange} className="mt-1 bg-white" />
             </div>
             
             <div className="space-y-4">
@@ -685,8 +691,10 @@ ConfigurationsEditor.displayName = 'ConfigurationsEditor';
 export function RulesDialog({ isOpen, onOpenChange }: Props) {
   const { sections, rules, configurations, updateRules } = useBuilder();
   const [localRules, setLocalRules] = useState<Rule[]>([]);
-  const [activeRule, setActiveRule] = useState<Rule | null>(null);
+  const [activeRuleId, setActiveRuleId] = useState<string | null>(null);
   const [localConfigs, setLocalConfigs] = useState<Configuration[]>([]);
+
+  const activeRule = useMemo(() => localRules.find(r => r.id === activeRuleId), [localRules, activeRuleId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -697,9 +705,9 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         setLocalConfigs(initialConfigs);
 
         if (initialRules.length > 0) {
-            setActiveRule(initialRules[0]);
+            setActiveRuleId(initialRules[0].id);
         } else {
-            setActiveRule(null);
+            setActiveRuleId(null);
         }
     }
   }, [isOpen, rules, configurations]);
@@ -709,20 +717,12 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   }, [sections]);
   
   const handleSaveChanges = () => {
-    let finalRules = localRules;
-    if (activeRule) {
-        finalRules = localRules.map(r => r.id === activeRule.id ? activeRule : r);
-    }
-    updateRules(finalRules, localConfigs);
+    updateRules(localRules, localConfigs);
     onOpenChange(false);
   }
 
-  const handleSelectRule = (rule: Rule) => {
-    // Save current changes before switching
-    if (activeRule) {
-      setLocalRules(prev => prev.map(r => r.id === activeRule.id ? activeRule : r));
-    }
-    setActiveRule(rule);
+  const handleSelectRule = (ruleId: string) => {
+    setActiveRuleId(ruleId);
   }
 
   const handleAddRule = () => {
@@ -734,32 +734,26 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
       behaviors: [{ id: crypto.randomUUID(), type: 'show', targetElementId: "" }]
     };
     
-    // Save current changes before adding new one
-    let rulesWithCurrentSaved = activeRule ? localRules.map(r => r.id === activeRule.id ? activeRule : r) : localRules;
-    const newRules = [...rulesWithCurrentSaved, newRule];
-    
-    setLocalRules(newRules);
-    setActiveRule(newRule);
+    setLocalRules(prev => [...prev, newRule]);
+    setActiveRuleId(newRule.id);
   };
 
   const handleUpdateActiveRule = useCallback((updatedRule: Rule) => {
-    setActiveRule(updatedRule);
+    setLocalRules(prevRules => prevRules.map(r => r.id === updatedRule.id ? updatedRule : r));
   }, []);
 
   const handleDeleteRule = (ruleId: string) => {
-    const newRules = localRules.filter(r => r.id !== ruleId);
-    setLocalRules(newRules);
-    
-    if (activeRule?.id === ruleId) {
-      const newActiveRule = newRules.length > 0 ? newRules[0] : null;
-      setActiveRule(newActiveRule);
-    }
+    setLocalRules(prev => {
+        const newRules = prev.filter(r => r.id !== ruleId);
+        if (activeRuleId === ruleId) {
+            setActiveRuleId(newRules.length > 0 ? newRules[0].id : null);
+        }
+        return newRules;
+    });
   };
 
   const handleCopyRule = (ruleId: string) => {
-    // Make sure the latest version of the rule to copy is in localRules
-    const rulesWithCurrentSaved = activeRule ? localRules.map(r => r.id === activeRule.id ? activeRule : r) : localRules;
-    const ruleToCopy = rulesWithCurrentSaved.find(r => r.id === ruleId);
+    const ruleToCopy = localRules.find(r => r.id === ruleId);
     if (!ruleToCopy) return;
 
     const newRule = JSON.parse(JSON.stringify(ruleToCopy));
@@ -768,12 +762,13 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     newRule.conditions.forEach((c: Condition) => c.id = crypto.randomUUID());
     newRule.behaviors.forEach((b: RuleBehavior) => b.id = crypto.randomUUID());
     
-    const ruleIndex = rulesWithCurrentSaved.findIndex(r => r.id === ruleId);
-    const newRules = [...rulesWithCurrentSaved];
-    newRules.splice(ruleIndex + 1, 0, newRule);
-    
-    setLocalRules(newRules);
-    setActiveRule(newRule);
+    setLocalRules(prev => {
+        const ruleIndex = prev.findIndex(r => r.id === ruleId);
+        const newRules = [...prev];
+        newRules.splice(ruleIndex + 1, 0, newRule);
+        return newRules;
+    });
+    setActiveRuleId(newRule.id);
   }
   
   const handleAddConfig = () => {
@@ -805,7 +800,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 <div className="p-4 space-y-2">
                     {localRules.length > 0 ? localRules.map(rule => (
                         <div key={rule.id} className="relative group/rule">
-                             <button onClick={() => handleSelectRule(rule)} className={cn("w-full text-left px-3 py-2 truncate text-sm rounded-md", activeRule?.id === rule.id ? 'bg-blue-50 font-semibold text-primary' : 'hover:bg-accent/50')}>
+                             <button onClick={() => handleSelectRule(rule.id)} className={cn("w-full text-left px-3 py-2 truncate text-sm rounded-md", activeRuleId === rule.id ? 'bg-blue-50 font-semibold text-primary' : 'hover:bg-accent/50')}>
                                 {(rule.name)}
                             </button>
                             <div className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-12 flex opacity-0 group-hover/rule:opacity-100">
@@ -838,10 +833,10 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         <main className="flex-1 flex flex-col min-h-0 bg-slate-50">
             {activeRule ? (
                 <RuleEditor 
-                    rule={activeRule} 
+                    initialRule={activeRule} 
                     selectableFields={selectableFields} 
                     localConfigs={localConfigs}
-                    onUpdateRule={handleUpdateActiveRule}
+                    onUpdate={handleUpdateActiveRule}
                 />
             ) : (
                 <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
