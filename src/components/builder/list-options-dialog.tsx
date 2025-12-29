@@ -81,51 +81,57 @@ export function ListOptionsDialog({
         </DialogHeader>
         <div className="flex-1 min-h-0">
             <div className="border rounded-md h-full flex flex-col">
-                 <div className={cn(
-                    "grid items-center p-2 border-b font-medium text-sm text-muted-foreground bg-muted/50",
-                    hasLinks ? "grid-cols-[1fr_1fr_1fr_auto]" : hasSecondaryText ? "grid-cols-[1fr_1fr_auto]" : "grid-cols-[1fr_auto]"
-                 )}>
-                    <div className="px-2">Primary Label</div>
-                    {hasSecondaryText && <div className="px-2">Secondary Text</div>}
-                    {hasLinks && <div className="px-2">Link URL</div>}
+                 <div className="grid grid-cols-[1fr_auto] items-center p-2 border-b font-medium text-sm text-muted-foreground bg-muted/50">
+                    <div className="px-2">Labels & Links</div>
                     <div className="w-10"></div>
                 </div>
                 <ScrollArea className="flex-1">
-                <div className="p-2 space-y-1">
+                <div className="p-2 space-y-2">
                     {localData.map((item) => (
                     <div 
                         key={item.id} 
-                        className={cn(
-                            "grid items-center gap-2 p-1 rounded-md hover:bg-muted/50",
-                            hasLinks ? "grid-cols-[1fr_1fr_1fr_auto]" : hasSecondaryText ? "grid-cols-[1fr_1fr_auto]" : "grid-cols-[1fr_auto]"
-                        )}
+                        className="grid grid-cols-[1fr_auto] items-start gap-x-2 p-2 rounded-md hover:bg-muted/50"
                     >
-                        <Input
-                            value={item.label || ""}
-                            onChange={(e) => handleItemChange(item.id, "label", e.target.value)}
-                            placeholder="Primary Label"
-                            className="h-9"
-                        />
-                        {hasSecondaryText && (
-                            <Input
-                                value={item.secondaryText || ""}
-                                onChange={(e) => handleItemChange(item.id, "secondaryText", e.target.value)}
-                                placeholder="Secondary Text"
-                                className="h-9"
-                            />
-                        )}
-                        {hasLinks && (
-                            <Input
-                                value={item.linkUrl || ""}
-                                onChange={(e) => handleItemChange(item.id, "linkUrl", e.target.value)}
-                                placeholder="https://example.com"
-                                className="h-9"
-                            />
-                        )}
+                       <div className="flex flex-col gap-2">
+                            <div className={cn("flex items-center", hasSecondaryText ? "gap-6" : "gap-2")}>
+                                <div className="flex-1">
+                                    <Label className="text-xs text-muted-foreground">Primary Label</Label>
+                                    <Input
+                                        value={item.label || ""}
+                                        onChange={(e) => handleItemChange(item.id, "label", e.target.value)}
+                                        placeholder="Primary Label"
+                                        className="h-9"
+                                    />
+                                </div>
+                                {hasSecondaryText && (
+                                    <div className="flex-1">
+                                        <Label className="text-xs text-muted-foreground">Secondary Text</Label>
+                                        <Input
+                                            value={item.secondaryText || ""}
+                                            onChange={(e) => handleItemChange(item.id, "secondaryText", e.target.value)}
+                                            placeholder="Secondary Text"
+                                            className="h-9"
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {hasLinks && (
+                                <div className="mt-1">
+                                     <Label className="text-xs text-muted-foreground">Link URL</Label>
+                                    <Input
+                                        value={item.linkUrl || ""}
+                                        onChange={(e) => handleItemChange(item.id, "linkUrl", e.target.value)}
+                                        placeholder="https://example.com"
+                                        className="h-9"
+                                    />
+                                </div>
+                            )}
+                       </div>
                         <Button
                             variant="ghost"
                             size="icon"
-                            className="h-9 w-9"
+                            className="h-9 w-9 mt-4"
                             onClick={() => handleRemoveItem(item.id)}
                         >
                             <Trash className="h-4 w-4 text-destructive" />
