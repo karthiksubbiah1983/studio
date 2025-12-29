@@ -658,11 +658,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 : null) || '#';
 
             return (
-                <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-6">
                     <Label className="font-normal cursor-pointer">{itemLabel}</Label>
                      {secondaryText && (
                         element.isSecondaryTextLink ? (
-                            <a href={linkUrlValue} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 mt-1 text-primary cursor-pointer hover:underline text-sm">
+                            <a href={linkUrlValue} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary cursor-pointer hover:underline text-sm">
                                 <Link className="h-3 w-3" />
                                 {secondaryText}
                             </a>
@@ -1059,6 +1059,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
