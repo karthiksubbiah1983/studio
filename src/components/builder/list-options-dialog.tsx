@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Trash } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 type StaticDataItem = {
     id: string;
@@ -67,9 +68,11 @@ export function ListOptionsDialog({
     onOpenChange(false);
   };
 
+  const hasLinks = isSecondaryTextLink && hasSecondaryText;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl h-[80vh] flex flex-col">
+      <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Manage Static List Items</DialogTitle>
           <DialogDescription>
@@ -77,57 +80,66 @@ export function ListOptionsDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 min-h-0">
-            <ScrollArea className="h-full pr-6">
-            <div className="space-y-4">
-                {localData.map((item) => (
-                <div key={item.id} className="border p-4 rounded-md space-y-3 relative bg-background">
-                    <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute top-2 right-2 h-6 w-6"
-                    onClick={() => handleRemoveItem(item.id)}
-                    >
-                    <Trash className="h-4 w-4 text-destructive" />
-                    </Button>
-                    <div className="flex flex-col gap-1.5">
-                    <Label className="text-xs">Primary Label</Label>
-                    <Input
-                        value={item.label || ""}
-                        onChange={(e) => handleItemChange(item.id, "label", e.target.value)}
-                        placeholder="Primary Label"
-                    />
-                    </div>
-                    {hasSecondaryText && (
-                    <div className="flex flex-col gap-1.5">
-                        <Label className="text-xs">Secondary Text</Label>
-                        <Input
-                        value={item.secondaryText || ""}
-                        onChange={(e) =>
-                            handleItemChange(item.id, "secondaryText", e.target.value)
-                        }
-                        placeholder="Secondary Text"
-                        />
-                    </div>
-                    )}
-                    {isSecondaryTextLink && (
-                    <div className="flex flex-col gap-1.5">
-                        <Label className="text-xs">Link URL</Label>
-                        <Input
-                        value={item.linkUrl || ""}
-                        onChange={(e) =>
-                            handleItemChange(item.id, "linkUrl", e.target.value)
-                        }
-                        placeholder="https://example.com"
-                        />
-                    </div>
-                    )}
+            <div className="border rounded-md h-full flex flex-col">
+                 <div className={cn(
+                    "grid items-center p-2 border-b font-medium text-sm text-muted-foreground bg-muted/50",
+                    hasLinks ? "grid-cols-[1fr_1fr_1fr_auto]" : hasSecondaryText ? "grid-cols-[1fr_1fr_auto]" : "grid-cols-[1fr_auto]"
+                 )}>
+                    <div className="px-2">Primary Label</div>
+                    {hasSecondaryText && <div className="px-2">Secondary Text</div>}
+                    {hasLinks && <div className="px-2">Link URL</div>}
+                    <div className="w-10"></div>
                 </div>
-                ))}
-                <Button variant="outline" size="sm" onClick={handleAddItem} className="w-full">
-                    <Plus className="mr-2 h-4 w-4" /> Add Item
-                </Button>
+                <ScrollArea className="flex-1">
+                <div className="p-2 space-y-1">
+                    {localData.map((item) => (
+                    <div 
+                        key={item.id} 
+                        className={cn(
+                            "grid items-center gap-2 p-1 rounded-md hover:bg-muted/50",
+                            hasLinks ? "grid-cols-[1fr_1fr_1fr_auto]" : hasSecondaryText ? "grid-cols-[1fr_1fr_auto]" : "grid-cols-[1fr_auto]"
+                        )}
+                    >
+                        <Input
+                            value={item.label || ""}
+                            onChange={(e) => handleItemChange(item.id, "label", e.target.value)}
+                            placeholder="Primary Label"
+                            className="h-9"
+                        />
+                        {hasSecondaryText && (
+                            <Input
+                                value={item.secondaryText || ""}
+                                onChange={(e) => handleItemChange(item.id, "secondaryText", e.target.value)}
+                                placeholder="Secondary Text"
+                                className="h-9"
+                            />
+                        )}
+                        {hasLinks && (
+                            <Input
+                                value={item.linkUrl || ""}
+                                onChange={(e) => handleItemChange(item.id, "linkUrl", e.target.value)}
+                                placeholder="https://example.com"
+                                className="h-9"
+                            />
+                        )}
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => handleRemoveItem(item.id)}
+                        >
+                            <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
+                    </div>
+                    ))}
+                </div>
+                </ScrollArea>
+                 <div className="p-2 border-t">
+                    <Button variant="outline" size="sm" onClick={handleAddItem} className="w-full">
+                        <Plus className="mr-2 h-4 w-4" /> Add Item
+                    </Button>
+                </div>
             </div>
-            </ScrollArea>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
