@@ -1,4 +1,6 @@
 
+'use client';
+
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -15,11 +17,6 @@ import { FirebaseClientProvider } from "@/firebase";
 config.autoAddCss = false;
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
-
-export const metadata: Metadata = {
-  title: "CoPilot",
-  description: "Build beautiful forms with a drag and drop interface.",
-};
 
 export default function RootLayout({
   children,
