@@ -1,16 +1,16 @@
 
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import { useBuilder } from "@/hooks/use-builder";
 import { Builder } from "@/components/builder/builder";
 import { useRouter } from "next/navigation";
 
 type Props = {
-    params: Promise<{ formId: string }>;
+    params: { formId: string };
 }
 export default function BuilderPage({ params }: Props) {
-    const { formId } = use(params);
+    const { formId } = params;
     const { state, dispatch } = useBuilder();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(true);
