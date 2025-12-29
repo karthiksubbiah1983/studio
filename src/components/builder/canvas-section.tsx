@@ -46,21 +46,47 @@ export function CanvasSection({ section }: { section: Section }) {
     e.preventDefault();
     e.stopPropagation();
     setIsOver(false);
-    
-    // Only handle drops for new elements in empty sections.
-    // Drops in non-empty sections are handled by CanvasElement drop handlers.
-    if (section.elements.length > 0) {
-      return;
-    }
 
     const { draggedElement } = state;
     if (!draggedElement) return;
 
-    // Dropping a new element from sidebar
-    if ('type' in draggedElement) {
+    // Handle dropping a new element from the sidebar into an empty section
+    if (section.elements.length === 0 && 'type' in draggedElement) {
         const newElementId = crypto.randomUUID();
         dispatch({ type: 'SET_DRAGGED_ELEMENT', payload: { ...draggedElement, id: newElementId } });
         dispatch({ type: "ADD_ELEMENT", payload: { sectionId: section.id, type: draggedElement.type, id: newElementId } });
+        return;
+    }
+    
+    // Handle moving an existing element to a new section (if that section is empty)
+    if (section.elements.length === 0 && 'element' in draggedElement) {
+        dispatch({
+            type: "MOVE_ELEMENT",
+            payload: {
+                from: { sectionId: draggedElement.sectionId, elementId: draggedElement.element.id },
+                to: { sectionId: section.id, index: 0 }
+            }
+        });
+        return;
+    }
+
+    // Drop on an existing element is handled by CanvasElement, but if we drop on the section's droppable area
+    // (the empty space at the bottom), we should add the element to the end of the section.
+    const isDroppingOnSectionEnd = (e.target as HTMLElement).classList.contains('droppable');
+    if (isDroppingOnSectionEnd) {
+      if ('type' in draggedElement) { // New element from sidebar
+         const newElementId = crypto.randomUUID();
+         dispatch({ type: 'SET_DRAGGED_ELEMENT', payload: { ...draggedElement, id: newElementId } });
+         dispatch({ type: "ADD_ELEMENT", payload: { sectionId: section.id, type: draggedElement.type, index: section.elements.length, id: newElementId } });
+      } else if ('element' in draggedElement) { // Existing element
+        dispatch({
+            type: "MOVE_ELEMENT",
+            payload: {
+                from: { sectionId: draggedElement.sectionId, elementId: draggedElement.element.id },
+                to: { sectionId: section.id, index: section.elements.length }
+            }
+        });
+      }
     }
   };
   
