@@ -283,7 +283,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.apiUrl, element.type, element.dataSource, evaluationContext, sections, rowContext]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar, formatType, currencySymbol, decimalPlaces } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -406,7 +406,37 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           finalStyle.color = color;
       }
       
-      const mainTextContent = <Tag className={cn(classes[style], 'px-1.5 py-1')} style={finalStyle}>{String(finalDisplayValue)}</Tag>;
+      let formattedValue = String(finalDisplayValue);
+      const numValue = parseFloat(finalDisplayValue);
+      if (!isNaN(numValue)) {
+        try {
+          if (formatType === 'currency') {
+            formattedValue = new Intl.NumberFormat(undefined, {
+              style: 'currency',
+              currency: currencySymbol || 'USD',
+              minimumFractionDigits: decimalPlaces ?? 2,
+              maximumFractionDigits: decimalPlaces ?? 2,
+            }).format(numValue);
+          } else if (formatType === 'percentage') {
+            formattedValue = new Intl.NumberFormat(undefined, {
+              style: 'percent',
+              minimumFractionDigits: decimalPlaces ?? 0,
+              maximumFractionDigits: decimalPlaces ?? 0,
+            }).format(numValue);
+          } else if (formatType === 'decimal') {
+            formattedValue = new Intl.NumberFormat(undefined, {
+              style: 'decimal',
+              minimumFractionDigits: decimalPlaces ?? 2,
+              maximumFractionDigits: decimalPlaces ?? 2,
+            }).format(numValue);
+          }
+        } catch (e) {
+            console.error("Error formatting value:", e);
+            // Fallback to string value
+        }
+      }
+
+      const mainTextContent = <Tag className={cn(classes[style], 'px-1.5 py-1')} style={finalStyle}>{formattedValue}</Tag>;
 
       content = (
            <div className={cn(
@@ -1059,6 +1089,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 

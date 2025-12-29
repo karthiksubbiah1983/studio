@@ -905,6 +905,35 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             )}
                         </AccordionContent>
                     </AccordionItem>
+                    <AccordionItem value="formatting">
+                        <AccordionTrigger className="py-2">Value Formatting</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label>Format Type</Label>
+                                <Select value={props.formatType || 'none'} onValueChange={v => updateMultipleProperties({ formatType: v as any, currencySymbol: v === 'currency' ? (props.currencySymbol || '$') : undefined, decimalPlaces: v !== 'none' ? (props.decimalPlaces ?? 2) : undefined })}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        <SelectItem value="currency">Currency</SelectItem>
+                                        <SelectItem value="percentage">Percentage</SelectItem>
+                                        <SelectItem value="decimal">Decimal</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {props.formatType === 'currency' && (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="currency-symbol">Currency Symbol</Label>
+                                    <Input id="currency-symbol" value={props.currencySymbol || '$'} onChange={e => updateProperty('currencySymbol', e.target.value)} />
+                                </div>
+                            )}
+                            {(props.formatType === 'currency' || props.formatType === 'percentage' || props.formatType === 'decimal') && (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="decimal-places">Decimal Places</Label>
+                                    <Input id="decimal-places" type="number" min="0" value={props.decimalPlaces ?? 2} onChange={e => updateProperty('decimalPlaces', parseInt(e.target.value))} />
+                                </div>
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
                     <AccordionItem value="advanced">
                         <AccordionTrigger className="py-2">Advanced</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
