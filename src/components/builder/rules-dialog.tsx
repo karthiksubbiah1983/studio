@@ -691,10 +691,13 @@ ConfigurationsEditor.displayName = 'ConfigurationsEditor';
 export function RulesDialog({ isOpen, onOpenChange }: Props) {
   const { sections, rules, configurations, updateRules } = useBuilder();
   const [localRules, setLocalRules] = useState<Rule[]>([]);
-  const [activeRuleId, setActiveRuleId] = useState<string | null>(null);
+  const [activeRule, setActiveRule] = useState<Rule | null>(null);
   const [localConfigs, setLocalConfigs] = useState<Configuration[]>([]);
 
-  const activeRule = useMemo(() => localRules.find(r => r.id === activeRuleId), [localRules, activeRuleId]);
+  const activeRuleId = activeRule?.id;
+
+  // Ref to store the latest version of the currently edited rule
+  const dirtyRuleRef = useRef<Rule | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -705,10 +708,11 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         setLocalConfigs(initialConfigs);
 
         if (initialRules.length > 0) {
-            setActiveRuleId(initialRules[0].id);
+            setActiveRule(initialRules[0]);
         } else {
-            setActiveRuleId(null);
+            setActiveRule(null);
         }
+        dirtyRuleRef.current = null; // Reset dirty rule on open
     }
   }, [isOpen, rules, configurations]);
 
@@ -717,15 +721,34 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   }, [sections]);
   
   const handleSaveChanges = () => {
-    updateRules(localRules, localConfigs);
+    let finalRules = localRules;
+    // If there's a dirty rule being edited, update it in the list before saving.
+    if (dirtyRuleRef.current && activeRuleId) {
+        finalRules = localRules.map(r => r.id === activeRuleId ? dirtyRuleRef.current! : r);
+    }
+    updateRules(finalRules, localConfigs);
     onOpenChange(false);
   }
 
   const handleSelectRule = (ruleId: string) => {
-    setActiveRuleId(ruleId);
+    if (activeRuleId === ruleId) return;
+
+    // Save the changes from the currently edited rule before switching
+    if (dirtyRuleRef.current && activeRuleId) {
+        setLocalRules(prev => prev.map(r => r.id === activeRuleId ? dirtyRuleRef.current! : r));
+    }
+
+    const nextRule = localRules.find(r => r.id === ruleId) || null;
+    setActiveRule(nextRule);
+    dirtyRuleRef.current = nextRule; // Set the new dirty rule
   }
 
   const handleAddRule = () => {
+     // Save any pending changes from the current rule first
+    if (dirtyRuleRef.current && activeRuleId) {
+        setLocalRules(prev => prev.map(r => r.id === activeRuleId ? dirtyRuleRef.current! : r));
+    }
+
     const newRule: Rule = {
       id: crypto.randomUUID(),
       name: `Rule ${localRules.length + 1}`,
@@ -735,18 +758,23 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     };
     
     setLocalRules(prev => [...prev, newRule]);
-    setActiveRuleId(newRule.id);
+    setActiveRule(newRule);
+    dirtyRuleRef.current = newRule;
   };
 
   const handleUpdateActiveRule = useCallback((updatedRule: Rule) => {
-    setLocalRules(prevRules => prevRules.map(r => r.id === updatedRule.id ? updatedRule : r));
+    // This function only updates the 'dirty' copy of the rule in the ref.
+    // It does NOT trigger a state update on the entire dialog.
+    dirtyRuleRef.current = updatedRule;
   }, []);
 
   const handleDeleteRule = (ruleId: string) => {
     setLocalRules(prev => {
         const newRules = prev.filter(r => r.id !== ruleId);
         if (activeRuleId === ruleId) {
-            setActiveRuleId(newRules.length > 0 ? newRules[0].id : null);
+            const newActiveRule = newRules.length > 0 ? newRules[0] : null;
+            setActiveRule(newActiveRule);
+            dirtyRuleRef.current = newActiveRule;
         }
         return newRules;
     });
@@ -768,7 +796,9 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         newRules.splice(ruleIndex + 1, 0, newRule);
         return newRules;
     });
-    setActiveRuleId(newRule.id);
+    // Immediately switch to the new copied rule
+    setActiveRule(newRule);
+    dirtyRuleRef.current = newRule;
   }
   
   const handleAddConfig = () => {
