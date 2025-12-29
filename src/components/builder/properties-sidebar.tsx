@@ -910,7 +910,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label>Format Type</Label>
-                                <Select value={props.formatType || 'none'} onValueChange={v => updateMultipleProperties({ formatType: v as any, currencySymbol: v === 'currency' ? (props.currencySymbol || '$') : undefined, decimalPlaces: v !== 'none' ? (props.decimalPlaces ?? 2) : undefined })}>
+                                <Select value={props.formatType || 'none'} onValueChange={v => updateMultipleProperties({ formatType: v as any, currency: v === 'currency' ? (props.currency || 'USD') : undefined, decimalPlaces: v !== 'none' ? (props.decimalPlaces ?? 2) : undefined })}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">None</SelectItem>
@@ -922,11 +922,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                             {props.formatType === 'currency' && (
                                 <div className="flex flex-col gap-2">
-                                    <Label htmlFor="currency-symbol">Currency Symbol</Label>
-                                    <Input id="currency-symbol" value={props.currencySymbol || '$'} onChange={e => updateProperty('currencySymbol', e.target.value)} />
+                                    <Label htmlFor="currency-code">Currency Code</Label>
+                                    <Input id="currency-code" value={props.currency || 'USD'} onChange={e => updateProperty('currency', e.target.value)} placeholder="e.g., USD, EUR" />
                                 </div>
                             )}
-                            {(props.formatType === 'currency' || props.formatType === 'percentage' || props.formatType === 'decimal') && (
+                            {(props.formatType === 'currency' || props.formatType === 'decimal') && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="decimal-places">Decimal Places</Label>
                                     <Input id="decimal-places" type="number" min="0" value={props.decimalPlaces ?? 2} onChange={e => updateProperty('decimalPlaces', parseInt(e.target.value))} />

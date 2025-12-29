@@ -283,7 +283,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.apiUrl, element.type, element.dataSource, evaluationContext, sections, rowContext]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar, formatType, currencySymbol, decimalPlaces } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -413,7 +413,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           if (formatType === 'currency') {
             formattedValue = new Intl.NumberFormat(undefined, {
               style: 'currency',
-              currency: currencySymbol || 'USD',
+              currency: currency || 'USD',
               minimumFractionDigits: decimalPlaces ?? 2,
               maximumFractionDigits: decimalPlaces ?? 2,
             }).format(numValue);
@@ -422,7 +422,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
               style: 'percent',
               minimumFractionDigits: decimalPlaces ?? 0,
               maximumFractionDigits: decimalPlaces ?? 0,
-            }).format(numValue);
+            }).format(numValue / 100); // Assume input is 0-100 for percentage
           } else if (formatType === 'decimal') {
             formattedValue = new Intl.NumberFormat(undefined, {
               style: 'decimal',
@@ -1089,6 +1089,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 

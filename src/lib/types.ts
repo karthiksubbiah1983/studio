@@ -132,7 +132,7 @@ export type FormElementInstance = {
     linkUrlSourceElementId?: string | null;
     leadText?: string;
     formatType?: 'none' | 'currency' | 'percentage' | 'decimal';
-    currencySymbol?: string;
+    currency?: string; // Changed from currencySymbol
     decimalPlaces?: number;
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
