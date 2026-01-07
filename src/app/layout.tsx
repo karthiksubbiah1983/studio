@@ -1,18 +1,14 @@
-
-'use client';
-
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
-import { BuilderProvider } from "@/hooks/use-builder";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppLayout } from "@/components/app-layout";
-import { AuthProvider } from "@/hooks/use-auth";
 import { FirebaseClientProvider } from "@/firebase";
+import { Providers } from "@/components/providers";
 
 config.autoAddCss = false;
 
@@ -32,15 +28,13 @@ export default function RootLayout({
         )}
       >
         <FirebaseClientProvider>
-          <AuthProvider>
-            <BuilderProvider>
-              <SidebarProvider>
-                <AppLayout>
-                  {children}
-                </AppLayout>
-              </SidebarProvider>
-            </BuilderProvider>
-          </AuthProvider>
+          <Providers>
+            <SidebarProvider>
+              <AppLayout>
+                {children}
+              </AppLayout>
+            </SidebarProvider>
+          </Providers>
         </FirebaseClientProvider>
         <Toaster />
       </body>
