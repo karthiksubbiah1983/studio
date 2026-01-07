@@ -355,7 +355,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           finalDisplayValue = getNestedValue(user, dataSourceConfig.displayKey);
       } else if (dataSourceConfig?.sourceType === 'currentDateTime' && currentDateTime) {
           finalDisplayValue = format(currentDateTime, 'PPP p');
-      } else if (dataSourceConfig?.sourceElementId && formState) {
+      } else if (dataSourceConfig?.sourceType === 'field' && dataSourceConfig?.sourceElementId && formState) {
           const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
           const sourceValue = formState[dataSourceConfig.sourceElementId];
           if (sourceElement && sourceValue) {
@@ -440,10 +440,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
       content = (
            <div className={cn(
-              "flex items-center gap-2",
-              direction === 'vertical' ? 'flex-col items-start' : 'flex-row'
+              "flex items-center gap-2"
            )}>
-              {leadText && <Label className="text-sm font-medium px-1.5 py-1">{leadText}</Label>}
               {mainTextContent}
           </div>
       );
@@ -1089,6 +1087,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 

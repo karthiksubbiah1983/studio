@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -847,21 +847,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
              )
         case "Display":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "link", "layout", "advanced"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "link", "layout", "advanced", "data"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="key">Field Key</Label>
-                                <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="leadText">Lead Text (Optional)</Label>
-                                <Input id="leadText" value={props.leadText || ''} onChange={(e) => updateProperty('leadText', e.target.value)} />
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="label">Display Text</Label>
+                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} placeholder="Text to display if no data source" />
                             </div>
                              <div className="flex flex-col gap-2">
-                                <Label htmlFor="label">Main Text</Label>
-                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                                <Label htmlFor="key">Field Key</Label>
+                                <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="expose-for-validation">Expose for validation</Label>
@@ -875,34 +871,68 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="hidden">Hidden in Form</Label>
                                 <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
-                            {!props.isLink && (
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label>Source Type</Label>
+                                <Select 
+                                    value={props.dataSourceConfig?.sourceType || 'field'} 
+                                    onValueChange={(v) => {
+                                        const newConfig: DisplayDataSourceConfig = {
+                                            ...(props.dataSourceConfig || { sourceElementId: '', displayKey: '' }),
+                                            sourceType: v as any
+                                        };
+                                        updateProperty('dataSourceConfig', newConfig)
+                                    }}
+                                >
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="field">Another Form Field</SelectItem>
+                                        <SelectItem value="currentUser">Current User</SelectItem>
+                                        <SelectItem value="currentDateTime">Current Date/Time</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {props.dataSourceConfig?.sourceType === 'field' && (
                                 <>
-                                <div className="flex flex-col gap-2">
-                                    <Label>Text Style</Label>
-                                    <Select value={props.textStyle || 'p'} onValueChange={v => updateProperty('textStyle', v as any)}>
-                                        <SelectTrigger><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="p">Paragraph</SelectItem>
-                                            <SelectItem value="h1">Heading 1</SelectItem>
-                                            <SelectItem value="h2">Heading 2</SelectItem>
-                                            <SelectItem value="h3">Heading 3</SelectItem>
-                                            <SelectItem value="h4">Heading 4</SelectItem>
-                                            <SelectItem value="h5">Heading 5</SelectItem>
-                                            <SelectItem value="h6">Heading 6</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="text-color">Text Color</Label>
-                                    <Input
-                                        id="text-color"
-                                        type="color"
-                                        value={props.color || '#000000'}
-                                        onChange={(e) => updateProperty('color', e.target.value)}
-                                    />
-                                </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label>Source Field</Label>
+                                        <Select
+                                            value={props.dataSourceConfig.sourceElementId}
+                                            onValueChange={v => updateProperty('dataSourceConfig', { ...props.dataSourceConfig, sourceElementId: v })}
+                                        >
+                                            <SelectTrigger><SelectValue placeholder="Select a field..."/></SelectTrigger>
+                                            <SelectContent>
+                                                {allElements.filter(el => 'type' in el && el.id !== props.id).map(el => (
+                                                    <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label>Display Key from Source</Label>
+                                        <Input
+                                            value={props.dataSourceConfig.displayKey}
+                                            onChange={e => updateProperty('dataSourceConfig', { ...props.dataSourceConfig, displayKey: e.target.value })}
+                                            placeholder="e.g., name, address.city"
+                                        />
+                                        <p className="text-xs text-muted-foreground">For objects, use dot notation.</p>
+                                    </div>
                                 </>
                             )}
+                             {props.dataSourceConfig?.sourceType === 'currentUser' && (
+                                <div className="flex flex-col gap-2">
+                                    <Label>User Property</Label>
+                                    <Input 
+                                        value={props.dataSourceConfig.displayKey}
+                                        onChange={e => updateProperty('dataSourceConfig', {...props.dataSourceConfig, displayKey: e.target.value})}
+                                        placeholder="e.g., email, uid"
+                                    />
+                                </div>
+                             )}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="formatting">
@@ -932,6 +962,30 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Input id="decimal-places" type="number" min="0" value={props.decimalPlaces ?? 2} onChange={e => updateProperty('decimalPlaces', parseInt(e.target.value))} />
                                 </div>
                             )}
+                             <div className="flex flex-col gap-2">
+                                <Label>Text Style</Label>
+                                <Select value={props.textStyle || 'p'} onValueChange={v => updateProperty('textStyle', v as any)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="p">Paragraph</SelectItem>
+                                        <SelectItem value="h1">Heading 1</SelectItem>
+                                        <SelectItem value="h2">Heading 2</SelectItem>
+                                        <SelectItem value="h3">Heading 3</SelectItem>
+                                        <SelectItem value="h4">Heading 4</SelectItem>
+                                        <SelectItem value="h5">Heading 5</SelectItem>
+                                        <SelectItem value="h6">Heading 6</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="text-color">Text Color</Label>
+                                <Input
+                                    id="text-color"
+                                    type="color"
+                                    value={props.color || '#000000'}
+                                    onChange={(e) => updateProperty('color', e.target.value)}
+                                />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="advanced">
@@ -989,28 +1043,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             )}
                         </AccordionContent>
                     </AccordionItem>
-                     <AccordionItem value="layout">
-                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
-                        <AccordionContent>
-                             <div className="flex flex-col gap-2">
-                                <Label>Alignment</Label>
-                                <RadioGroup
-                                    value={props.direction || 'horizontal'}
-                                    onValueChange={(value) => updateProperty('direction', value as 'horizontal' | 'vertical')}
-                                    className="flex gap-4"
-                                >
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="horizontal" id="dir-horizontal-display" />
-                                        <Label htmlFor="dir-horizontal-display">Horizontal</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="vertical" id="dir-vertical-display" />
-                                        <Label htmlFor="dir-vertical-display">Vertical</Label>
-                                    </div>
-                                </RadioGroup>
-                            </div>
-                        </AccordionContent>
-                     </AccordionItem>
                  </Accordion>
             );
         case "RichText":
