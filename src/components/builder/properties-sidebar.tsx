@@ -508,7 +508,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [isListOptionsOpen, setIsListOptionsOpen] = useState(false);
 
   const allElements = getAllElements(sections);
-  const parentSelectFields = useMemo(() => allElements.filter(el => el.id !== props.id && el.type === 'Select') as FormElementInstance[], [allElements, props.id]);
+  const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== props.id && el.type === 'Select') as FormElementInstance[], [allElements, props.id]);
 
   
   const finalFetchedKeys = useMemo(() => {
@@ -566,11 +566,28 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     // Handle URL templates
     if (apiUrlToFetch.includes('{') && apiUrlToFetch.includes('}')) {
         const placeholder = apiUrlToFetch.match(/\{(.+?)\}/)?.[1];
-        const sampleValue = prompt(`The API URL is a template. Please provide a sample value for '{${placeholder}}' to fetch the schema:`);
-        if (!sampleValue) {
-            return;
+        if (!placeholder) {
+          setIsFetching(false);
+          return;
         }
-        apiUrlToFetch = apiUrlToFetch.replace(`{${placeholder}}`, encodeURIComponent(sampleValue));
+        
+        // Find the parent to get a sample value. We can't prompt the user.
+        const parentElement = allElements.find(el => el.id === props.dataSourceParentId);
+        if (parentElement && 'key' in parentElement && parentElement.key === placeholder) {
+          // This is tricky because we don't have form state here.
+          // We can't fetch schema for templated URLs without a sample value.
+          // For now, we will just not fetch. A better solution might be to ask the user.
+          console.warn("Cannot auto-fetch schema for templated URL without a sample value.");
+          setFetchedKeys([]);
+          return;
+        } else {
+            const sampleValue = prompt(`The API URL is a template. Please provide a sample value for '{${placeholder}}' to fetch the schema:`);
+            if (!sampleValue) {
+                return;
+            }
+            apiUrlToFetch = apiUrlToFetch.replace(`{${placeholder}}`, encodeURIComponent(sampleValue));
+        }
+
     }
 
     setIsFetching(true);
@@ -709,11 +726,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     {isFetching ? "Fetching..." : "Fetch"}
                 </Button>
             </div>
-            <p className="text-xs text-muted-foreground">Use {'{fieldKey}'} for dynamic URLs based on another field's value.</p>
+            <p className="text-xs text-muted-foreground">Use a placeholder like `&#123;id&#125;` for dynamic URLs.</p>
         </div>
         {props.apiUrl?.includes('{') && (
             <div className="flex flex-col gap-2">
-                <Label>Parent Field for URL</Label>
+                <Label>API URL Parent Field</Label>
                 <Select value={props.dataSourceParentId || ""} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
                     <SelectTrigger><SelectValue placeholder="Select parent field..." /></SelectTrigger>
                     <SelectContent>

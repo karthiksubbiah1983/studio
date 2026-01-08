@@ -1,0 +1,28 @@
+[
+    {
+        "familyId": "hw",
+        "familyName": "Hardware",
+        "products": [
+            { "productId": "hw-01", "productName": "Laptop Pro" },
+            { "productId": "hw-02", "productName": "4K Monitor" },
+            { "productId": "hw-03", "productName": "Wireless Keyboard" }
+        ]
+    },
+    {
+        "familyId": "sw",
+        "familyName": "Software",
+        "products": [
+            { "productId": "sw-01", "productName": "CRM Suite" },
+            { "productId": "sw-02", "productName": "Design Pro" },
+            { "productId": "sw-03", "productName": "Accounting Tool" }
+        ]
+    },
+    {
+        "familyId": "acc",
+        "familyName": "Accessories",
+        "products": [
+            { "productId": "acc-01", "productName": "Docking Station" },
+            { "productId": "acc-02", "productName": "USB-C Hub" }
+        ]
+    }
+]

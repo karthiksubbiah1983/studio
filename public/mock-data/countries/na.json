@@ -1,0 +1,5 @@
+[
+    { "id": "us", "name": "United States" },
+    { "id": "ca", "name": "Canada" },
+    { "id": "mx", "name": "Mexico" }
+]

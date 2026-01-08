@@ -14,6 +14,90 @@ import { useRouter } from "next/navigation";
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
 
+const cascadingDemoTemplate: Form = {
+    id: "demo-cascading-dropdowns",
+    title: "Cascading Dropdowns Demo",
+    categoryId: "demo-templates",
+    versions: [
+        {
+            id: crypto.randomUUID(),
+            name: "Initial Version",
+            description: "A template demonstrating cascading dropdowns.",
+            type: "published",
+            timestamp: new Date().toISOString(),
+            sections: [
+                {
+                    id: "s1-cascade",
+                    title: "Scenario 1: Filtering from a Single API Call",
+                    displayMode: "default",
+                    elements: [
+                        {
+                            id: "parent-product-family",
+                            type: "Select",
+                            key: "productFamily",
+                            label: "Product Family",
+                            required: true,
+                            dataSource: 'dynamic',
+                            apiUrl: '/mock-data/product-families.json',
+                            valueKey: 'familyId',
+                            labelKey: 'familyName',
+                            placeholder: "Select a product family..."
+                        },
+                        {
+                            id: "child-product",
+                            type: "Select",
+                            key: "product",
+                            label: "Product",
+                            required: true,
+                            dataSource: 'fromParent',
+                            dataSourceParentId: 'parent-product-family',
+                            dataSourceParentKey: 'products',
+                            valueKey: 'productId',
+                            labelKey: 'productName',
+                            placeholder: "Select a product..."
+                        }
+                    ],
+                },
+                {
+                    id: "s2-cascade",
+                    title: "Scenario 2: Making a New API Call",
+                    displayMode: "default",
+                    elements: [
+                        {
+                            id: "parent-region",
+                            type: "Select",
+                            key: "region",
+                            label: "Region",
+                            required: true,
+                            dataSource: 'dynamic',
+                            apiUrl: '/mock-data/regions.json',
+                            valueKey: 'id',
+                            labelKey: 'name',
+                            placeholder: "Select a region..."
+                        },
+                        {
+                            id: "child-country",
+                            type: "Select",
+                            key: "country",
+                            label: "Country",
+                            required: true,
+                            dataSource: 'dynamic',
+                            apiUrl: '/mock-data/countries/{id}.json',
+                            dataSourceParentId: 'parent-region',
+                            valueKey: 'id',
+                            labelKey: 'name',
+                            placeholder: "Select a country..."
+                        }
+                    ],
+                },
+            ],
+            rules: [],
+            workflows: [],
+            configurations: []
+        }
+    ]
+};
+
 const demoTemplate: Form = {
     id: "demo-expense-report",
     title: "Advanced Expense Report",
@@ -195,7 +279,7 @@ const cloneWithNewIds = <T extends { id: string; [key: string]: any }>(item: T):
       }
       
       // Update any property that might be an ID reference
-      const referenceKeys = ['sourceElementId', 'comparisonElementId', 'targetElementId'];
+      const referenceKeys = ['sourceElementId', 'comparisonElementId', 'targetElementId', 'dataSourceParentId'];
       for (const refKey of referenceKeys) {
           if (obj[refKey] && idMap[obj[refKey]]) {
               obj[refKey] = idMap[obj[refKey]];
@@ -874,6 +958,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
     if (!mergedState.forms.some(f => f.id === demoTemplate.id)) {
         mergedState.forms.unshift(demoTemplate);
+    }
+    if (!mergedState.forms.some(f => f.id === cascadingDemoTemplate.id)) {
+        mergedState.forms.unshift(cascadingDemoTemplate);
     }
     if (!mergedState.categories.some(c => c.id === demoCategory.id)) {
         mergedState.categories.unshift(demoCategory);
