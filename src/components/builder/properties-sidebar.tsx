@@ -508,6 +508,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [isListOptionsOpen, setIsListOptionsOpen] = useState(false);
 
   const allElements = getAllElements(sections);
+  const parentSelectFields = useMemo(() => allElements.filter(el => el.id !== props.id && el.type === 'Select') as FormElementInstance[], [allElements, props.id]);
+
   
   const finalFetchedKeys = useMemo(() => {
     if (parentFetchedData) {
@@ -518,7 +520,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'EditableTable') && element.apiUrl) {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'EditableTable') && element.dataSource === 'dynamic' && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -702,12 +704,24 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <div className="flex flex-col gap-2">
             <Label htmlFor="apiUrl">API URL</Label>
             <div className="flex gap-2">
-                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} />
+                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} placeholder="https://... or /api/..." />
                 <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
                     {isFetching ? "Fetching..." : "Fetch"}
                 </Button>
             </div>
+            <p className="text-xs text-muted-foreground">Use {'{fieldKey}'} for dynamic URLs based on another field's value.</p>
         </div>
+        {props.dataSourceParentId && (
+            <div className="flex flex-col gap-2">
+                <Label>Parent Field for URL</Label>
+                <Select value={props.dataSourceParentId} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
+                    <SelectTrigger><SelectValue placeholder="Select parent field..." /></SelectTrigger>
+                    <SelectContent>
+                        {parentSelectFields.map(field => <SelectItem key={field.id} value={field.id}>{field.label}</SelectItem>)}
+                    </SelectContent>
+                </Select>
+            </div>
+        )}
         <>
             <div className="flex flex-col gap-2">
                 <Label htmlFor="valueKey">Option Value Key</Label>
@@ -772,6 +786,25 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         </>
     </div>
   );
+
+  const parentDataSourceFields = () => (
+    <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
+            <Label>Parent Field</Label>
+            <Select value={props.dataSourceParentId} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
+                <SelectTrigger><SelectValue placeholder="Select parent field..."/></SelectTrigger>
+                <SelectContent>
+                    {parentSelectFields.map(field => <SelectItem key={field.id} value={field.id}>{field.label}</SelectItem>)}
+                </SelectContent>
+            </Select>
+        </div>
+        <div className="flex flex-col gap-2">
+            <Label htmlFor="dataSourceParentKey">Sub-List Key</Label>
+            <Input id="dataSourceParentKey" value={props.dataSourceParentKey || ""} onChange={(e) => updateProperty('dataSourceParentKey', e.target.value)} placeholder="e.g., subCategories"/>
+             <p className="text-xs text-muted-foreground">The key in the parent's selected object that holds the array of options.</p>
+        </div>
+    </div>
+  )
 
   const content = () => {
       switch(props.type) {
@@ -956,7 +989,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Input id="currency-code" value={props.currency || 'USD'} onChange={e => updateProperty('currency', e.target.value)} placeholder="e.g., USD, EUR" />
                                 </div>
                             )}
-                            {(props.formatType === 'currency' || props.formatType === 'decimal') && (
+                            {(props.formatType === 'currency' || props.formatType === 'decimal' || props.formatType === 'percentage') && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="decimal-places">Decimal Places</Label>
                                     <Input id="decimal-places" type="number" min="0" value={props.decimalPlaces ?? 2} onChange={e => updateProperty('decimalPlaces', parseInt(e.target.value))} />
@@ -1185,28 +1218,36 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <RadioGroup
                                     value={props.dataSource || 'static'}
                                     onValueChange={(val) => {
-                                      const newDataSource = val as 'static' | 'dynamic';
+                                      const newDataSource = val as 'static' | 'dynamic' | 'fromParent';
                                       updateMultipleProperties({
                                         dataSource: newDataSource,
                                         options: newDataSource === 'static' ? (props.options || ['Option 1']) : undefined,
                                         apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : undefined,
-                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : undefined,
-                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : undefined,
+                                        valueKey: newDataSource !== 'static' ? props.valueKey : undefined,
+                                        labelKey: newDataSource !== 'static' ? props.labelKey : undefined,
+                                        dataSourceParentId: newDataSource === 'fromParent' || (newDataSource === 'dynamic' && props.apiUrl?.includes('{')) ? props.dataSourceParentId : undefined,
+                                        dataSourceParentKey: newDataSource === 'fromParent' ? props.dataSourceParentKey : undefined,
                                       })
                                     }}
-                                    className="flex"
+                                    className="grid grid-cols-3 gap-2"
                                 >
-                                    <div className="flex items-center space-x-2">
+                                    <Label htmlFor="source-static" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                         <RadioGroupItem value="static" id="source-static" />
-                                        <Label htmlFor="source-static">Static</Label>
-                                    </div>
-                                    <div className="flex items-center space-x-2">
+                                        Static
+                                    </Label>
+                                    <Label htmlFor="source-dynamic" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                         <RadioGroupItem value="dynamic" id="source-dynamic" />
-                                        <Label htmlFor="source-dynamic">Dynamic</Label>
-                                    </div>
+                                        API
+                                    </Label>
+                                    <Label htmlFor="source-from-parent" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                        <RadioGroupItem value="fromParent" id="source-from-parent" />
+                                        Parent Field
+                                    </Label>
                                 </RadioGroup>
                             </div>
-                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : 
+                             props.dataSource === 'fromParent' ? parentDataSourceFields() : 
+                             optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

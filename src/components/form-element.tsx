@@ -266,21 +266,38 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   
 
   useEffect(() => {
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.dataSource === 'dynamic') {
-      
-      if (element.apiUrl) {
-        let finalApiUrl = interpolateString(element.apiUrl, {formState: evaluationContext, sections, rowContext});
+    let finalApiUrl: string | undefined | null;
 
-        setIsLoading(true);
-        fetchFromApi(finalApiUrl)
-          .then(data => {
-            const arrayData = findFirstArray(data);
-            setDynamicOptions(arrayData || []);
-          })
-          .finally(() => setIsLoading(false));
+    if (element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') {
+      if (element.dataSource === 'dynamic' && element.apiUrl) {
+          finalApiUrl = interpolateString(element.apiUrl, { formState: evaluationContext, sections, rowContext });
+      } else if (element.dataSource === 'fromParent' && element.dataSourceParentId) {
+          // This case is handled by the parent's state change, no API call needed here.
+          const parentState = formState?.[element.dataSourceParentId];
+          if (parentState?.fullObject && element.dataSourceParentKey) {
+              const subList = getNestedValue(parentState.fullObject, element.dataSourceParentKey);
+              setDynamicOptions(Array.isArray(subList) ? subList : []);
+          } else {
+              setDynamicOptions([]);
+          }
+          return; // End effect for 'fromParent'
+      } else {
+          return;
+      }
+
+      if (finalApiUrl) {
+          setIsLoading(true);
+          fetchFromApi(finalApiUrl)
+              .then(data => {
+                  const arrayData = findFirstArray(data);
+                  setDynamicOptions(arrayData || []);
+              })
+              .finally(() => setIsLoading(false));
+      } else {
+           setDynamicOptions([]); // Clear options if URL becomes invalid
       }
     }
-  }, [element.apiUrl, element.type, element.dataSource, evaluationContext, sections, rowContext]);
+  }, [element, evaluationContext, formState, rowContext, sections]);
 
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces } = element;
@@ -548,7 +565,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
     case "Select":
         const handleSelectChange = (val: string) => {
-            if (element.dataSource === 'dynamic') {
+            if (element.dataSource === 'dynamic' || (element.dataSource === 'fromParent' && dynamicOptions.length > 0)) {
                 const fullObject = dynamicOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === val);
                 onValueChange(element.id, val, fullObject);
             } else {
@@ -563,7 +580,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
               <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
             </SelectTrigger>
             <SelectContent>
-              {element.dataSource === 'dynamic' ? (
+              {element.dataSource === 'dynamic' || element.dataSource === 'fromParent' ? (
                 dynamicOptions.map((option, index) => (
                   <SelectItem key={index} value={String(getNestedValue(option, element.valueKey!))}>
                     {getNestedValue(option, element.labelKey!)}
@@ -1087,6 +1104,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
