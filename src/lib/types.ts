@@ -114,7 +114,7 @@ export type FormElementInstance = {
     formula?: string;
     defaultValue?: any;
     // For Select, RadioGroup, Combobox
-    dataSource?: 'static' | 'dynamic';
+    dataSource?: 'static' | 'dynamic' | 'fromParent';
     options?: string[]; // Kept for simple static lists like RadioGroup
     staticData?: {id: string, label: string, secondaryText?: string, linkUrl?:string, [key: string]: any}[]; // For complex static lists
     // For dynamic data source (Select, List, Combobox)
@@ -123,6 +123,8 @@ export type FormElementInstance = {
     labelKey?: string | null; // Key in each object for option label
     secondaryTextKey?: string | null;
     linkUrlKey?: string | null;
+    dataSourceParentId?: string | null;
+    dataSourceParentKey?: string | null;
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     textStyle?: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';

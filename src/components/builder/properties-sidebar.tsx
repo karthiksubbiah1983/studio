@@ -711,10 +711,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             </div>
             <p className="text-xs text-muted-foreground">Use {'{fieldKey}'} for dynamic URLs based on another field's value.</p>
         </div>
-        {props.dataSourceParentId && (
+        {props.apiUrl?.includes('{') && (
             <div className="flex flex-col gap-2">
                 <Label>Parent Field for URL</Label>
-                <Select value={props.dataSourceParentId} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
+                <Select value={props.dataSourceParentId || ""} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
                     <SelectTrigger><SelectValue placeholder="Select parent field..." /></SelectTrigger>
                     <SelectContent>
                         {parentSelectFields.map(field => <SelectItem key={field.id} value={field.id}>{field.label}</SelectItem>)}
@@ -791,7 +791,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
             <Label>Parent Field</Label>
-            <Select value={props.dataSourceParentId} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
+            <Select value={props.dataSourceParentId || ""} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
                 <SelectTrigger><SelectValue placeholder="Select parent field..."/></SelectTrigger>
                 <SelectContent>
                     {parentSelectFields.map(field => <SelectItem key={field.id} value={field.id}>{field.label}</SelectItem>)}
