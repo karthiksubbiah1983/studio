@@ -445,8 +445,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
       content = (
            <div className={cn(
-              "flex items-center gap-2"
+              "flex items-center gap-2",
+              direction === 'vertical' && 'flex-col items-start'
            )}>
+              {leadText && <span className="text-sm text-muted-foreground">{leadText}</span>}
               {mainTextContent}
           </div>
       );
@@ -1092,6 +1094,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 

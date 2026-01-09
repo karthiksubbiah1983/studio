@@ -897,15 +897,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
              )
         case "Display":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "link", "layout", "advanced", "data"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "layout", "data", "formatting", "advanced", "link"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
-                             <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Display Text</Label>
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} placeholder="Text to display if no data source" />
                             </div>
-                             <div className="flex flex-col gap-2">
+                            <div className="flex flex-col gap-2">
                                 <Label htmlFor="key">Field Key</Label>
                                 <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
                             </div>
@@ -983,6 +983,32 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     />
                                 </div>
                              )}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="layout">
+                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           <div className="flex flex-col gap-2">
+                                <Label htmlFor="leadText">Lead Text</Label>
+                                <Input id="leadText" value={props.leadText || ''} onChange={(e) => updateProperty('leadText', e.target.value)} />
+                            </div>
+                             <div className="flex flex-col gap-2">
+                                <Label>Direction</Label>
+                                <RadioGroup
+                                    value={props.direction || 'horizontal'}
+                                    onValueChange={(value) => updateProperty('direction', value as 'horizontal' | 'vertical')}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="horizontal" id="dir-horizontal-display" />
+                                        <Label htmlFor="dir-horizontal-display">Horizontal</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="vertical" id="dir-vertical-display" />
+                                        <Label htmlFor="dir-vertical-display">Vertical</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="formatting">
