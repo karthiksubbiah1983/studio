@@ -49,39 +49,14 @@ type Props = {
   rowContext?: any;
 };
 
-const interpolateString = (template: string, data: { formState: { [key:string]: any }, sections: Section[], rowContext?: any }): string => {
+const interpolateString = (template: string, data: { [key: string]: any }): string => {
     if (!template) return "";
-    
-    // Create a unified context for interpolation. Row context takes precedence.
-    const context = { ...(data.formState || {}), ...(data.rowContext || {}) };
 
+    // Regex to find all {key} placeholders
     return template.replace(/\{([a-zA-Z0-9_.]+)\}/g, (match, key) => {
-        const allElements = getAllElements(data.sections || []);
-        
-        // Find if the key matches a form element's key
-        const element = allElements.find(el => 'key' in el && el.key === key);
-        
-        let valueToInsert: any;
-
-        if (element && 'id' in element) {
-            // Check row context first by element ID
-            if (data.rowContext && data.rowContext[element.id] !== undefined) {
-                const stateValue = data.rowContext[element.id];
-                 valueToInsert = (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
-            } 
-            // Then check global form state by element ID
-            else if (context[element.id] !== undefined) {
-                const stateValue = context[element.id];
-                valueToInsert = (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
-            }
-        }
-        
-        // If not found by element key, try as a nested property of the context (for objects from Selects)
-        if (valueToInsert === undefined) {
-            valueToInsert = getNestedValue(context, key);
-        }
-        
-        return valueToInsert !== undefined ? String(valueToInsert) : match;
+        const value = getNestedValue(data, key);
+        // If the key exists in the data, replace it. Otherwise, keep the placeholder.
+        return value !== undefined ? String(value) : match;
     });
 }
 
@@ -266,23 +241,27 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   
 
   useEffect(() => {
-    let finalApiUrl: string | undefined | null;
+    if (element.type !== 'Select' && element.type !== 'List' && element.type !== 'Combobox') {
+      return;
+    }
 
-    if (element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') {
-      if (element.dataSource === 'dynamic' && element.apiUrl) {
-          finalApiUrl = interpolateString(element.apiUrl, { formState: evaluationContext, sections, rowContext });
-      } else if (element.dataSource === 'fromParent' && element.dataSourceParentId) {
-          // This case is handled by the parent's state change, no API call needed here.
-          const parentState = formState?.[element.dataSourceParentId];
-          if (parentState?.fullObject && element.dataSourceParentKey) {
-              const subList = getNestedValue(parentState.fullObject, element.dataSourceParentKey);
-              setDynamicOptions(Array.isArray(subList) ? subList : []);
-          } else {
-              setDynamicOptions([]);
-          }
-          return; // End effect for 'fromParent'
-      } else {
+    if (element.dataSource === 'dynamic' && element.apiUrl) {
+      let finalApiUrl = element.apiUrl;
+
+      // Handle templated URLs based on parent selection
+      if (element.dataSourceParentId && finalApiUrl.includes('{')) {
+        const parentValue = formState?.[element.dataSourceParentId]?.value;
+        if (parentValue) {
+          // This is a simplified interpolation. Assumes the placeholder is the parent's direct value.
+          // For more complex cases like {parent.id}, you'd need a more robust interpolation function.
+          // Let's assume the placeholder is just the parent's key.
+          const placeholderKey = finalApiUrl.substring(finalApiUrl.indexOf('{') + 1, finalApiUrl.indexOf('}'));
+          finalApiUrl = finalApiUrl.replace(`{${placeholderKey}}`, parentValue);
+        } else {
+          // If parent has no value, don't fetch. Clear options.
+          setDynamicOptions([]);
           return;
+        }
       }
 
       if (finalApiUrl) {
@@ -296,8 +275,17 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       } else {
            setDynamicOptions([]); // Clear options if URL becomes invalid
       }
+    } else if (element.dataSource === 'fromParent' && element.dataSourceParentId) {
+        const parentState = formState?.[element.dataSourceParentId];
+        if (parentState?.fullObject && element.dataSourceParentKey) {
+            const subList = getNestedValue(parentState.fullObject, element.dataSourceParentKey);
+            setDynamicOptions(Array.isArray(subList) ? subList : []);
+        } else {
+            setDynamicOptions([]);
+        }
     }
-  }, [element, evaluationContext, formState, rowContext, sections]);
+
+  }, [element, formState]);
 
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces } = element;
@@ -390,14 +378,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         
       if (isLink) {
           let finalUrl = "";
-           // In a list context, the row data (rowContext) might contain the specific URL
+          const interpolationContext = rowContext || formState || {};
+          // In a list context, the row data (rowContext) might contain the specific URL
           if (rowContext && key && rowContext[`${key}__url`]) {
               finalUrl = rowContext[`${key}__url`];
           } 
           // Fallback to the element's configured URL template
           else if (linkUrl) {
-              const contextForInterpolation = rowContext || formState || {};
-              finalUrl = interpolateString(linkUrl, { formState: contextForInterpolation, sections, rowContext });
+              finalUrl = interpolateString(linkUrl, interpolationContext);
           }
           return (
               <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
@@ -1104,6 +1092,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
