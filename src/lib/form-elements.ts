@@ -22,6 +22,7 @@ export const BasicFormElements: {
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'Popup', icon: MessageSquare, label: 'Popup'},
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
+    { type: 'EditableTable', icon: Table, label: 'Editable Table' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
 
@@ -31,7 +32,6 @@ export const FunctionalFormElements: {
   icon: LucideIcon;
   label: string;
 }[] = [
-    { type: 'EditableTable', icon: Table, label: 'Editable Table' },
     { type: 'DataGrid', icon: Grid, label: 'Task History' },
 ];
 
@@ -118,7 +118,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
         case "DataGrid":
             return {
                 ...baseElement,
-                label: 'Data Grid',
+                label: 'Task History',
                 key: 'data_grid_1',
                 apiUrl: null,
                 sourceEditableTableId: undefined,
