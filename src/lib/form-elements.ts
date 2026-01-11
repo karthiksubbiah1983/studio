@@ -90,7 +90,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
         case "RichText":
             return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false, key: '' };
         case "Container":
-            return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch', exposeForValidation: false, key: '' };
+            return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch', exposeForValidation: false, key: '', width: '100%' };
         case "EditableTable":
             return {
                 ...baseElement,

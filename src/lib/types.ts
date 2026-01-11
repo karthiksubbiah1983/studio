@@ -147,6 +147,7 @@ export type FormElementInstance = {
     elements?: FormElementInstance[];
     justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
+    width?: string;
     // For Preview
     previewSectionIds?: string[];
     // For FileUpload

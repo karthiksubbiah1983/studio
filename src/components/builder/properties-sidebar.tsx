@@ -833,6 +833,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="width">Width</Label>
+                                <Input id="width" value={props.width || ''} onChange={(e) => updateProperty('width', e.target.value)} placeholder="e.g., 50% or 200px" />
+                            </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="expose-for-validation">Expose for validation</Label>
                                 <Switch
