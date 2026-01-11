@@ -189,9 +189,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     if (behavior.type === 'change_color' && behavior.targetProperty && behavior.color) {
                         style[behavior.targetProperty as any] = behavior.color;
                     }
-                    if (behavior.type === 'set_error') {
-                        error = behavior.message || "Invalid input.";
-                    }
                 }
             }
         }

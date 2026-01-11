@@ -392,7 +392,6 @@ const BehaviorEditor = memo(({
                         <SelectItem value="enable">Enable</SelectItem>
                         <SelectItem value="disable">Disable</SelectItem>
                         <SelectItem value="change_color">Change Color</SelectItem>
-                        <SelectItem value="set_error">Set Error</SelectItem>
                         <SelectItem value="set_value">Set Value</SelectItem>
                         <SelectItem value="set_configuration">Set Configuration</SelectItem>
                         <SelectItem value="show_popup">Show as Popup</SelectItem>
@@ -463,17 +462,6 @@ const BehaviorEditor = memo(({
                             className="p-1 h-10"
                         />
                     </div>
-                </div>
-            )}
-
-            {behavior.type === 'set_error' && (
-                <div className="space-y-2">
-                        <Label>Error Message</Label>
-                        <Input
-                        placeholder="e.g. Value must be greater than 10"
-                        defaultValue={behavior.message}
-                        onBlur={(e) => handleUpdate('message', e.target.value)}
-                    />
                 </div>
             )}
 

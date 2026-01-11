@@ -12,7 +12,7 @@ export type RuleConditionOperator =
     | 'contains'
     | 'not_contains';
 
-export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_error' | 'set_value' | 'set_configuration';
+export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_value' | 'set_configuration' | 'show_popup';
 
 export type ConditionSourceType = 'field' | 'date' | 'status' | 'config';
 export type ConditionComparisonType = 'value' | 'field' | 'date' | 'status' | 'config';
