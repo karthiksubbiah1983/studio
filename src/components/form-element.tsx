@@ -80,6 +80,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   
   // State specifically for the rule-driven popup
   const [isRulePopupOpen, setIsRulePopupOpen] = useState(false);
+  const [activePopupElementId, setActivePopupElementId] = useState<string | null>(null);
+  
   // Track the form state values that triggered the last popup open, to prevent re-opening on simple re-renders
   const [popupTriggerState, setPopupTriggerState] = useState<any>(null);
 
@@ -236,31 +238,29 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       return [];
   }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
   
-  const showPopup = useMemo(() => {
-      if (element.type !== 'Popup' || !element.triggerRuleId || !rules || !formState) return false;
-      const triggerRule = rules.find(r => r.id === element.triggerRuleId);
-      if (!triggerRule) return false;
-      return evaluateRule(triggerRule, formState, configurations, sections);
-  }, [element, rules, formState, configurations, sections]);
-  
   useEffect(() => {
-    if (element.type === 'Popup' && showPopup) {
-      // Get the current values of the fields involved in the trigger rule
-      const triggerRule = rules.find(r => r.id === element.triggerRuleId);
-      const relevantState = triggerRule?.conditions.reduce((acc, cond) => {
-        if (cond.sourceElementId && formState?.[cond.sourceElementId]) {
-          acc[cond.sourceElementId] = formState[cond.sourceElementId].value;
-        }
-        return acc;
-      }, {} as any);
+    // This effect determines if a popup should be shown based on rules.
+    const popupBehavior = rules.flatMap(r => r.behaviors)
+                                .find(b => b.type === 'show_popup' && b.targetElementId);
 
-      // Only open the popup if the state that triggers it has changed, or if it hasn't been shown before for this state
-      if (JSON.stringify(relevantState) !== JSON.stringify(popupTriggerState)) {
-        setIsRulePopupOpen(true);
-        setPopupTriggerState(relevantState);
-      }
+    if (popupBehavior && popupBehavior.targetElementId) {
+        const rule = rules.find(r => r.behaviors.some(b => b.id === popupBehavior.id));
+        if (rule && evaluateRule(rule, formState, configurations, sections)) {
+            const relevantState = rule.conditions.reduce((acc, cond) => {
+                if (cond.sourceElementId && formState?.[cond.sourceElementId]) {
+                    acc[cond.sourceElementId] = formState[cond.sourceElementId].value;
+                }
+                return acc;
+            }, {} as any);
+
+            if (JSON.stringify(relevantState) !== JSON.stringify(popupTriggerState)) {
+                setIsRulePopupOpen(true);
+                setActivePopupElementId(popupBehavior.targetElementId);
+                setPopupTriggerState(relevantState);
+            }
+        }
     }
-  }, [showPopup, formState, element, rules, popupTriggerState]);
+}, [formState, rules, configurations, sections, popupTriggerState]);
 
 
   useEffect(() => {
@@ -386,11 +386,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       content = <Separator />;
       break;
     case "Popup":
+      const popupElement = allElements.find(el => el.id === activePopupElementId);
+      if (!isRulePopupOpen || !popupElement || popupElement.type !== 'Popup') {
+          return null;
+      }
       return (
         <FormPreviewPopup
           isOpen={isRulePopupOpen}
           onOpenChange={setIsRulePopupOpen}
-          element={element}
+          element={popupElement}
           formState={formState || {}}
         />
       );

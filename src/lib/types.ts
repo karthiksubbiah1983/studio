@@ -36,7 +36,6 @@ export type RuleBehavior = {
     targetElementId?: string; // For most behaviors
     color?: string; // For change_color
     targetProperty?: 'color' | 'backgroundColor'; // For change_color
-    message?: string; // For set_error
     value?: string; // For set_value and set_configuration
     targetConfigurationKey?: string; // For set_configuration
 }
@@ -165,7 +164,6 @@ export type FormElementInstance = {
     dateValidation?: 'all' | 'noFuture' | 'noPast' | 'dateRange';
     dateValidationRange?: { from: string | null; to: string | null; };
     // For Popup
-    triggerRuleId?: string | null;
     confirmButtonText?: string;
     cancelButtonText?: string;
     // For Preview
@@ -179,6 +177,9 @@ export type Section = {
     hidden?: boolean;
     elements: FormElementInstance[];
     exposeForValidation?: boolean; // New property
+    popupOnly?: boolean;
+    confirmButtonText?: string;
+    cancelButtonText?: string;
 };
 
 export type FormVersion = {
