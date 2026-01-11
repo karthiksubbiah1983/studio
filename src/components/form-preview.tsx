@@ -21,6 +21,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Zap } from "lucide-react";
 import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { FormPreviewPopup } from "./form-preview-popup";
 
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
@@ -103,6 +104,34 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: { sho
   const { rules, workflows, configurations, dispatch, activeForm, state, formState, setFormState, updateFormState } = useBuilder();
   const router = useRouter();
   const { toast } = useToast();
+  const [activePopup, setActivePopup] = useState<{ sectionId: string; confirmText: string; cancelText: string } | null>(null);
+
+  useEffect(() => {
+    if (!rules || !formState) return;
+
+    let popupToShow = null;
+    for (const rule of rules) {
+        if (evaluateRule(rule, formState, configurations, sections)) {
+            const popupBehavior = rule.behaviors.find(b => b.type === 'show_as_popup');
+            if (popupBehavior && popupBehavior.targetElementId) {
+                popupToShow = {
+                    sectionId: popupBehavior.targetElementId,
+                    confirmText: popupBehavior.confirmButtonText || 'OK',
+                    cancelText: popupBehavior.cancelButtonText || 'Cancel'
+                };
+                break; // Show the first matching popup
+            }
+        }
+    }
+    
+    // Only update if the popup state needs to change
+    if (popupToShow && activePopup?.sectionId !== popupToShow.sectionId) {
+        setActivePopup(popupToShow);
+    } else if (!popupToShow && activePopup) {
+         // Don't close it automatically, user interaction should close it.
+    }
+
+  }, [formState, rules, sections, configurations, activePopup]);
 
   const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
     updateFormState(elementId, value, fullObject);
@@ -177,6 +206,15 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: { sho
     }
   }
 
+  const handleClosePopup = () => {
+    // This logic needs to reset the condition that triggered the popup.
+    // This is complex. A simple solution is to just close the UI.
+    // The rule that showed it is likely still true, so it might reappear, which is a UX challenge.
+    // A better approach would be to have an "onConfirm" action in the rule.
+    // For now, we just close the dialog.
+    setActivePopup(null);
+  }
+
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => (
@@ -187,6 +225,17 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: { sho
                 Submit Form
             </Button>
         </div>}
+       {activePopup && (
+        <FormPreviewPopup
+          isOpen={true}
+          onOpenChange={handleClosePopup}
+          sectionIds={[activePopup.sectionId]}
+          formState={formState || {}}
+          confirmButtonText={activePopup.confirmText}
+          cancelButtonText={activePopup.cancelText}
+          onConfirm={handleClosePopup}
+        />
+      )}
     </div>
   );
 }

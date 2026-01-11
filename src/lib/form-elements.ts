@@ -1,7 +1,7 @@
 
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Eye, Upload, ListFilter, Table } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -21,7 +21,6 @@ export const FormElements: {
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'EditableTable', icon: Table, label: 'Editable Table' },
-    { type: 'Preview', icon: Eye, label: 'Preview Button' },
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
@@ -104,8 +103,6 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 allowUserToAddRows: true,
                 key: 'editable_table_1'
             };
-        case "Preview":
-            return { ...baseElement, label: "Preview Data", previewSectionIds: [], key: '' };
         case "FileUpload":
              return {
                 ...baseElement,

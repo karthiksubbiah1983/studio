@@ -7,27 +7,46 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { FormElementRenderer } from "./form-element";
 import { Section } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { cn } from "@/lib/utils";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+import { Button } from "./ui/button";
 
 type Props = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   sectionIds: string[];
   formState: { [key: string]: any };
+  confirmButtonText?: string;
+  cancelButtonText?: string;
+  onConfirm?: () => void;
 };
 
-export function FormPreviewPopup({ isOpen, onOpenChange, sectionIds, formState }: Props) {
-  const { sections, rules, dispatch } = useBuilder();
+export function FormPreviewPopup({ 
+    isOpen, 
+    onOpenChange, 
+    sectionIds, 
+    formState, 
+    confirmButtonText = 'OK', 
+    cancelButtonText = 'Cancel',
+    onConfirm
+}: Props) {
+  const { sections, dispatch } = useBuilder();
 
   const sectionsToPreview = sections.filter(s => sectionIds.includes(s.id));
 
   const handleValueChange = () => {
     // This is a read-only preview, so we don't need to handle value changes.
+    // The main form handles state updates.
+  };
+
+  const handleConfirm = () => {
+    if(onConfirm) onConfirm();
+    onOpenChange(false);
   };
   
   const renderSectionContent = (section: Section) => (
@@ -83,6 +102,10 @@ export function FormPreviewPopup({ isOpen, onOpenChange, sectionIds, formState }
             );
           })}
         </div>
+        <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>{cancelButtonText}</Button>
+            <Button onClick={handleConfirm}>{confirmButtonText}</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

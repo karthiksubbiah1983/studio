@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, EyeOff, Eye, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
+import { X, Plus, icons, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
 import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -72,7 +72,6 @@ export function PropertiesSidebar() {
   const getSelectedElementName = () => {
     if (!selected) return 'Properties';
     if ('type' in selected) {
-        if (selected.type === 'Preview') return 'Preview Button';
         if (selected.type === 'Combobox') return 'Combobox';
         return selected.type;
     }
@@ -1665,49 +1664,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     />
                                 </div>
                             )}
-                        </AccordionContent>
-                    </AccordionItem>
-                </Accordion>
-            );
-        case "Preview":
-            return (
-                <Accordion type="multiple" defaultValue={["general", "sections"]} className="w-full">
-                    <AccordionItem value="general">
-                        <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="label">Button Label</Label>
-                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="sections">
-                        <AccordionTrigger className="py-2">Sections to Preview</AccordionTrigger>
-                        <AccordionContent>
-                             <div className="flex flex-col gap-2">
-                                {sections.filter(s => s.popupOnly).map(section => (
-                                    <div key={section.id} className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id={`section-preview-${section.id}`}
-                                            checked={(props.previewSectionIds || []).includes(section.id)}
-                                            onCheckedChange={(checked) => {
-                                                const currentIds = props.previewSectionIds || [];
-                                                let newIds;
-                                                if (checked) {
-                                                    newIds = [...currentIds, section.id];
-                                                } else {
-                                                    newIds = currentIds.filter(id => id !== section.id);
-                                                }
-                                                updateProperty('previewSectionIds', newIds);
-                                            }}
-                                        />
-                                        <Label htmlFor={`section-preview-${section.id}`}>{section.title}</Label>
-                                    </div>
-                                ))}
-                                 {sections.filter(s => s.popupOnly).length === 0 && (
-                                    <p className="text-xs text-muted-foreground">No 'Popup Only' sections found. Enable this setting on a section to select it here.</p>
-                                )}
-                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

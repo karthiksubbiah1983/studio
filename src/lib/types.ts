@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "Preview" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -12,7 +12,7 @@ export type RuleConditionOperator =
     | 'contains'
     | 'not_contains';
 
-export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_error' | 'set_value' | 'set_configuration';
+export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_error' | 'set_value' | 'set_configuration' | 'show_as_popup';
 
 export type ConditionSourceType = 'field' | 'date' | 'status' | 'config';
 export type ConditionComparisonType = 'value' | 'field' | 'date' | 'status' | 'config';
@@ -39,6 +39,8 @@ export type RuleBehavior = {
     message?: string; // For set_error
     value?: string; // For set_value and set_configuration
     targetConfigurationKey?: string; // For set_configuration
+    confirmButtonText?: string; // For show_as_popup
+    cancelButtonText?: string; // For show_as_popup
 }
 
 export type Rule = {
@@ -148,8 +150,6 @@ export type FormElementInstance = {
     justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
     width?: string;
-    // For Preview
-    previewSectionIds?: string[];
     // For FileUpload
     allowedFileTypes?: string[];
     maxFileSize?: number; // in MB

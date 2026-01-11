@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Link, icons, Eye, Upload, CalendarDays, Grid, List, ListFilter, Table } from "lucide-react";
+import { Link, icons, Upload, CalendarDays, Grid, List, ListFilter, Table } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -193,16 +193,6 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                 </div>
             </div>
         );
-    case "Preview":
-        return (
-            <div>
-                {renderLabel()}
-                <Button variant="outline" className="w-full" disabled>
-                    <Eye className="mr-2 h-4 w-4" />
-                    {label}
-                </Button>
-            </div>
-        )
     case "FileUpload":
         return (
              <div>
