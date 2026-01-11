@@ -50,7 +50,7 @@ export function FormPreviewPopup({
   };
   
   const renderSectionContent = (section: Section) => (
-    <div className={cn("grid gap-4 grid-cols-1", section.displayMode !== 'accordion' && 'p-6 pt-0')}>
+    <div className={cn("grid gap-4 grid-cols-1")}>
       {section.elements.map(element => (
         <FormElementRenderer
           key={element.id}
@@ -65,45 +65,47 @@ export function FormPreviewPopup({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl flex flex-col">
+      <DialogContent className="max-w-2xl flex flex-col">
         <DialogHeader>
           <DialogTitle>Form Preview</DialogTitle>
         </DialogHeader>
-        <div className="overflow-y-auto p-4 space-y-4">
-          {sectionsToPreview.map(section => {
-            if (section.displayMode === 'accordion') {
-                return (
-                    <Accordion type="single" collapsible defaultValue={section.id} key={section.id}>
-                        <AccordionItem value={section.id}>
-                            <Card>
-                                <AccordionTrigger className="w-full p-6 text-base font-medium">
-                                   {section.title}
-                                </AccordionTrigger>
-                                <AccordionContent>
-                                    <CardContent>
-                                        {renderSectionContent(section)}
-                                    </CardContent>
-                                </AccordionContent>
-                            </Card>
-                        </AccordionItem>
-                    </Accordion>
-                );
-            }
+        <div className="flex-1 overflow-y-auto -mx-6 px-6 py-4 border-y">
+            <div className="space-y-4">
+            {sectionsToPreview.map(section => {
+                if (section.displayMode === 'accordion') {
+                    return (
+                        <Accordion type="single" collapsible defaultValue={section.id} key={section.id}>
+                            <AccordionItem value={section.id}>
+                                <Card>
+                                    <AccordionTrigger className="w-full p-6 text-base font-medium">
+                                    {section.title}
+                                    </AccordionTrigger>
+                                    <AccordionContent>
+                                        <CardContent>
+                                            {renderSectionContent(section)}
+                                        </CardContent>
+                                    </AccordionContent>
+                                </Card>
+                            </AccordionItem>
+                        </Accordion>
+                    );
+                }
 
-            return (
-              <Card key={section.id}>
-                <CardHeader>
-                  <CardTitle className="text-base font-medium">{section.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {renderSectionContent(section)}
-                </CardContent>
-              </Card>
-            );
-          })}
+                return (
+                <Card key={section.id}>
+                    <CardHeader>
+                    <CardTitle className="text-base font-medium">{section.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                    {renderSectionContent(section)}
+                    </CardContent>
+                </Card>
+                );
+            })}
+            </div>
         </div>
         {(cancelButtonText || confirmButtonText) && (
-            <DialogFooter className="border-t pt-4">
+            <DialogFooter>
                 {cancelButtonText && <Button variant="outline" onClick={() => onOpenChange(false)}>{cancelButtonText}</Button>}
                 {confirmButtonText && <Button onClick={handleConfirm}>{confirmButtonText}</Button>}
             </DialogFooter>
