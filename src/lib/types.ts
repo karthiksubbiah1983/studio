@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Preview";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -39,16 +39,6 @@ export type RuleBehavior = {
     message?: string; // For set_error
     value?: string; // For set_value and set_configuration
     targetConfigurationKey?: string; // For set_configuration
-    confirmButtonText?: string; // For show_as_popup
-    cancelButtonText?: string; // For show_as_popup
-}
-
-export type Rule = {
-    id: string;
-    name: string;
-    conditions: Condition[];
-    logicType: 'and' | 'or';
-    behaviors: RuleBehavior[];
 }
 
 export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Escalated' | 'Assigned' | 'Submitted';
@@ -174,6 +164,8 @@ export type FormElementInstance = {
     // For DatePicker
     dateValidation?: 'all' | 'noFuture' | 'noPast' | 'dateRange';
     dateValidationRange?: { from: string | null; to: string | null; };
+    // For Preview
+    previewSectionIds?: string[];
 };
 
 export type Section = {
@@ -181,6 +173,8 @@ export type Section = {
     title: string;
     displayMode?: 'default' | 'accordion';
     popupOnly?: boolean;
+    confirmButtonText?: string;
+    cancelButtonText?: string;
     hidden?: boolean;
     elements: FormElementInstance[];
     exposeForValidation?: boolean; // New property

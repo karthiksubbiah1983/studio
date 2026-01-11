@@ -494,27 +494,6 @@ const BehaviorEditor = memo(({
                     />
                 </div>
             )}
-            
-            {behavior.type === 'show_as_popup' && (
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label>Confirm Button Text</Label>
-                        <Input
-                            placeholder="OK"
-                            defaultValue={behavior.confirmButtonText}
-                            onBlur={(e) => handleUpdate('confirmButtonText', e.target.value)}
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Cancel Button Text</Label>
-                        <Input
-                            placeholder="Cancel"
-                            defaultValue={behavior.cancelButtonText}
-                            onBlur={(e) => handleUpdate('cancelButtonText', e.target.value)}
-                        />
-                    </div>
-                </div>
-            )}
         </div>
     )
 });

@@ -96,37 +96,14 @@ const SectionRenderer = ({ section }: { section: Section }) => {
 
 
 export function FormPreview({ showSubmitButton = true, sections, taskId }: { showSubmitButton?: boolean; sections: Section[]; taskId?: string; }) {
-  const { rules, workflows, configurations, dispatch, activeForm, state, formState, setFormState, updateFormState } = useBuilder();
+  const { rules, workflows, configurations, dispatch, activeForm, state, formState, setFormState, updateFormState, activePopup, setActivePopup } = useBuilder();
   const router = useRouter();
   const { toast } = useToast();
-  const [activePopup, setActivePopup] = useState<{ sectionId: string; confirmText: string; cancelText: string } | null>(null);
 
   useEffect(() => {
-    if (!rules || !formState) return;
-
-    let popupToShow = null;
-    for (const rule of rules) {
-        if (evaluateRule(rule, formState, configurations, sections)) {
-            const popupBehavior = rule.behaviors.find(b => b.type === 'show_as_popup');
-            if (popupBehavior && popupBehavior.targetElementId) {
-                popupToShow = {
-                    sectionId: popupBehavior.targetElementId,
-                    confirmText: popupBehavior.confirmButtonText || 'OK',
-                    cancelText: popupBehavior.cancelButtonText || 'Cancel'
-                };
-                break; // Show the first matching popup
-            }
-        }
-    }
-    
-    // Only update if the popup state needs to change
-    if (popupToShow && activePopup?.sectionId !== popupToShow.sectionId) {
-        setActivePopup(popupToShow);
-    } else if (!popupToShow && activePopup) {
-         // Don't close it automatically, user interaction should close it.
-    }
-
-  }, [formState, rules, sections, configurations, activePopup]);
+    // This effect is now handled centrally in useBuilder, but we keep this stub
+    // in case component-specific logic is needed in the future.
+  }, [formState, rules, sections, configurations]);
 
   const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
     updateFormState(elementId, value, fullObject);
@@ -202,11 +179,8 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: { sho
   }
 
   const handleClosePopup = () => {
-    // This logic needs to reset the condition that triggered the popup.
-    // This is complex. A simple solution is to just close the UI.
-    // The rule that showed it is likely still true, so it might reappear, which is a UX challenge.
-    // A better approach would be to have an "onConfirm" action in the rule.
-    // For now, we just close the dialog.
+    // A simple way to handle closing is to set the active popup state to null.
+    // The rule engine will re-evaluate on the next state change and may re-open it if conditions are still met.
     setActivePopup(null);
   }
 

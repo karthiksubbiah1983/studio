@@ -153,6 +153,26 @@ function SectionProperties({ section }: { section: Section }) {
                                 onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, popupOnly: checked } })}
                             />
                         </div>
+                         {section.popupOnly && (
+                            <div className="space-y-4 pt-4 border-t">
+                                 <div className="space-y-2">
+                                    <Label>Confirm Button Text</Label>
+                                    <Input
+                                        placeholder="OK"
+                                        value={section.confirmButtonText || ''}
+                                        onChange={(e) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, confirmButtonText: e.target.value } })}
+                                    />
+                                </div>
+                                 <div className="space-y-2">
+                                    <Label>Cancel Button Text</Label>
+                                    <Input
+                                        placeholder="Cancel"
+                                        value={section.cancelButtonText || ''}
+                                        onChange={(e) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, cancelButtonText: e.target.value } })}
+                                    />
+                                </div>
+                            </div>
+                         )}
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
@@ -826,6 +846,36 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       switch(props.type) {
         case "Separator":
             return null;
+        case "Preview":
+             return (
+                <Accordion type="multiple" defaultValue={["general", "sections"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="sections">
+                        <AccordionTrigger className="py-2">Sections to Preview</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-2">
+                             {sections.filter(s => s.popupOnly).map(section => (
+                                <div key={section.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`preview-${section.id}`}
+                                        checked={props.previewSectionIds?.includes(section.id)}
+                                        onCheckedChange={(checked) => {
+                                            const currentIds = props.previewSectionIds || [];
+                                            const newIds = checked ? [...currentIds, section.id] : currentIds.filter(id => id !== section.id);
+                                            updateProperty('previewSectionIds', newIds);
+                                        }}
+                                    />
+                                    <Label htmlFor={`preview-${section.id}`}>{section.title}</Label>
+                                </div>
+                            ))}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+             );
         case "Container":
              return (
                 <Accordion type="multiple" defaultValue={["general", "layout"]} className="w-full">

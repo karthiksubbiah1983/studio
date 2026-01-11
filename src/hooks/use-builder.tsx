@@ -231,6 +231,7 @@ type State = {
   draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null;
   clipboard: ClipboardItem | null;
   formState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } };
+  activePopup: { sectionId: string, confirmText: string, cancelText: string } | null;
 };
 
 const initialState: State = {
@@ -244,6 +245,7 @@ const initialState: State = {
   draggedElement: null,
   clipboard: null,
   formState: {},
+  activePopup: null,
 };
 
 // Helper function to deep clone and assign new IDs
@@ -472,7 +474,8 @@ type Action =
   | { type: "ADD_TASK"; payload: { formId: string; versionId: string; siteId: string; assignedAt: string; } }
   | { type: "SET_USER_SETTINGS"; payload: { categories: Category[], sites: Site[] } }
   | { type: "SET_FORM_STATE"; payload: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } }
-  | { type: "UPDATE_USER_DRIVEN_STATE"; payload: { elementId: string; value: any; fullObject?: any, isVisible?: boolean } };
+  | { type: "UPDATE_USER_DRIVEN_STATE"; payload: { elementId: string; value: any; fullObject?: any, isVisible?: boolean } }
+  | { type: "SET_ACTIVE_POPUP"; payload: { sectionId: string, confirmText: string, cancelText: string } | null };
 
 
 const builderReducer = (state: State, action: Action): State => {
@@ -519,6 +522,8 @@ const builderReducer = (state: State, action: Action): State => {
         };
         return newState;
     }
+    case "SET_ACTIVE_POPUP":
+      return { ...state, activePopup: action.payload };
     case "ADD_SITE": {
       const newSite: Site = { id: crypto.randomUUID(), name: action.payload.name };
       return { ...state, sites: [...state.sites, newSite] };
@@ -920,6 +925,8 @@ type BuilderContextType = {
   formState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } };
   setFormState: (state: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } }) => void;
   updateFormState: (elementId: string, value: any, fullObject?: any, isVisible?: boolean) => void;
+  activePopup: { sectionId: string, confirmText: string, cancelText: string } | null;
+  setActivePopup: (popup: { sectionId: string, confirmText: string, cancelText: string } | null) => void;
 };
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
@@ -991,7 +998,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const rules = activeForm?.versions[0]?.rules || [];
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
-  
+  const activePopup = state.activePopup;
+
   // Reactive rules engine
   useEffect(() => {
     if (!isLoaded || !activeForm) return;
@@ -1010,8 +1018,11 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
         }
         
+        let popupToShow: { sectionId: string; confirmText: string; cancelText: string; } | null = null;
+        
         if (!rules || rules.length === 0) {
             dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+            dispatch({ type: "SET_ACTIVE_POPUP", payload: null });
             return;
         }
 
@@ -1071,10 +1082,24 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                 });
             } else {
                 if (evaluateRule(rule, nextFormState, configurations, sections)) {
-                    rule.behaviors.forEach(b => applyBehavior(b));
+                    rule.behaviors.forEach(b => {
+                        applyBehavior(b)
+                        if (b.type === 'show_as_popup' && b.targetElementId) {
+                            const targetSection = sections.find(s => s.id === b.targetElementId);
+                            if (targetSection) {
+                                popupToShow = {
+                                    sectionId: b.targetElementId,
+                                    confirmText: targetSection.confirmButtonText || "OK",
+                                    cancelText: targetSection.cancelButtonText || "Cancel"
+                                };
+                            }
+                        }
+                    });
                 }
             }
         });
+        
+        dispatch({ type: "SET_ACTIVE_POPUP", payload: popupToShow });
 
         // 6. Apply all collected global behaviors to the nextFormState.
         activeBehaviors.forEach((behaviors, targetId) => {
@@ -1161,6 +1186,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: 'UPDATE_USER_DRIVEN_STATE', payload: { elementId, value, fullObject, isVisible } });
     setUserDrivenState({ elementId, value, timestamp: Date.now() });
   }
+  
+  const setActivePopup = (popup: { sectionId: string, confirmText: string, cancelText: string } | null) => {
+    dispatch({ type: "SET_ACTIVE_POPUP", payload: popup });
+  };
 
   const enhancedDispatch = (action: Action) => {
     if (action.type === 'UPDATE_ELEMENT') {
@@ -1183,7 +1212,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch: enhancedDispatch, addNewForm, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState }}>
+    <BuilderContext.Provider value={{ state, dispatch: enhancedDispatch, addNewForm, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState, activePopup, setActivePopup }}>
       {children}
     </BuilderContext.Provider>
   );
