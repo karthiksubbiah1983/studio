@@ -1685,7 +1685,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Sections to Preview</AccordionTrigger>
                         <AccordionContent>
                              <div className="flex flex-col gap-2">
-                                {sections.map(section => (
+                                {sections.filter(s => s.popupOnly).map(section => (
                                     <div key={section.id} className="flex items-center space-x-2">
                                         <Checkbox 
                                             id={`section-preview-${section.id}`}
@@ -1704,6 +1704,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <Label htmlFor={`section-preview-${section.id}`}>{section.title}</Label>
                                     </div>
                                 ))}
+                                 {sections.filter(s => s.popupOnly).length === 0 && (
+                                    <p className="text-xs text-muted-foreground">No 'Popup Only' sections found. Enable this setting on a section to select it here.</p>
+                                )}
                             </div>
                         </AccordionContent>
                     </AccordionItem>

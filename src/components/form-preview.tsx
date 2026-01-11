@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -54,6 +55,10 @@ const SectionRenderer = ({ section }: { section: Section }) => {
             {renderElements(section.elements)}
         </div>
     );
+    
+    if (section.popupOnly) {
+        return null;
+    }
     
     // Read visibility directly from the central formState
     if (formState[section.id]?.isVisible === false) {
