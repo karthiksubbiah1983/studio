@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Table, Link, icons, Eye, Upload, CalendarDays, Grid, List } from "lucide-react";
+import { Table, Link, icons, Eye, Upload, CalendarDays, Grid, List, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -170,6 +170,14 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         )
     case "Container":
       return null;
+    case "Popup":
+        return (
+            <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
+                <MessageSquare className="h-12 w-12 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Popup Placeholder</p>
+                <p className="text-xs text-muted-foreground/70 text-center">This will be hidden. It opens in a dialog based on a rule.</p>
+            </div>
+        )
     case "EditableTable":
         return (
             <div>
@@ -211,3 +219,5 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
       return <div>Unsupported element type</div>;
   }
 }
+
+    
