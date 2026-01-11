@@ -506,7 +506,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           <div className={cn(finalLabelDirection === 'horizontal' && 'flex-1')}>
             <Input 
               placeholder={placeholder}
-              value={localValue}
+              value={isReadOnly ? (element.defaultValue || '') : localValue}
               onChange={handleLocalInputChange}
               onBlur={handleBlur}
               style={appliedStyles.style}
@@ -1101,6 +1101,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
