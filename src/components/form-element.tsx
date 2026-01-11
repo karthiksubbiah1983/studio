@@ -290,7 +290,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -459,8 +459,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
     }
     case "Container": {
-        const { elements, direction, justify, align, width } = element;
-        const containerStyle = { ...appliedStyles.style, width: width || 'auto' };
+        const { elements, direction, justify, align } = element;
+        const containerStyle: React.CSSProperties = { ...appliedStyles.style };
         content = (
             <div style={containerStyle} className={cn("flex gap-4",
                 direction === 'horizontal' ? 'flex-row' : 'flex-col',
@@ -508,7 +508,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           <div className={cn(finalLabelDirection === 'horizontal' && 'flex-1')}>
             <Input 
               placeholder={placeholder}
-              value={isReadOnly ? (element.defaultValue || '') : localValue}
+              value={isReadOnly ? (value || element.defaultValue || '') : localValue}
               onChange={handleLocalInputChange}
               onBlur={handleBlur}
               style={appliedStyles.style}
@@ -1095,7 +1095,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
   }
 
-  return <div className={cn(!isParentHorizontal && 'flex-1', isTableCell && 'p-0')}>{content}</div>;
+  const wrapperStyle = element.type === 'Container' && width ? { width } : {};
+
+  return <div style={wrapperStyle}>{content}</div>;
 }
 
 const alignmentClasses = {
@@ -1119,6 +1121,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
