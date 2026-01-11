@@ -21,7 +21,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Zap } from "lucide-react";
 import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { FormPreviewPopup } from "./form-preview-popup";
 
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
@@ -96,7 +95,7 @@ const SectionRenderer = ({ section }: { section: Section }) => {
 
 
 export function FormPreview({ showSubmitButton = true, sections, taskId }: { showSubmitButton?: boolean; sections: Section[]; taskId?: string; }) {
-  const { rules, workflows, configurations, dispatch, activeForm, state, formState, setFormState, updateFormState, activePopup, setActivePopup } = useBuilder();
+  const { rules, workflows, configurations, dispatch, activeForm, state, formState, setFormState, updateFormState } = useBuilder();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -178,12 +177,6 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: { sho
     }
   }
 
-  const handleClosePopup = () => {
-    // A simple way to handle closing is to set the active popup state to null.
-    // The rule engine will re-evaluate on the next state change and may re-open it if conditions are still met.
-    setActivePopup(null);
-  }
-
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => (
@@ -194,17 +187,6 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: { sho
                 Submit Form
             </Button>
         </div>}
-       {activePopup && (
-        <FormPreviewPopup
-          isOpen={true}
-          onOpenChange={handleClosePopup}
-          sectionIds={[activePopup.sectionId]}
-          formState={formState || {}}
-          confirmButtonText={activePopup.confirmText}
-          cancelButtonText={activePopup.cancelText}
-          onConfirm={handleClosePopup}
-        />
-      )}
     </div>
   );
 }

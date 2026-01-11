@@ -1,7 +1,7 @@
 
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -21,6 +21,7 @@ export const FormElements: {
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'EditableTable', icon: Table, label: 'Editable Table' },
+    { type: 'Popup', icon: MessageSquare, label: 'Popup'},
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
@@ -90,6 +91,8 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
             return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false, key: '' };
         case "Container":
             return { ...baseElement, label: "Container", elements: [], direction: 'vertical', justify: 'start', align: 'stretch', exposeForValidation: false, key: '', width: '100%' };
+        case "Popup":
+            return { ...baseElement, label: "Popup Trigger", elements: [], direction: 'vertical', justify: 'start', align: 'stretch', triggerRuleId: null, confirmButtonText: 'OK', cancelButtonText: 'Cancel' };
         case "EditableTable":
             return {
                 ...baseElement,

@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Preview";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -12,7 +12,7 @@ export type RuleConditionOperator =
     | 'contains'
     | 'not_contains';
 
-export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_error' | 'set_value' | 'set_configuration' | 'show_as_popup';
+export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_error' | 'set_value' | 'set_configuration';
 
 export type ConditionSourceType = 'field' | 'date' | 'status' | 'config';
 export type ConditionComparisonType = 'value' | 'field' | 'date' | 'status' | 'config';
@@ -133,9 +133,9 @@ export type FormElementInstance = {
     popup?: PopupConfig;
     // For RichText
     content?: string;
-    // For Container, RadioGroup, Display
+    // For Container, RadioGroup, Display, Popup
     direction?: 'horizontal' | 'vertical';
-    // For Container
+    // For Container, Popup
     elements?: FormElementInstance[];
     justify?: 'start' | 'center' | 'end' | 'between' | 'around' | 'evenly';
     align?: 'start' | 'center' | 'end' | 'stretch' | 'baseline';
@@ -164,17 +164,16 @@ export type FormElementInstance = {
     // For DatePicker
     dateValidation?: 'all' | 'noFuture' | 'noPast' | 'dateRange';
     dateValidationRange?: { from: string | null; to: string | null; };
-    // For Preview
-    previewSectionIds?: string[];
+    // For Popup
+    triggerRuleId?: string | null;
+    confirmButtonText?: string;
+    cancelButtonText?: string;
 };
 
 export type Section = {
     id: string;
     title: string;
     displayMode?: 'default' | 'accordion';
-    popupOnly?: boolean;
-    confirmButtonText?: string;
-    cancelButtonText?: string;
     hidden?: boolean;
     elements: FormElementInstance[];
     exposeForValidation?: boolean; // New property

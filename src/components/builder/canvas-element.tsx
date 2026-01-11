@@ -7,7 +7,7 @@ import { FormElementInstance } from "@/lib/types";
 import { ElementPreview } from "./element-preview";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
-import { Copy, Trash, ClipboardCopy, EyeOff } from "lucide-react";
+import { Copy, Trash, ClipboardCopy, EyeOff, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Layout } from "lucide-react";
@@ -127,9 +127,9 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
     e.stopPropagation();
     dispatch({ type: 'COPY_TO_CLIPBOARD', payload: { type: 'element', content: element } });
   }
-
-  if (element.type === 'Container') {
-    const alignmentClasses = {
+  
+  const renderContainer = (el: FormElementInstance, isPopup: boolean) => {
+     const alignmentClasses = {
         justify: {
             start: 'justify-start',
             center: 'justify-center',
@@ -147,12 +147,12 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
         }
     }
     return (
-        <div
+         <div
           onMouseEnter={() => setMouseIsOver(true)}
           onMouseLeave={() => setMouseIsOver(false)}
           onClick={(e) => {
             e.stopPropagation();
-            dispatch({ type: "SELECT_ELEMENT", payload: { elementId: element.id, sectionId } });
+            dispatch({ type: "SELECT_ELEMENT", payload: { elementId: el.id, sectionId } });
           }}
           className={cn(
             "relative flex flex-col p-4 pt-8 cursor-pointer bg-card transition-all",
@@ -161,8 +161,8 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
         >
           <div className="absolute top-2 left-2 z-10">
             <Badge variant="secondary" className="border-primary/50 border">
-              <Layout className="h-3 w-3 mr-1" />
-              Container
+              {isPopup ? <MessageSquare className="h-3 w-3 mr-1" /> : <Layout className="h-3 w-3 mr-1" />}
+              {isPopup ? 'Popup' : 'Container'}
             </Badge>
           </div>
           {mouseIsOver && (
@@ -181,7 +181,7 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
                 className="h-6 w-6"
                 onClick={(e) => {
                   e.stopPropagation();
-                  dispatch({ type: "CLONE_ELEMENT", payload: { elementId: element.id, sectionId } });
+                  dispatch({ type: "CLONE_ELEMENT", payload: { elementId: el.id, sectionId } });
                 }}
               >
                 <Copy className="h-3 w-3" />
@@ -192,27 +192,27 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
                 className="h-6 w-6"
                 onClick={(e) => {
                   e.stopPropagation();
-                  dispatch({ type: "DELETE_ELEMENT", payload: { elementId: element.id, sectionId } });
+                  dispatch({ type: "DELETE_ELEMENT", payload: { elementId: el.id, sectionId } });
                 }}
               >
                 <Trash className="h-3 w-3" />
               </Button>
             </div>
           )}
-           <ElementPreview element={element} />
+           <ElementPreview element={el} />
            <div 
             onDragOver={(e) => {e.preventDefault(); e.stopPropagation(); if(isElementBeingDragged) setIsOverContainer(true)}}
             onDragLeave={(e) => {e.preventDefault(); e.stopPropagation(); setIsOverContainer(false)}}
             onDrop={handleContainerDrop}
             className={cn("flex-1 min-h-[100px] border-dashed border-2 p-4",
-              element.direction === 'horizontal' ? 'flex flex-row gap-2' : 'flex flex-col gap-4',
-              element.justify && alignmentClasses.justify[element.justify],
-              element.align && alignmentClasses.align[element.align],
+              el.direction === 'horizontal' ? 'flex flex-row gap-2' : 'flex flex-col gap-4',
+              el.justify && alignmentClasses.justify[el.justify],
+              el.align && alignmentClasses.align[el.align],
               isOverContainer && isElementBeingDragged && "border-primary bg-accent/20"
             )}
            >
-            {element.elements && element.elements.length > 0 ? (
-                element.elements.map((childElement, idx) => (
+            {el.elements && el.elements.length > 0 ? (
+                el.elements.map((childElement, idx) => (
                     <CanvasElement key={childElement.id} element={childElement} sectionId={sectionId} index={idx} isNested={true} />
                 ))
             ) : (
@@ -223,6 +223,13 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
            </div>
         </div>
     )
+  }
+
+  if (element.type === 'Container') {
+    return renderContainer(element, false);
+  }
+  if (element.type === 'Popup') {
+    return renderContainer(element, true);
   }
 
   return (

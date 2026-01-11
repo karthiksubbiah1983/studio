@@ -231,7 +231,7 @@ type State = {
   draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null;
   clipboard: ClipboardItem | null;
   formState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } };
-  activePopup: { sectionId: string, confirmText: string, cancelText: string } | null;
+  activePopupId: string | null;
 };
 
 const initialState: State = {
@@ -245,7 +245,7 @@ const initialState: State = {
   draggedElement: null,
   clipboard: null,
   formState: {},
-  activePopup: null,
+  activePopupId: null,
 };
 
 // Helper function to deep clone and assign new IDs
@@ -325,7 +325,7 @@ const findAndModifyElement = (elements: FormElementInstance[], action: Action): 
 
              if (parentId) { // Add to container
                 return elements.map(el => {
-                    if (el.id === parentId && el.type === 'Container') {
+                    if (el.id === parentId && (el.type === 'Container' || el.type === 'Popup')) {
                         const newElement = createNewElement(type, newElementId);
                         const newElements = [...(el.elements || [])];
                         if (index !== undefined) {
@@ -403,7 +403,7 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
     sections.forEach(section => {
         state[section.id] = {
             value: undefined,
-            isVisible: !section.popupOnly && !section.hidden
+            isVisible: !section.hidden
         }
     });
     
@@ -412,7 +412,7 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
         if ('id' in element && !state[element.id]) { // Ensure not to overwrite section state
             state[element.id] = { 
                 value: 'defaultValue' in element ? element.defaultValue : undefined,
-                isVisible: !element.hidden
+                isVisible: !element.hidden && element.type !== 'Popup'
             };
              if (element.type === 'EditableTable' && element.defaultRows) {
                 const tableRows: any[] = [];
@@ -475,7 +475,7 @@ type Action =
   | { type: "SET_USER_SETTINGS"; payload: { categories: Category[], sites: Site[] } }
   | { type: "SET_FORM_STATE"; payload: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } }
   | { type: "UPDATE_USER_DRIVEN_STATE"; payload: { elementId: string; value: any; fullObject?: any, isVisible?: boolean } }
-  | { type: "SET_ACTIVE_POPUP"; payload: { sectionId: string, confirmText: string, cancelText: string } | null };
+  | { type: "SET_ACTIVE_POPUP"; payload: string | null };
 
 
 const builderReducer = (state: State, action: Action): State => {
@@ -523,7 +523,7 @@ const builderReducer = (state: State, action: Action): State => {
         return newState;
     }
     case "SET_ACTIVE_POPUP":
-      return { ...state, activePopup: action.payload };
+      return { ...state, activePopupId: action.payload };
     case "ADD_SITE": {
       const newSite: Site = { id: crypto.randomUUID(), name: action.payload.name };
       return { ...state, sites: [...state.sites, newSite] };
@@ -925,8 +925,8 @@ type BuilderContextType = {
   formState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } };
   setFormState: (state: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } }) => void;
   updateFormState: (elementId: string, value: any, fullObject?: any, isVisible?: boolean) => void;
-  activePopup: { sectionId: string, confirmText: string, cancelText: string } | null;
-  setActivePopup: (popup: { sectionId: string, confirmText: string, cancelText: string } | null) => void;
+  activePopupId: string | null;
+  setActivePopupId: (id: string | null) => void;
 };
 
 const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
@@ -998,7 +998,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const rules = activeForm?.versions[0]?.rules || [];
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
-  const activePopup = state.activePopup;
+  const activePopupId = state.activePopupId;
 
   // Reactive rules engine
   useEffect(() => {
@@ -1018,7 +1018,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
         }
         
-        let popupToShow: { sectionId: string; confirmText: string; cancelText: string; } | null = null;
+        let popupToShowId: string | null = null;
         
         if (!rules || rules.length === 0) {
             dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
@@ -1068,39 +1068,20 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         };
 
         // 5. Evaluate all rules and apply their behaviors.
-        rules.forEach(rule => {
-            const sourceElement = findElementRecursive(sections, rule.conditions[0]?.sourceElementId || '');
-            const isTableRule = !!sourceElement?.isTableColumn;
-            const tableElementId = isTableRule ? allElements.find(el => el.type === 'EditableTable' && el.columns?.some(c => c.element.id === sourceElement!.id))?.id : undefined;
-
-            if (isTableRule && tableElementId && nextFormState[tableElementId]?.value) {
-                (nextFormState[tableElementId].value as any[]).forEach(row => {
-                    const rowContext = { ...nextFormState, ...row };
-                     if (evaluateRule(rule, rowContext, configurations, sections)) {
-                        rule.behaviors.forEach(b => applyBehavior(b, row));
+        allElements.filter(el => el.type === 'Popup').forEach(popupEl => {
+            if (popupEl.triggerRuleId) {
+                const rule = rules.find(r => r.id === popupEl.triggerRuleId);
+                if (rule && evaluateRule(rule, nextFormState, configurations, sections)) {
+                    // Only show the first popup whose rule is met.
+                    if (!popupToShowId) {
+                         popupToShowId = popupEl.id;
                     }
-                });
-            } else {
-                if (evaluateRule(rule, nextFormState, configurations, sections)) {
-                    rule.behaviors.forEach(b => {
-                        applyBehavior(b)
-                        if (b.type === 'show_as_popup' && b.targetElementId) {
-                            const targetSection = sections.find(s => s.id === b.targetElementId);
-                            if (targetSection) {
-                                popupToShow = {
-                                    sectionId: b.targetElementId,
-                                    confirmText: targetSection.confirmButtonText || "OK",
-                                    cancelText: targetSection.cancelButtonText || "Cancel"
-                                };
-                            }
-                        }
-                    });
                 }
             }
         });
         
-        dispatch({ type: "SET_ACTIVE_POPUP", payload: popupToShow });
-
+        dispatch({ type: "SET_ACTIVE_POPUP", payload: popupToShowId });
+        
         // 6. Apply all collected global behaviors to the nextFormState.
         activeBehaviors.forEach((behaviors, targetId) => {
             const currentTargetState = nextFormState[targetId] || {};
@@ -1187,8 +1168,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     setUserDrivenState({ elementId, value, timestamp: Date.now() });
   }
   
-  const setActivePopup = (popup: { sectionId: string, confirmText: string, cancelText: string } | null) => {
-    dispatch({ type: "SET_ACTIVE_POPUP", payload: popup });
+  const setActivePopupId = (id: string | null) => {
+    dispatch({ type: "SET_ACTIVE_POPUP", payload: id });
   };
 
   const enhancedDispatch = (action: Action) => {
@@ -1212,7 +1193,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch: enhancedDispatch, addNewForm, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState, activePopup, setActivePopup }}>
+    <BuilderContext.Provider value={{ state, dispatch: enhancedDispatch, addNewForm, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState, activePopupId, setActivePopupId }}>
       {children}
     </BuilderContext.Provider>
   );
