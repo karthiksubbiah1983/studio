@@ -4,7 +4,7 @@ import { FormElementInstance, ElementType } from "./types";
 import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare, Grid } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-export const FormElements: {
+export const BasicFormElements: {
   type: ElementType;
   icon: LucideIcon;
   label: string;
@@ -20,11 +20,19 @@ export const FormElements: {
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
-    { type: 'EditableTable', icon: Table, label: 'Editable Table' },
-    { type: 'DataGrid', icon: Grid, label: 'Data Grid' },
     { type: 'Popup', icon: MessageSquare, label: 'Popup'},
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
+];
+
+
+export const FunctionalFormElements: {
+  type: ElementType;
+  icon: LucideIcon;
+  label: string;
+}[] = [
+    { type: 'EditableTable', icon: Table, label: 'Editable Table' },
+    { type: 'DataGrid', icon: Grid, label: 'Task History' },
 ];
 
 export const createNewElement = (type: ElementType, id?: string): FormElementInstance => {
