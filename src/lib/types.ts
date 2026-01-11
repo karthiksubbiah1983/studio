@@ -107,6 +107,7 @@ export type FormElementInstance = {
     description?: string; // Corresponds to JSON Schema description
     helperText?: string;
     exposeForValidation?: boolean; // New property
+    readOnly?: boolean;
     // For Input
     inputFormat?: 'text' | 'number' | 'alphanumeric';
     fixedLength?: number;
@@ -134,7 +135,7 @@ export type FormElementInstance = {
     linkUrlSourceElementId?: string | null;
     leadText?: string;
     formatType?: 'none' | 'currency' | 'percentage' | 'decimal';
-    currency?: string; // Changed from currencySymbol
+    currency?: string; 
     decimalPlaces?: number;
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
@@ -167,6 +168,8 @@ export type FormElementInstance = {
     maxRows?: number;
     enableSearch?: boolean;
     allowUserToAddRows?: boolean;
+    // General Layout
+    labelDirection?: 'horizontal' | 'vertical';
 };
 
 export type Section = {

@@ -1173,7 +1173,38 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="defaultValue">Default Value</Label>
                                 <Input id="defaultValue" value={props.defaultValue || ''} onChange={(e) => updateProperty('defaultValue', e.target.value)} />
                             </div>
-                            <div className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="readOnly">Read-Only</Label>
+                                <Switch id="readOnly" checked={props.readOnly} onCheckedChange={(checked) => updateProperty('readOnly', checked)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="layout">
+                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label>Label Alignment</Label>
+                                <RadioGroup
+                                    value={props.labelDirection || 'vertical'}
+                                    onValueChange={(value) => updateProperty('labelDirection', value as 'horizontal' | 'vertical')}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="vertical" id="dir-vertical-rg" />
+                                        <Label htmlFor="dir-vertical-rg">Vertical</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="horizontal" id="dir-horizontal-rg" />
+                                        <Label htmlFor="dir-horizontal-rg">Horizontal</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="advanced">
+                        <AccordionTrigger className="py-2">Advanced</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="input-format">Format</Label>
                                 <Select value={props.inputFormat || 'text'} onValueChange={(v) => updateProperty('inputFormat', v as 'text' | 'number' | 'alphanumeric')}>
                                     <SelectTrigger><SelectValue/></SelectTrigger>
@@ -1184,11 +1215,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </SelectContent>
                                 </Select>
                             </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="advanced">
-                        <AccordionTrigger className="py-2">Advanced</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
                            <div className="flex flex-col gap-2">
                                 <Label htmlFor="formula">Formula (Optional)</Label>
                                 <Input

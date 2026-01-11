@@ -29,7 +29,7 @@ export const FormElements: {
 export const createNewElement = (type: ElementType, id?: string): FormElementInstance => {
     const newId = id || crypto.randomUUID();
     const key = `${type.toLowerCase()}_${Math.random().toString(36).substring(2, 7)}`;
-    const baseElement = { id: newId, type, label: type, key, required: false, hidden: false, exposeForValidation: false, placeholder: '' };
+    const baseElement = { id: newId, type, label: type, key, required: false, hidden: false, exposeForValidation: false, placeholder: '', readOnly: false, labelDirection: 'vertical' as 'vertical' | 'horizontal' };
     
     switch (type) {
         case "Separator":
@@ -48,6 +48,8 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 apiUrl: null,
                 valueKey: null,
                 labelKey: null,
+                dataSourceParentId: null,
+                dataSourceParentKey: null,
             };
         case "Combobox":
             return {
@@ -84,7 +86,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
         case "DatePicker":
             return { ...baseElement, label: "Date Picker" };
         case "Display":
-            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "", sourceType: 'field' }, exposeForValidation: false, textStyle: 'p', color: '#000000', isLink: false, linkUrl: null, linkUrlSourceElementId: null };
+            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "", sourceType: 'field' }, exposeForValidation: false, textStyle: 'p', color: '#000000', isLink: false, linkUrl: null, linkUrlSourceElementId: null, direction: 'horizontal', leadText: '' };
         case "RichText":
             return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false, key: '' };
         case "Container":

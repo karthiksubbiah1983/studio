@@ -161,6 +161,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.id, evaluationContext, rules, configurations, sections]);
 
   const isReadOnly = useMemo(() => {
+    if (element.readOnly) return true;
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) return true;
     if (rules.some(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id && evaluateRule(rule, evaluationContext, configurations, sections)))) {
         return true;
@@ -264,7 +265,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
       }
 
-      if (finalApiUrl) {
+      if (finalApiUrl && !finalApiUrl.includes('{')) { // Don't fetch if placeholder is not replaced
           setIsLoading(true);
           fetchFromApi(finalApiUrl)
               .then(data => {
@@ -285,10 +286,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
     }
 
-  }, [element, formState]);
+  }, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -326,9 +327,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   const renderLabel = () => {
     if (!label) return null;
+    const finalLabelDirection = labelDirection || 'vertical';
+
     return (
-        <div className="flex justify-between items-center mb-2">
-        <Label className="text-[0.9rem]" style={appliedStyles.style}>
+        <div className={cn("flex justify-between items-center", finalLabelDirection === 'vertical' && 'mb-2')}>
+        <Label className={cn("text-[0.9rem]", finalLabelDirection === 'horizontal' && 'w-1/3')} style={appliedStyles.style}>
             {label}
             {required && <span className="text-destructive"> *</span>}
         </Label>
@@ -495,23 +498,27 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         onValueChange(element.id, finalValue);
       }
 
+       const finalLabelDirection = labelDirection || 'vertical';
+
       content = (
-        <div>
+        <div className={cn(finalLabelDirection === 'horizontal' && 'flex items-center gap-4')}>
           {renderLabel()}
-          <Input 
-            placeholder={placeholder}
-            value={localValue}
-            onChange={handleLocalInputChange}
-            onBlur={handleBlur}
-            style={appliedStyles.style}
-            className={cn(appliedStyles.error && "border-destructive")}
-            disabled={isDisabled || isReadOnly}
-            readOnly={isReadOnly}
-          />
-          {helperText && (
-            <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
-          )}
-          {renderError()}
+          <div className={cn(finalLabelDirection === 'horizontal' && 'flex-1')}>
+            <Input 
+              placeholder={placeholder}
+              value={localValue}
+              onChange={handleLocalInputChange}
+              onBlur={handleBlur}
+              style={appliedStyles.style}
+              className={cn(appliedStyles.error && "border-destructive")}
+              disabled={isDisabled}
+              readOnly={isReadOnly}
+            />
+            {helperText && (
+              <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
+            )}
+            {renderError()}
+          </div>
         </div>
       );
       break;
@@ -1094,6 +1101,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
