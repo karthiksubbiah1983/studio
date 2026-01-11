@@ -460,7 +460,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     case "Container": {
         const { elements, direction, justify, align, width } = element;
-        const containerStyle = { ...appliedStyles.style, width: width || '100%' };
+        const containerStyle = { ...appliedStyles.style, width: width || 'auto' };
         content = (
             <div style={containerStyle} className={cn("flex gap-4",
                 direction === 'horizontal' ? 'flex-row' : 'flex-col',
@@ -1095,7 +1095,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       break;
   }
 
-  return <div className={cn(isParentHorizontal && 'flex-1', isTableCell && 'p-0')}>{content}</div>;
+  return <div className={cn(!isParentHorizontal && 'flex-1', isTableCell && 'p-0')}>{content}</div>;
 }
 
 const alignmentClasses = {
@@ -1119,6 +1119,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
