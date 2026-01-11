@@ -103,7 +103,7 @@ export function FormPreviewPopup({
           })}
         </div>
         {(cancelButtonText || confirmButtonText) && (
-            <DialogFooter>
+            <DialogFooter className="border-t pt-4">
                 {cancelButtonText && <Button variant="outline" onClick={() => onOpenChange(false)}>{cancelButtonText}</Button>}
                 {confirmButtonText && <Button onClick={handleConfirm}>{confirmButtonText}</Button>}
             </DialogFooter>
