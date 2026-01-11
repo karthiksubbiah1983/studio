@@ -31,8 +31,8 @@ export function FormPreviewPopup({
     onOpenChange, 
     sectionIds, 
     formState, 
-    confirmButtonText = 'OK', 
-    cancelButtonText = 'Cancel',
+    confirmButtonText, 
+    cancelButtonText,
     onConfirm
 }: Props) {
   const { sections, dispatch } = useBuilder();
@@ -102,10 +102,12 @@ export function FormPreviewPopup({
             );
           })}
         </div>
-        <DialogFooter>
-            <Button variant="outline" onClick={() => onOpenChange(false)}>{cancelButtonText}</Button>
-            <Button onClick={handleConfirm}>{confirmButtonText}</Button>
-        </DialogFooter>
+        {(cancelButtonText || confirmButtonText) && (
+            <DialogFooter>
+                {cancelButtonText && <Button variant="outline" onClick={() => onOpenChange(false)}>{cancelButtonText}</Button>}
+                {confirmButtonText && <Button onClick={handleConfirm}>{confirmButtonText}</Button>}
+            </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
