@@ -334,14 +334,12 @@ const BehaviorEditor = memo(({
     onUpdateBehavior,
     onDeleteBehavior,
     selectableFields,
-    selectableSections,
     localConfigs
 }: { 
     behavior: RuleBehavior, 
     onUpdateBehavior: (id: string, updatedBehavior: RuleBehavior) => void,
     onDeleteBehavior: (id: string) => void,
     selectableFields: (FormElementInstance | Section)[],
-    selectableSections: Section[],
     localConfigs: Configuration[],
 }) => {
     const [behavior, setBehavior] = useState(initialBehavior);
@@ -397,7 +395,6 @@ const BehaviorEditor = memo(({
                         <SelectItem value="set_error">Set Error</SelectItem>
                         <SelectItem value="set_value">Set Value</SelectItem>
                         <SelectItem value="set_configuration">Set Configuration</SelectItem>
-                        <SelectItem value="show_as_popup">Show as Popup</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -413,14 +410,9 @@ const BehaviorEditor = memo(({
                                 <SelectValue>{selectedTargetFieldLabel}</SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                {behavior.type === 'show_as_popup' 
-                                    ? selectableSections.filter(s => s.popupOnly).map(s => (
-                                        <SelectItem key={s.id} value={s.id}>{s.title}</SelectItem>
-                                    ))
-                                    : (behavior.type === 'set_value' ? valueSettingFields : selectableFields).map(el => (
-                                        <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
-                                    ))
-                                }
+                                {(behavior.type === 'set_value' ? valueSettingFields : selectableFields).map(el => (
+                                    <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </>
@@ -502,13 +494,11 @@ BehaviorEditor.displayName = 'BehaviorEditor';
 const RuleEditor = memo(({ 
     initialRule,
     selectableFields,
-    selectableSections,
     localConfigs,
     onUpdate
 }: { 
     initialRule: Rule,
     selectableFields: (FormElementInstance | Section)[],
-    selectableSections: Section[],
     localConfigs: Configuration[],
     onUpdate: (updatedRule: Rule) => void
 }) => {
@@ -632,7 +622,6 @@ const RuleEditor = memo(({
                             onUpdateBehavior={handleUpdateBehavior}
                             onDeleteBehavior={handleDeleteBehavior}
                             selectableFields={selectableFields}
-                            selectableSections={selectableSections}
                             localConfigs={localConfigs}
                         />
                     ))}
@@ -877,7 +866,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 <RuleEditor 
                     initialRule={activeRule} 
                     selectableFields={selectableFields} 
-                    selectableSections={sections}
                     localConfigs={localConfigs}
                     onUpdate={handleUpdateActiveRule}
                 />

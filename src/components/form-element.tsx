@@ -233,6 +233,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       return [];
   }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
   
+  const showPopup = useMemo(() => {
+      if (element.type !== 'Popup' || !element.triggerRuleId || !rules || !formState) return false;
+      const triggerRule = rules.find(r => r.id === element.triggerRuleId);
+      if (!triggerRule) return false;
+      return evaluateRule(triggerRule, formState, configurations, sections);
+  }, [element, rules, formState, configurations, sections]);
+
 
   useEffect(() => {
     setCurrentDateTime(new Date());
@@ -356,6 +363,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Separator":
       content = <Separator />;
       break;
+    case "Popup":
+      return (
+        <FormPreviewPopup
+          isOpen={showPopup}
+          onOpenChange={() => {}}
+          element={element}
+          formState={formState || {}}
+        />
+      );
     case "Display": {
       let finalDisplayValue;
       if (element.formula) {

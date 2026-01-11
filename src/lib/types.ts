@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup" | "Preview";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -168,6 +168,8 @@ export type FormElementInstance = {
     triggerRuleId?: string | null;
     confirmButtonText?: string;
     cancelButtonText?: string;
+    // For Preview
+    previewSectionIds?: string[];
 };
 
 export type Section = {

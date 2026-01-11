@@ -517,7 +517,7 @@ function ColumnEditorDialog({
 }
 
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false, parentFetchedData }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean, parentFetchedData?: Record<string, any> | null }) {
-  const { dispatch, state, sections } = useBuilder();
+  const { dispatch, state, sections, rules } = useBuilder();
   const [props, setProps] = useState(element);
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
@@ -846,6 +846,48 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       switch(props.type) {
         case "Separator":
             return null;
+        case "Popup":
+             return (
+                <Accordion type="multiple" defaultValue={["general", "trigger", "buttons"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="label">Label (for builder)</Label>
+                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="trigger">
+                        <AccordionTrigger className="py-2">Trigger</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-2">
+                            <Label>Trigger Rule</Label>
+                            <Select value={props.triggerRuleId || ''} onValueChange={v => updateProperty('triggerRuleId', v)}>
+                                <SelectTrigger><SelectValue placeholder="Select a rule..." /></SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="">None (Manual Trigger)</SelectItem>
+                                    {rules.map(rule => (
+                                        <SelectItem key={rule.id} value={rule.id}>{rule.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="buttons">
+                        <AccordionTrigger className="py-2">Buttons</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="confirm-text">Confirm Button Text</Label>
+                                <Input id="confirm-text" value={props.confirmButtonText || ''} onChange={(e) => updateProperty('confirmButtonText', e.target.value)} placeholder="OK" />
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="cancel-text">Cancel Button Text</Label>
+                                <Input id="cancel-text" value={props.cancelButtonText || ''} onChange={(e) => updateProperty('cancelButtonText', e.target.value)} placeholder="Cancel" />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+             );
         case "Preview":
              return (
                 <Accordion type="multiple" defaultValue={["general", "sections"]} className="w-full">
