@@ -57,11 +57,6 @@ const SectionRenderer = ({ section }: { section: Section }) => {
         </div>
     );
     
-    if (section.popupOnly) {
-        return null;
-    }
-    
-    // Read visibility directly from the central formState
     if (formState[section.id]?.isVisible === false) {
         return null;
     }
