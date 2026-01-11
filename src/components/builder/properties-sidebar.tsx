@@ -1552,9 +1552,32 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <SelectItem value="all">Allow all dates</SelectItem>
                                         <SelectItem value="noFuture">Disable future dates</SelectItem>
                                         <SelectItem value="noPast">Disable past dates</SelectItem>
+                                        <SelectItem value="dateRange">Custom date range</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
+                             {props.dateValidation === 'dateRange' && (
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="range-from">From</Label>
+                                        <Input 
+                                            id="range-from" 
+                                            type="date" 
+                                            value={props.dateValidationRange?.from || ''}
+                                            onChange={(e) => updateProperty('dateValidationRange', { ...props.dateValidationRange, from: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="range-to">To</Label>
+                                         <Input 
+                                            id="range-to" 
+                                            type="date" 
+                                            value={props.dateValidationRange?.to || ''}
+                                            onChange={(e) => updateProperty('dateValidationRange', { ...props.dateValidationRange, to: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

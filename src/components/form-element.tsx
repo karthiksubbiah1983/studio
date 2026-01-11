@@ -251,13 +251,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
       // Handle templated URLs based on parent selection
       if (element.dataSourceParentId && finalApiUrl.includes('{')) {
-        const parentValue = formState?.[element.dataSourceParentId]?.value;
+        const parentState = formState?.[element.dataSourceParentId];
+        const parentValue = parentState?.value;
         if (parentValue) {
-          // This is a simplified interpolation. Assumes the placeholder is the parent's direct value.
-          // For more complex cases like {parent.id}, you'd need a more robust interpolation function.
-          // Let's assume the placeholder is just the parent's key.
-          const placeholderKey = finalApiUrl.substring(finalApiUrl.indexOf('{') + 1, finalApiUrl.indexOf('}'));
-          finalApiUrl = finalApiUrl.replace(`{${placeholderKey}}`, parentValue);
+          const placeholder = finalApiUrl.substring(finalApiUrl.indexOf('{') + 1, finalApiUrl.indexOf('}'));
+          // Get the corresponding parent object to interpolate any of its keys
+          const parentFullObject = parentState?.fullObject;
+          const valueToInterpolate = parentFullObject ? getNestedValue(parentFullObject, placeholder) : parentValue;
+          finalApiUrl = finalApiUrl.replace(`{${placeholder}}`, valueToInterpolate);
         } else {
           // If parent has no value, don't fetch. Clear options.
           setDynamicOptions([]);
@@ -289,7 +290,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -860,8 +861,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       const disabledDays = useMemo(() => {
         if (dateValidation === 'noFuture') return { after: today };
         if (dateValidation === 'noPast') return { before: today };
+        if (dateValidation === 'dateRange' && dateValidationRange) {
+          const from = dateValidationRange.from ? new Date(dateValidationRange.from) : undefined;
+          const to = dateValidationRange.to ? new Date(dateValidationRange.to) : undefined;
+          if (from) from.setHours(0,0,0,0);
+          if (to) to.setHours(23,59,59,999);
+          return { before: from, after: to };
+        }
         return undefined;
-      }, [dateValidation, today]);
+      }, [dateValidation, dateValidationRange, today]);
 
       useEffect(() => {
         if(value) {
@@ -1110,6 +1118,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 

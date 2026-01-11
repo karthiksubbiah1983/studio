@@ -171,7 +171,8 @@ export type FormElementInstance = {
     // General Layout
     labelDirection?: 'horizontal' | 'vertical';
     // For DatePicker
-    dateValidation?: 'all' | 'noFuture' | 'noPast';
+    dateValidation?: 'all' | 'noFuture' | 'noPast' | 'dateRange';
+    dateValidationRange?: { from: string | null; to: string | null; };
 };
 
 export type Section = {
