@@ -65,11 +65,8 @@ export function FormPreviewPopup({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Form Preview</DialogTitle>
-        </DialogHeader>
-        <div className="flex-1 overflow-y-auto -mx-6 px-6 py-4 border-y">
+      <DialogContent className="max-w-2xl flex flex-col p-0">
+        <div className="flex-1 overflow-y-auto p-6">
             <div className="space-y-4">
             {sectionsToPreview.map(section => {
                 if (section.displayMode === 'accordion') {
@@ -105,7 +102,7 @@ export function FormPreviewPopup({
             </div>
         </div>
         {(cancelButtonText || confirmButtonText) && (
-            <DialogFooter>
+            <DialogFooter className="p-6 pt-4 border-t bg-muted/50 rounded-b-lg">
                 {cancelButtonText && <Button variant="outline" onClick={() => onOpenChange(false)}>{cancelButtonText}</Button>}
                 {confirmButtonText && <Button onClick={handleConfirm}>{confirmButtonText}</Button>}
             </DialogFooter>
