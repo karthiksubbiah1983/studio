@@ -289,7 +289,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, labelKey, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection } = element;
+  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -854,6 +854,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "DatePicker":
       const [dateValue, setDateValue] = useState<Date | undefined>(undefined);
       const [timeValue, setTimeValue] = useState('');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const disabledDays = useMemo(() => {
+        if (dateValidation === 'noFuture') return { after: today };
+        if (dateValidation === 'noPast') return { before: today };
+        return undefined;
+      }, [dateValidation, today]);
 
       useEffect(() => {
         if(value) {
@@ -922,6 +930,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                     selected={dateValue}
                     onSelect={handleDateChange}
                     initialFocus
+                    disabled={disabledDays}
                     className={cn("p-0 border-b rounded-md")}
                  />
                  <div className="p-2 border-t">
@@ -1101,6 +1110,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 

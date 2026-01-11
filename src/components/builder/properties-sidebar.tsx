@@ -1540,8 +1540,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                  <Accordion type="multiple" defaultValue={["general"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
-                        <AccordionContent>
+                        <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
+                            <div className="flex flex-col gap-2">
+                                <Label>Validation</Label>
+                                <Select value={props.dateValidation || 'all'} onValueChange={v => updateProperty('dateValidation', v)}>
+                                    <SelectTrigger>
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">Allow all dates</SelectItem>
+                                        <SelectItem value="noFuture">Disable future dates</SelectItem>
+                                        <SelectItem value="noPast">Disable past dates</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

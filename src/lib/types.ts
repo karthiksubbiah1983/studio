@@ -170,6 +170,8 @@ export type FormElementInstance = {
     allowUserToAddRows?: boolean;
     // General Layout
     labelDirection?: 'horizontal' | 'vertical';
+    // For DatePicker
+    dateValidation?: 'all' | 'noFuture' | 'noPast';
 };
 
 export type Section = {
