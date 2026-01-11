@@ -65,11 +65,11 @@ export function FormPreviewPopup({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-screen max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-4xl flex flex-col">
         <DialogHeader>
           <DialogTitle>Form Preview</DialogTitle>
         </DialogHeader>
-        <div className="flex-grow overflow-y-auto p-4 space-y-4 min-h-0">
+        <div className="overflow-y-auto p-4 space-y-4">
           {sectionsToPreview.map(section => {
             if (section.displayMode === 'accordion') {
                 return (
