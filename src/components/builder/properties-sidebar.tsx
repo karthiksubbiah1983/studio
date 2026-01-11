@@ -145,34 +145,6 @@ function SectionProperties({ section }: { section: Section }) {
                                 </div>
                             </RadioGroup>
                         </div>
-                        <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                            <Label htmlFor="popup-only">Popup Only</Label>
-                            <Switch
-                                id="popup-only"
-                                checked={section.popupOnly || false}
-                                onCheckedChange={(checked) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, popupOnly: checked } })}
-                            />
-                        </div>
-                         {section.popupOnly && (
-                            <div className="space-y-4 pt-4 border-t">
-                                 <div className="space-y-2">
-                                    <Label>Confirm Button Text</Label>
-                                    <Input
-                                        placeholder="OK"
-                                        value={section.confirmButtonText || ''}
-                                        onChange={(e) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, confirmButtonText: e.target.value } })}
-                                    />
-                                </div>
-                                 <div className="space-y-2">
-                                    <Label>Cancel Button Text</Label>
-                                    <Input
-                                        placeholder="Cancel"
-                                        value={section.cancelButtonText || ''}
-                                        onChange={(e) => dispatch({ type: "UPDATE_SECTION", payload: { ...section, cancelButtonText: e.target.value } })}
-                                    />
-                                </div>
-                            </div>
-                         )}
                     </AccordionContent>
                 </AccordionItem>
             </Accordion>
@@ -862,10 +834,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Trigger</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-2">
                             <Label>Trigger Rule</Label>
-                            <Select value={props.triggerRuleId || ''} onValueChange={v => updateProperty('triggerRuleId', v)}>
+                            <Select value={props.triggerRuleId || ''} onValueChange={v => updateProperty('triggerRuleId', v === 'none' ? null : v)}>
                                 <SelectTrigger><SelectValue placeholder="Select a rule..." /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="">None (Manual Trigger)</SelectItem>
+                                    <SelectItem value="none">None (Manual Trigger)</SelectItem>
                                     {rules.map(rule => (
                                         <SelectItem key={rule.id} value={rule.id}>{rule.name}</SelectItem>
                                     ))}

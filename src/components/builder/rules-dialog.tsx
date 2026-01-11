@@ -395,6 +395,7 @@ const BehaviorEditor = memo(({
                         <SelectItem value="set_error">Set Error</SelectItem>
                         <SelectItem value="set_value">Set Value</SelectItem>
                         <SelectItem value="set_configuration">Set Configuration</SelectItem>
+                        <SelectItem value="show_popup">Show as Popup</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
