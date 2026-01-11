@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig, DataGridColumn } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -513,6 +513,151 @@ function ColumnEditorDialog({
     );
 }
 
+function DataGridColumnManager({
+  columns,
+  onUpdate,
+  sourceTable,
+}: {
+  columns: DataGridColumn[];
+  onUpdate: (columns: DataGridColumn[]) => void;
+  sourceTable: FormElementInstance | null;
+}) {
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingColumn, setEditingColumn] = useState<DataGridColumn | null>(null);
+
+  const handleAdd = () => {
+    setEditingColumn({
+      id: `new_${crypto.randomUUID()}`,
+      header: `Column ${columns.length + 1}`,
+      sourceColumnId: '',
+    });
+    setIsEditorOpen(true);
+  };
+
+  const handleEdit = (col: DataGridColumn) => {
+    setEditingColumn(col);
+    setIsEditorOpen(true);
+  };
+
+  const handleSave = (colToSave: DataGridColumn) => {
+    if (colToSave.id.startsWith('new_')) {
+      onUpdate([...columns, { ...colToSave, id: crypto.randomUUID() }]);
+    } else {
+      onUpdate(columns.map(c => (c.id === colToSave.id ? colToSave : c)));
+    }
+  };
+
+  const handleDelete = (id: string) => {
+    onUpdate(columns.filter(c => c.id !== id));
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <Label>Columns</Label>
+      <div className="flex flex-col gap-2 p-2 border rounded-md">
+        {columns.map(col => (
+          <div key={col.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
+            <span className="text-sm font-medium">{col.header}</span>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(col)}>
+                <Edit className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDelete(col.id)}>
+                <Trash className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          </div>
+        ))}
+        <Button variant="outline" size="sm" onClick={handleAdd}>
+          <Plus className="mr-2 h-4 w-4" /> Add Column
+        </Button>
+      </div>
+      <DataGridColumnEditor
+        isOpen={isEditorOpen}
+        onOpenChange={setIsEditorOpen}
+        column={editingColumn}
+        onSave={handleSave}
+        sourceTable={sourceTable}
+      />
+    </div>
+  );
+}
+
+function DataGridColumnEditor({
+  isOpen,
+  onOpenChange,
+  column,
+  onSave,
+  sourceTable,
+}: {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  column: DataGridColumn | null;
+  onSave: (column: DataGridColumn) => void;
+  sourceTable: FormElementInstance | null;
+}) {
+  const [editingColumn, setEditingColumn] = useState<DataGridColumn | null>(null);
+
+  useEffect(() => {
+    setEditingColumn(column);
+  }, [column]);
+
+  if (!isOpen || !editingColumn) return null;
+
+  const handleSave = () => {
+    if (editingColumn) {
+      onSave(editingColumn);
+    }
+    onOpenChange(false);
+  };
+  
+  const sourceColumns = sourceTable?.columns || [];
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{editingColumn.id.startsWith('new_') ? 'Add' : 'Edit'} Data Grid Column</DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          <div className="space-y-2">
+            <Label>Column Header Text</Label>
+            <Input
+              value={editingColumn.header}
+              onChange={e => setEditingColumn({ ...editingColumn, header: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Source Table Column</Label>
+            <Select
+              value={editingColumn.sourceColumnId}
+              onValueChange={value => setEditingColumn({ ...editingColumn, sourceColumnId: value })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a source column..." />
+              </SelectTrigger>
+              <SelectContent>
+                {sourceColumns.map(col => (
+                  <SelectItem key={col.id} value={col.id}>
+                    {col.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false, parentFetchedData }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean, parentFetchedData?: Record<string, any> | null }) {
   const { dispatch, state, sections, rules } = useBuilder();
   const [props, setProps] = useState(element);
@@ -525,7 +670,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const allElements = getAllElements(sections);
   const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== props.id && el.type === 'Select') as FormElementInstance[], [allElements, props.id]);
-
+  const editableTables = useMemo(() => allElements.filter(el => 'type' in el && el.type === 'EditableTable') as FormElementInstance[], [allElements]);
   
   const finalFetchedKeys = useMemo(() => {
     if (parentFetchedData) {
@@ -845,13 +990,35 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             return null;
         case "Popup":
              return (
-                <Accordion type="multiple" defaultValue={["general", "buttons"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "trigger", "buttons"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Label (for builder)</Label>
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="trigger">
+                        <AccordionTrigger className="py-2">Trigger</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label>Trigger Rule</Label>
+                                <Select
+                                    value={props.triggerRuleId || "none"}
+                                    onValueChange={(value) => updateProperty('triggerRuleId', value === "none" ? null : value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a rule..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">None</SelectItem>
+                                        {rules.map(rule => (
+                                            <SelectItem key={rule.id} value={rule.id}>{rule.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1738,6 +1905,53 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     />
                                 </div>
                             )}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
+        case "DataGrid":
+            const selectedSourceTable = editableTables.find(table => table.id === props.sourceEditableTableId) || null;
+            return (
+                <Accordion type="multiple" defaultValue={["general", "data", "columns"]} className="w-full">
+                     <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="api-url">API URL</Label>
+                                <Input id="api-url" value={props.apiUrl || ""} onChange={e => updateProperty('apiUrl', e.target.value)} placeholder="https://api.example.com/history"/>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="source-table">Source Editable Table</Label>
+                                <Select
+                                    value={props.sourceEditableTableId || ''}
+                                    onValueChange={value => updateProperty('sourceEditableTableId', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select an editable table..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {editableTables.map(table => (
+                                            <SelectItem key={table.id} value={table.id}>{table.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="columns">
+                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
+                        <AccordionContent>
+                             <DataGridColumnManager
+                                columns={props.dataGridColumns || []}
+                                onUpdate={newColumns => updateProperty('dataGridColumns', newColumns)}
+                                sourceTable={selectedSourceTable}
+                            />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
