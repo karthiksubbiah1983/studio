@@ -185,11 +185,10 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
       return null;
     case "Popup":
         return (
-            <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
-                <MessageSquare className="h-12 w-12 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Popup Placeholder</p>
-                <p className="text-xs text-muted-foreground/70 text-center">This will be hidden. It opens in a dialog based on a rule.</p>
-            </div>
+             <Button variant="outline" className="w-full" disabled>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                {label} (Popup Trigger)
+            </Button>
         )
     case "EditableTable":
         return (
@@ -198,6 +197,16 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                 <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
                     <Table className="h-12 w-12 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">Editable Table</p>
+                </div>
+            </div>
+        );
+    case "DataGrid":
+        return (
+            <div>
+                {renderLabel()}
+                <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
+                    <Grid className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Data Grid</p>
                 </div>
             </div>
         );

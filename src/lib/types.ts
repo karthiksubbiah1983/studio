@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup" | "Preview";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup" | "Preview" | "DataGrid";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -87,6 +87,13 @@ export type TableColumn = {
   labelKey?: string;
 };
 
+export type DataGridColumn = {
+  id: string;
+  header: string;
+  sourceColumnId: string; // ID of the column in the source EditableTable
+};
+
+
 export type FormElementInstance = {
     id: string;
     type: ElementType;
@@ -158,12 +165,16 @@ export type FormElementInstance = {
     maxRows?: number;
     enableSearch?: boolean;
     allowUserToAddRows?: boolean;
+    // For DataGrid
+    sourceEditableTableId?: string;
+    dataGridColumns?: DataGridColumn[];
     // General Layout
     labelDirection?: 'horizontal' | 'vertical';
     // For DatePicker
     dateValidation?: 'all' | 'noFuture' | 'noPast' | 'dateRange';
     dateValidationRange?: { from: string | null; to: string | null; };
     // For Popup
+    triggerRuleId?: string | null;
     confirmButtonText?: string;
     cancelButtonText?: string;
     // For Preview

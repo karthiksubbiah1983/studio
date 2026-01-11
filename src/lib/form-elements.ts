@@ -1,7 +1,7 @@
 
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare, Grid } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const FormElements: {
@@ -21,6 +21,7 @@ export const FormElements: {
     { type: 'Display', icon: CaseSensitive, label: 'Display Text' },
     { type: 'RichText', icon: FileText, label: 'Rich Text' },
     { type: 'EditableTable', icon: Table, label: 'Editable Table' },
+    { type: 'DataGrid', icon: Grid, label: 'Data Grid' },
     { type: 'Popup', icon: MessageSquare, label: 'Popup'},
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
@@ -105,6 +106,15 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 enableSearch: false,
                 allowUserToAddRows: true,
                 key: 'editable_table_1'
+            };
+        case "DataGrid":
+            return {
+                ...baseElement,
+                label: 'Data Grid',
+                key: 'data_grid_1',
+                apiUrl: null,
+                sourceEditableTableId: undefined,
+                dataGridColumns: [],
             };
         case "FileUpload":
              return {
