@@ -877,8 +877,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
     const customOptionsManager = () => {
         const handleAdd = () => {
-            const newOption: CustomOption = { id: crypto.randomUUID(), label: `Custom ${props.customOptions!.length + 1}`, value: `custom_${props.customOptions!.length + 1}` };
-            updateProperty('customOptions', [...(props.customOptions || []), newOption]);
+            const currentOptions = props.customOptions || [];
+            const newOption: CustomOption = { id: crypto.randomUUID(), label: `Custom ${currentOptions.length + 1}`, value: `custom_${currentOptions.length + 1}` };
+            updateProperty('customOptions', [...currentOptions, newOption]);
         }
         const handleUpdate = (id: string, field: 'label' | 'value', text: string) => {
             const newOptions = props.customOptions?.map(opt => opt.id === id ? { ...opt, [field]: text } : opt);
@@ -1060,25 +1061,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="cancel-text">Cancel Button Text</Label>
                                 <Input id="cancel-text" value={props.cancelButtonText || ''} onChange={(e) => updateProperty('cancelButtonText', e.target.value)} placeholder="Cancel" />
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
-                     <AccordionItem value="actions">
-                        <AccordionTrigger className="py-2">Actions</AccordionTrigger>
-                         <AccordionContent className="flex flex-col gap-4">
-                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                 <Label>Show Popup</Label>
-                                <Select value={props.triggerRuleId || 'none'} onValueChange={value => updateProperty('triggerRuleId', value === 'none' ? null : value)}>
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="Select Rule..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">No Rule</SelectItem>
-                                        {rules.map(rule => (
-                                            <SelectItem key={rule.id} value={rule.id}>{rule.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
                             </div>
                         </AccordionContent>
                     </AccordionItem>
