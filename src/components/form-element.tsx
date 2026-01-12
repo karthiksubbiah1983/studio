@@ -280,12 +280,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
 
     const context = isTableCell ? rowContext : formState;
+    const parentId = element.dataSourceParentId;
 
     if (element.dataSource === 'dynamic' && element.apiUrl) {
         let finalApiUrl = element.apiUrl;
 
-        if (element.dataSourceParentId && finalApiUrl.includes('{') && context) {
-            const parentState = context[element.dataSourceParentId];
+        if (parentId && finalApiUrl.includes('{') && context) {
+            const parentState = context[parentId];
             const parentValue = (parentState && typeof parentState === 'object' && 'value' in parentState) ? parentState.value : parentState;
             
             if (parentValue) {
@@ -310,8 +311,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         } else {
             setDynamicOptions([]);
         }
-    } else if (element.dataSource === 'fromParent' && element.dataSourceParentId && context) {
-        const parentState = context[element.dataSourceParentId];
+    } else if (element.dataSource === 'fromParent' && parentId && context) {
+        const parentState = context[parentId];
         if (parentState?.fullObject && element.dataSourceParentKey) {
             const subList = getNestedValue(parentState.fullObject, element.dataSourceParentKey);
             setDynamicOptions(Array.isArray(subList) ? subList : []);
@@ -319,7 +320,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             setDynamicOptions([]);
         }
     }
-}, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState, rowContext, isTableCell]);
+}, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState, rowContext, isTableCell, evaluationContext]);
 
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
@@ -1177,4 +1178,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
