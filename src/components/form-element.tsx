@@ -276,42 +276,42 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   useEffect(() => {
     if (element.type !== 'Select' && element.type !== 'List' && element.type !== 'Combobox') {
-      return;
+        return;
     }
 
+    const context = isTableCell ? rowContext : formState;
+
     if (element.dataSource === 'dynamic' && element.apiUrl) {
-      let finalApiUrl = element.apiUrl;
+        let finalApiUrl = element.apiUrl;
 
-      // Handle templated URLs based on parent selection
-      if (element.dataSourceParentId && finalApiUrl.includes('{')) {
-        const parentState = formState?.[element.dataSourceParentId];
-        const parentValue = parentState?.value;
-        if (parentValue) {
-          const placeholder = finalApiUrl.substring(finalApiUrl.indexOf('{') + 1, finalApiUrl.indexOf('}'));
-          // Get the corresponding parent object to interpolate any of its keys
-          const parentFullObject = parentState?.fullObject;
-          const valueToInterpolate = parentFullObject ? getNestedValue(parentFullObject, placeholder) : parentValue;
-          finalApiUrl = finalApiUrl.replace(`{${placeholder}}`, valueToInterpolate);
-        } else {
-          // If parent has no value, don't fetch. Clear options.
-          setDynamicOptions([]);
-          return;
+        if (element.dataSourceParentId && finalApiUrl.includes('{') && context) {
+            const parentState = context[element.dataSourceParentId];
+            const parentValue = (parentState && typeof parentState === 'object' && 'value' in parentState) ? parentState.value : parentState;
+            
+            if (parentValue) {
+                const placeholder = finalApiUrl.substring(finalApiUrl.indexOf('{') + 1, finalApiUrl.indexOf('}'));
+                const parentFullObject = (parentState && typeof parentState === 'object' && 'fullObject' in parentState) ? parentState.fullObject : null;
+                const valueToInterpolate = parentFullObject ? getNestedValue(parentFullObject, placeholder) : parentValue;
+                finalApiUrl = finalApiUrl.replace(`{${placeholder}}`, valueToInterpolate);
+            } else {
+                setDynamicOptions([]);
+                return;
+            }
         }
-      }
 
-      if (finalApiUrl && !finalApiUrl.includes('{')) { // Don't fetch if placeholder is not replaced
-          setIsLoading(true);
-          fetchFromApi(finalApiUrl)
-              .then(data => {
-                  const arrayData = findFirstArray(data);
-                  setDynamicOptions(arrayData || []);
-              })
-              .finally(() => setIsLoading(false));
-      } else {
-           setDynamicOptions([]); // Clear options if URL becomes invalid
-      }
-    } else if (element.dataSource === 'fromParent' && element.dataSourceParentId) {
-        const parentState = formState?.[element.dataSourceParentId];
+        if (finalApiUrl && !finalApiUrl.includes('{')) {
+            setIsLoading(true);
+            fetchFromApi(finalApiUrl)
+                .then(data => {
+                    const arrayData = findFirstArray(data);
+                    setDynamicOptions(arrayData || []);
+                })
+                .finally(() => setIsLoading(false));
+        } else {
+            setDynamicOptions([]);
+        }
+    } else if (element.dataSource === 'fromParent' && element.dataSourceParentId && context) {
+        const parentState = context[element.dataSourceParentId];
         if (parentState?.fullObject && element.dataSourceParentKey) {
             const subList = getNestedValue(parentState.fullObject, element.dataSourceParentKey);
             setDynamicOptions(Array.isArray(subList) ? subList : []);
@@ -319,8 +319,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             setDynamicOptions([]);
         }
     }
-
-  }, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState]);
+}, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState, rowContext, isTableCell]);
 
 
   const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
@@ -1178,3 +1177,4 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
