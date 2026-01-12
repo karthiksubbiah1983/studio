@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig, DataGridColumn } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig, DataGridColumn, CustomOption } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -647,9 +647,7 @@ function DataGridColumnEditor({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave}>Save</Button>
         </DialogFooter>
       </DialogContent>
@@ -877,6 +875,57 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     );
   }
 
+    const customOptionsManager = () => {
+        const handleAdd = () => {
+            const newOption: CustomOption = { id: crypto.randomUUID(), label: `Custom ${props.customOptions!.length + 1}`, value: `custom_${props.customOptions!.length + 1}` };
+            updateProperty('customOptions', [...(props.customOptions || []), newOption]);
+        }
+        const handleUpdate = (id: string, field: 'label' | 'value', text: string) => {
+            const newOptions = props.customOptions?.map(opt => opt.id === id ? { ...opt, [field]: text } : opt);
+            updateProperty('customOptions', newOptions);
+        }
+        const handleDelete = (id: string) => {
+            updateProperty('customOptions', props.customOptions?.filter(opt => opt.id !== id));
+        }
+
+        return (
+            <div className="flex flex-col gap-4 border-t pt-4">
+                <Label>Custom Static Options</Label>
+                <div className="flex flex-col gap-2">
+                    {props.customOptions?.map(opt => (
+                        <div key={opt.id} className="flex items-center gap-2">
+                            <Input placeholder="Label" value={opt.label} onChange={(e) => handleUpdate(opt.id, 'label', e.target.value)} />
+                            <Input placeholder="Value" value={opt.value} onChange={(e) => handleUpdate(opt.id, 'value', e.target.value)} />
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(opt.id)}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                    <Button variant="outline" size="sm" onClick={handleAdd}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Custom Option
+                    </Button>
+                </div>
+                 <div className="flex flex-col gap-2">
+                    <Label>Position</Label>
+                    <RadioGroup
+                        value={props.customOptionsPosition}
+                        onValueChange={(value) => updateProperty('customOptionsPosition', value as 'top' | 'bottom')}
+                        className="flex gap-4"
+                    >
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="top" id="pos-top" />
+                            <Label htmlFor="pos-top">Top</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="bottom" id="pos-bottom" />
+                            <Label htmlFor="pos-bottom">Bottom</Label>
+                        </div>
+                    </RadioGroup>
+                </div>
+            </div>
+        )
+    }
+
   const dynamicDataSourceFields = () => (
     <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
@@ -962,6 +1011,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </div>
             )}
         </>
+        {customOptionsManager()}
     </div>
   );
 
@@ -1000,28 +1050,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                         </AccordionContent>
                     </AccordionItem>
-                     <AccordionItem value="trigger">
-                        <AccordionTrigger className="py-2">Trigger</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label>Trigger Rule</Label>
-                                <Select
-                                    value={props.triggerRuleId || "none"}
-                                    onValueChange={(value) => updateProperty('triggerRuleId', value === "none" ? null : value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a rule..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">None</SelectItem>
-                                        {rules.map(rule => (
-                                            <SelectItem key={rule.id} value={rule.id}>{rule.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
                     <AccordionItem value="buttons">
                         <AccordionTrigger className="py-2">Buttons</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1032,6 +1060,25 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="cancel-text">Cancel Button Text</Label>
                                 <Input id="cancel-text" value={props.cancelButtonText || ''} onChange={(e) => updateProperty('cancelButtonText', e.target.value)} placeholder="Cancel" />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="actions">
+                        <AccordionTrigger className="py-2">Actions</AccordionTrigger>
+                         <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                 <Label>Show Popup</Label>
+                                <Select value={props.triggerRuleId || 'none'} onValueChange={value => updateProperty('triggerRuleId', value === 'none' ? null : value)}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="Select Rule..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">No Rule</SelectItem>
+                                        {rules.map(rule => (
+                                            <SelectItem key={rule.id} value={rule.id}>{rule.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1540,6 +1587,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         labelKey: newDataSource !== 'static' ? props.labelKey : undefined,
                                         dataSourceParentId: newDataSource === 'fromParent' || (newDataSource === 'dynamic' && props.apiUrl?.includes('{')) ? props.dataSourceParentId : undefined,
                                         dataSourceParentKey: newDataSource === 'fromParent' ? props.dataSourceParentKey : undefined,
+                                        customOptions: newDataSource === 'dynamic' ? (props.customOptions || []) : undefined,
                                       })
                                     }}
                                     className="grid grid-cols-3 gap-2"

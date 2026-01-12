@@ -1,7 +1,7 @@
 
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare, Grid } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare, Grid, Eye } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const BasicFormElements: {
@@ -23,6 +23,7 @@ export const BasicFormElements: {
     { type: 'Popup', icon: MessageSquare, label: 'Popup'},
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
     { type: 'EditableTable', icon: Table, label: 'Editable Table' },
+    { type: 'Preview', icon: Eye, label: 'Preview' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
 
@@ -59,6 +60,8 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 labelKey: null,
                 dataSourceParentId: null,
                 dataSourceParentKey: null,
+                customOptions: [],
+                customOptionsPosition: 'top',
             };
         case "Combobox":
             return {
@@ -132,6 +135,8 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 maxFileSize: 5, // 5MB
                 multiple: false,
              }
+        case "Preview":
+            return { ...baseElement, label: "Preview Button", previewSectionIds: [] };
         default:
             throw new Error("Invalid element type");
     }

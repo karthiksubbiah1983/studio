@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -239,28 +239,32 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [allListOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
   
   useEffect(() => {
-    // This effect determines if a popup should be shown based on rules.
-    const popupBehavior = rules.flatMap(r => r.behaviors)
-                                .find(b => b.type === 'show_popup' && b.targetElementId);
+    if (!isClient) return;
 
-    if (popupBehavior && popupBehavior.targetElementId) {
-        const rule = rules.find(r => r.behaviors.some(b => b.id === popupBehavior.id));
-        if (rule && evaluateRule(rule, formState, configurations, sections)) {
-            const relevantState = rule.conditions.reduce((acc, cond) => {
+    const popupRule = rules.find(rule => 
+        rule.behaviors.some(b => b.type === 'show_popup' && b.targetElementId)
+    );
+    
+    if (popupRule) {
+        const isTriggered = evaluateRule(popupRule, formState, configurations, sections);
+        const popupBehavior = popupRule.behaviors.find(b => b.type === 'show_popup');
+
+        if (isTriggered && popupBehavior?.targetElementId) {
+            const relevantState = popupRule.conditions.reduce((acc, cond) => {
                 if (cond.sourceElementId && formState?.[cond.sourceElementId]) {
                     acc[cond.sourceElementId] = formState[cond.sourceElementId].value;
                 }
                 return acc;
             }, {} as any);
-
+            
             if (JSON.stringify(relevantState) !== JSON.stringify(popupTriggerState)) {
-                setIsRulePopupOpen(true);
                 setActivePopupElementId(popupBehavior.targetElementId);
+                setIsRulePopupOpen(true);
                 setPopupTriggerState(relevantState);
             }
         }
     }
-}, [formState, rules, configurations, sections, popupTriggerState]);
+  }, [isClient, formState, rules, sections, configurations, popupTriggerState]);
 
 
   useEffect(() => {
@@ -607,10 +611,25 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "Select":
         const handleSelectChange = (val: string) => {
             if (element.dataSource === 'dynamic' || (element.dataSource === 'fromParent' && dynamicOptions.length > 0)) {
-                const fullObject = dynamicOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === val);
+                let fullObject: any;
+                if (element.customOptions?.some(opt => opt.value === val)) {
+                    fullObject = element.customOptions.find(opt => opt.value === val);
+                } else {
+                    fullObject = dynamicOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === val);
+                }
                 onValueChange(element.id, val, fullObject);
             } else {
                  onValueChange(element.id, val);
+            }
+        }
+
+        let combinedOptions = [...dynamicOptions];
+        if (element.dataSource === 'dynamic' && element.customOptions) {
+            const customSelectOptions = element.customOptions.map(opt => ({ [element.labelKey!]: opt.label, [element.valueKey!]: opt.value }));
+            if (element.customOptionsPosition === 'top') {
+                combinedOptions = [...customSelectOptions, ...combinedOptions];
+            } else {
+                combinedOptions = [...combinedOptions, ...customSelectOptions];
             }
         }
       content = (
@@ -622,7 +641,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             </SelectTrigger>
             <SelectContent>
               {element.dataSource === 'dynamic' || element.dataSource === 'fromParent' ? (
-                dynamicOptions.map((option, index) => (
+                combinedOptions.map((option, index) => (
                   <SelectItem key={index} value={String(getNestedValue(option, element.valueKey!))}>
                     {getNestedValue(option, element.labelKey!)}
                   </SelectItem>

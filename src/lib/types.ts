@@ -94,6 +94,11 @@ export type DataGridColumn = {
   sourceColumnId: string; // ID of the column in the source EditableTable
 };
 
+export type CustomOption = {
+  id: string;
+  label: string;
+  value: string;
+};
 
 export type FormElementInstance = {
     id: string;
@@ -125,6 +130,8 @@ export type FormElementInstance = {
     linkUrlKey?: string | null;
     dataSourceParentId?: string | null;
     dataSourceParentKey?: string | null;
+    customOptions?: CustomOption[];
+    customOptionsPosition?: 'top' | 'bottom';
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     textStyle?: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
