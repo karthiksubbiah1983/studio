@@ -878,11 +878,18 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     const customOptionsManager = () => {
         const handleAdd = () => {
             const currentOptions = props.customOptions || [];
-            const newOption: CustomOption = { id: crypto.randomUUID(), label: `Custom ${currentOptions.length + 1}`, value: `custom_${currentOptions.length + 1}` };
+            const newOptionText = `Custom ${currentOptions.length + 1}`;
+            const newOption: CustomOption = { 
+                id: crypto.randomUUID(), 
+                label: newOptionText, 
+                value: newOptionText 
+            };
             updateProperty('customOptions', [...currentOptions, newOption]);
         }
-        const handleUpdate = (id: string, field: 'label' | 'value', text: string) => {
-            const newOptions = props.customOptions?.map(opt => opt.id === id ? { ...opt, [field]: text } : opt);
+        const handleUpdate = (id: string, text: string) => {
+            const newOptions = props.customOptions?.map(opt => 
+                opt.id === id ? { ...opt, label: text, value: text } : opt
+            );
             updateProperty('customOptions', newOptions);
         }
         const handleDelete = (id: string) => {
@@ -895,8 +902,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 <div className="flex flex-col gap-2">
                     {props.customOptions?.map(opt => (
                         <div key={opt.id} className="flex items-center gap-2">
-                            <Input placeholder="Label" value={opt.label} onChange={(e) => handleUpdate(opt.id, 'label', e.target.value)} />
-                            <Input placeholder="Value" value={opt.value} onChange={(e) => handleUpdate(opt.id, 'value', e.target.value)} />
+                            <Input placeholder="Label and Value" value={opt.label} onChange={(e) => handleUpdate(opt.id, e.target.value)} />
                             <Button variant="ghost" size="icon" onClick={() => handleDelete(opt.id)}>
                                 <X className="h-4 w-4" />
                             </Button>
@@ -2037,3 +2043,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
