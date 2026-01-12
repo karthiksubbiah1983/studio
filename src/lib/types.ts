@@ -21,6 +21,7 @@ export type Condition = {
     id: string;
     sourceType: ConditionSourceType;
     sourceElementId?: string; // Used for sourceType 'field'
+    sourcePropertyKey?: string; // Optional key to access a property of a source object (e.g., from a Select)
     sourceValue?: string; // Used for sourceType 'date' or 'config'
     operator: RuleConditionOperator;
     comparisonType: ConditionComparisonType;

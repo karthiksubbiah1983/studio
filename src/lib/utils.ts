@@ -179,6 +179,13 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
              return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
 
+        const sourceElement = allElements.find(el => 'id' in el && el.id === condition.sourceElementId) as FormElementInstance;
+        const sourceState = condition.sourceElementId ? context[condition.sourceElementId] : undefined;
+
+        if (type === 'source' && condition.sourcePropertyKey && sourceState?.fullObject) {
+            return getNestedValue(sourceState.fullObject, condition.sourcePropertyKey);
+        }
+
         const findElementByIdOrKey = (id: string) => {
             // Check if it's a column element in row context
             if (context[id] !== undefined) {

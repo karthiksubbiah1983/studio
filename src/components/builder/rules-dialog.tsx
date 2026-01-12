@@ -106,13 +106,15 @@ const ConditionEditor = memo(({
     const showValueOffset = (isNumericRelated(sourceElement) || isNumericRelated(comparisonElement)) &&
         (condition.operator === 'is_greater_than' || condition.operator === 'is_less_than');
     
+    const showPropertyKey = sourceElement && 'dataSource' in sourceElement && sourceElement.dataSource === 'dynamic';
+    
     const renderSourceInput = () => {
         switch(condition.sourceType) {
             case 'field':
                 return (
                     <div className='flex flex-col gap-2'>
                         <Label>Source Field *</Label>
-                        <Select value={condition.sourceElementId} onValueChange={(value) => handleUpdate('sourceElementId', value)}>
+                        <Select value={condition.sourceElementId} onValueChange={(value) => handleComplexSelectChange({ sourceElementId: value, sourcePropertyKey: undefined })}>
                             <SelectTrigger><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                             <SelectContent>
                                 {selectableFields.map(el => (
@@ -120,6 +122,20 @@ const ConditionEditor = memo(({
                                 ))}
                             </SelectContent>
                         </Select>
+                        {showPropertyKey && (
+                            <div className="flex flex-col gap-2 pl-2 border-l-2 border-slate-200">
+                                <Label className="text-xs">Property Key (optional)</Label>
+                                <Input
+                                    placeholder="e.g., name, status.id"
+                                    defaultValue={condition.sourcePropertyKey}
+                                    onBlur={(e) => handleUpdate('sourcePropertyKey', e.target.value)}
+                                    className="h-8 text-xs"
+                                />
+                                <p className="text-xs text-muted-foreground -mt-1">
+                                    Specify a key to check against the selected object.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 );
             case 'date':
@@ -177,7 +193,7 @@ const ConditionEditor = memo(({
         switch (condition.comparisonType) {
             case 'value':
                 const sourceFieldOptions = getFieldOptions(sourceElement);
-                 if (sourceFieldOptions.length > 0) {
+                 if (!condition.sourcePropertyKey && sourceFieldOptions.length > 0) {
                     comparisonValueInput = (
                         <Select value={condition.value} onValueChange={(value) => handleUpdate('value', value)}>
                             <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
@@ -367,6 +383,10 @@ const BehaviorEditor = memo(({
     const valueSettingFields = useMemo(() => 
         selectableFields.filter(el => 'type' in el && (el.type === 'Input' || el.type === 'Display' || (el.id.includes("::"))))
     , [selectableFields]);
+    
+    const popupFields = useMemo(() => 
+        selectableFields.filter(el => 'type' in el && el.type === 'Popup')
+    , [selectableFields]);
 
     const targetField = selectableFields.find(f => f.id === behavior.targetElementId);
     const selectedTargetFieldLabel = targetField ? `${(targetField as any).label || (targetField as Section).title}` : "Select target field...";
@@ -394,7 +414,7 @@ const BehaviorEditor = memo(({
                         <SelectItem value="change_color">Change Color</SelectItem>
                         <SelectItem value="set_value">Set Value</SelectItem>
                         <SelectItem value="set_configuration">Set Configuration</SelectItem>
-                        <SelectItem value="show_popup">Show as Popup</SelectItem>
+                        <SelectItem value="show_popup">Show Popup</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -410,7 +430,7 @@ const BehaviorEditor = memo(({
                                 <SelectValue>{selectedTargetFieldLabel}</SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                {(behavior.type === 'set_value' ? valueSettingFields : selectableFields).map(el => (
+                                {(behavior.type === 'set_value' ? valueSettingFields : behavior.type === 'show_popup' ? popupFields : selectableFields).map(el => (
                                     <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
                                 ))}
                             </SelectContent>

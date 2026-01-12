@@ -27,6 +27,13 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
              return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
         
+        const sourceElement = allElements.find(el => 'id' in el && el.id === condition.sourceElementId) as FormElementInstance;
+        const sourceState = condition.sourceElementId ? context[condition.sourceElementId] : undefined;
+
+        if (type === 'source' && condition.sourcePropertyKey && sourceState?.fullObject) {
+            return getNestedValue(sourceState.fullObject, condition.sourcePropertyKey);
+        }
+
         // For context from table rows, keys are direct properties (the element IDs of the columns)
         if(context.hasOwnProperty(idOrKey)) {
             const value = context[idOrKey];
