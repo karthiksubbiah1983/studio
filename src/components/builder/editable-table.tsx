@@ -16,10 +16,9 @@ type Props = {
   element: FormElementInstance;
   value: any[];
   onValueChange: (id: string, value: any) => void;
-  formState?: { [key: string]: any };
 };
 
-export function EditableTable({ element, value, onValueChange, formState }: Props) {
+export function EditableTable({ element, value, onValueChange }: Props) {
   const [searchTerm, setSearchTerm] = useState('');
   
   const rows = Array.isArray(value) ? value : [];
@@ -111,7 +110,6 @@ export function EditableTable({ element, value, onValueChange, formState }: Prop
                                     element={col.element}
                                     value={cellValue}
                                     onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
-                                    formState={formState}
                                     rowContext={row}
                                     isTableCell={true}
                                 />
