@@ -9,13 +9,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { FormElementInstance, Rule, Section, Condition, RuleBehaviorType, ElementType, ListItemElement, RuleBehavior, ConditionSourceType, ConditionComparisonType, TaskStatus, Configuration } from "@/lib/types";
 import { Plus, Trash, X, Settings2, GitCommitHorizontal, Copy } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
-import { cn, getAllElements } from "@/lib/utils";
+import { cn, getAllElements, getNestedValue } from "@/lib/utils";
 import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { Input } from "../ui/input";
 import { Separator } from "../ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { fetchFromApi, findFirstArray } from "@/lib/utils";
+
 
 type Props = {
   isOpen: boolean;
@@ -44,6 +46,7 @@ const ConditionEditor = memo(({
     localConfigs: Configuration[],
 }) => {
     const [condition, setCondition] = useState(initialCondition);
+    const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
     
     useEffect(() => {
         setCondition(initialCondition);
@@ -80,13 +83,38 @@ const ConditionEditor = memo(({
         onDeleteCondition(condition.id);
     }
     
-    const getFieldOptions = (element: FormElementInstance | Section | null): string[] => {
+     useEffect(() => {
+        if (sourceElement && 'dataSource' in sourceElement && sourceElement.dataSource === 'dynamic' && sourceElement.apiUrl) {
+            fetchFromApi(sourceElement.apiUrl).then(data => {
+                const arrayData = findFirstArray(data);
+                setDynamicOptions(arrayData || []);
+            });
+        } else {
+            setDynamicOptions([]);
+        }
+    }, [sourceElement]);
+
+    const getFieldOptions = (element: FormElementInstance | Section | null): { label: string, value: string }[] => {
         if (!element || !('type' in element)) return [];
-        if (element.type === 'Select' || element.type === 'RadioGroup') return element.options || [];
-        if (element.type === 'Checkbox') return ['true', 'false'];
+        if (element.type === 'Select' || element.type === 'RadioGroup') {
+            if (element.dataSource === 'dynamic') {
+                const customOpts = element.customOptions?.map(opt => ({ label: opt.label, value: opt.value })) || [];
+                const dynamicOpts = dynamicOptions.map(opt => ({
+                    label: getNestedValue(opt, element.labelKey || 'label'),
+                    value: getNestedValue(opt, element.valueKey || 'value')
+                }));
+
+                if (element.customOptionsPosition === 'top') {
+                    return [...customOpts, ...dynamicOpts];
+                }
+                return [...dynamicOpts, ...customOpts];
+            }
+            return element.options?.map(opt => ({ label: opt, value: opt })) || [];
+        }
+        if (element.type === 'Checkbox') return [{label: 'Checked', value: 'true'}, {label: 'Unchecked', value: 'false'}];
         return [];
     }
-    
+
     const isDateRelated = (element: FormElementInstance | Section | null) => {
         if (!element) return false;
         if ('type' in element) return element.type === 'DatePicker';
@@ -197,7 +225,7 @@ const ConditionEditor = memo(({
                     comparisonValueInput = (
                         <Select value={condition.value} onValueChange={(value) => handleUpdate('value', value)}>
                             <SelectTrigger><SelectValue placeholder="Select an option..." /></SelectTrigger>
-                            <SelectContent>{sourceFieldOptions.map(opt => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}</SelectContent>
+                            <SelectContent>{sourceFieldOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
                         </Select>
                     )
                  } else {
@@ -924,3 +952,4 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     </Dialog>
   );
 }
+

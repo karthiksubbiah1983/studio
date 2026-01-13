@@ -27,6 +27,21 @@ export const getNestedValue = (obj: any, path: string): any => {
     return path.split('.').reduce((acc, part) => acc && acc[part], obj);
 };
 
+export const fetchFromApi = async (url: string) => {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`API call failed with status: ${response.status}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error("Failed to fetch from API:", error);
+        return null;
+    }
+}
+
+
 export const findFirstArray = (data: any): any[] | null => {
     if (Array.isArray(data)) {
         return data;
@@ -303,3 +318,4 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
     return conditionResults.some((res) => res);
   }
 };
+
