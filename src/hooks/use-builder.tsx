@@ -14,15 +14,83 @@ import { useRouter } from "next/navigation";
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
 
-const cascadingDemoTemplate: Form = {
-    id: "demo-cascading-dropdowns",
-    title: "Cascading Dropdowns Demo",
+const editableTableCascadingDemo: Form = {
+    id: "demo-editable-table-cascading",
+    title: "Editable Table with Cascading Dropdowns",
     categoryId: "demo-templates",
     versions: [
         {
             id: crypto.randomUUID(),
             name: "Initial Version",
-            description: "A template demonstrating cascading dropdowns.",
+            description: "A template demonstrating cascading dropdowns within an editable table.",
+            type: "published",
+            timestamp: new Date().toISOString(),
+            sections: [
+                {
+                    id: "s1-editable-cascade",
+                    title: "Dynamic Rows",
+                    displayMode: "default",
+                    elements: [
+                         {
+                            id: "location_table",
+                            type: "EditableTable",
+                            key: "locations",
+                            label: "Location Selector",
+                            required: false,
+                            defaultRows: 1,
+                            columns: [
+                                { 
+                                    id: "col_region", 
+                                    label: "Region", 
+                                    element: { 
+                                        ...createNewElement("Select"), 
+                                        id: "col_region_el", 
+                                        key: "region", 
+                                        label: "Region",
+                                        dataSource: 'dynamic',
+                                        apiUrl: '/mock-data/regions.json',
+                                        valueKey: 'id',
+                                        labelKey: 'name',
+                                        placeholder: 'Select a region...'
+                                    } 
+                                },
+                                { 
+                                    id: "col_country", 
+                                    label: "Country", 
+                                    element: { 
+                                        ...createNewElement("Select"), 
+                                        id: "col_country_el", 
+                                        key: "country", 
+                                        label: "Country",
+                                        dataSource: 'dynamic',
+                                        apiUrl: '/mock-data/countries/{id}.json',
+                                        dataSourceParentId: 'col_region_el', // Reference the element in the other column
+                                        valueKey: 'id',
+                                        labelKey: 'name',
+                                        placeholder: 'Select a country...'
+                                    } 
+                                },
+                            ]
+                        }
+                    ],
+                },
+            ],
+            rules: [],
+            workflows: [],
+            configurations: []
+        }
+    ]
+};
+
+const cascadingDemoTemplate: Form = {
+    id: "demo-cascading-dropdowns",
+    title: "Standalone Cascading Dropdowns",
+    categoryId: "demo-templates",
+    versions: [
+        {
+            id: crypto.randomUUID(),
+            name: "Initial Version",
+            description: "A template demonstrating cascading dropdowns outside of a table.",
             type: "published",
             timestamp: new Date().toISOString(),
             sections: [
@@ -969,6 +1037,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (!mergedState.forms.some(f => f.id === cascadingDemoTemplate.id)) {
         mergedState.forms.unshift(cascadingDemoTemplate);
     }
+    if (!mergedState.forms.some(f => f.id === editableTableCascadingDemo.id)) {
+        mergedState.forms.unshift(editableTableCascadingDemo);
+    }
     if (!mergedState.categories.some(c => c.id === demoCategory.id)) {
         mergedState.categories.unshift(demoCategory);
     }
@@ -1206,3 +1277,4 @@ export const useBuilder = () => {
   }
   return context;
 };
+
