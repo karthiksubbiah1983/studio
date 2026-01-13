@@ -286,13 +286,27 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         let finalApiUrl = element.apiUrl;
 
         if (parentId && finalApiUrl.includes('{') && context) {
-            const parentState = context[parentId];
-            const parentValue = (parentState && typeof parentState === 'object' && 'value' in parentState) ? parentState.value : parentState;
+            // In a table, the context is the row itself, keys are element IDs
+            const parentValue = isTableCell ? context[parentId] : context[parentId]?.value;
             
             if (parentValue) {
                 const placeholder = finalApiUrl.substring(finalApiUrl.indexOf('{') + 1, finalApiUrl.indexOf('}'));
-                const parentFullObject = (parentState && typeof parentState === 'object' && 'fullObject' in parentState) ? parentState.fullObject : null;
-                const valueToInterpolate = parentFullObject ? getNestedValue(parentFullObject, placeholder) : parentValue;
+                let valueToInterpolate = parentValue;
+
+                // If parent is also a select, we might need to get from its fullObject
+                if (!isTableCell) {
+                    const parentState = context[parentId];
+                    const parentFullObject = (parentState && typeof parentState === 'object' && 'fullObject' in parentState) ? parentState.fullObject : null;
+                    if (parentFullObject) {
+                        valueToInterpolate = getNestedValue(parentFullObject, placeholder) || parentValue;
+                    }
+                } else {
+                    const parentFullObject = context[`${parentId}__fullObject`];
+                    if(parentFullObject) {
+                       valueToInterpolate = getNestedValue(parentFullObject, placeholder) || parentValue;
+                    }
+                }
+
                 finalApiUrl = finalApiUrl.replace(`{${placeholder}}`, valueToInterpolate);
             } else {
                 setDynamicOptions([]);
@@ -1149,7 +1163,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             element={element} 
             value={value} 
             onValueChange={onValueChange}
-            formState={formState} 
         />;
     default:
       content = <div>Unsupported element type: {type}</div>;

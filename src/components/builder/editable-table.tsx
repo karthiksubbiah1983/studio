@@ -99,13 +99,20 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                         const cellState = row[col.element.id];
                         // Correctly extract the primitive value if it's wrapped in an object
                         const cellValue = (cellState && typeof cellState === 'object' && 'value' in cellState) ? cellState.value : cellState;
+                        
+                        // Create a row context that merges the global form state with the current row's data.
+                        // Row data takes precedence.
+                        const rowContext = {
+                            ...row
+                        };
+
                         return (
                             <TableCell key={col.id} className="min-w-[200px]">
                                 <FormElementRenderer
                                     element={col.element}
                                     value={cellValue}
                                     onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
-                                    rowContext={row}
+                                    rowContext={rowContext}
                                     isTableCell={true}
                                 />
                             </TableCell>
