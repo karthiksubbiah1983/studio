@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FormElementRenderer } from '@/components/form-element';
 import { Plus, Trash, Search } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '../ui/scroll-area';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Input } from '../ui/input';
 
 type Props = {
@@ -54,19 +54,14 @@ export function EditableTable({ element, value, onValueChange }: Props) {
     onValueChange(element.id, newRows);
   };
   
-  const filteredRows = useMemo(() => {
-    let searchableItems = [...rows];
-
-    if (element.enableSearch && searchTerm) {
-      searchableItems = searchableItems.filter(row => {
-        return Object.values(row).some(val => 
-          String(val).toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      });
-    }
-
-    return searchableItems;
-  }, [rows, searchTerm, element.enableSearch]);
+  let filteredRows = [...rows];
+  if (element.enableSearch && searchTerm) {
+    filteredRows = filteredRows.filter(row => {
+      return Object.values(row).some(val => 
+        String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+  }
 
   return (
     <div className='flex flex-col gap-4'>
