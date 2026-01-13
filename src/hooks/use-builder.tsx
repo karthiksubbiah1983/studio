@@ -28,7 +28,7 @@ const editableTableCascadingDemo: Form = {
             sections: [
                 {
                     id: "s1-editable-cascade",
-                    title: "Dynamic Rows",
+                    title: "Scenario 1: Making a New API Call",
                     displayMode: "default",
                     elements: [
                          {
@@ -74,6 +74,54 @@ const editableTableCascadingDemo: Form = {
                         }
                     ],
                 },
+                {
+                    id: "s2-editable-cascade",
+                    title: "Scenario 2: Filtering from a Single API Call",
+                    displayMode: "default",
+                    elements: [
+                        {
+                            id: "product_table",
+                            type: "EditableTable",
+                            key: "products",
+                            label: "Product Selector",
+                            required: false,
+                            defaultRows: 1,
+                            columns: [
+                                {
+                                    id: "col_prod_family",
+                                    label: "Product Family",
+                                    element: {
+                                        ...createNewElement("Select"),
+                                        id: "col_prod_family_el",
+                                        key: "productFamily",
+                                        label: "Product Family",
+                                        dataSource: 'dynamic',
+                                        apiUrl: '/mock-data/product-families.json',
+                                        valueKey: 'familyId',
+                                        labelKey: 'familyName',
+                                        placeholder: "Select a family..."
+                                    }
+                                },
+                                {
+                                    id: "col_prod_name",
+                                    label: "Product",
+                                    element: {
+                                        ...createNewElement("Select"),
+                                        id: "col_prod_name_el",
+                                        key: "product",
+                                        label: "Product",
+                                        dataSource: 'fromParent',
+                                        dataSourceParentId: 'col_prod_family_el',
+                                        dataSourceParentKey: 'products',
+                                        valueKey: 'productId',
+                                        labelKey: 'productName',
+                                        placeholder: 'Select a product...'
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
             ],
             rules: [],
             workflows: [],
@@ -1278,3 +1326,4 @@ export const useBuilder = () => {
   return context;
 };
 
+    
