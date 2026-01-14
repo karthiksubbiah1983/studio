@@ -1121,7 +1121,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
   // Reactive rules engine
   useEffect(() => {
-    if (!isLoaded || !activeForm) return;
+    if (!isLoaded || !activeForm || !userDrivenState) return;
 
     const runRuleEngine = () => {
         // 1. Create a fresh state object based on the form's default structure.
