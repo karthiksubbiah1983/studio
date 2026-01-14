@@ -292,12 +292,10 @@ function ColumnManager({
     columns,
     onUpdate,
     columnType,
-    parentFetchedData,
 }: {
     columns: (TableColumn | ListItemElement)[];
     onUpdate: (columns: (TableColumn | ListItemElement)[]) => void;
     columnType: 'table' | 'listitem';
-    parentFetchedData?: Record<string,any> | null;
 }) {
     const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
     const [editingColumn, setEditingColumn] = useState<TableColumn | ListItemElement | null>(null);
@@ -360,7 +358,6 @@ function ColumnManager({
                 onSave={handleSaveColumn}
                 column={editingColumn}
                 columnType={columnType}
-                parentFetchedData={parentFetchedData}
             />
         </div>
     );
@@ -372,14 +369,12 @@ function ColumnEditorDialog({
     onSave,
     column,
     columnType,
-    parentFetchedData,
 }: {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
     onSave: (column: TableColumn | ListItemElement) => void;
     column: TableColumn | ListItemElement | null;
-    columnType: 'table' | 'listitem',
-    parentFetchedData?: Record<string, any> | null;
+    columnType: 'table' | 'listitem';
 }) {
     const [editingColumn, setEditingColumn] = useState<TableColumn | ListItemElement | null>(null);
 
@@ -451,19 +446,6 @@ function ColumnEditorDialog({
                                 />
                             </div>
                         )}
-                         {isTableColumn && 'labelKey' in editingColumn && parentFetchedData && (
-                            <div className="flex flex-col gap-2">
-                                <Label>Header Label Key</Label>
-                                <Select value={editingColumn.labelKey || ''} onValueChange={(value) => updateColumnProperty('labelKey', value)}>
-                                    <SelectTrigger><SelectValue placeholder="Select a key..."/></SelectTrigger>
-                                    <SelectContent>
-                                        {Object.keys(parentFetchedData).map(key => (
-                                            <SelectItem key={key} value={key}>{key}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        )}
                         {'element' in editingColumn && (
                             <>
                                 <h3 className="text-lg font-medium">Field Properties</h3>
@@ -498,7 +480,6 @@ function ColumnEditorDialog({
                                     element={editingColumn.element}
                                     onUpdate={handleElementUpdate}
                                     isColumnElement={true}
-                                    parentFetchedData={parentFetchedData}
                                 />
                             </>
                         )}
@@ -656,7 +637,7 @@ function DataGridColumnEditor({
 }
 
 
-function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false, parentFetchedData }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean, parentFetchedData?: Record<string, any> | null }) {
+function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
   const { dispatch, state, sections, rules } = useBuilder();
   const [props, setProps] = useState(element);
   const { selectedElement } = state;
@@ -670,16 +651,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== props.id && el.type === 'Select') as FormElementInstance[], [allElements, props.id]);
   const editableTables = useMemo(() => allElements.filter(el => 'type' in el && el.type === 'EditableTable') as FormElementInstance[], [allElements]);
   
-  const finalFetchedKeys = useMemo(() => {
-    if (parentFetchedData) {
-        return Object.keys(flattenObject(parentFetchedData));
-    }
-    return fetchedKeys;
-  }, [parentFetchedData, fetchedKeys]);
-
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'EditableTable') && element.dataSource === 'dynamic' && element.apiUrl) {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.dataSource === 'dynamic' && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -716,39 +690,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    let apiUrlToFetch = url || (props.type === 'Select' || props.type === 'List' || props.type === 'Combobox' ? props.apiUrl : undefined);
+    const apiUrlToFetch = url || (props.type === 'Select' || props.type === 'List' || props.type === 'Combobox' ? props.apiUrl : undefined);
     if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
     };
     
-    // Handle URL templates
-    if (apiUrlToFetch.includes('{') && apiUrlToFetch.includes('}')) {
-        const placeholder = apiUrlToFetch.match(/\{(.+?)\}/)?.[1];
-        if (!placeholder) {
-          setIsFetching(false);
-          return;
-        }
-        
-        // Find the parent to get a sample value. We can't prompt the user.
-        const parentElement = allElements.find(el => el.id === props.dataSourceParentId);
-        if (parentElement && 'key' in parentElement && parentElement.key === placeholder) {
-          // This is tricky because we don't have form state here.
-          // We can't fetch schema for templated URLs without a sample value.
-          // For now, we will just not fetch. A better solution might be to ask the user.
-          console.warn("Cannot auto-fetch schema for templated URL without a sample value.");
-          setFetchedKeys([]);
-          return;
-        } else {
-            const sampleValue = prompt(`The API URL is a template. Please provide a sample value for '{${placeholder}}' to fetch the schema:`);
-            if (!sampleValue) {
-                return;
-            }
-            apiUrlToFetch = apiUrlToFetch.replace(`{${placeholder}}`, encodeURIComponent(sampleValue));
-        }
-
-    }
-
     setIsFetching(true);
     try {
         const rawData = await fetchFromApi(apiUrlToFetch);
@@ -757,21 +704,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 setFetchedJsonData(rawData);
                 setIsFetchedJsonDialogOpen(true);
             }
-            if (props.type === 'EditableTable') {
-                const flatData = flattenObject(rawData);
-                setFetchedKeys(Object.keys(flatData));
-            } else {
-                const dataArray = findFirstArray(rawData);
-                if (dataArray && dataArray.length > 0) {
-                    const sample = dataArray[0];
-                    if (typeof sample === 'object' && sample !== null) {
-                        setFetchedKeys(Object.keys(flattenObject(sample)));
-                    } else {
-                         setFetchedKeys([]);
-                    }
+            const dataArray = findFirstArray(rawData);
+            if (dataArray && dataArray.length > 0) {
+                const sample = dataArray[0];
+                if (typeof sample === 'object' && sample !== null) {
+                    setFetchedKeys(Object.keys(flattenObject(sample)));
                 } else {
-                    setFetchedKeys([]);
+                     setFetchedKeys([]);
                 }
+            } else {
+                setFetchedKeys([]);
             }
         }
     } catch (error) {
@@ -794,19 +736,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <Label htmlFor="label">Label</Label>
         <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
       </div>
-      { isColumnElement && parentFetchedData && (
-         <div className="flex flex-col gap-2">
-            <Label htmlFor="labelKey">Label Key</Label>
-            <Select value={props.labelKey || ''} onValueChange={(value) => updateProperty('labelKey', value)}>
-                <SelectTrigger><SelectValue placeholder="Select a key..."/></SelectTrigger>
-                <SelectContent>
-                    {Object.keys(parentFetchedData).map(key => (
-                        <SelectItem key={key} value={key}>{key}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
-      )}
       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
         <Label htmlFor="required">Required</Label>
         <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
@@ -945,7 +874,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             </div>
             <p className="text-xs text-muted-foreground">Use a placeholder like `&#123;id&#125;` for dynamic URLs.</p>
         </div>
-        {props.apiUrl?.includes('{') && (
+        {(props.apiUrl?.includes('{') || props.dataSource === 'fromParent') && (
             <div className="flex flex-col gap-2">
                 <Label>API URL Parent Field</Label>
                 <Select value={props.dataSourceParentId || ""} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
@@ -964,10 +893,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     onValueChange={(value) => updateProperty('valueKey', value)}
                 >
                     <SelectTrigger>
-                        <SelectValue placeholder={finalFetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                        <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
                     </SelectTrigger>
                     <SelectContent>
-                        {finalFetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -978,10 +907,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     onValueChange={(value) => updateProperty('labelKey', value)}
                 >
                     <SelectTrigger>
-                        <SelectValue placeholder={finalFetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                        <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
                     </SelectTrigger>
                     <SelectContent>
-                        {finalFetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                        {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
@@ -993,10 +922,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         onValueChange={(value) => updateProperty('secondaryTextKey', value)}
                     >
                         <SelectTrigger>
-                            <SelectValue placeholder={finalFetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                            <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
                         </SelectTrigger>
                         <SelectContent>
-                            {finalFetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                            {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
@@ -1009,10 +938,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         onValueChange={(value) => updateProperty('linkUrlKey', value)}
                     >
                         <SelectTrigger>
-                            <SelectValue placeholder={finalFetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                            <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
                         </SelectTrigger>
                         <SelectContent>
-                            {finalFetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                            {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
@@ -1864,7 +1793,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "EditableTable":
             return (
-                <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "columns", "features"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1883,21 +1812,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="data">
-                        <AccordionTrigger className="py-2">API Data Binding (Labels)</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="apiUrl">API URL</Label>
-                                <div className="flex gap-2">
-                                    <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => updateProperty('apiUrl', e.target.value)} />
-                                    <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
-                                        {isFetching ? "Fetching..." : "Fetch"}
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-muted-foreground">Fetch data to dynamically assign to column headers or field labels.</p>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
                     <AccordionItem value="columns">
                         <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                         <AccordionContent>
@@ -1905,7 +1819,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 columns={props.columns || []}
                                 onUpdate={(newColumns) => updateProperty('columns', newColumns)}
                                 columnType="table"
-                                parentFetchedData={fetchedJsonData}
                             />
                         </AccordionContent>
                     </AccordionItem>
@@ -2043,4 +1956,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
