@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
@@ -526,10 +525,6 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
         if ('id' in element && !state[element.id]) { // Ensure not to overwrite section state
-            state[element.id] = { 
-                value: 'defaultValue' in element ? element.defaultValue : undefined,
-                isVisible: !element.hidden && element.type !== 'Popup'
-            };
              if (element.type === 'EditableTable' && element.defaultRows) {
                 const tableRows: any[] = [];
                 for (let i = 0; i < element.defaultRows; i++) {
@@ -540,6 +535,11 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
                     tableRows.push(row);
                 }
                 state[element.id] = { value: tableRows, isVisible: !element.hidden };
+            } else {
+                 state[element.id] = { 
+                    value: 'defaultValue' in element ? element.defaultValue : undefined,
+                    isVisible: !element.hidden && element.type !== 'Popup'
+                };
             }
         }
     });
@@ -1327,3 +1327,4 @@ export const useBuilder = () => {
 };
 
     
+
