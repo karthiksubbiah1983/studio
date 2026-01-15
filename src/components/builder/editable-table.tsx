@@ -7,10 +7,12 @@ import { useBuilder } from '@/hooks/use-builder';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FormElementRenderer } from '@/components/form-element';
-import { Plus, Trash, Search } from 'lucide-react';
+import { Plus, Trash, Search, Eye } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '../ui/scroll-area';
 import React, { useState } from 'react';
 import { Input } from '../ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { FormPreview } from '../form-preview';
 
 type Props = {
   element: FormElementInstance;
@@ -19,13 +21,14 @@ type Props = {
 };
 
 export function EditableTable({ element, value, onValueChange }: Props) {
+  const { sections } = useBuilder();
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const [activePreviewRow, setActivePreviewRow] = useState<{ rowId: string, sections: any[] } | null>(null);
+
   const rows = Array.isArray(value) ? value : [];
 
   const handleRowChange = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
     const newRows = [...rows];
-    // Find the original index in the unfiltered `rows` array based on the unique _rowId
     const originalRowIndex = rows.findIndex(r => r._rowId === filteredRows[rowIndex]._rowId);
     
     if (originalRowIndex !== -1) {
@@ -41,7 +44,7 @@ export function EditableTable({ element, value, onValueChange }: Props) {
   const addRow = () => {
     if (element.maxRows && rows.length >= element.maxRows) return;
     
-    const newRow: Record<string, any> = { _rowId: crypto.randomUUID() };
+    const newRow: Record<string, any> = { _rowId: crypto.randomUUID(), _previewData: {} };
     element.columns?.forEach(col => {
       newRow[col.element.id] = col.element.defaultValue ?? '';
     });
@@ -63,6 +66,27 @@ export function EditableTable({ element, value, onValueChange }: Props) {
     });
   }
 
+  const handleOpenPreview = (rowId: string, elementInColumn: FormElementInstance) => {
+    if (elementInColumn.type !== 'Preview' || !elementInColumn.previewSectionIds) return;
+    const sectionsToPreview = sections.filter(s => elementInColumn.previewSectionIds?.includes(s.id));
+    setActivePreviewRow({ rowId, sections: sectionsToPreview });
+  };
+
+  const handleSavePreview = (newPreviewState: any) => {
+    if (!activePreviewRow) return;
+    const newRows = rows.map(row => {
+        if (row._rowId === activePreviewRow.rowId) {
+            return { ...row, _previewData: newPreviewState };
+        }
+        return row;
+    });
+    onValueChange(element.id, newRows);
+    setActivePreviewRow(null);
+  };
+  
+  const currentRowForPreview = activePreviewRow ? rows.find(r => r._rowId === activePreviewRow.rowId) : null;
+  const isPopupPreview = element.columns?.some(c => c.element.type === 'Preview' && c.element.displayMode !== 'inline');
+  
   return (
     <div className='flex flex-col gap-4'>
         <label className='text-sm font-medium'>{element.label}</label>
@@ -97,14 +121,19 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                     <TableRow key={row._rowId}>
                     {element.columns?.map(col => {
                         const cellState = row[col.element.id];
-                        // Correctly extract the primitive value if it's wrapped in an object
                         const cellValue = (cellState && typeof cellState === 'object' && 'value' in cellState) ? cellState.value : cellState;
-                        
-                        // Create a row context that merges the global form state with the current row's data.
-                        // Row data takes precedence.
-                        const rowContext = {
-                            ...row
-                        };
+                        const rowContext = { ...row };
+
+                        if (col.element.type === 'Preview') {
+                            return (
+                                <TableCell key={col.id} className="min-w-[200px]">
+                                    <Button variant="outline" className="w-full" onClick={() => handleOpenPreview(row._rowId, col.element)}>
+                                        <Eye className="mr-2 h-4 w-4" />
+                                        {col.element.label}
+                                    </Button>
+                                </TableCell>
+                            )
+                        }
 
                         return (
                             <TableCell key={col.id} className="min-w-[200px]">
@@ -142,6 +171,27 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                 </Button>
              )}
         </div>
+        
+        {isPopupPreview && activePreviewRow && (
+             <Dialog open={!!activePreviewRow} onOpenChange={(isOpen) => !isOpen && setActivePreviewRow(null)}>
+                <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
+                    <DialogHeader className="p-4 border-b">
+                        <DialogTitle>Checklist</DialogTitle>
+                    </DialogHeader>
+                    <ScrollArea className="flex-1">
+                        <div className="p-4">
+                        <FormPreview 
+                            sections={activePreviewRow.sections} 
+                            showSubmitButton={false} 
+                            initialState={currentRowForPreview?._previewData}
+                            onSubmit={handleSavePreview}
+                            submitButtonText="Save Checklist"
+                        />
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+        )}
     </div>
   );
 }

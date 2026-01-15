@@ -34,8 +34,32 @@ const generateSubmissionJson = (elements: (FormElementInstance | Section)[], for
     return submission;
 };
 
-const SectionRenderer = ({ section }: { section: Section }) => {
-    const { formState, updateFormState } = useBuilder();
+type SectionRendererProps = {
+  section: Section;
+  formState: { [key: string]: any };
+  updateFormState: (id: string, value: any, fullObject?: any) => void;
+};
+
+const SectionRenderer = ({ section, formState, updateFormState }: SectionRendererProps) => {
+    const { rules, configurations, sections } = useBuilder();
+
+    const isVisible = useMemo(() => {
+        let visible = !section.hidden;
+        const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === section.id));
+        const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === section.id));
+
+        if (showRules.length > 0) {
+            visible = showRules.some(r => evaluateRule(r, formState || {}, configurations, sections));
+        }
+
+        if (visible && hideRules.length > 0) {
+            if (hideRules.some(r => evaluateRule(r, formState || {}, configurations, sections))) {
+                visible = false;
+            }
+        }
+        return visible;
+    }, [section, formState, rules, configurations, sections]);
+
 
     const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
         return elements.map(element => (
@@ -56,7 +80,7 @@ const SectionRenderer = ({ section }: { section: Section }) => {
         </div>
     );
     
-    if (formState[section.id]?.isVisible === false) {
+    if (!isVisible) {
         return null;
     }
 
@@ -93,22 +117,48 @@ const SectionRenderer = ({ section }: { section: Section }) => {
     );
 }
 
+type FormPreviewProps = {
+  showSubmitButton?: boolean;
+  sections: Section[];
+  taskId?: string;
+  initialState?: { [key: string]: any };
+  onSubmit?: (state: { [key: string]: any }) => void;
+  submitButtonText?: string;
+};
 
-export function FormPreview({ showSubmitButton = true, sections, taskId }: { showSubmitButton?: boolean; sections: Section[]; taskId?: string; }) {
-  const { rules, workflows, configurations, dispatch, activeForm, state, formState, setFormState, updateFormState } = useBuilder();
+export function FormPreview({ showSubmitButton = true, sections, taskId, initialState, onSubmit, submitButtonText = "Submit Form" }: FormPreviewProps) {
+  const builderContext = useBuilder();
   const router = useRouter();
   const { toast } = useToast();
 
-  useEffect(() => {
-    // This effect is now handled centrally in useBuilder, but we keep this stub
-    // in case component-specific logic is needed in the future.
-  }, [formState, rules, sections, configurations]);
+  const isControlled = initialState !== undefined;
 
-  const handleValueChange = (elementId: string, value: any, fullObject?: any) => {
-    updateFormState(elementId, value, fullObject);
+  const [localState, setLocalState] = useState(initialState || {});
+
+  useEffect(() => {
+    if (isControlled) {
+        setLocalState(initialState || {});
+    }
+  }, [initialState, isControlled]);
+  
+  const formState = isControlled ? localState : builderContext.formState;
+
+  const updateFormState = (elementId: string, value: any, fullObject?: any) => {
+    if (isControlled) {
+        setLocalState(prev => ({ ...prev, [elementId]: { value, fullObject } }));
+    } else {
+        builderContext.updateFormState(elementId, value, fullObject);
+    }
   };
 
+  useEffect(() => {
+    if (!isControlled) {
+        // This effect is now handled centrally in useBuilder for global mode
+    }
+  }, [formState, builderContext.rules, sections, builderContext.configurations, isControlled]);
+
   const processWorkflows = (submissionData: Record<string, any>) => {
+    const { workflows, configurations, dispatch } = builderContext;
     if (!workflows || workflows.length === 0) return;
 
     for (const workflow of workflows) {
@@ -150,6 +200,12 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: { sho
   }
   
   const handleSubmit = () => {
+    if (isControlled && onSubmit) {
+        onSubmit(localState);
+        return;
+    }
+
+    const { state, activeForm, dispatch } = builderContext;
     const formId = taskId ? state.tasks.find(t => t.id === taskId)?.formId : activeForm?.id;
     if (!formId) return;
 
@@ -180,11 +236,16 @@ export function FormPreview({ showSubmitButton = true, sections, taskId }: { sho
   return (
     <div className="p-4 space-y-4">
       {sections.map((section) => (
-         <SectionRenderer key={section.id} section={section} />
+         <SectionRenderer 
+            key={section.id} 
+            section={section} 
+            formState={formState}
+            updateFormState={updateFormState}
+        />
       ))}
        {showSubmitButton && <div className="flex justify-end mt-8">
             <Button onClick={handleSubmit}>
-                Submit Form
+                {submitButtonText}
             </Button>
         </div>}
     </div>
