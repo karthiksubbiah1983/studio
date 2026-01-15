@@ -37,6 +37,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useAuth } from "@/hooks/use-auth";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { EditableTable } from "@/components/builder/editable-table";
+import { FormPreview } from "./form-preview";
 
 
 type Props = {
@@ -81,6 +82,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [activePopupElementId, setActivePopupElementId] = useState<string | null>(null);
   
   const [popupTriggerState, setPopupTriggerState] = useState<any>(null);
+  const [showInline, setShowInline] = useState(false);
 
 
   useEffect(() => {
@@ -1030,23 +1032,49 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         </div>
       );
       break;
-    case "Preview":
+    case "Preview": {
+        const sectionsToPreview = sections.filter(s => element.previewSectionIds?.includes(s.id));
+        
+        const toggleDisplay = () => {
+            if (element.displayMode === 'popup') {
+                setIsPreviewPopupOpen(true);
+            } else { // inline
+                setShowInline(prev => !prev);
+            }
+        };
+        
         content = (
              <div>
                 {renderLabel()}
-                <Button variant="outline" className="w-full" onClick={() => setIsPreviewPopupOpen(true)}>
+                <Button variant="outline" className="w-full" onClick={toggleDisplay}>
                     <Eye className="mr-2 h-4 w-4" />
                     {label}
                 </Button>
-                <FormPreviewPopup
-                    isOpen={isPreviewPopupOpen}
-                    onOpenChange={setIsPreviewPopupOpen}
-                    sectionIds={element.previewSectionIds || []}
-                    formState={formState || {}}
-                />
+
+                {element.displayMode === 'popup' ? (
+                     <Dialog open={isPreviewPopupOpen} onOpenChange={setIsPreviewPopupOpen}>
+                        <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
+                            <DialogHeader className="p-4 border-b">
+                                <DialogTitle>{label}</DialogTitle>
+                            </DialogHeader>
+                            <ScrollArea className="flex-1">
+                               <div className="p-4">
+                                <FormPreview sections={sectionsToPreview} showSubmitButton={false} />
+                               </div>
+                            </ScrollArea>
+                        </DialogContent>
+                    </Dialog>
+                ) : (
+                    showInline && (
+                        <div className="mt-4 border rounded-lg p-4">
+                             <FormPreview sections={sectionsToPreview} showSubmitButton={false} />
+                        </div>
+                    )
+                )}
             </div>
         );
         break;
+    }
     case "FileUpload":
         const currentFiles: File[] = (value || []) as File[];
         
