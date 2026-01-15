@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
@@ -525,17 +526,19 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
         if ('id' in element && !state[element.id]) { // Ensure not to overwrite section state
-             if (element.type === 'EditableTable' && element.defaultRows) {
-                const tableRows: any[] = [];
-                for (let i = 0; i < element.defaultRows; i++) {
-                    const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
-                    element.columns?.forEach(col => {
-                        row[col.element.id] = col.element.defaultValue ?? null;
-                    });
-                    tableRows.push(row);
+             if (element.type === 'EditableTable' && element.defaultRows && element.defaultRows > 0) {
+                if (!state[element.id] || !state[element.id].value) { // Only set default if no value exists
+                    const tableRows: any[] = [];
+                    for (let i = 0; i < element.defaultRows; i++) {
+                        const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
+                        element.columns?.forEach(col => {
+                            row[col.element.id] = col.element.defaultValue ?? null;
+                        });
+                        tableRows.push(row);
+                    }
+                    state[element.id] = { value: tableRows, isVisible: !element.hidden };
                 }
-                state[element.id] = { value: tableRows, isVisible: !element.hidden };
-            } else {
+            } else if (state[element.id] === undefined) {
                  state[element.id] = { 
                     value: 'defaultValue' in element ? element.defaultValue : undefined,
                     isVisible: !element.hidden && element.type !== 'Popup'
@@ -1284,7 +1287,16 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
   const updateFormState = (elementId: string, value: any, fullObject?: any, isVisible?: boolean) => {
     dispatch({ type: 'UPDATE_USER_DRIVEN_STATE', payload: { elementId, value, fullObject, isVisible } });
-    setUserDrivenState({ elementId, value, timestamp: Date.now() });
+
+    // Find the element that was updated to check if it's a formula field
+    const element = findElementRecursive(sections, elementId);
+
+    // Only trigger the rule engine if the change was from a user-editable field, not a formula result.
+    // This prevents infinite loops where a formula updates a field, which triggers the rule engine,
+    // which causes a re-render, which re-calculates the formula, and so on.
+    if (!element?.formula) {
+      setUserDrivenState({ elementId, value, timestamp: Date.now() });
+    }
   }
   
   const setActivePopupId = (id: string | null) => {
@@ -1327,4 +1339,5 @@ export const useBuilder = () => {
 };
 
     
+
 

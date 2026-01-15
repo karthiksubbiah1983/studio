@@ -75,14 +75,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [fileError, setFileError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
   
-  // Local state for text-based inputs to improve performance
   const [localValue, setLocalValue] = useState(initialValue || "");
   
-  // State specifically for the rule-driven popup
   const [isRulePopupOpen, setIsRulePopupOpen] = useState(false);
   const [activePopupElementId, setActivePopupElementId] = useState<string | null>(null);
   
-  // Track the form state values that triggered the last popup open, to prevent re-opening on simple re-renders
   const [popupTriggerState, setPopupTriggerState] = useState<any>(null);
 
 
@@ -90,41 +87,41 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     setIsClient(true);
   }, []);
 
-  useEffect(() => {
-    // Sync local state when the global state (initialValue) changes from rules or external updates
-    setLocalValue(initialValue || "");
-  }, [initialValue]);
-
   const evaluationContext = isTableCell ? rowContext : formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
+  // Use a consistent variable for the current value throughout the component.
   const value = useMemo(() => {
+    // This memo is now safe, it just extracts the value without side effects.
     let finalValue = initialValue;
-
-    // If the initial value is an object like { value: '...'}, extract the inner value.
-    // This handles cases where a rule sets a value inside an editable table cell.
     if (typeof finalValue === 'object' && finalValue !== null && 'value' in finalValue && Object.keys(finalValue).length === 1) {
         finalValue = finalValue.value;
     }
+    return finalValue;
+  }, [initialValue]);
 
+  // Formula evaluation moved to useEffect to prevent render-time side-effects
+  useEffect(() => {
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) {
+      let calculatedValue;
       try {
-        const calculatedValue = evaluate(element.formula, evaluationContext, allElements);
-         if (calculatedValue !== finalValue) {
-            onValueChange(element.id, calculatedValue);
-            return calculatedValue;
-        }
+        calculatedValue = evaluate(element.formula, evaluationContext, allElements);
       } catch (e) {
         console.error("Formula evaluation error:", e);
-        const errorValue = "#ERROR!";
-        if (errorValue !== finalValue) {
-            onValueChange(element.id, errorValue);
-        }
-        return errorValue;
+        calculatedValue = "#ERROR!";
+      }
+
+      if (calculatedValue !== value) {
+        onValueChange(element.id, calculatedValue);
       }
     }
-    return finalValue;
-  }, [element.type, element.formula, element.id, evaluationContext, initialValue, onValueChange, allElements]);
+  }, [evaluationContext, element.formula, element.id, allElements, value, onValueChange, element.type]);
+
+  // When `initialValue` changes (e.g., from a rule), update local state
+  useEffect(() => {
+    setLocalValue(value || "");
+    setComboboxInputValue(value || "");
+  }, [value]);
   
   const isVisible = useMemo(() => {
     let contextToCheck = evaluationContext;
@@ -204,8 +201,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   const currentSelection = useMemo(() => {
     if (element.type !== 'List') return null;
-    return isCheckbox ? (Array.isArray(initialValue) ? initialValue : []) : (initialValue || '');
-  }, [element.type, isCheckbox, initialValue]);
+    return isCheckbox ? (Array.isArray(value) ? value : []) : (value || '');
+  }, [element.type, isCheckbox, value]);
 
   const allListOptions = useMemo(() => {
     if (element.type !== 'List') return [];
@@ -845,7 +842,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             <div>
                 {renderLabel()}
                 {isRadio ? (
-                    <RadioGroup id={element.id} value={initialValue} onValueChange={handleListChange}>
+                    <RadioGroup id={element.id} value={value} onValueChange={handleListChange}>
                         {listContent}
                     </RadioGroup>
                 ) : (
