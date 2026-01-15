@@ -182,7 +182,7 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                         <div className="p-4">
                         <FormPreview 
                             sections={activePreviewRow.sections} 
-                            showSubmitButton={false} 
+                            showSubmitButton={true}
                             initialState={currentRowForPreview?._previewData}
                             onSubmit={handleSavePreview}
                             submitButtonText="Save Checklist"
