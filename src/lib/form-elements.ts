@@ -136,7 +136,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 multiple: false,
              }
         case "Preview":
-            return { ...baseElement, label: "Preview Button", previewSectionIds: [] };
+            return { ...baseElement, label: "Preview Button", previewSectionIds: [], displayMode: 'popup' };
         default:
             throw new Error("Invalid element type");
     }

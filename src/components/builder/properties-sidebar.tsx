@@ -470,6 +470,7 @@ function ColumnEditorDialog({
                                                     <SelectItem value="Checkbox">Checkbox</SelectItem>
                                                     <SelectItem value="Textarea">Textarea</SelectItem>
                                                     <SelectItem value="DatePicker">Date Picker</SelectItem>
+                                                    <SelectItem value="Preview">Preview</SelectItem>
                                                 </>
                                             )}
                                         </SelectContent>
@@ -1003,7 +1004,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
              );
         case "Preview":
              return (
-                <Accordion type="multiple" defaultValue={["general", "sections"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "sections", "layout"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1027,6 +1028,28 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Label htmlFor={`preview-${section.id}`}>{section.title}</Label>
                                 </div>
                             ))}
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="layout">
+                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label>Display Mode</Label>
+                                <RadioGroup
+                                    value={props.displayMode || 'popup'}
+                                    onValueChange={(value) => updateProperty('displayMode', value as 'popup' | 'inline')}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="popup" id="display-mode-popup" />
+                                        <Label htmlFor="display-mode-popup">Popup</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="inline" id="display-mode-inline" />
+                                        <Label htmlFor="display-mode-inline">Inline</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

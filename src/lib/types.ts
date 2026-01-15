@@ -85,7 +85,6 @@ export type TableColumn = {
   id: string;
   label: string;
   element: FormElementInstance;
-  labelKey?: string;
 };
 
 export type DataGridColumn = {
@@ -187,6 +186,7 @@ export type FormElementInstance = {
     cancelButtonText?: string;
     // For Preview
     previewSectionIds?: string[];
+    displayMode?: 'popup' | 'inline';
 };
 
 export type Section = {
