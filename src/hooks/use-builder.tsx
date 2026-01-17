@@ -527,7 +527,7 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
     allElements.forEach(element => {
         if ('id' in element && !state[element.id]) { // Ensure not to overwrite section state
              if (element.type === 'EditableTable' && element.defaultRows && element.defaultRows > 0) {
-                if (!state[element.id] || !state[element.id].value) { // Only set default if no value exists
+                if (state[element.id] === undefined) {
                     const tableRows: any[] = [];
                     for (let i = 0; i < element.defaultRows; i++) {
                         const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
@@ -1103,9 +1103,13 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   // Save to localStorage whenever relevant state changes
   useEffect(() => {
     if (isLoaded) {
+        // Filter out demo data before saving to prevent persistence issues.
+        const formsToSave = state.forms.filter(f => !f.id.startsWith('demo-'));
+        const categoriesToSave = state.categories.filter(c => c.id !== 'demo-templates');
+
         const stateToSave = {
-            forms: state.forms,
-            categories: state.categories,
+            forms: formsToSave,
+            categories: categoriesToSave,
             sites: state.sites,
             tasks: state.tasks,
             submissions: state.submissions,
@@ -1339,5 +1343,6 @@ export const useBuilder = () => {
 };
 
     
+
 
 
