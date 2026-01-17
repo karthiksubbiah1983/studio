@@ -164,6 +164,11 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
 
 // This is a duplicate of the function in form-preview-helpers.ts to avoid circular dependencies
 // if utils are imported into form-preview-helpers.
+const isDateRelated = (element: FormElementInstance | Section | null) => {
+    if (!element) return false;
+    if ('type' in element) return element.type === 'DatePicker';
+    return false;
+};
 export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: any }, configurations?: Configuration[], sections?: Section[]): boolean => {
   if (!rule || !rule.conditions || rule.conditions.length === 0 || !context) {
     return false;
@@ -275,7 +280,9 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
         return false;
     }
 
-    const isDateComparison = condition.sourceType === 'date' || condition.comparisonType === 'date';
+    const sourceElement = allElements.find(el => 'id' in el && el.id === condition.sourceElementId) as FormElementInstance | undefined;
+    const comparisonElement = allElements.find(el => 'id' in el && el.id === condition.comparisonElementId) as FormElementInstance | undefined;
+    const isDateComparison = condition.sourceType === 'date' || condition.comparisonType === 'date' || isDateRelated(sourceElement) || isDateRelated(comparisonElement);
 
     if (isDateComparison) {
         try {
@@ -284,12 +291,21 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
 
             if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) return false;
 
-            dateSource.setHours(0, 0, 0, 0);
-            dateComparison.setHours(0, 0, 0, 0);
+            if (!condition.includeTime) {
+                dateSource.setHours(0, 0, 0, 0);
+                dateComparison.setHours(0, 0, 0, 0);
+            }
 
             if (condition.offsetDays) {
                 dateSource.setDate(dateSource.getDate() + condition.offsetDays);
             }
+            if (condition.includeTime && condition.offsetHours) {
+                dateSource.setHours(dateSource.getHours() + condition.offsetHours);
+            }
+            if (condition.includeTime && condition.offsetMinutes) {
+                dateSource.setMinutes(dateSource.getMinutes() + condition.offsetMinutes);
+            }
+
 
             switch(condition.operator) {
                 case 'is_greater_than': return dateSource > dateComparison;
@@ -318,4 +334,3 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
     return conditionResults.some((res) => res);
   }
 };
-

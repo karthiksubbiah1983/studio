@@ -4,6 +4,12 @@ import { FormElementInstance, Section, Rule, Condition, Configuration } from "@/
 import { Workflow } from "@/lib/types";
 import { findElementRecursive, getAllElements, getNestedValue } from "@/lib/utils";
 
+const isDateRelated = (element: FormElementInstance | Section | null) => {
+    if (!element) return false;
+    if ('type' in element) return element.type === 'DatePicker';
+    return false;
+};
+
 export const evaluateSingleCondition = (condition: Condition, context: { [key: string]: any }, allElements: (FormElementInstance | Section)[], configurations?: Configuration[]) => {
     if (!context) return false;
 
@@ -106,7 +112,10 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
         return false;
     }
 
-    const isDateComparison = condition.sourceType === 'date' || condition.comparisonType === 'date';
+    const sourceElement = allElements.find(el => 'id' in el && el.id === condition.sourceElementId) as FormElementInstance | undefined;
+    const comparisonElement = allElements.find(el => 'id' in el && el.id === condition.comparisonElementId) as FormElementInstance | undefined;
+    const isDateComparison = condition.sourceType === 'date' || condition.comparisonType === 'date' || isDateRelated(sourceElement) || isDateRelated(comparisonElement);
+
 
     if (isDateComparison) {
         try {
@@ -115,12 +124,21 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
 
             if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) return false;
 
-            dateSource.setHours(0, 0, 0, 0);
-            dateComparison.setHours(0, 0, 0, 0);
+            if (!condition.includeTime) {
+                dateSource.setHours(0, 0, 0, 0);
+                dateComparison.setHours(0, 0, 0, 0);
+            }
 
             if (condition.offsetDays) {
                 dateSource.setDate(dateSource.getDate() + condition.offsetDays);
             }
+             if (condition.includeTime && condition.offsetHours) {
+                dateSource.setHours(dateSource.getHours() + condition.offsetHours);
+            }
+            if (condition.includeTime && condition.offsetMinutes) {
+                dateSource.setMinutes(dateSource.getMinutes() + condition.offsetMinutes);
+            }
+
 
             switch(condition.operator) {
                 case 'is_greater_than': return dateSource > dateComparison;

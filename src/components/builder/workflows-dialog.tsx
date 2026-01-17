@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Input } from "../ui/input";
 import { Separator } from "../ui/separator";
 import { Textarea } from "../ui/textarea";
+import { Checkbox } from "../ui/checkbox";
 
 type Props = {
   isOpen: boolean;
@@ -26,7 +27,7 @@ const taskStatuses: TaskStatus[] = ['Open', 'In Progress', 'Resolved', 'Closed',
 const taskTypes: string[] = ['Follow-up Call', 'Send Email', 'Review Request'];
 const mailFormats: string[] = ['Welcome Email', 'Order Confirmation', 'Password Reset'];
 const specialDateOptions = [
-    { value: '_current_date', label: 'Current Date' },
+    { value: '_current_date', label: 'Current Date & Time' },
     { value: '_due_date', label: 'Due Date' },
     { value: '_scheduled_date', label: 'Scheduled Date' },
 ];
@@ -144,12 +145,16 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         if (element.type === 'Checkbox') return ['true', 'false'];
         return [];
     }
-
+    
     const isDateRelated = (element: FormElementInstance | Section | null) => {
         if (!element) return false;
         if ('type' in element) return element.type === 'DatePicker';
         return false;
     }
+
+    const showDateFields = 
+        (condition.sourceType === 'date' || isDateRelated(sourceElement)) || 
+        (condition.comparisonType === 'date' || isDateRelated(comparisonElement));
 
     const isNumericRelated = (element: FormElementInstance | Section | null) => {
         if (!element) return false;
@@ -157,12 +162,9 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
         return false;
     };
 
-    const showDateOffset = 
-        (condition.sourceType === 'date' || isDateRelated(sourceElement)) || 
-        (condition.comparisonType === 'date' || isDateRelated(comparisonElement));
-
     const showValueOffset = (isNumericRelated(sourceElement) || isNumericRelated(comparisonElement)) &&
         (condition.operator === 'is_greater_than' || condition.operator === 'is_less_than');
+
 
     const renderSourceInput = () => {
         switch(condition.sourceType) {
@@ -328,23 +330,57 @@ export function WorkflowsDialog({ isOpen, onOpenChange }: Props) {
             <div className="space-y-1">
                 {renderComparisonInput()}
             </div>
-            {showDateOffset && (
-                <div className="flex items-end gap-2">
-                    <div className="w-1/2 space-y-1">
-                        <Label className="text-xs">Date Offset (days)</Label>
-                        <Input
-                            type="number"
-                            placeholder="e.g., 2 or -2"
-                            value={condition.offsetDays || ''}
-                            onChange={(e) => handleUpdateCondition({ offsetDays: e.target.value ? parseInt(e.target.value, 10) : undefined })}
-                            className="h-8 text-xs"
+            {showDateFields && (
+                <div className="space-y-3 pt-3 border-t">
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id={`include-time-${condition.id}`}
+                            checked={condition.includeTime}
+                            onCheckedChange={(checked) => handleUpdateCondition({ includeTime: !!checked })}
                         />
+                        <Label htmlFor={`include-time-${condition.id}`} className="text-xs font-normal">Include Time in Comparison</Label>
                     </div>
-                    <p className="text-xs text-muted-foreground pb-1">Offset is added to the source date.</p>
+                    <div className="flex items-end gap-2">
+                        <div className="flex-1 space-y-1">
+                            <Label className="text-xs">Days</Label>
+                            <Input
+                                type="number"
+                                placeholder="e.g., 2 or -2"
+                                value={condition.offsetDays || ''}
+                                onChange={(e) => handleUpdateCondition({ offsetDays: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                                className="h-8 text-xs"
+                            />
+                        </div>
+                        {condition.includeTime && (
+                          <>
+                            <div className="flex-1 space-y-1">
+                                <Label className="text-xs">Hours</Label>
+                                <Input
+                                    type="number"
+                                    placeholder="e.g., 2"
+                                    value={condition.offsetHours || ''}
+                                    onChange={(e) => handleUpdateCondition({ offsetHours: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                                    className="h-8 text-xs"
+                                />
+                            </div>
+                            <div className="flex-1 space-y-1">
+                                <Label className="text-xs">Minutes</Label>
+                                <Input
+                                    type="number"
+                                    placeholder="e.g., 30"
+                                    value={condition.offsetMinutes || ''}
+                                    onChange={(e) => handleUpdateCondition({ offsetMinutes: e.target.value ? parseInt(e.target.value, 10) : undefined })}
+                                    className="h-8 text-xs"
+                                />
+                            </div>
+                          </>
+                        )}
+                    </div>
+                    <p className="text-xs text-muted-foreground -mt-2">Offset is added to the source date/time.</p>
                 </div>
             )}
              {showValueOffset && (
-                <div className="flex items-end gap-2">
+                <div className="flex items-end gap-2 pt-3 border-t">
                     <div className="w-1/2 space-y-1">
                         <Label className="text-xs">Value Offset</Label>
                         <Input
