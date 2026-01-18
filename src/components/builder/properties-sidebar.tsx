@@ -1252,8 +1252,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Layout</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="leadText">Lead Text</Label>
+                                <Label htmlFor="leadText">Lead Text (Fallback)</Label>
                                 <Input id="leadText" value={props.leadText || ''} onChange={(e) => updateProperty('leadText', e.target.value)} />
+                            </div>
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="leadTextKey">Lead Text Data Key</Label>
+                                <Input id="leadTextKey" value={props.leadTextKey || ''} onChange={(e) => updateProperty('leadTextKey', e.target.value)} placeholder="e.g., status.name"/>
                             </div>
                              <div className="flex flex-col gap-2">
                                 <Label>Direction</Label>
@@ -1354,11 +1358,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {props.isLink && (
                                 <>
                                     <div className="flex flex-col gap-2">
-                                        <Label htmlFor="link-url">URL Template</Label>
+                                        <Label htmlFor="link-url">URL Template (Fallback)</Label>
                                         <Input id="link-url" value={props.linkUrl || ''} onChange={(e) => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com/users/{id}" />
                                         <p className="text-xs text-muted-foreground">
-                                            Use {'{key}'} to insert values from a source field. For lists, this is sourced per item.
+                                            Use {'{key}'} to insert values from the data source.
                                         </p>
+                                    </div>
+                                     <div className="flex flex-col gap-2">
+                                        <Label htmlFor="linkUrlKey">Link URL Data Key</Label>
+                                        <Input id="linkUrlKey" value={props.linkUrlKey || ''} onChange={(e) => updateProperty('linkUrlKey', e.target.value)} placeholder="e.g., user.profileUrl"/>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <Label>URL Data Source</Label>

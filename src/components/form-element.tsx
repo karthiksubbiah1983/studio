@@ -564,7 +564,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 }, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState, rowContext, isTableCell, evaluationContext]);
 
 
-  const { type, label, required, placeholder, helperText, options, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
+  const { type, label, required, placeholder, helperText, options, popup, inputFormat, isLink, linkUrl, linkUrlKey, textStyle, color, content: richTextContent, key, direction, leadText, leadTextKey, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -645,22 +645,36 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       );
     case "Display": {
       let finalDisplayValue = value;
-
-      if (finalDisplayValue === undefined || finalDisplayValue === null) {
+       if ((isTableCell || isParentHorizontal) && !finalDisplayValue) {
+            // When inside a table or horizontal container, if there's no value yet, don't render anything
+            // to prevent the fallback label from cluttering the layout.
+      } else if (finalDisplayValue === undefined || finalDisplayValue === null) {
           finalDisplayValue = label;
+      }
+
+      let finalLeadText = leadText;
+      if (leadTextKey && evaluationContext) {
+          const dynamicLeadText = getNestedValue(evaluationContext, leadTextKey);
+          if (dynamicLeadText !== undefined && dynamicLeadText !== null) {
+              finalLeadText = String(dynamicLeadText);
+          }
       }
         
       if (isLink) {
           let finalUrl = "";
           const interpolationContext = rowContext || formState || {};
-          // In a list context, the row data (rowContext) might contain the specific URL
-          if (rowContext && key && rowContext[`${key}__url`]) {
-              finalUrl = rowContext[`${key}__url`];
-          } 
-          // Fallback to the element's configured URL template
-          else if (linkUrl) {
+
+          if (linkUrlKey) {
+            const dynamicUrl = getNestedValue(interpolationContext, linkUrlKey);
+            if (dynamicUrl) {
+                finalUrl = String(dynamicUrl);
+            }
+          }
+          
+          if (!finalUrl && linkUrl) {
               finalUrl = interpolateString(linkUrl, interpolationContext);
           }
+          
           return (
               <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
                   <Link className="h-4 w-4" />
@@ -722,7 +736,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
               "flex items-center gap-2",
               direction === 'vertical' && 'flex-col items-start'
            )}>
-              {leadText && <span className="text-sm text-muted-foreground">{leadText}</span>}
+              {finalLeadText && <span className="text-sm text-muted-foreground">{finalLeadText}</span>}
               {mainTextContent}
           </div>
       );

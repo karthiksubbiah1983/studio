@@ -143,9 +143,7 @@ export type FormElementInstance = {
     linkUrl?: string | null;
     linkUrlSourceElementId?: string | null;
     leadText?: string;
-    formatType?: 'none' | 'currency' | 'percentage' | 'decimal';
-    currency?: string; 
-    decimalPlaces?: number;
+    leadTextKey?: string | null;
     // For Checkbox, RadioGroup
     popup?: PopupConfig;
     // For RichText
