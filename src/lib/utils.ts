@@ -194,70 +194,64 @@ export const evaluateRule = (rule: Rule | Workflow, context: { [key: string]: an
   const evaluateSingleCondition = (condition: Condition) => {
     if (!context) return false;
 
-    const getConditionValue = (type: 'source' | 'comparison', idOrKey: string | undefined): any => {
+    const getConditionValue = (valueType: 'source' | 'comparison', idOrKey: string | undefined): any => {
         if (!idOrKey) return undefined;
         
-        const valueType = type === 'source' ? condition.sourceType : condition.comparisonType;
+        const conditionValueType = valueType === 'source' ? condition.sourceType : condition.comparisonType;
         
-        if (idOrKey.startsWith('_')) { // Handle special date values
+        if (idOrKey.startsWith('_')) {
             switch(idOrKey) {
                 case '_current_date': return new Date().toISOString(); 
-                case '_due_date': return new Date().toISOString(); // Placeholder
-                case '_scheduled_date': return new Date().toISOString(); // Placeholder
+                case '_due_date': return new Date().toISOString(); 
+                case '_scheduled_date': return new Date().toISOString();
                 default: return undefined;
             }
         }
         
-        if (valueType === 'config') {
+        if (conditionValueType === 'config') {
             const configKey = `config::${idOrKey}`;
             const value = context[configKey];
-             return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
+            return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
+        
+        if (conditionValueType === 'field') {
+            const element = allElements.find(el => 'id' in el && el.id === idOrKey) as FormElementInstance | undefined;
+            if (!element) return undefined;
 
-        const sourceElement = allElements.find(el => 'id' in el && el.id === condition.sourceElementId) as FormElementInstance;
-        const sourceState = condition.sourceElementId ? context[condition.sourceElementId] : undefined;
-
-        if (type === 'source' && condition.sourcePropertyKey && sourceState?.fullObject) {
-            return getNestedValue(sourceState.fullObject, condition.sourcePropertyKey);
-        }
-
-        const findElementByIdOrKey = (id: string) => {
-            // Check if it's a column element in row context
-            if (context[id] !== undefined) {
-                const rowValue = context[id];
-                return (typeof rowValue === 'object' && rowValue !== null && 'value' in rowValue) ? rowValue.value : rowValue;
+            let value;
+            if (element.key && context.hasOwnProperty(element.key)) {
+                value = context[element.key];
+            } 
+            else if (context.hasOwnProperty(element.id)) {
+                value = context[element.id];
+            } else {
+                return undefined;
             }
-            // Check global context by element ID
-            const element = allElements.find(el => el.id === id);
-            if (element && 'id' in element) {
-                const globalValue = context[element.id];
-                 return (typeof globalValue === 'object' && globalValue !== null && 'value' in globalValue) ? globalValue.value : globalValue;
-            }
-            return undefined;
+            
+            return (value && typeof value === 'object' && 'value' in value) ? value.value : value;
         }
-
-        const stateValue = findElementByIdOrKey(idOrKey);
-        return stateValue;
+        
+        return idOrKey;
     }
 
     let sourceValue: any;
     if (condition.sourceType === 'field') {
         sourceValue = getConditionValue('source', condition.sourceElementId);
-    } else { // 'date', 'status', 'config'
+    } else { 
         sourceValue = getConditionValue('source', condition.sourceValue);
     }
     
+    if (condition.sourceType === 'field' && condition.sourcePropertyKey && sourceValue && typeof sourceValue === 'object') {
+        sourceValue = getNestedValue(sourceValue, condition.sourcePropertyKey);
+    }
+
     const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
 
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
         comparisonValue = getConditionValue('comparison', condition.comparisonElementId);
-    } else if (condition.comparisonType === 'config') {
+    } else { 
         comparisonValue = getConditionValue('comparison', condition.value);
-    } else if (condition.comparisonType === 'date' || condition.comparisonType === 'status') {
-        comparisonValue = getConditionValue('comparison', condition.value);
-    } else { // 'value'
-        comparisonValue = condition.value;
     }
 
     const isComparisonValueEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === "";

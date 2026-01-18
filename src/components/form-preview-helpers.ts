@@ -13,16 +13,14 @@ const isDateRelated = (element: FormElementInstance | Section | null) => {
 export const evaluateSingleCondition = (condition: Condition, context: { [key: string]: any }, allElements: (FormElementInstance | Section)[], configurations?: Configuration[]) => {
     if (!context) return false;
 
-    const getConditionValue = (type: 'source' | 'comparison', idOrKey: string | undefined): any => {
+    const getConditionValue = (valueType: ConditionSourceType | ConditionComparisonType, idOrKey: string | undefined): any => {
         if (!idOrKey) return undefined;
         
-        const valueType = type === 'source' ? condition.sourceType : condition.comparisonType;
-
-        if (idOrKey.startsWith('_')) { // Handle special date values
+        if (idOrKey.startsWith('_')) {
             switch(idOrKey) {
                 case '_current_date': return new Date().toISOString(); 
-                case '_due_date': return new Date().toISOString(); // Placeholder
-                case '_scheduled_date': return new Date().toISOString(); // Placeholder
+                case '_due_date': return new Date().toISOString(); 
+                case '_scheduled_date': return new Date().toISOString();
                 default: return undefined;
             }
         }
@@ -30,51 +28,51 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
         if (valueType === 'config') {
             const configKey = `config::${idOrKey}`;
             const value = context[configKey];
-             return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
+            return (value && typeof value === 'object' && 'value' in value) ? value.value : undefined;
         }
         
-        const sourceElement = allElements.find(el => 'id' in el && el.id === condition.sourceElementId) as FormElementInstance;
-        const sourceState = condition.sourceElementId ? context[condition.sourceElementId] : undefined;
+        if (valueType === 'field') {
+            const element = allElements.find(el => 'id' in el && el.id === idOrKey) as FormElementInstance | undefined;
+            if (!element) return undefined;
 
-        if (type === 'source' && condition.sourcePropertyKey && sourceState?.fullObject) {
-            return getNestedValue(sourceState.fullObject, condition.sourcePropertyKey);
-        }
-
-        // For context from table rows, keys are direct properties (the element IDs of the columns)
-        if(context.hasOwnProperty(idOrKey)) {
-            const value = context[idOrKey];
-            // The value in a row context might not be wrapped in a {value: ...} object
-             return (typeof value === 'object' && value !== null && 'value' in value) ? value.value : value;
-        }
-
-        // For global formState context, keys are element IDs
-        const element = allElements.find(el => 'id' in el && el.id === idOrKey);
-        if (element && 'id' in element && context[element.id]) {
-            const stateValue = context[element.id];
-            return (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
+            let value;
+            // Case 1: Context is a row object (keys are data keys from element.key)
+            if (element.key && context.hasOwnProperty(element.key)) {
+                value = context[element.key];
+            } 
+            // Case 2: Context is the global formState (keys are element IDs)
+            else if (context.hasOwnProperty(element.id)) {
+                value = context[element.id];
+            } else {
+                return undefined;
+            }
+            
+            // The value might be a raw value (in a row context) or a state object { value: ... }
+            return (value && typeof value === 'object' && 'value' in value) ? value.value : value;
         }
         
-        return undefined;
+        // For comparisonType 'value', 'date', 'status'
+        return idOrKey;
     }
 
     let sourceValue: any;
     if (condition.sourceType === 'field') {
-        sourceValue = getConditionValue('source', condition.sourceElementId);
+        sourceValue = getConditionValue(condition.sourceType, condition.sourceElementId);
     } else { // 'date', 'status', 'config'
-        sourceValue = getConditionValue('source', condition.sourceValue);
+        sourceValue = getConditionValue(condition.sourceType, condition.sourceValue);
     }
     
+    if (condition.sourceType === 'field' && condition.sourcePropertyKey && sourceValue && typeof sourceValue === 'object') {
+        sourceValue = getNestedValue(sourceValue, condition.sourcePropertyKey);
+    }
+
     const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
 
     let comparisonValue: any;
     if (condition.comparisonType === 'field') {
-        comparisonValue = getConditionValue('comparison', condition.comparisonElementId);
-    } else if (condition.comparisonType === 'config') {
-        comparisonValue = getConditionValue('comparison', condition.value);
-    } else if (condition.comparisonType === 'date' || condition.comparisonType === 'status') {
-        comparisonValue = getConditionValue('comparison', condition.value);
-    } else { // 'value'
-        comparisonValue = condition.value;
+        comparisonValue = getConditionValue(condition.comparisonType, condition.comparisonElementId);
+    } else { // 'value', 'date', 'status', 'config'
+        comparisonValue = getConditionValue(condition.comparisonType, condition.value);
     }
 
     const isComparisonValueEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
