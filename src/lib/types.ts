@@ -173,7 +173,6 @@ export type FormElementInstance = {
     columns?: TableColumn[];
     defaultRows?: number;
     maxRows?: number;
-    enableSearch?: boolean;
     allowUserToAddRows?: boolean;
     // For DataGrid
     sourceEditableTableId?: string;

@@ -23,6 +23,7 @@ export const BasicFormElements: {
     { type: 'Popup', icon: MessageSquare, label: 'Popup'},
     { type: 'FileUpload', icon: Upload, label: 'File Upload' },
     { type: 'EditableTable', icon: Table, label: 'Editable Table' },
+    { type: 'DataGrid', icon: Grid, label: 'Data Grid' },
     { type: 'Preview', icon: Eye, label: 'Preview' },
     { type: 'Separator', icon: Milestone, label: 'Separator' },
 ];
@@ -33,7 +34,6 @@ export const FunctionalFormElements: {
   icon: LucideIcon;
   label: string;
 }[] = [
-    { type: 'DataGrid', icon: Grid, label: 'Task History' },
 ];
 
 export const createNewElement = (type: ElementType, id?: string): FormElementInstance => {
@@ -121,7 +121,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
         case "DataGrid":
             return {
                 ...baseElement,
-                label: 'Task History',
+                label: 'Data Grid',
                 key: 'data_grid_1',
                 apiUrl: null,
                 sourceEditableTableId: undefined,
