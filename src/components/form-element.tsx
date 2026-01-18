@@ -73,6 +73,8 @@ function DataGridRenderer({ element, formState }: { element: FormElementInstance
     const { sections } = useBuilder();
     const [data, setData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
 
     const sourceTable = useMemo(() => {
         if (!element.sourceEditableTableId) return null;
@@ -91,23 +93,79 @@ function DataGridRenderer({ element, formState }: { element: FormElementInstance
         }
     }, [element.apiUrl]);
 
-    if (!element.dataGridColumns || element.dataGridColumns.length === 0) {
-        return <p className="text-sm text-muted-foreground">Data Grid: Please configure columns in the builder.</p>;
-    }
-    
-    if (isLoading) {
-        return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/>Loading data...</div>;
-    }
-
     const getColumnKey = (sourceColumnId: string): string | undefined => {
         if (!sourceTable || sourceTable.type !== 'EditableTable' || !sourceTable.columns) return undefined;
         const sourceColumn = sourceTable.columns.find(c => c.id === sourceColumnId);
         return sourceColumn?.element.key;
     };
 
+    const processedData = useMemo(() => {
+        let filteredData = data;
+
+        if (element.enableSearch && searchTerm) {
+            filteredData = data.filter(row => {
+                return element.dataGridColumns?.some(col => {
+                    const columnKey = getColumnKey(col.sourceColumnId);
+                    const cellValue = columnKey ? String(getNestedValue(row, columnKey)) : '';
+                    return cellValue.toLowerCase().includes(searchTerm.toLowerCase());
+                });
+            });
+        }
+
+        if (element.enablePagination) {
+            const pageSize = element.pageSize || 10;
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = startIndex + pageSize;
+            return filteredData.slice(startIndex, endIndex);
+        }
+
+        return filteredData;
+    }, [data, searchTerm, currentPage, element]);
+
+    const totalPages = useMemo(() => {
+        if (!element.enablePagination || !data.length) return 1;
+        const pageSize = element.pageSize || 10;
+        const filteredData = element.enableSearch && searchTerm ? data.filter(row => {
+             return element.dataGridColumns?.some(col => {
+                    const columnKey = getColumnKey(col.sourceColumnId);
+                    const cellValue = columnKey ? String(getNestedValue(row, columnKey)) : '';
+                    return cellValue.toLowerCase().includes(searchTerm.toLowerCase());
+                });
+        }) : data;
+        return Math.ceil(filteredData.length / pageSize);
+    }, [data, searchTerm, element]);
+
+    const handlePrevPage = () => {
+        setCurrentPage(p => Math.max(1, p - 1));
+    };
+
+    const handleNextPage = () => {
+        setCurrentPage(p => Math.min(totalPages, p + 1));
+    };
+
+
+    if (!element.dataGridColumns || element.dataGridColumns.length === 0) {
+        return <p className="text-sm text-muted-foreground">Data Grid: Please configure columns in the builder.</p>;
+    }
+    
     return (
         <div>
              <Label className="text-[0.9rem] font-medium">{element.label}</Label>
+            {element.enableSearch && (
+                 <div className="relative my-2">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="search"
+                        placeholder="Search..."
+                        className="pl-8 w-full"
+                        value={searchTerm}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1); // Reset to first page on search
+                        }}
+                    />
+                </div>
+            )}
              <div className="mt-2 rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -118,18 +176,25 @@ function DataGridRenderer({ element, formState }: { element: FormElementInstance
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {data.map((row, rowIndex) => (
-                            <TableRow key={rowIndex}>
-                                {element.dataGridColumns.map(col => {
-                                    const columnKey = getColumnKey(col.sourceColumnId);
-                                    const cellValue = columnKey ? getNestedValue(row, columnKey) : 'N/A';
-                                    return (
-                                        <TableCell key={col.id}>{String(cellValue)}</TableCell>
-                                    );
-                                })}
+                        {isLoading ? (
+                             <TableRow>
+                                <TableCell colSpan={element.dataGridColumns.length} className="h-24 text-center">
+                                    <div className="flex items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/>Loading data...</div>
+                                </TableCell>
                             </TableRow>
-                        ))}
-                         {data.length === 0 && (
+                        ) : processedData.length > 0 ? (
+                            processedData.map((row, rowIndex) => (
+                                <TableRow key={rowIndex}>
+                                    {element.dataGridColumns!.map(col => {
+                                        const columnKey = getColumnKey(col.sourceColumnId);
+                                        const cellValue = columnKey ? getNestedValue(row, columnKey) : 'N/A';
+                                        return (
+                                            <TableCell key={col.id}>{String(cellValue)}</TableCell>
+                                        );
+                                    })}
+                                </TableRow>
+                            ))
+                         ) : (
                             <TableRow>
                                 <TableCell colSpan={element.dataGridColumns.length} className="h-24 text-center">
                                     No data available.
@@ -139,6 +204,29 @@ function DataGridRenderer({ element, formState }: { element: FormElementInstance
                     </TableBody>
                 </Table>
             </div>
+             {element.enablePagination && totalPages > 1 && (
+                <div className="flex items-center justify-end space-x-2 py-4">
+                    <span className="text-sm text-muted-foreground">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePrevPage}
+                        disabled={currentPage === 1}
+                    >
+                        Previous
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                    >
+                        Next
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

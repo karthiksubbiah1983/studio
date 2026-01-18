@@ -1884,7 +1884,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         case "DataGrid":
             const selectedSourceTable = editableTables.find(table => table.id === props.sourceEditableTableId) || null;
             return (
-                <Accordion type="multiple" defaultValue={["general", "data", "columns"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
                      <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -1924,6 +1924,31 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 onUpdate={newColumns => updateProperty('dataGridColumns', newColumns)}
                                 sourceTable={selectedSourceTable}
                             />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="features">
+                        <AccordionTrigger className="py-2">Features</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="enable-search-grid">Enable Search</Label>
+                                <Switch id="enable-search-grid" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
+                            </div>
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="enable-pagination-grid">Enable Pagination</Label>
+                                <Switch id="enable-pagination-grid" checked={props.enablePagination} onCheckedChange={(checked) => updateProperty('enablePagination', checked)} />
+                            </div>
+                            {props.enablePagination && (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="pageSize-grid">Page Size</Label>
+                                    <Input
+                                        id="pageSize-grid"
+                                        type="number"
+                                        min="1"
+                                        value={props.pageSize || 10}
+                                        onChange={(e) => updateProperty('pageSize', e.target.value ? parseInt(e.target.value, 10) : 10)}
+                                    />
+                                </div>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

@@ -178,6 +178,9 @@ export type FormElementInstance = {
     // For DataGrid
     sourceEditableTableId?: string;
     dataGridColumns?: DataGridColumn[];
+    enableSearch?: boolean;
+    enablePagination?: boolean;
+    pageSize?: number;
     // General Layout
     labelDirection?: 'horizontal' | 'vertical';
     // For DatePicker
