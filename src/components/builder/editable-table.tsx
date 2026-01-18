@@ -13,6 +13,8 @@ import React, { useState } from 'react';
 import { Input } from '../ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { FormPreview } from '../form-preview';
+import { Card, CardContent, CardFooter } from '../ui/card';
+import { Label } from '../ui/label';
 
 type Props = {
   element: FormElementInstance;
@@ -115,81 +117,139 @@ export function EditableTable({ element, value, onValueChange }: Props) {
             </div>
         )}
 
-        <ScrollArea>
-            <Table>
-                <TableHeader>
-                <TableRow>
-                    {element.columns?.map(col => (
-                    <TableHead key={col.id}>
-                        {col.label}
-                    </TableHead>
-                    ))}
-                    <TableHead className='w-[50px]'></TableHead>
-                </TableRow>
-                </TableHeader>
-                <TableBody>
-                {filteredRows.map((row, rowIndex) => {
-                  const isInlinePreviewOpen = activeInlinePreview?.rowId === row._rowId;
-                  
-                  return (
-                    <React.Fragment key={row._rowId}>
-                      <TableRow>
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+            <ScrollArea>
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        {element.columns?.map(col => (
+                        <TableHead key={col.id}>
+                            {col.label}
+                        </TableHead>
+                        ))}
+                        <TableHead className='w-[50px]'></TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {filteredRows.map((row, rowIndex) => {
+                    const isInlinePreviewOpen = activeInlinePreview?.rowId === row._rowId;
+                    
+                    return (
+                        <React.Fragment key={row._rowId}>
+                        <TableRow>
+                            {element.columns?.map(col => {
+                                const cellState = row[col.element.id];
+                                const cellValue = (cellState && typeof cellState === 'object' && 'value' in cellState) ? cellState.value : cellState;
+                                const rowContext = { ...row };
+
+                                if (col.element.type === 'Preview') {
+                                    return (
+                                        <TableCell key={col.id} className="min-w-[200px]">
+                                            <Button variant="outline" className="w-full" onClick={() => handleOpenPreview(row._rowId, col.element)}>
+                                                <Eye className="mr-2 h-4 w-4" />
+                                                {col.element.label}
+                                            </Button>
+                                        </TableCell>
+                                    )
+                                }
+
+                                return (
+                                    <TableCell key={col.id} className="min-w-[200px]">
+                                        <FormElementRenderer
+                                            element={col.element}
+                                            value={cellValue}
+                                            onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
+                                            rowContext={rowContext}
+                                            isTableCell={true}
+                                        />
+                                    </TableCell>
+                                )
+                            })}
+                            <TableCell>
+                                <Button variant="ghost" size="icon" onClick={() => removeRow(row._rowId)}>
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                        {isInlinePreviewOpen && activeInlinePreview && (
+                            <TableRow>
+                            <TableCell colSpan={(element.columns?.length || 0) + 1}>
+                                <div className="p-4 border rounded-md bg-accent/20">
+                                <FormPreview 
+                                    sections={activeInlinePreview.sections} 
+                                    showSubmitButton={true}
+                                    initialState={row._previewData}
+                                    onSubmit={handleSavePreview(row._rowId)}
+                                    submitButtonText="Save Checklist"
+                                />
+                                </div>
+                            </TableCell>
+                            </TableRow>
+                        )}
+                        </React.Fragment>
+                    )
+                    })}
+                    </TableBody>
+                </Table>
+                <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="block md:hidden space-y-4">
+            {filteredRows.map((row, rowIndex) => {
+                 const isInlinePreviewOpen = activeInlinePreview?.rowId === row._rowId;
+                 return (
+                    <Card key={row._rowId} className="border-l-4 border-primary">
+                        <CardContent className="p-4 space-y-4">
                         {element.columns?.map(col => {
                             const cellState = row[col.element.id];
                             const cellValue = (cellState && typeof cellState === 'object' && 'value' in cellState) ? cellState.value : cellState;
                             const rowContext = { ...row };
 
-                            if (col.element.type === 'Preview') {
-                                return (
-                                    <TableCell key={col.id} className="min-w-[200px]">
-                                        <Button variant="outline" className="w-full" onClick={() => handleOpenPreview(row._rowId, col.element)}>
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            {col.element.label}
-                                        </Button>
-                                    </TableCell>
-                                )
-                            }
-
                             return (
-                                <TableCell key={col.id} className="min-w-[200px]">
-                                    <FormElementRenderer
-                                        element={col.element}
-                                        value={cellValue}
-                                        onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
-                                        rowContext={rowContext}
-                                        isTableCell={true}
-                                    />
-                                </TableCell>
-                            )
-                        })}
-                        <TableCell>
-                            <Button variant="ghost" size="icon" onClick={() => removeRow(row._rowId)}>
-                                <Trash className="h-4 w-4 text-destructive" />
-                            </Button>
-                        </TableCell>
-                      </TableRow>
-                      {isInlinePreviewOpen && activeInlinePreview && (
-                        <TableRow>
-                          <TableCell colSpan={(element.columns?.length || 0) + 1}>
-                            <div className="p-4 border rounded-md bg-accent/20">
-                              <FormPreview 
-                                sections={activeInlinePreview.sections} 
-                                showSubmitButton={true}
-                                initialState={row._previewData}
-                                onSubmit={handleSavePreview(row._rowId)}
-                                submitButtonText="Save Checklist"
-                              />
+                            <div key={col.id} className="space-y-2">
+                                <Label>{col.label}</Label>
+                                {col.element.type === 'Preview' ? (
+                                <Button variant="outline" className="w-full" onClick={() => handleOpenPreview(row._rowId, col.element)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    {col.element.label}
+                                </Button>
+                                ) : (
+                                <FormElementRenderer
+                                    element={col.element}
+                                    value={cellValue}
+                                    onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
+                                    rowContext={rowContext}
+                                    isTableCell={true}
+                                />
+                                )}
                             </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </React.Fragment>
-                  )
-                })}
-                </TableBody>
-            </Table>
-            <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+                            );
+                        })}
+                        </CardContent>
+                        <CardFooter className="p-4 pt-0 flex justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => removeRow(row._rowId)}>
+                            <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
+                        </CardFooter>
+                        {isInlinePreviewOpen && activeInlinePreview && (
+                        <div className="p-4 border-t">
+                            <FormPreview 
+                            sections={activeInlinePreview.sections} 
+                            showSubmitButton={true}
+                            initialState={row._previewData}
+                            onSubmit={handleSavePreview(row._rowId)}
+                            submitButtonText="Save Checklist"
+                            />
+                        </div>
+                        )}
+                    </Card>
+                 )
+            })}
+        </div>
+
         <div className="flex items-center justify-between">
              {element.allowUserToAddRows && (
                 <Button 
