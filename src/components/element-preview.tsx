@@ -210,6 +210,16 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                 </div>
             </div>
         );
+    case "Preview":
+        return (
+             <div>
+                {renderLabel()}
+                <Button variant="outline" className="w-full" disabled>
+                    <Eye className="mr-2 h-4 w-4" />
+                    {label}
+                </Button>
+            </div>
+        )
     case "FileUpload":
         return (
              <div>

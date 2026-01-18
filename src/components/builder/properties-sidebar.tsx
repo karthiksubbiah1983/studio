@@ -509,7 +509,7 @@ function DataGridColumnManager({
     setEditingColumn({
       id: `new_${crypto.randomUUID()}`,
       header: `Column ${columns.length + 1}`,
-      key: '',
+      element: createNewElement("Display"),
     });
     setIsEditorOpen(true);
   };
@@ -576,7 +576,16 @@ function DataGridColumnEditor({
   const [editingColumn, setEditingColumn] = useState<DataGridColumn | null>(null);
 
   useEffect(() => {
-    setEditingColumn(column);
+    if (column) {
+      const colWithDefaults = {
+        ...column,
+        element: {
+          ...createNewElement(column.element?.type || 'Display'),
+          ...column.element,
+        }
+      };
+      setEditingColumn(colWithDefaults);
+    }
   }, [column]);
 
   if (!isOpen || !editingColumn) return null;
@@ -587,31 +596,68 @@ function DataGridColumnEditor({
     }
     onOpenChange(false);
   };
+  
+  const handleElementUpdate = (updatedElement: FormElementInstance) => {
+    setEditingColumn(prev => prev ? { ...prev, element: updatedElement } : null);
+  }
+
+  const handleFieldTypeChange = (type: ElementType) => {
+    const newElement = createNewElement(type);
+    handleElementUpdate(newElement);
+  }
+
+  const allowedColumnTypes: ElementType[] = [
+    'Display', 'Input', 'Select', 'Checkbox', 'DatePicker', 'RichText', 'Link' as any,
+  ]
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{editingColumn.id.startsWith('new_') ? 'Add' : 'Edit'} Data Grid Column</DialogTitle>
         </DialogHeader>
-        <div className="py-4 space-y-4">
-          <div className="space-y-2">
-            <Label>Column Header Text</Label>
-            <Input
-              value={editingColumn.header}
-              onChange={e => setEditingColumn({ ...editingColumn, header: e.target.value })}
+        <ScrollArea className="flex-grow -mx-6 px-6">
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Column Header Text</Label>
+              <Input
+                value={editingColumn.header}
+                onChange={e => setEditingColumn({ ...editingColumn, header: e.target.value })}
+              />
+            </div>
+             <div className="space-y-2">
+                <Label>Column Width</Label>
+                <Input
+                    value={editingColumn.width || ''}
+                    onChange={e => setEditingColumn({ ...editingColumn, width: e.target.value })}
+                    placeholder="e.g. 150px, 20%"
+                />
+            </div>
+            <Separator />
+            <h3 className="text-lg font-medium">Field Properties</h3>
+            <div className="space-y-2">
+              <Label>Field Type</Label>
+              <Select
+                value={editingColumn.element.type}
+                onValueChange={handleFieldTypeChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a field type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allowedColumnTypes.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+             <ElementProperties
+                element={editingColumn.element}
+                onUpdate={handleElementUpdate}
+                isColumnElement={true}
             />
           </div>
-          <div className="space-y-2">
-            <Label>Data Key</Label>
-            <Input
-              value={editingColumn.key}
-              onChange={e => setEditingColumn({ ...editingColumn, key: e.target.value })}
-              placeholder="e.g., name or user.address.city"
-            />
-             <p className="text-xs text-muted-foreground">The key from the fetched JSON object to display in this column. Use dot notation for nested objects.</p>
-          </div>
-        </div>
+        </ScrollArea>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           <Button onClick={handleSave}>Save</Button>
@@ -637,7 +683,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   
   useEffect(() => {
     setProps(element);
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox') && element.dataSource === 'dynamic' && element.apiUrl) {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'DataGrid') && element.dataSource === 'dynamic' && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
@@ -1878,7 +1924,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="api-url">API URL</Label>
-                                <Input id="api-url" value={props.apiUrl || ""} onChange={e => updateProperty('apiUrl', e.target.value)} placeholder="https://api.example.com/data"/>
+                                 <div className="flex gap-2">
+                                    <Input id="api-url" value={props.apiUrl || ""} onChange={e => handleApiUrlChange(e.target.value)} placeholder="https://api.example.com/data"/>
+                                    <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
+                                        {isFetching ? "Fetching..." : "Fetch"}
+                                    </Button>
+                                </div>
                             </div>
                         </AccordionContent>
                     </AccordionItem>

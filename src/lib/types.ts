@@ -93,7 +93,8 @@ export type TableColumn = {
 export type DataGridColumn = {
   id: string;
   header: string;
-  key: string; // Key in the fetched data object
+  element: FormElementInstance;
+  width?: string;
 };
 
 export type CustomOption = {
@@ -124,7 +125,7 @@ export type FormElementInstance = {
     dataSource?: 'static' | 'dynamic' | 'fromParent';
     options?: string[]; // Kept for simple static lists like RadioGroup
     staticData?: {id: string, label: string, secondaryText?: string, linkUrl?:string, [key: string]: any}[]; // For complex static lists
-    // For dynamic data source (Select, List, Combobox)
+    // For dynamic data source (Select, List, Combobox, DataGrid)
     apiUrl?: string | null;
     valueKey?: string | null; // Key in each object for option value
     labelKey?: string | null; // Key in each object for option label

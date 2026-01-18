@@ -124,8 +124,10 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 label: 'Data Grid',
                 key: 'data_grid_1',
                 apiUrl: null,
-                sourceEditableTableId: undefined,
                 dataGridColumns: [],
+                enableSearch: false,
+                enablePagination: false,
+                pageSize: 10,
             };
         case "FileUpload":
              return {
