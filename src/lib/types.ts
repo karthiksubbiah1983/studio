@@ -93,7 +93,7 @@ export type TableColumn = {
 export type DataGridColumn = {
   id: string;
   header: string;
-  sourceColumnId: string; // ID of the column in the source EditableTable
+  key: string; // Key in the fetched data object
 };
 
 export type CustomOption = {
@@ -175,7 +175,6 @@ export type FormElementInstance = {
     maxRows?: number;
     allowUserToAddRows?: boolean;
     // For DataGrid
-    sourceEditableTableId?: string;
     dataGridColumns?: DataGridColumn[];
     enableSearch?: boolean;
     enablePagination?: boolean;

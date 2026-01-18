@@ -498,11 +498,9 @@ function ColumnEditorDialog({
 function DataGridColumnManager({
   columns,
   onUpdate,
-  sourceTable,
 }: {
   columns: DataGridColumn[];
   onUpdate: (columns: DataGridColumn[]) => void;
-  sourceTable: FormElementInstance | null;
 }) {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingColumn, setEditingColumn] = useState<DataGridColumn | null>(null);
@@ -511,7 +509,7 @@ function DataGridColumnManager({
     setEditingColumn({
       id: `new_${crypto.randomUUID()}`,
       header: `Column ${columns.length + 1}`,
-      sourceColumnId: '',
+      key: '',
     });
     setIsEditorOpen(true);
   };
@@ -559,7 +557,6 @@ function DataGridColumnManager({
         onOpenChange={setIsEditorOpen}
         column={editingColumn}
         onSave={handleSave}
-        sourceTable={sourceTable}
       />
     </div>
   );
@@ -570,13 +567,11 @@ function DataGridColumnEditor({
   onOpenChange,
   column,
   onSave,
-  sourceTable,
 }: {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   column: DataGridColumn | null;
   onSave: (column: DataGridColumn) => void;
-  sourceTable: FormElementInstance | null;
 }) {
   const [editingColumn, setEditingColumn] = useState<DataGridColumn | null>(null);
 
@@ -592,8 +587,6 @@ function DataGridColumnEditor({
     }
     onOpenChange(false);
   };
-  
-  const sourceColumns = sourceTable?.columns || [];
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -610,22 +603,13 @@ function DataGridColumnEditor({
             />
           </div>
           <div className="space-y-2">
-            <Label>Source Table Column</Label>
-            <Select
-              value={editingColumn.sourceColumnId}
-              onValueChange={value => setEditingColumn({ ...editingColumn, sourceColumnId: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a source column..." />
-              </SelectTrigger>
-              <SelectContent>
-                {sourceColumns.map(col => (
-                  <SelectItem key={col.id} value={col.id}>
-                    {col.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Data Key</Label>
+            <Input
+              value={editingColumn.key}
+              onChange={e => setEditingColumn({ ...editingColumn, key: e.target.value })}
+              placeholder="e.g., name or user.address.city"
+            />
+             <p className="text-xs text-muted-foreground">The key from the fetched JSON object to display in this column. Use dot notation for nested objects.</p>
           </div>
         </div>
         <DialogFooter>
@@ -650,7 +634,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const allElements = getAllElements(sections);
   const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== props.id && el.type === 'Select') as FormElementInstance[], [allElements, props.id]);
-  const editableTables = useMemo(() => allElements.filter(el => 'type' in el && el.type === 'EditableTable') as FormElementInstance[], [allElements]);
   
   useEffect(() => {
     setProps(element);
@@ -691,7 +674,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    const apiUrlToFetch = url || (props.type === 'Select' || props.type === 'List' || props.type === 'Combobox' ? props.apiUrl : undefined);
+    const apiUrlToFetch = url || (props.type === 'Select' || props.type === 'List' || props.type === 'Combobox' || props.type === 'DataGrid' ? props.apiUrl : undefined);
     if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
@@ -1882,7 +1865,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 </Accordion>
             );
         case "DataGrid":
-            const selectedSourceTable = editableTables.find(table => table.id === props.sourceEditableTableId) || null;
             return (
                 <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
                      <AccordionItem value="general">
@@ -1896,23 +1878,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="api-url">API URL</Label>
-                                <Input id="api-url" value={props.apiUrl || ""} onChange={e => updateProperty('apiUrl', e.target.value)} placeholder="https://api.example.com/history"/>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="source-table">Source Editable Table</Label>
-                                <Select
-                                    value={props.sourceEditableTableId || ''}
-                                    onValueChange={value => updateProperty('sourceEditableTableId', value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select an editable table..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {editableTables.map(table => (
-                                            <SelectItem key={table.id} value={table.id}>{table.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Input id="api-url" value={props.apiUrl || ""} onChange={e => updateProperty('apiUrl', e.target.value)} placeholder="https://api.example.com/data"/>
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1922,7 +1888,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                              <DataGridColumnManager
                                 columns={props.dataGridColumns || []}
                                 onUpdate={newColumns => updateProperty('dataGridColumns', newColumns)}
-                                sourceTable={selectedSourceTable}
                             />
                         </AccordionContent>
                     </AccordionItem>

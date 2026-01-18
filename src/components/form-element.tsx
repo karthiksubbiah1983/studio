@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption } from "@/lib/types";
@@ -68,17 +69,12 @@ const interpolateString = (template: string, data: { [key: string]: any }): stri
     });
 }
 
-function DataGridRenderer({ element, formState }: { element: FormElementInstance, formState: any }) {
+function DataGridRenderer({ element }: { element: FormElementInstance }) {
     const { sections } = useBuilder();
     const [data, setData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-
-    const sourceTable = useMemo(() => {
-        if (!element.sourceEditableTableId) return null;
-        return findElementRecursive(sections, element.sourceEditableTableId);
-    }, [element.sourceEditableTableId, sections]);
 
     useEffect(() => {
         if (element.apiUrl) {
@@ -92,20 +88,13 @@ function DataGridRenderer({ element, formState }: { element: FormElementInstance
         }
     }, [element.apiUrl]);
 
-    const getColumnKey = (sourceColumnId: string): string | undefined => {
-        if (!sourceTable || sourceTable.type !== 'EditableTable' || !sourceTable.columns) return undefined;
-        const sourceColumn = sourceTable.columns.find(c => c.id === sourceColumnId);
-        return sourceColumn?.element.key;
-    };
-
     const processedData = useMemo(() => {
         let filteredData = data;
 
         if (element.enableSearch && searchTerm) {
             filteredData = data.filter(row => {
                 return element.dataGridColumns?.some(col => {
-                    const columnKey = getColumnKey(col.sourceColumnId);
-                    const cellValue = columnKey ? String(getNestedValue(row, columnKey)) : '';
+                    const cellValue = String(getNestedValue(row, col.key));
                     return cellValue.toLowerCase().includes(searchTerm.toLowerCase());
                 });
             });
@@ -126,8 +115,7 @@ function DataGridRenderer({ element, formState }: { element: FormElementInstance
         const pageSize = element.pageSize || 10;
         const filteredData = element.enableSearch && searchTerm ? data.filter(row => {
              return element.dataGridColumns?.some(col => {
-                    const columnKey = getColumnKey(col.sourceColumnId);
-                    const cellValue = columnKey ? String(getNestedValue(row, columnKey)) : '';
+                    const cellValue = String(getNestedValue(row, col.key));
                     return cellValue.toLowerCase().includes(searchTerm.toLowerCase());
                 });
         }) : data;
@@ -185,8 +173,7 @@ function DataGridRenderer({ element, formState }: { element: FormElementInstance
                             processedData.map((row, rowIndex) => (
                                 <TableRow key={rowIndex}>
                                     {element.dataGridColumns!.map(col => {
-                                        const columnKey = getColumnKey(col.sourceColumnId);
-                                        const cellValue = columnKey ? getNestedValue(row, columnKey) : 'N/A';
+                                        const cellValue = getNestedValue(row, col.key) ?? 'N/A';
                                         return (
                                             <TableCell key={col.id}>{String(cellValue)}</TableCell>
                                         );
@@ -1387,7 +1374,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             onValueChange={onValueChange}
         />;
     case "DataGrid":
-        content = <DataGridRenderer element={element} formState={formState} />;
+        content = <DataGridRenderer element={element} />;
         break;
     default:
       content = <div>Unsupported element type: {type}</div>;
@@ -1416,5 +1403,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
-    
