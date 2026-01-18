@@ -21,6 +21,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Zap } from "lucide-react";
 import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
@@ -130,6 +131,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
   const builderContext = useBuilder();
   const router = useRouter();
   const { toast } = useToast();
+  const [submissionJson, setSubmissionJson] = useState<string | null>(null);
 
   const isControlled = initialState !== undefined;
 
@@ -201,6 +203,8 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
   
   const handleSubmit = () => {
     if (isControlled && onSubmit) {
+        const submissionData = generateSubmissionJson(getAllElements(sections), localState);
+        setSubmissionJson(JSON.stringify(submissionData, null, 2));
         onSubmit(localState);
         return;
     }
@@ -212,6 +216,8 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
     const allElements = getAllElements(sections);
     const submissionData = generateSubmissionJson(allElements, formState);
     
+    setSubmissionJson(JSON.stringify(submissionData, null, 2));
+
     dispatch({
         type: 'ADD_SUBMISSION',
         payload: {
@@ -222,16 +228,15 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
     });
 
     processWorkflows(submissionData);
-    
-    toast({
-        title: "Submission Saved!",
-        description: "Your form has been successfully submitted."
-    });
-
-    if (taskId) {
-        router.push('/my-tasks');
-    }
   }
+
+  const handleCloseDialog = () => {
+    setSubmissionJson(null);
+    if (taskId && !isControlled) {
+      router.push('/my-tasks');
+    }
+  };
+
 
   return (
     <div className="p-4 space-y-4">
@@ -248,6 +253,22 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
                 {submitButtonText}
             </Button>
         </div>}
+         <Dialog open={!!submissionJson} onOpenChange={(open) => !open && handleCloseDialog()}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Form Submission JSON</DialogTitle>
+                    <DialogDescription>
+                        This is the JSON structure of the data that was submitted.
+                    </DialogDescription>
+                </DialogHeader>
+                <pre className="mt-2 max-h-[60vh] overflow-y-auto rounded-md bg-slate-950 p-4">
+                    <code className="text-white">{submissionJson}</code>
+                </pre>
+                <DialogFooter>
+                    <Button onClick={handleCloseDialog}>Close</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
