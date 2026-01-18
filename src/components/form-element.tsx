@@ -69,9 +69,13 @@ const interpolateString = (template: string, data: { [key: string]: any }): stri
     });
 }
 
-function DataGridRenderer({ element }: { element: FormElementInstance }) {
-    const { sections } = useBuilder();
-    const [data, setData] = useState<any[]>([]);
+function DataGridRenderer({ element, value, onValueChange, formState }: { 
+    element: FormElementInstance, 
+    value: any, 
+    onValueChange: (id: string, value: any) => void, 
+    formState?: { [key: string]: any } 
+}) {
+    const [internalData, setInternalData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -81,46 +85,64 @@ function DataGridRenderer({ element }: { element: FormElementInstance }) {
             setIsLoading(true);
             fetchFromApi(element.apiUrl)
                 .then(fetchedData => {
-                    const arrayData = findFirstArray(fetchedData);
-                    setData(arrayData || []);
+                    const arrayData = findFirstArray(fetchedData) || [];
+                    setInternalData(arrayData);
+                    onValueChange(element.id, arrayData);
                 })
                 .finally(() => setIsLoading(false));
         }
-    }, [element.apiUrl]);
+    }, [element.apiUrl, element.id]); // Note: onValueChange is not in deps to prevent re-fetching on every change
 
-    const processedData = useMemo(() => {
-        let filteredData = data;
+     useEffect(() => {
+        if (Array.isArray(value)) {
+            setInternalData(value);
+        }
+    }, [value]);
 
+    const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
+        const newData = [...internalData];
+        const rowToUpdate = { ...newData[rowIndex] };
+
+        const column = element.dataGridColumns?.find(c => c.element.id === columnElementId);
+        if (column && column.element.key) {
+            rowToUpdate[column.element.key] = cellValue;
+        }
+
+        newData[rowIndex] = rowToUpdate;
+        setInternalData(newData);
+        onValueChange(element.id, newData);
+    };
+    
+    const filteredDataForPagination = useMemo(() => {
         if (element.enableSearch && searchTerm) {
-            filteredData = data.filter(row => {
+            return internalData.filter(row => {
                 return element.dataGridColumns?.some(col => {
-                    const cellValue = String(getNestedValue(row, col.key));
+                    if (!col.element.key) return false;
+                    const cellValue = String(getNestedValue(row, col.element.key) ?? '');
                     return cellValue.toLowerCase().includes(searchTerm.toLowerCase());
                 });
             });
         }
+        return internalData;
+    }, [internalData, searchTerm, element.enableSearch, element.dataGridColumns]);
 
+    const paginatedData = useMemo(() => {
         if (element.enablePagination) {
             const pageSize = element.pageSize || 10;
             const startIndex = (currentPage - 1) * pageSize;
             const endIndex = startIndex + pageSize;
-            return filteredData.slice(startIndex, endIndex);
+            return filteredDataForPagination.slice(startIndex, endIndex);
         }
+        return filteredDataForPagination;
+    }, [filteredDataForPagination, currentPage, element.enablePagination, element.pageSize]);
 
-        return filteredData;
-    }, [data, searchTerm, currentPage, element]);
 
     const totalPages = useMemo(() => {
-        if (!element.enablePagination || !data.length) return 1;
+        if (!element.enablePagination) return 1;
         const pageSize = element.pageSize || 10;
-        const filteredData = element.enableSearch && searchTerm ? data.filter(row => {
-             return element.dataGridColumns?.some(col => {
-                    const cellValue = String(getNestedValue(row, col.key));
-                    return cellValue.toLowerCase().includes(searchTerm.toLowerCase());
-                });
-        }) : data;
-        return Math.ceil(filteredData.length / pageSize);
-    }, [data, searchTerm, element]);
+        return Math.ceil(filteredDataForPagination.length / pageSize);
+    }, [filteredDataForPagination, element.enablePagination, element.pageSize]);
+
 
     const handlePrevPage = () => {
         setCurrentPage(p => Math.max(1, p - 1));
@@ -158,7 +180,7 @@ function DataGridRenderer({ element }: { element: FormElementInstance }) {
                     <TableHeader>
                         <TableRow>
                             {element.dataGridColumns.map(col => (
-                                <TableHead key={col.id}>{col.header}</TableHead>
+                                <TableHead key={col.id} style={{ width: col.width || 'auto' }}>{col.header}</TableHead>
                             ))}
                         </TableRow>
                     </TableHeader>
@@ -169,17 +191,31 @@ function DataGridRenderer({ element }: { element: FormElementInstance }) {
                                     <div className="flex items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/>Loading data...</div>
                                 </TableCell>
                             </TableRow>
-                        ) : processedData.length > 0 ? (
-                            processedData.map((row, rowIndex) => (
-                                <TableRow key={rowIndex}>
-                                    {element.dataGridColumns!.map(col => {
-                                        const cellValue = getNestedValue(row, col.key) ?? 'N/A';
-                                        return (
-                                            <TableCell key={col.id}>{String(cellValue)}</TableCell>
-                                        );
-                                    })}
-                                </TableRow>
-                            ))
+                        ) : paginatedData.length > 0 ? (
+                            paginatedData.map((row, rowIndex) => {
+                                const originalIndex = internalData.findIndex(item => item === row);
+                                return (
+                                    <TableRow key={originalIndex}>
+                                        {element.dataGridColumns!.map(col => {
+                                            const cellValue = col.element.key ? getNestedValue(row, col.element.key) : undefined;
+                                            return (
+                                                <TableCell key={col.id}>
+                                                    <FormElementRenderer
+                                                        element={col.element}
+                                                        value={cellValue}
+                                                        onValueChange={(id, val) => {
+                                                            handleCellChange(originalIndex, id, val);
+                                                        }}
+                                                        formState={formState}
+                                                        rowContext={row}
+                                                        isTableCell={true}
+                                                    />
+                                                </TableCell>
+                                            );
+                                        })}
+                                    </TableRow>
+                                )
+                            })
                          ) : (
                             <TableRow>
                                 <TableCell colSpan={element.dataGridColumns.length} className="h-24 text-center">
@@ -1374,7 +1410,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             onValueChange={onValueChange}
         />;
     case "DataGrid":
-        content = <DataGridRenderer element={element} />;
+        content = <DataGridRenderer element={element} value={value} onValueChange={onValueChange} formState={formState} />;
         break;
     default:
       content = <div>Unsupported element type: {type}</div>;
