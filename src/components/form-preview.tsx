@@ -24,9 +24,8 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 
 
-const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
+const generateSubmissionJson = (allElements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
     const submission: Record<string, any> = {};
-    const allElements = getAllElements(elements as Section[]);
     allElements.forEach(element => {
         if ('key' in element && element.key) {
             const elementState = formState[element.id];
