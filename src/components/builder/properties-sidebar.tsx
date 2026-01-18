@@ -758,9 +758,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     <>
       {(props.type !== 'Display' || isColumnElement) && props.type !== 'Container' ? (
           <div className="flex flex-col gap-2">
-            <Label htmlFor="key">{isColumnElement ? 'Data Source Key' : 'Field Key'}</Label>
+            <Label htmlFor="key">{isColumnElement ? 'Column Data Key' : 'Field Key'}</Label>
             <Input id="key" value={props.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
-            {isColumnElement && <p className="text-xs text-muted-foreground">This key maps to a property in your data source for each row.</p>}
+            {isColumnElement && <p className="text-xs text-muted-foreground">Key from the row's data to bind to this field.</p>}
           </div>
        ) : null}
       <div className="flex flex-col gap-2">
@@ -1163,14 +1163,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="label">{isColumnElement ? "Fallback Text" : "Display Text"}</Label>
+                                <Label htmlFor="label">{isColumnElement ? "Fallback Display Text" : "Display Text"}</Label>
                                 <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} placeholder="Text to display if no data source" />
                                 {isColumnElement && <p className="text-xs text-muted-foreground">This text is shown if the data key is not found.</p>}
                             </div>
                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="key">{isColumnElement ? "Data Source Key" : "Field Key"}</Label>
+                                <Label htmlFor="key">{isColumnElement ? "Column Data Key" : "Field Key"}</Label>
                                 <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
-                                {isColumnElement && <p className="text-xs text-muted-foreground">This key maps to the data property to display for each row.</p>}
+                                {isColumnElement && <p className="text-xs text-muted-foreground">Enter the key from your data source that contains the text to display for each row.</p>}
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="expose-for-validation">Expose for validation</Label>
