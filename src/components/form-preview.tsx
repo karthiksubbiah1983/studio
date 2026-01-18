@@ -26,8 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
     const submission: Record<string, any> = {};
-    const allElements = getAllElements(elements as Section[]);
-    allElements.forEach(element => {
+    elements.forEach(element => {
         if ('key' in element && element.key) {
             submission[element.key] = formState[element.id]?.value;
         }
@@ -203,7 +202,8 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
   
   const handleSubmit = () => {
     if (isControlled && onSubmit) {
-        const submissionData = generateSubmissionJson(getAllElements(sections), localState);
+        const allElements = getAllElements(sections);
+        const submissionData = generateSubmissionJson(allElements, localState);
         setSubmissionJson(JSON.stringify(submissionData, null, 2));
         onSubmit(localState);
         return;
