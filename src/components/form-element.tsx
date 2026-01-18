@@ -22,10 +22,10 @@ import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
 import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check } from "lucide-react";
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn, findFirstArray, getAllElements, getNestedValue } from "@/lib/utils";
+import { cn, findFirstArray, getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
 import { evaluateRule } from "@/components/form-preview-helpers";
 import { useBuilder } from "@/hooks/use-builder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,14 @@ import { useAuth } from "@/hooks/use-auth";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { EditableTable } from "@/components/builder/editable-table";
 import { FormPreview } from "./form-preview";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 
 
 type Props = {
@@ -59,6 +67,80 @@ const interpolateString = (template: string, data: { [key: string]: any }): stri
         // If the key exists in the data, replace it. Otherwise, keep the placeholder.
         return value !== undefined ? String(value) : match;
     });
+}
+
+function DataGridRenderer({ element, formState }: { element: FormElementInstance, formState: any }) {
+    const { sections } = useBuilder();
+    const [data, setData] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    const sourceTable = useMemo(() => {
+        if (!element.sourceEditableTableId) return null;
+        return findElementRecursive(sections, element.sourceEditableTableId);
+    }, [element.sourceEditableTableId, sections]);
+
+    useEffect(() => {
+        if (element.apiUrl) {
+            setIsLoading(true);
+            fetchFromApi(element.apiUrl)
+                .then(fetchedData => {
+                    const arrayData = findFirstArray(fetchedData);
+                    setData(arrayData || []);
+                })
+                .finally(() => setIsLoading(false));
+        }
+    }, [element.apiUrl]);
+
+    if (!element.dataGridColumns || element.dataGridColumns.length === 0) {
+        return <p className="text-sm text-muted-foreground">Data Grid: Please configure columns in the builder.</p>;
+    }
+    
+    if (isLoading) {
+        return <div className="flex items-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/>Loading data...</div>;
+    }
+
+    const getColumnKey = (sourceColumnId: string): string | undefined => {
+        if (!sourceTable || sourceTable.type !== 'EditableTable' || !sourceTable.columns) return undefined;
+        const sourceColumn = sourceTable.columns.find(c => c.id === sourceColumnId);
+        return sourceColumn?.element.key;
+    };
+
+    return (
+        <div>
+             <Label className="text-[0.9rem] font-medium">{element.label}</Label>
+             <div className="mt-2 rounded-lg border">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            {element.dataGridColumns.map(col => (
+                                <TableHead key={col.id}>{col.header}</TableHead>
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {data.map((row, rowIndex) => (
+                            <TableRow key={rowIndex}>
+                                {element.dataGridColumns.map(col => {
+                                    const columnKey = getColumnKey(col.sourceColumnId);
+                                    const cellValue = columnKey ? getNestedValue(row, columnKey) : 'N/A';
+                                    return (
+                                        <TableCell key={col.id}>{String(cellValue)}</TableCell>
+                                    );
+                                })}
+                            </TableRow>
+                        ))}
+                         {data.length === 0 && (
+                            <TableRow>
+                                <TableCell colSpan={element.dataGridColumns.length} className="h-24 text-center">
+                                    No data available.
+                                </TableCell>
+                            </TableRow>
+                         )}
+                    </TableBody>
+                </Table>
+            </div>
+        </div>
+    );
 }
 
 
@@ -1189,6 +1271,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             value={value} 
             onValueChange={onValueChange}
         />;
+    case "DataGrid":
+        content = <DataGridRenderer element={element} formState={formState} />;
+        break;
     default:
       content = <div>Unsupported element type: {type}</div>;
       break;
