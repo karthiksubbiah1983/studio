@@ -607,7 +607,7 @@ function DataGridColumnEditor({
   }
 
   const allowedColumnTypes: ElementType[] = [
-    'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker', 'RichText', 'Link' as any,
+    'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker', 'RichText',
   ]
 
   return (
@@ -677,6 +677,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [isFetchedJsonDialogOpen, setIsFetchedJsonDialogOpen] = useState(false);
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
   const [isListOptionsOpen, setIsListOptionsOpen] = useState(false);
+  const [displayDataSourceKeys, setDisplayDataSourceKeys] = useState<string[]>([]);
 
   const allElements = getAllElements(sections);
   const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== props.id && el.type === 'Select') as FormElementInstance[], [allElements, props.id]);
@@ -687,6 +688,37 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element]);
+
+  useEffect(() => {
+    if (props.type === 'Display' && props.dataSourceConfig?.sourceType === 'field' && props.dataSourceConfig?.sourceElementId) {
+        const sourceElement = allElements.find(el => 'id' in el && el.id === props.dataSourceConfig!.sourceElementId);
+        if (sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'Combobox') && sourceElement.dataSource === 'dynamic' && sourceElement.apiUrl) {
+            if (!sourceElement.apiUrl.includes('{')) {
+                fetchFromApi(sourceElement.apiUrl).then(data => {
+                    if (data) {
+                        const dataArray = findFirstArray(data);
+                        if (dataArray && dataArray.length > 0) {
+                            const sample = dataArray[0];
+                            if (typeof sample === 'object' && sample !== null) {
+                                setDisplayDataSourceKeys(Object.keys(flattenObject(sample)));
+                            } else {
+                                setDisplayDataSourceKeys([]);
+                            }
+                        } else {
+                           setDisplayDataSourceKeys([]);
+                        }
+                    }
+                });
+            } else {
+                 setDisplayDataSourceKeys([]);
+            }
+        } else {
+            setDisplayDataSourceKeys([]);
+        }
+    } else {
+        setDisplayDataSourceKeys([]);
+    }
+  }, [props.type, props.dataSourceConfig?.sourceElementId, allElements]);
 
   const onUpdate = (newProps: FormElementInstance) => {
     if (onUpdateProp) {
@@ -1215,7 +1247,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <Label>Source Field</Label>
                                         <Select
                                             value={props.dataSourceConfig.sourceElementId}
-                                            onValueChange={v => updateProperty('dataSourceConfig', { ...props.dataSourceConfig, sourceElementId: v })}
+                                            onValueChange={v => {
+                                                updateProperty('dataSourceConfig', { ...props.dataSourceConfig, sourceElementId: v, displayKey: '' });
+                                                updateProperty('leadTextKey', '');
+                                                updateProperty('linkUrlKey', '');
+                                            }}
                                         >
                                             <SelectTrigger><SelectValue placeholder="Select a field..."/></SelectTrigger>
                                             <SelectContent>
@@ -1227,12 +1263,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <Label>Display Key from Source</Label>
-                                        <Input
+                                        <Select
                                             value={props.dataSourceConfig.displayKey}
-                                            onChange={e => updateProperty('dataSourceConfig', { ...props.dataSourceConfig, displayKey: e.target.value })}
-                                            placeholder="e.g., name, address.city"
-                                        />
-                                        <p className="text-xs text-muted-foreground">For objects, use dot notation.</p>
+                                            onValueChange={(value) => updateProperty('dataSourceConfig', { ...props.dataSourceConfig, displayKey: value })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={displayDataSourceKeys.length > 0 ? "Select a key" : "No keys available from source"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {displayDataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                 </>
                             )}
@@ -1257,7 +1298,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="leadTextKey">Lead Text Data Key</Label>
-                                <Input id="leadTextKey" value={props.leadTextKey || ''} onChange={(e) => updateProperty('leadTextKey', e.target.value)} placeholder="e.g., status.name"/>
+                                <Select
+                                    value={props.leadTextKey || ''}
+                                    onValueChange={(value) => updateProperty('leadTextKey', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={displayDataSourceKeys.length > 0 ? "Select a key" : "No keys available from source"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {displayDataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
                             </div>
                              <div className="flex flex-col gap-2">
                                 <Label>Direction</Label>
@@ -1366,7 +1417,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                      <div className="flex flex-col gap-2">
                                         <Label htmlFor="linkUrlKey">Link URL Data Key</Label>
-                                        <Input id="linkUrlKey" value={props.linkUrlKey || ''} onChange={(e) => updateProperty('linkUrlKey', e.target.value)} placeholder="e.g., user.profileUrl"/>
+                                        <Select
+                                            value={props.linkUrlKey || ''}
+                                            onValueChange={(value) => updateProperty('linkUrlKey', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={displayDataSourceKeys.length > 0 ? "Select a key" : "No keys available from source"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {displayDataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <Label>URL Data Source</Label>
