@@ -30,9 +30,14 @@ const generateSubmissionJson = (allElements: (FormElementInstance | Section)[], 
         if ('key' in element && element.key) {
             const elementState = formState[element.id];
             if (elementState) {
-                // If fullObject exists (from a Select or List), use that for the submission.
-                // Otherwise, fall back to the simple value.
-                if (elementState.fullObject) {
+                 if (element.type === 'FileUpload' && Array.isArray(elementState.value)) {
+                    // For FileUpload, serialize the File objects
+                    submission[element.key] = elementState.value.map((file: File) => ({
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                    }));
+                } else if (elementState.fullObject) {
                     submission[element.key] = elementState.fullObject;
                 } else {
                     submission[element.key] = elementState.value;
@@ -278,3 +283,5 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
     </div>
   );
 }
+
+    

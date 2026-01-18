@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption } from "@/lib/types";
@@ -289,6 +288,40 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
   }, [evaluationContext, element.formula, element.id, allElements, value, onValueChange, element.type]);
 
+    // This effect ensures that the value of Display components (which can be derived from other state)
+    // is correctly calculated and stored in the central form state.
+    useEffect(() => {
+        if (element.type === 'Display' && !element.formula) {
+            let finalDisplayValue;
+            const { dataSourceConfig } = element;
+            if (dataSourceConfig?.sourceType === 'currentUser' && user) {
+                finalDisplayValue = getNestedValue(user, dataSourceConfig.displayKey);
+            } else if (dataSourceConfig?.sourceType === 'currentDateTime' && currentDateTime) {
+                finalDisplayValue = format(currentDateTime, 'PPP p');
+            } else if (dataSourceConfig?.sourceType === 'field' && dataSourceConfig?.sourceElementId && formState) {
+                const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
+                const sourceValue = formState[dataSourceConfig.sourceElementId];
+                if (sourceElement && sourceValue) {
+                    if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
+                        finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
+                    } else {
+                        finalDisplayValue = sourceValue.value;
+                    }
+                }
+            }
+
+            if (finalDisplayValue === undefined || finalDisplayValue === null) {
+                finalDisplayValue = element.label;
+            }
+
+            // Only call onValueChange if the value is different to avoid infinite loops.
+            if (finalDisplayValue !== value) {
+                onValueChange(element.id, finalDisplayValue);
+            }
+        }
+    }, [element.type, element.id, element.label, element.formula, element.dataSourceConfig, user, currentDateTime, formState, value, onValueChange, allElements]);
+
+
   // When `initialValue` changes (e.g., from a rule), update local state
   useEffect(() => {
     setLocalValue(value || "");
@@ -506,7 +539,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 }, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState, rowContext, isTableCell, evaluationContext]);
 
 
-  const { type, label, required, placeholder, helperText, options, dataSourceConfig, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
+  const { type, label, required, placeholder, helperText, options, popup, inputFormat, isLink, linkUrl, linkUrlSourceElementId, textStyle, color, content: richTextContent, key, direction, leadText, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
 
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
@@ -586,25 +619,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         />
       );
     case "Display": {
-      let finalDisplayValue;
-      if (element.formula) {
-          finalDisplayValue = value; // Use the formula-calculated value
-      } else if (dataSourceConfig?.sourceType === 'currentUser' && user) {
-          finalDisplayValue = getNestedValue(user, dataSourceConfig.displayKey);
-      } else if (dataSourceConfig?.sourceType === 'currentDateTime' && currentDateTime) {
-          finalDisplayValue = format(currentDateTime, 'PPP p');
-      } else if (dataSourceConfig?.sourceType === 'field' && dataSourceConfig?.sourceElementId && formState) {
-          const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
-          const sourceValue = formState[dataSourceConfig.sourceElementId];
-          if (sourceElement && sourceValue) {
-              if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
-                  finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
-              } else {
-                  finalDisplayValue = sourceValue.value;
-              }
-          }
-      }
-      
+      let finalDisplayValue = value;
+
       if (finalDisplayValue === undefined || finalDisplayValue === null) {
           finalDisplayValue = label;
       }
@@ -1400,3 +1416,5 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
+    
