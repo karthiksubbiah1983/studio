@@ -607,7 +607,7 @@ function DataGridColumnEditor({
   }
 
   const allowedColumnTypes: ElementType[] = [
-    'Display', 'Input', 'Select', 'Checkbox', 'DatePicker', 'RichText', 'Link' as any,
+    'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker', 'RichText', 'Link' as any,
   ]
 
   return (
@@ -1168,8 +1168,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 {isColumnElement && <p className="text-xs text-muted-foreground">This text is shown if the data key is not found.</p>}
                             </div>
                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="key">{isColumnElement ? "Column Data Key" : "Field Key"}</Label>
-                                <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                <Label htmlFor="key">{isColumnElement ? 'Column Data Key' : 'Field Key'}</Label>
+                                <Input id="key" value={props.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
                                 {isColumnElement && <p className="text-xs text-muted-foreground">Enter the key from your data source that contains the text to display for each row.</p>}
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
