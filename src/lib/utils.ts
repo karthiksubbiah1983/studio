@@ -84,6 +84,13 @@ export const findElementRecursive = (sections: Section[], elementId: string): (F
                 if (el.id === elementId) {
                     return el;
                 }
+                 if (el.type === 'DataGrid' && el.dataGridColumns) {
+                    for (const col of el.dataGridColumns) {
+                         if (col.element.id === elementId) {
+                            return { ...col.element, isTableColumn: true };
+                        }
+                    }
+                }
                 if (el.type === 'EditableTable' && el.columns) {
                     for (const col of el.columns) {
                         if (col.element.id === elementId) {
@@ -121,6 +128,14 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                     processedElements.add(element.id);
                 }
                 findElementsRecursive(element.elements);
+            } else if (element.type === 'DataGrid' && element.dataGridColumns) {
+                 allElementsAndSections.push(element);
+                 processedElements.add(element.id);
+                 element.dataGridColumns.forEach(col => {
+                    const colElement = { ...col.element, id: col.element.id, label: `${element.label} > ${col.header}` };
+                    allElementsAndSections.push(colElement);
+                    processedElements.add(col.element.id);
+                 })
             } else if (element.type === 'List' && element.enableScoring) {
                  allElementsAndSections.push(element);
                  processedElements.add(element.id);
