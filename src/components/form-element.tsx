@@ -314,35 +314,37 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     // This effect ensures that the value of Display components (which can be derived from other state)
     // is correctly calculated and stored in the central form state.
     useEffect(() => {
-        if (element.type === 'Display' && !element.formula) {
-            let finalDisplayValue;
-            const { dataSourceConfig } = element;
-            if (dataSourceConfig?.sourceType === 'currentUser' && user) {
-                finalDisplayValue = getNestedValue(user, dataSourceConfig.displayKey);
-            } else if (dataSourceConfig?.sourceType === 'currentDateTime' && currentDateTime) {
-                finalDisplayValue = format(currentDateTime, 'PPP p');
-            } else if (dataSourceConfig?.sourceType === 'field' && dataSourceConfig?.sourceElementId && formState) {
-                const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
-                const sourceValue = formState[dataSourceConfig.sourceElementId];
-                if (sourceElement && sourceValue) {
-                    if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
-                        finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
-                    } else {
-                        finalDisplayValue = sourceValue.value;
-                    }
+        if (isTableCell || element.type !== 'Display' || element.formula) {
+            return;
+        }
+
+        let finalDisplayValue;
+        const { dataSourceConfig } = element;
+        if (dataSourceConfig?.sourceType === 'currentUser' && user) {
+            finalDisplayValue = getNestedValue(user, dataSourceConfig.displayKey);
+        } else if (dataSourceConfig?.sourceType === 'currentDateTime' && currentDateTime) {
+            finalDisplayValue = format(currentDateTime, 'PPP p');
+        } else if (dataSourceConfig?.sourceType === 'field' && dataSourceConfig?.sourceElementId && formState) {
+            const sourceElement = allElements.find(el => el.id === dataSourceConfig.sourceElementId);
+            const sourceValue = formState[dataSourceConfig.sourceElementId];
+            if (sourceElement && sourceValue) {
+                if (sourceElement.type === 'Select' && sourceValue.fullObject && dataSourceConfig.displayKey) {
+                    finalDisplayValue = getNestedValue(sourceValue.fullObject, dataSourceConfig.displayKey);
+                } else {
+                    finalDisplayValue = sourceValue.value;
                 }
             }
-
-            if (finalDisplayValue === undefined || finalDisplayValue === null) {
-                finalDisplayValue = element.label;
-            }
-
-            // Only call onValueChange if the value is different to avoid infinite loops.
-            if (finalDisplayValue !== value) {
-                onValueChange(element.id, finalDisplayValue);
-            }
         }
-    }, [element.type, element.id, element.label, element.formula, element.dataSourceConfig, user, currentDateTime, formState, value, onValueChange, allElements]);
+
+        if (finalDisplayValue === undefined || finalDisplayValue === null) {
+            finalDisplayValue = element.label;
+        }
+
+        // Only call onValueChange if the value is different to avoid infinite loops.
+        if (finalDisplayValue !== value) {
+            onValueChange(element.id, finalDisplayValue);
+        }
+    }, [element.type, element.id, element.label, element.formula, element.dataSourceConfig, user, currentDateTime, formState, value, onValueChange, allElements, isTableCell]);
 
 
   // When `initialValue` changes (e.g., from a rule), update local state
