@@ -927,14 +927,25 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         if (currentSelection === null) break;
         const handleListChange = (itemValue: string) => {
             if (isDisplayOnly) return;
+        
+            const findFullObject = (val: string) => allListOptions.find(opt => {
+                const optValue = String(element.dataSource === 'dynamic' ? getNestedValue(opt, element.valueKey!) : opt.id);
+                return optValue === val;
+            });
+        
             if (isCheckbox) {
-                const selection = currentSelection as string[];
+                const selection = (currentSelection || []) as string[];
                 const newSelection = selection.includes(itemValue)
                     ? selection.filter((v: string) => v !== itemValue)
                     : [...selection, itemValue];
-                onValueChange(element.id, newSelection);
-            } else {
-                onValueChange(element.id, itemValue);
+                
+                const fullObjects = newSelection.map(val => findFullObject(val)).filter(Boolean);
+                onValueChange(element.id, newSelection, fullObjects);
+        
+            } else { // isRadio
+                const newSelection = value === itemValue ? '' : itemValue;
+                const fullObject = newSelection ? findFullObject(newSelection) : null;
+                onValueChange(element.id, newSelection, fullObject);
             }
         };
         

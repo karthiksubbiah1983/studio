@@ -26,9 +26,19 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 const generateSubmissionJson = (elements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
     const submission: Record<string, any> = {};
-    elements.forEach(element => {
+    const allElements = getAllElements(elements as Section[]);
+    allElements.forEach(element => {
         if ('key' in element && element.key) {
-            submission[element.key] = formState[element.id]?.value;
+            const elementState = formState[element.id];
+            if (elementState) {
+                // If fullObject exists (from a Select or List), use that for the submission.
+                // Otherwise, fall back to the simple value.
+                if (elementState.fullObject) {
+                    submission[element.key] = elementState.fullObject;
+                } else {
+                    submission[element.key] = elementState.value;
+                }
+            }
         }
     });
     return submission;
@@ -201,10 +211,12 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
   }
   
   const handleSubmit = () => {
+    const allElements = getAllElements(sections);
+    const submissionData = generateSubmissionJson(allElements, isControlled ? localState : formState);
+    
+    setSubmissionJson(JSON.stringify(submissionData, null, 2));
+
     if (isControlled && onSubmit) {
-        const allElements = getAllElements(sections);
-        const submissionData = generateSubmissionJson(allElements, localState);
-        setSubmissionJson(JSON.stringify(submissionData, null, 2));
         onSubmit(localState);
         return;
     }
@@ -212,11 +224,6 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
     const { state, activeForm, dispatch } = builderContext;
     const formId = taskId ? state.tasks.find(t => t.id === taskId)?.formId : activeForm?.id;
     if (!formId) return;
-
-    const allElements = getAllElements(sections);
-    const submissionData = generateSubmissionJson(allElements, formState);
-    
-    setSubmissionJson(JSON.stringify(submissionData, null, 2));
 
     dispatch({
         type: 'ADD_SUBMISSION',
