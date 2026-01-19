@@ -2227,6 +2227,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
             );
+        case "TaskHistory":
+            return (
+                <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
         default:
             return null;
       }
