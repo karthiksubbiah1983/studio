@@ -664,13 +664,13 @@ function DataGridColumnEditor({
                     <Label>Map to Source Column</Label>
                     <Select
                         value={column.sourceColumnId || ''}
-                        onValueChange={value => onUpdateProp({ ...column, sourceColumnId: value || undefined })}
+                        onValueChange={value => onUpdateProp({ ...column, sourceColumnId: value === 'none' ? undefined : value })}
                     >
                         <SelectTrigger>
                             <SelectValue placeholder="Select a source column..." />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="">None</SelectItem>
+                            <SelectItem value="none">None</SelectItem>
                             {allEditableTableColumns.map(group => (
                                 <SelectGroup key={group.label}>
                                     <SelectLabel>{group.label}</SelectLabel>
@@ -2284,11 +2284,32 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "TaskHistory":
             return (
-                <Accordion type="multiple" defaultValue={["general", "columns"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "data", "columns"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <Label>Source Editable Table</Label>
+                                <Select
+                                    value={element.sourceEditableTableId || ''}
+                                    onValueChange={(value) => updateProperty('sourceEditableTableId', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select an editable table..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {allElements.filter(el => 'type' in el && el.type === 'EditableTable').map(table => (
+                                            <SelectItem key={table.id} value={table.id}>{table.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="columns">
