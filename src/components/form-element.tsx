@@ -21,7 +21,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check, FileClock } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -1434,6 +1434,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     case "DataGrid":
         content = <DataGridRenderer element={element} value={value} onValueChange={onValueChange} formState={formState} />;
         break;
+    case "TaskHistory":
+        return (
+            <div>
+                {renderLabel()}
+                <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px] text-muted-foreground">
+                    <FileClock className="h-12 w-12" />
+                    <p className="text-sm">Task History will be displayed here.</p>
+                </div>
+            </div>
+        );
     default:
       content = <div>Unsupported element type: {type}</div>;
       break;

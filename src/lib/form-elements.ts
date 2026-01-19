@@ -1,7 +1,7 @@
 
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare, Grid, Eye } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare, Grid, Eye, FileClock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const BasicFormElements: {
@@ -34,6 +34,7 @@ export const FunctionalFormElements: {
   icon: LucideIcon;
   label: string;
 }[] = [
+    { type: 'TaskHistory', icon: FileClock, label: 'Task History' },
 ];
 
 export const createNewElement = (type: ElementType, id?: string): FormElementInstance => {
@@ -141,6 +142,8 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
              }
         case "Preview":
             return { ...baseElement, label: "Preview Button", previewSectionIds: [], displayMode: 'popup' };
+        case "TaskHistory":
+            return { ...baseElement, label: "Task History", key: '' };
         default:
             throw new Error("Invalid element type");
     }
