@@ -16,6 +16,8 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   Select,
   SelectContent,
+  SelectGroup,
+  SelectLabel,
   SelectItem,
   SelectTrigger,
   SelectValue,
@@ -507,9 +509,11 @@ function ColumnEditorDialog({
 function DataGridColumnManager({
   columns,
   onUpdate,
+  isTaskHistory
 }: {
   columns: DataGridColumn[];
   onUpdate: (columns: DataGridColumn[]) => void;
+  isTaskHistory?: boolean;
 }) {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingColumn, setEditingColumn] = useState<DataGridColumn | null>(null);
@@ -574,6 +578,7 @@ function DataGridColumnManager({
         column={editingColumn}
         onSave={handleSave}
         onUpdate={handleUpdateEditingColumn}
+        isTaskHistory={isTaskHistory}
       />
     </div>
   );
@@ -585,13 +590,32 @@ function DataGridColumnEditor({
   column: initialColumn,
   onSave,
   onUpdate: onUpdateProp,
+  isTaskHistory,
 }: {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   column: DataGridColumn | null;
   onSave: () => void;
   onUpdate: (column: DataGridColumn) => void;
+  isTaskHistory?: boolean;
 }) {
+  const { sections } = useBuilder();
+
+  const allEditableTableColumns = useMemo(() => {
+    if (!isTaskHistory) return [];
+    const editableTables = getAllElements(sections).filter(el => 'type' in el && el.type === 'EditableTable') as FormElementInstance[];
+    const groupedColumns: { label: string; columns: { id: string; label: string }[] }[] = [];
+
+    editableTables.forEach(table => {
+        if (table.columns) {
+            groupedColumns.push({
+                label: table.label,
+                columns: table.columns.map(col => ({ id: col.id, label: col.label }))
+            });
+        }
+    });
+    return groupedColumns;
+  }, [sections, isTaskHistory]);
 
   const column = initialColumn;
   if (!isOpen || !column) return null;
@@ -613,7 +637,7 @@ function DataGridColumnEditor({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{column.id.startsWith('new_') ? 'Add' : 'Edit'} Data Grid Column</DialogTitle>
+          <DialogTitle>{column.id.startsWith('new_') ? 'Add' : 'Edit'} Column</DialogTitle>
         </DialogHeader>
         <ScrollArea className="flex-grow -mx-6 px-6">
           <div className="py-4 space-y-4">
@@ -633,6 +657,37 @@ function DataGridColumnEditor({
                 />
             </div>
             
+            {isTaskHistory && (
+              <>
+                <Separator />
+                <div className="space-y-2">
+                    <Label>Map to Source Column</Label>
+                    <Select
+                        value={column.sourceColumnId || ''}
+                        onValueChange={value => onUpdateProp({ ...column, sourceColumnId: value || undefined })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a source column..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="">None</SelectItem>
+                            {allEditableTableColumns.map(group => (
+                                <SelectGroup key={group.label}>
+                                    <SelectLabel>{group.label}</SelectLabel>
+                                    {group.columns.map(col => (
+                                        <SelectItem key={col.id} value={col.id}>{col.label}</SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                     <p className="text-xs text-muted-foreground">
+                        Map this history column to a column from an Editable Table on the form.
+                    </p>
+                </div>
+              </>
+            )}
+
             <Separator />
             <h3 className="text-lg font-medium">Data Binding</h3>
             <div className="space-y-2">
@@ -2229,11 +2284,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "TaskHistory":
             return (
-                <Accordion type="multiple" defaultValue={["general"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "columns"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="columns">
+                        <AccordionTrigger className="py-2">Columns</AccordionTrigger>
+                        <AccordionContent>
+                            <DataGridColumnManager
+                                columns={element.dataGridColumns || []}
+                                onUpdate={newColumns => updateProperty('dataGridColumns', newColumns)}
+                                isTaskHistory={true}
+                            />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>

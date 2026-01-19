@@ -95,6 +95,7 @@ export type DataGridColumn = {
   header: string;
   element: FormElementInstance;
   width?: string;
+  sourceColumnId?: string;
 };
 
 export type CustomOption = {
@@ -173,7 +174,7 @@ export type FormElementInstance = {
     defaultRows?: number;
     maxRows?: number;
     allowUserToAddRows?: boolean;
-    // For DataGrid
+    // For DataGrid / TaskHistory
     dataGridColumns?: DataGridColumn[];
     enableSearch?: boolean;
     enablePagination?: boolean;
