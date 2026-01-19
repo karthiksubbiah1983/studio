@@ -653,7 +653,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [isListOptionsOpen, setIsListOptionsOpen] = useState(false);
   const [displayDataSourceKeys, setDisplayDataSourceKeys] = useState<string[]>([]);
 
-  const allElements = getAllElements(sections);
+  const allElements = useMemo(() => getAllElements(sections), [sections]);
   const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== element.id && el.type === 'Select') as FormElementInstance[], [allElements, element.id]);
   
   useEffect(() => {
@@ -1152,7 +1152,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     { value: 'center', label: 'Center', icon: AlignCenterVertical },
                                     { value: 'end', label: 'End', icon: AlignEndVertical },
                                     { value: 'stretch', label: 'Stretch', icon: StretchVertical },
-                                    { value: 'baseline', label: 'Baseline', icon: Baseline },
+                                    { value: 'baseline', label: 'Baseline' },
                                 ]}
                             />
                         </AccordionContent>
@@ -2064,4 +2064,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   );
 }
 
+    
     
