@@ -582,7 +582,7 @@ function DataGridColumnEditor({
   }
 
   const allowedColumnTypes: ElementType[] = [
-    'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker', 'RichText',
+    'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker',
   ]
 
   return (
@@ -643,7 +643,7 @@ function DataGridColumnEditor({
 }
 
 
-function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
+function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
   const { dispatch, state, sections, rules } = useBuilder();
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
@@ -654,8 +654,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [displayDataSourceKeys, setDisplayDataSourceKeys] = useState<string[]>([]);
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
-  const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== element.id && el.type === 'Select') as FormElementInstance[], [allElements, element.id]);
+  const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== initialElement.id && el.type === 'Select') as FormElementInstance[], [allElements, initialElement.id]);
   
+  const element = initialElement;
+
   useEffect(() => {
     if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'DataGrid') && element.dataSource === 'dynamic' && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
@@ -2063,6 +2065,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-    
-    
