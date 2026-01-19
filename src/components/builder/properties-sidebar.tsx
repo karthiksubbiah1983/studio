@@ -582,7 +582,7 @@ function DataGridColumnEditor({
   }
 
   const allowedColumnTypes: ElementType[] = [
-    'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker', 'Textarea',
+    'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker', 'Textarea'
   ]
 
   return (
@@ -1511,7 +1511,7 @@ function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, is
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="input-format">Format</Label>
-                                <Select value={element.inputFormat || 'text'} onValueChange={(v) => updateProperty('inputFormat', v as 'text' | 'number' | 'alphanumeric')}>
+                                <Select value={element.inputFormat || 'text'} onValueChange={v => updateProperty('inputFormat', v as 'text' | 'number' | 'alphanumeric')}>
                                     <SelectTrigger><SelectValue/></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="text">Text</SelectItem>
@@ -1955,7 +1955,35 @@ function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, is
                     </AccordionItem>
                 </Accordion>
             );
-        case "DataGrid":
+        case "DataGrid": {
+            const [staticDataJson, setStaticDataJson] = useState(JSON.stringify(element.staticData || [], null, 2));
+            const [jsonError, setJsonError] = useState<string | null>(null);
+
+            useEffect(() => {
+                setStaticDataJson(JSON.stringify(element.staticData || [], null, 2));
+                setJsonError(null);
+            }, [element.staticData, element.id]);
+
+            const handleJsonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                const jsonString = e.target.value;
+                setStaticDataJson(jsonString);
+                try {
+                    if (jsonString.trim() === '') {
+                        updateProperty('staticData', []);
+                        setJsonError(null);
+                        return;
+                    }
+                    const parsed = JSON.parse(jsonString);
+                    if (!Array.isArray(parsed)) {
+                        throw new Error("Data must be a JSON array.");
+                    }
+                    updateProperty('staticData', parsed);
+                    setJsonError(null);
+                } catch (err) {
+                    setJsonError((err as Error).message);
+                }
+            };
+
             return (
                 <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
                      <AccordionItem value="general">
@@ -1967,15 +1995,45 @@ function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, is
                     <AccordionItem value="data">
                         <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="api-url">API URL</Label>
-                                 <div className="flex gap-2">
-                                    <Input id="api-url" value={element.apiUrl || ""} onChange={e => handleApiUrlChange(e.target.value)} placeholder="https://api.example.com/data"/>
-                                    <Button onClick={() => handleFetchSchema(element.apiUrl, true)} disabled={isFetching} size="sm">
-                                        {isFetching ? "Fetching..." : "Fetch"}
-                                    </Button>
+                            <RadioGroup
+                                value={element.dataSource || 'dynamic'}
+                                onValueChange={(val) => updateProperty('dataSource', val)}
+                                className="flex gap-4"
+                            >
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="dynamic" id="dg-source-dynamic" />
+                                    <Label htmlFor="dg-source-dynamic">API</Label>
                                 </div>
-                            </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="static" id="dg-source-static" />
+                                    <Label htmlFor="dg-source-static">Static Data</Label>
+                                </div>
+                            </RadioGroup>
+
+                            {element.dataSource === 'static' ? (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="static-data-json">Row Data (JSON Array)</Label>
+                                    <Textarea
+                                        id="static-data-json"
+                                        value={staticDataJson}
+                                        onChange={handleJsonChange}
+                                        rows={10}
+                                        className={cn(jsonError && "border-destructive")}
+                                    />
+                                    {jsonError && <p className="text-sm text-destructive">{jsonError}</p>}
+                                    <p className="text-xs text-muted-foreground">Enter an array of JSON objects. The object keys should match the 'Column Data Key' of your columns.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <Label htmlFor="api-url">API URL</Label>
+                                    <div className="flex gap-2">
+                                        <Input id="api-url" value={element.apiUrl || ""} onChange={e => handleApiUrlChange(e.target.value)} placeholder="https://api.example.com/data"/>
+                                        <Button onClick={() => handleFetchSchema(element.apiUrl, true)} disabled={isFetching} size="sm">
+                                            {isFetching ? "Fetching..." : "Fetch"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="columns">
@@ -2014,6 +2072,7 @@ function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, is
                     </AccordionItem>
                 </Accordion>
             );
+        }
         case "FileUpload":
             return (
                 <Accordion type="multiple" defaultValue={["general"]} className="w-full">

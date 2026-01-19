@@ -81,7 +81,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
     const [currentPage, setCurrentPage] = useState(1);
 
     useEffect(() => {
-        if (element.apiUrl) {
+        if (element.dataSource === 'dynamic' && element.apiUrl) {
             setIsLoading(true);
             fetchFromApi(element.apiUrl)
                 .then(fetchedData => {
@@ -90,8 +90,14 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
                     onValueChange(element.id, arrayData);
                 })
                 .finally(() => setIsLoading(false));
+        } else if (element.dataSource === 'static') {
+            const staticData = element.staticData || [];
+            setInternalData(staticData);
+            if (JSON.stringify(value) !== JSON.stringify(staticData)) {
+                onValueChange(element.id, staticData);
+            }
         }
-    }, [element.apiUrl, element.id]); // Note: onValueChange is not in deps to prevent re-fetching on every change
+    }, [element.apiUrl, element.id, element.dataSource, element.staticData, onValueChange, value]);
 
      useEffect(() => {
         if (Array.isArray(value)) {

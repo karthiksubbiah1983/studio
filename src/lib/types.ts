@@ -124,7 +124,7 @@ export type FormElementInstance = {
     // For Select, RadioGroup, Combobox
     dataSource?: 'static' | 'dynamic' | 'fromParent';
     options?: string[]; // Kept for simple static lists like RadioGroup
-    staticData?: {id: string, label: string, secondaryText?: string, linkUrl?:string, [key: string]: any}[]; // For complex static lists
+    staticData?: any[]; // For complex static lists (List, DataGrid)
     // For dynamic data source (Select, List, Combobox, DataGrid)
     apiUrl?: string | null;
     valueKey?: string | null; // Key in each object for option value
