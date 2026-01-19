@@ -315,18 +315,25 @@ function ColumnManager({
         setIsColumnEditorOpen(true);
     };
 
-    const handleSaveColumn = (updatedColumn: TableColumn | ListItemElement) => {
+    const handleSaveColumn = () => {
+        if (!editingColumn) return;
         let newColumns;
-        if (updatedColumn.id.startsWith('new')) {
-            newColumns = [...columns, { ...updatedColumn, id: crypto.randomUUID() }];
+        if (editingColumn.id.startsWith('new')) {
+            newColumns = [...columns, { ...editingColumn, id: crypto.randomUUID() }];
         } else {
-            newColumns = columns.map(c => c.id === updatedColumn.id ? updatedColumn : c);
+            newColumns = columns.map(c => c.id === editingColumn.id ? editingColumn : c);
         }
         onUpdate(newColumns);
+        setIsColumnEditorOpen(false);
+        setEditingColumn(null);
     };
 
     const handleDeleteColumn = (columnId: string) => {
         onUpdate(columns.filter(c => c.id !== columnId));
+    };
+    
+    const handleUpdateEditingColumn = (updatedColumn: TableColumn | ListItemElement) => {
+        setEditingColumn(updatedColumn);
     };
 
     const isListItem = columnType === 'listitem';
@@ -357,6 +364,7 @@ function ColumnManager({
                 onOpenChange={setIsColumnEditorOpen}
                 onSave={handleSaveColumn}
                 column={editingColumn}
+                onUpdate={handleUpdateEditingColumn}
                 columnType={columnType}
             />
         </div>
@@ -368,65 +376,43 @@ function ColumnEditorDialog({
     onOpenChange,
     onSave,
     column,
+    onUpdate,
     columnType,
 }: {
     isOpen: boolean;
     onOpenChange: (isOpen: boolean) => void;
-    onSave: (column: TableColumn | ListItemElement) => void;
+    onSave: () => void;
     column: TableColumn | ListItemElement | null;
+    onUpdate: (column: TableColumn | ListItemElement) => void;
     columnType: 'table' | 'listitem';
 }) {
-    const [editingColumn, setEditingColumn] = useState<TableColumn | ListItemElement | null>(null);
+    if (!isOpen || !column) {
+        return null;
+    }
 
-    useEffect(() => {
-        if (column) {
-            const newColumn = {...column};
-            if (!('element' in newColumn) || !newColumn.element) {
-                // If element is missing or null, initialize it.
-                (newColumn as any).element = createNewElement(columnType === 'table' ? 'Input' : 'Display'); 
-            } else {
-                 // Ensure the existing element is fully formed by merging with a default
-                 (newColumn as any).element = { ...createNewElement(newColumn.element.type), ...newColumn.element }
-            }
-             setEditingColumn(newColumn);
-        }
-    }, [column, columnType]);
-
-    const handleSave = () => {
-        if (editingColumn) {
-            onSave(editingColumn);
-        }
-        onOpenChange(false);
-    };
-    
     const handleElementUpdate = (updatedElement: FormElementInstance) => {
-        if (editingColumn && 'element' in editingColumn) {
-            setEditingColumn({ ...editingColumn, element: updatedElement });
+        if (column && 'element' in column) {
+            onUpdate({ ...column, element: updatedElement });
         }
     }
     
     const updateColumnProperty = (key: string, value: any) => {
-        if (editingColumn) {
-            setEditingColumn({ ...editingColumn, [key]: value });
+        if (column) {
+            onUpdate({ ...column, [key]: value });
         }
     };
     
     const handleFieldTypeChange = (type: ElementType) => {
-        if (editingColumn && 'element' in editingColumn) {
+        if (column && 'element' in column) {
             if (columnType === 'listitem' && type !== 'Display') return;
             const newElement = createNewElement(type);
             handleElementUpdate(newElement);
         }
     }
 
-    if (!isOpen || !editingColumn) {
-        return null;
-    }
-
-    const title = 'id' in editingColumn && !editingColumn?.id.startsWith('new') ? 'Edit Column' : 'Add New Column';
+    const title = 'id' in column && !column?.id.startsWith('new') ? 'Edit Column' : 'Add New Column';
     const description = "Configure the properties for this column.";
     const isTableColumn = columnType === 'table';
-    const isListItemElement = columnType === 'listitem';
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -437,22 +423,22 @@ function ColumnEditorDialog({
                 </DialogHeader>
                 <ScrollArea className="flex-grow -mx-6 px-6">
                     <div className="py-4 flex flex-col gap-4">
-                        {isTableColumn && 'label' in editingColumn && (
+                        {isTableColumn && 'label' in column && (
                             <div className="flex flex-col gap-2">
                                 <Label>Column Header</Label>
                                 <Input
-                                    value={editingColumn.label}
+                                    value={column.label}
                                     onChange={(e) => updateColumnProperty('label', e.target.value)}
                                 />
                             </div>
                         )}
-                        {'element' in editingColumn && (
+                        {'element' in column && (
                             <>
                                 <h3 className="text-lg font-medium">Field Properties</h3>
                                 <div className="flex flex-col gap-2">
                                     <Label>Field Type</Label>
                                     <Select
-                                        value={editingColumn.element.type}
+                                        value={column.element.type}
                                         onValueChange={handleFieldTypeChange}
                                     >
                                         <SelectTrigger>
@@ -478,7 +464,7 @@ function ColumnEditorDialog({
                                 </div>
 
                                 <ElementProperties
-                                    element={editingColumn.element}
+                                    element={column.element}
                                     onUpdate={handleElementUpdate}
                                     isColumnElement={true}
                                 />
@@ -488,7 +474,7 @@ function ColumnEditorDialog({
                 </ScrollArea>
                 <DialogFooter>
                     <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-                    <Button onClick={handleSave}>Save Column</Button>
+                    <Button onClick={onSave}>Save Column</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -519,13 +505,20 @@ function DataGridColumnManager({
     setIsEditorOpen(true);
   };
 
-  const handleSave = (colToSave: DataGridColumn) => {
-    if (colToSave.id.startsWith('new_')) {
-      onUpdate([...columns, { ...colToSave, id: crypto.randomUUID() }]);
+  const handleSave = () => {
+    if (!editingColumn) return;
+    if (editingColumn.id.startsWith('new_')) {
+      onUpdate([...columns, { ...editingColumn, id: crypto.randomUUID() }]);
     } else {
-      onUpdate(columns.map(c => (c.id === colToSave.id ? colToSave : c)));
+      onUpdate(columns.map(c => (c.id === editingColumn.id ? editingColumn : c)));
     }
+    setIsEditorOpen(false);
+    setEditingColumn(null);
   };
+  
+  const handleUpdateEditingColumn = (updatedColumn: DataGridColumn) => {
+    setEditingColumn(updatedColumn);
+  }
 
   const handleDelete = (id: string) => {
     onUpdate(columns.filter(c => c.id !== id));
@@ -557,6 +550,7 @@ function DataGridColumnManager({
         onOpenChange={setIsEditorOpen}
         column={editingColumn}
         onSave={handleSave}
+        onUpdate={handleUpdateEditingColumn}
       />
     </div>
   );
@@ -567,38 +561,19 @@ function DataGridColumnEditor({
   onOpenChange,
   column,
   onSave,
+  onUpdate,
 }: {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   column: DataGridColumn | null;
-  onSave: (column: DataGridColumn) => void;
+  onSave: () => void;
+  onUpdate: (column: DataGridColumn) => void;
 }) {
-  const [editingColumn, setEditingColumn] = useState<DataGridColumn | null>(null);
 
-  useEffect(() => {
-    if (column) {
-      const colWithDefaults = {
-        ...column,
-        element: {
-          ...createNewElement(column.element?.type || 'Display'),
-          ...column.element,
-        }
-      };
-      setEditingColumn(colWithDefaults);
-    }
-  }, [column]);
+  if (!isOpen || !column) return null;
 
-  if (!isOpen || !editingColumn) return null;
-
-  const handleSave = () => {
-    if (editingColumn) {
-      onSave(editingColumn);
-    }
-    onOpenChange(false);
-  };
-  
   const handleElementUpdate = (updatedElement: FormElementInstance) => {
-    setEditingColumn(prev => prev ? { ...prev, element: updatedElement } : null);
+    onUpdate({ ...column, element: updatedElement });
   }
 
   const handleFieldTypeChange = (type: ElementType) => {
@@ -614,22 +589,22 @@ function DataGridColumnEditor({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl h-screen max-h-[80vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{editingColumn.id.startsWith('new_') ? 'Add' : 'Edit'} Data Grid Column</DialogTitle>
+          <DialogTitle>{column.id.startsWith('new_') ? 'Add' : 'Edit'} Data Grid Column</DialogTitle>
         </DialogHeader>
         <ScrollArea className="flex-grow -mx-6 px-6">
           <div className="py-4 space-y-4">
             <div className="space-y-2">
               <Label>Column Header Text</Label>
               <Input
-                value={editingColumn.header}
-                onChange={e => setEditingColumn({ ...editingColumn, header: e.target.value })}
+                value={column.header}
+                onChange={e => onUpdate({ ...column, header: e.target.value })}
               />
             </div>
              <div className="space-y-2">
                 <Label>Column Width</Label>
                 <Input
-                    value={editingColumn.width || ''}
-                    onChange={e => setEditingColumn({ ...editingColumn, width: e.target.value })}
+                    value={column.width || ''}
+                    onChange={e => onUpdate({ ...column, width: e.target.value })}
                     placeholder="e.g. 150px, 20%"
                 />
             </div>
@@ -638,7 +613,7 @@ function DataGridColumnEditor({
             <div className="space-y-2">
               <Label>Field Type</Label>
               <Select
-                value={editingColumn.element.type}
+                value={column.element.type}
                 onValueChange={handleFieldTypeChange}
               >
                 <SelectTrigger>
@@ -652,7 +627,7 @@ function DataGridColumnEditor({
               </Select>
             </div>
              <ElementProperties
-                element={editingColumn.element}
+                element={column.element}
                 onUpdate={handleElementUpdate}
                 isColumnElement={true}
             />
@@ -660,7 +635,7 @@ function DataGridColumnEditor({
         </ScrollArea>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button onClick={onSave}>Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -2088,3 +2063,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
