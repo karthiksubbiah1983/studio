@@ -670,7 +670,6 @@ function DataGridColumnEditor({
 
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
   const { dispatch, state, sections, rules } = useBuilder();
-  const [props, setProps] = useState(element);
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
@@ -680,18 +679,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [displayDataSourceKeys, setDisplayDataSourceKeys] = useState<string[]>([]);
 
   const allElements = getAllElements(sections);
-  const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== props.id && el.type === 'Select') as FormElementInstance[], [allElements, props.id]);
+  const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== element.id && el.type === 'Select') as FormElementInstance[], [allElements, element.id]);
   
   useEffect(() => {
-    setProps(element);
     if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'DataGrid') && element.dataSource === 'dynamic' && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
-  }, [element]);
+  }, [element.apiUrl, element.dataSource, element.type]);
 
   useEffect(() => {
-    if (props.type === 'Display' && props.dataSourceConfig?.sourceType === 'field' && props.dataSourceConfig?.sourceElementId) {
-        const sourceElement = allElements.find(el => 'id' in el && el.id === props.dataSourceConfig!.sourceElementId);
+    if (element.type === 'Display' && element.dataSourceConfig?.sourceType === 'field' && element.dataSourceConfig?.sourceElementId) {
+        const sourceElement = allElements.find(el => 'id' in el && el.id === element.dataSourceConfig!.sourceElementId);
         if (sourceElement && ('type' in sourceElement) && (sourceElement.type === 'Select' || sourceElement.type === 'Combobox') && sourceElement.dataSource === 'dynamic' && sourceElement.apiUrl) {
             if (!sourceElement.apiUrl.includes('{')) {
                 fetchFromApi(sourceElement.apiUrl).then(data => {
@@ -718,7 +716,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     } else {
         setDisplayDataSourceKeys([]);
     }
-  }, [props.type, props.dataSourceConfig?.sourceElementId, allElements]);
+  }, [element.type, element.dataSourceConfig?.sourceElementId, allElements]);
 
   const onUpdate = (newProps: FormElementInstance) => {
     if (onUpdateProp) {
@@ -731,14 +729,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   };
 
   const updateProperty = (key: keyof FormElementInstance, value: any) => {
-      const newProps = { ...props, [key]: value };
-      setProps(newProps);
+      const newProps = { ...element, [key]: value };
       onUpdate(newProps);
   };
   
   const updateMultipleProperties = (updates: Partial<FormElementInstance>) => {
-    const newProps = { ...props, ...updates };
-    setProps(newProps);
+    const newProps = { ...element, ...updates };
     onUpdate(newProps);
   };
 
@@ -752,7 +748,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }
 
   const handleFetchSchema = async (url?: string, showPopup = true) => {
-    const apiUrlToFetch = url || (props.type === 'Select' || props.type === 'List' || props.type === 'Combobox' || props.type === 'DataGrid' ? props.apiUrl : undefined);
+    const apiUrlToFetch = url || (element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'DataGrid' ? element.apiUrl : undefined);
     if (!apiUrlToFetch) {
         setFetchedKeys([]);
         return;
@@ -788,24 +784,24 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const commonFields = (
     <>
-      {(props.type !== 'Display' || isColumnElement) && props.type !== 'Container' ? (
+      {(element.type !== 'Display' || isColumnElement) && element.type !== 'Container' ? (
           <div className="flex flex-col gap-2">
             <Label htmlFor="key">{isColumnElement ? 'Column Data Key' : 'Field Key'}</Label>
-            <Input id="key" value={props.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+            <Input id="key" value={element.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
             {isColumnElement && <p className="text-xs text-muted-foreground">Key from the row's data to bind to this field.</p>}
           </div>
        ) : null}
       <div className="flex flex-col gap-2">
         <Label htmlFor="label">Label</Label>
-        <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+        <Input id="label" value={element.label} onChange={(e) => updateProperty('label', e.target.value)} />
       </div>
       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
         <Label htmlFor="required">Required</Label>
-        <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
+        <Switch id="required" checked={element.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
       </div>
       <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
         <Label htmlFor="hidden">Hidden in Form</Label>
-        <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+        <Switch id="hidden" checked={element.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
       </div>
     </>
   );
@@ -813,7 +809,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const placeholderField = (
     <div className="flex flex-col gap-2">
       <Label htmlFor="placeholder">Placeholder</Label>
-      <Input id="placeholder" value={props.placeholder || ''} onChange={(e) => updateProperty('placeholder', e.target.value)} />
+      <Input id="placeholder" value={element.placeholder || ''} onChange={(e) => updateProperty('placeholder', e.target.value)} />
     </div>
   );
   
@@ -853,15 +849,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <div className="flex flex-col gap-4">
             <Label>Static Items</Label>
             <Button variant="outline" onClick={() => setIsListOptionsOpen(true)}>
-                Manage Items ({props.staticData?.length || 0})
+                Manage Items ({element.staticData?.length || 0})
             </Button>
             <ListOptionsDialog
                 isOpen={isListOptionsOpen}
                 onOpenChange={setIsListOptionsOpen}
-                staticData={props.staticData || []}
+                staticData={element.staticData || []}
                 onSave={(data) => updateProperty('staticData', data)}
-                hasSecondaryText={!!props.hasSecondaryText}
-                isSecondaryTextLink={!!props.isSecondaryTextLink}
+                hasSecondaryText={!!element.hasSecondaryText}
+                isSecondaryTextLink={!!element.isSecondaryTextLink}
             />
         </div>
     );
@@ -869,7 +865,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
     const customOptionsManager = () => {
         const handleAdd = () => {
-            const currentOptions = props.customOptions || [];
+            const currentOptions = element.customOptions || [];
             const newOptionText = `Custom ${currentOptions.length + 1}`;
             const newOption: CustomOption = { 
                 id: crypto.randomUUID(), 
@@ -879,20 +875,20 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             updateProperty('customOptions', [...currentOptions, newOption]);
         }
         const handleUpdate = (id: string, text: string) => {
-            const newOptions = props.customOptions?.map(opt => 
+            const newOptions = element.customOptions?.map(opt => 
                 opt.id === id ? { ...opt, label: text, value: text } : opt
             );
             updateProperty('customOptions', newOptions);
         }
         const handleDelete = (id: string) => {
-            updateProperty('customOptions', props.customOptions?.filter(opt => opt.id !== id));
+            updateProperty('customOptions', element.customOptions?.filter(opt => opt.id !== id));
         }
 
         return (
             <div className="flex flex-col gap-4 border-t pt-4">
                 <Label>Custom Static Options</Label>
                 <div className="flex flex-col gap-2">
-                    {props.customOptions?.map(opt => (
+                    {element.customOptions?.map(opt => (
                         <div key={opt.id} className="flex items-center gap-2">
                             <Input placeholder="Label and Value" value={opt.label} onChange={(e) => handleUpdate(opt.id, e.target.value)} />
                             <Button variant="ghost" size="icon" onClick={() => handleDelete(opt.id)}>
@@ -907,7 +903,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                  <div className="flex flex-col gap-2">
                     <Label>Position</Label>
                     <RadioGroup
-                        value={props.customOptionsPosition}
+                        value={element.customOptionsPosition}
                         onValueChange={(value) => updateProperty('customOptionsPosition', value as 'top' | 'bottom')}
                         className="flex gap-4"
                     >
@@ -930,17 +926,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <div className="flex flex-col gap-2">
             <Label htmlFor="apiUrl">API URL</Label>
             <div className="flex gap-2">
-                <Input id="apiUrl" value={props.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} placeholder="https://... or /api/..." />
-                <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
+                <Input id="apiUrl" value={element.apiUrl || ''} onChange={(e) => handleApiUrlChange(e.target.value)} placeholder="https://... or /api/..." />
+                <Button onClick={() => handleFetchSchema(element.apiUrl, true)} disabled={isFetching} size="sm">
                     {isFetching ? "Fetching..." : "Fetch"}
                 </Button>
             </div>
             <p className="text-xs text-muted-foreground">Use a placeholder like `&#123;id&#125;` for dynamic URLs.</p>
         </div>
-        {(props.apiUrl?.includes('{') || props.dataSource === 'fromParent') && (
+        {(element.apiUrl?.includes('{') || element.dataSource === 'fromParent') && (
             <div className="flex flex-col gap-2">
                 <Label>API URL Parent Field</Label>
-                <Select value={props.dataSourceParentId || ""} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
+                <Select value={element.dataSourceParentId || ""} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
                     <SelectTrigger><SelectValue placeholder="Select parent field..." /></SelectTrigger>
                     <SelectContent>
                         {parentSelectFields.map(field => <SelectItem key={field.id} value={field.id}>{field.label}</SelectItem>)}
@@ -952,7 +948,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             <div className="flex flex-col gap-2">
                 <Label htmlFor="valueKey">Option Value Key</Label>
                 <Select
-                    value={props.valueKey || ''}
+                    value={element.valueKey || ''}
                     onValueChange={(value) => updateProperty('valueKey', value)}
                 >
                     <SelectTrigger>
@@ -966,7 +962,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             <div className="flex flex-col gap-2">
                 <Label htmlFor="labelKey">Option Label Key</Label>
                 <Select
-                    value={props.labelKey || ''}
+                    value={element.labelKey || ''}
                     onValueChange={(value) => updateProperty('labelKey', value)}
                 >
                     <SelectTrigger>
@@ -977,11 +973,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </SelectContent>
                 </Select>
             </div>
-            {props.hasSecondaryText && (
+            {element.hasSecondaryText && (
                  <div className="flex flex-col gap-2">
                     <Label htmlFor="secondaryTextKey">Secondary Text Key</Label>
                     <Select
-                        value={props.secondaryTextKey || ''}
+                        value={element.secondaryTextKey || ''}
                         onValueChange={(value) => updateProperty('secondaryTextKey', value)}
                     >
                         <SelectTrigger>
@@ -993,11 +989,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </Select>
                 </div>
             )}
-            {props.isSecondaryTextLink && (
+            {element.isSecondaryTextLink && (
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="linkUrlKey">Link URL Key</Label>
                     <Select
-                        value={props.linkUrlKey || ''}
+                        value={element.linkUrlKey || ''}
                         onValueChange={(value) => updateProperty('linkUrlKey', value)}
                     >
                         <SelectTrigger>
@@ -1018,7 +1014,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
             <Label>Parent Field</Label>
-            <Select value={props.dataSourceParentId || ""} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
+            <Select value={element.dataSourceParentId || ""} onValueChange={(value) => updateProperty('dataSourceParentId', value)}>
                 <SelectTrigger><SelectValue placeholder="Select parent field..."/></SelectTrigger>
                 <SelectContent>
                     {parentSelectFields.map(field => <SelectItem key={field.id} value={field.id}>{field.label}</SelectItem>)}
@@ -1027,14 +1023,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         </div>
         <div className="flex flex-col gap-2">
             <Label htmlFor="dataSourceParentKey">Sub-List Key</Label>
-            <Input id="dataSourceParentKey" value={props.dataSourceParentKey || ""} onChange={(e) => updateProperty('dataSourceParentKey', e.target.value)} placeholder="e.g., subCategories"/>
+            <Input id="dataSourceParentKey" value={element.dataSourceParentKey || ""} onChange={(e) => updateProperty('dataSourceParentKey', e.target.value)} placeholder="e.g., subCategories"/>
              <p className="text-xs text-muted-foreground">The key in the parent's selected object that holds the array of options.</p>
         </div>
     </div>
   )
 
   const content = () => {
-      switch(props.type) {
+      switch(element.type) {
         case "Separator":
             return null;
         case "Popup":
@@ -1045,7 +1041,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Label (for builder)</Label>
-                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                                <Input id="label" value={element.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1054,11 +1050,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="confirm-text">Confirm Button Text</Label>
-                                <Input id="confirm-text" value={props.confirmButtonText || ''} onChange={(e) => updateProperty('confirmButtonText', e.target.value)} placeholder="OK" />
+                                <Input id="confirm-text" value={element.confirmButtonText || ''} onChange={(e) => updateProperty('confirmButtonText', e.target.value)} placeholder="OK" />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="cancel-text">Cancel Button Text</Label>
-                                <Input id="cancel-text" value={props.cancelButtonText || ''} onChange={(e) => updateProperty('cancelButtonText', e.target.value)} placeholder="Cancel" />
+                                <Input id="cancel-text" value={element.cancelButtonText || ''} onChange={(e) => updateProperty('cancelButtonText', e.target.value)} placeholder="Cancel" />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1080,9 +1076,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <div key={section.id} className="flex items-center space-x-2">
                                     <Checkbox
                                         id={`preview-${section.id}`}
-                                        checked={props.previewSectionIds?.includes(section.id)}
+                                        checked={element.previewSectionIds?.includes(section.id)}
                                         onCheckedChange={(checked) => {
-                                            const currentIds = props.previewSectionIds || [];
+                                            const currentIds = element.previewSectionIds || [];
                                             const newIds = checked ? [...currentIds, section.id] : currentIds.filter(id => id !== section.id);
                                             updateProperty('previewSectionIds', newIds);
                                         }}
@@ -1098,7 +1094,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="flex flex-col gap-2">
                                 <Label>Display Mode</Label>
                                 <RadioGroup
-                                    value={props.displayMode || 'popup'}
+                                    value={element.displayMode || 'popup'}
                                     onValueChange={(value) => updateProperty('displayMode', value as 'popup' | 'inline')}
                                     className="flex gap-4"
                                 >
@@ -1124,19 +1120,19 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="width">Width</Label>
-                                <Input id="width" value={props.width || ''} onChange={(e) => updateProperty('width', e.target.value)} placeholder="e.g., 50% or 200px" />
+                                <Input id="width" value={element.width || ''} onChange={(e) => updateProperty('width', e.target.value)} placeholder="e.g., 50% or 200px" />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="expose-for-validation">Expose for validation</Label>
                                 <Switch
                                     id="expose-for-validation"
-                                    checked={props.exposeForValidation || false}
+                                    checked={element.exposeForValidation || false}
                                     onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
                                 />
                             </div>
                              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden">Hidden in Form</Label>
-                                <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                                <Switch id="hidden" checked={element.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1146,7 +1142,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                            <div className="flex flex-col gap-2">
                                 <Label>Direction</Label>
                                 <RadioGroup
-                                    value={props.direction}
+                                    value={element.direction}
                                     onValueChange={(value) => updateProperty('direction', value as 'horizontal' | 'vertical')}
                                     className="flex gap-4"
                                 >
@@ -1162,7 +1158,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                             <AlignmentRadioGroup 
                                 label="Justify Content"
-                                value={props.justify}
+                                value={element.justify}
                                 onValueChange={(value) => updateProperty('justify', value)}
                                 options={[
                                     { value: 'start', label: 'Start', icon: AlignStartHorizontal },
@@ -1174,7 +1170,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             />
                              <AlignmentRadioGroup 
                                 label="Align Items"
-                                value={props.align}
+                                value={element.align}
                                 onValueChange={(value) => updateProperty('align', value)}
                                 options={[
                                     { value: 'start', label: 'Start', icon: AlignStartVertical },
@@ -1196,25 +1192,25 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">{isColumnElement ? "Fallback Display Text" : "Display Text"}</Label>
-                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} placeholder="Text to display if no data source" />
+                                <Input id="label" value={element.label} onChange={(e) => updateProperty('label', e.target.value)} placeholder="Text to display if no data source" />
                                 {isColumnElement && <p className="text-xs text-muted-foreground">This text is shown if the data key is not found.</p>}
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="key">{isColumnElement ? 'Column Data Key' : 'Field Key'}</Label>
-                                <Input id="key" value={props.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                <Input id="key" value={element.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
                                 {isColumnElement && <p className="text-xs text-muted-foreground">Enter the key from your data source that contains the text to display for each row.</p>}
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="expose-for-validation">Expose for validation</Label>
                                 <Switch
                                     id="expose-for-validation"
-                                    checked={props.exposeForValidation || false}
+                                    checked={element.exposeForValidation || false}
                                     onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
                                 />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden">Hidden in Form</Label>
-                                <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                                <Switch id="hidden" checked={element.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1224,10 +1220,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="flex flex-col gap-2">
                                 <Label>Source Type</Label>
                                 <Select 
-                                    value={props.dataSourceConfig?.sourceType || 'field'} 
+                                    value={element.dataSourceConfig?.sourceType || 'field'} 
                                     onValueChange={(v) => {
                                         const newConfig: DisplayDataSourceConfig = {
-                                            ...(props.dataSourceConfig || { sourceElementId: '', displayKey: '' }),
+                                            ...(element.dataSourceConfig || { sourceElementId: '', displayKey: '' }),
                                             sourceType: v as any
                                         };
                                         updateProperty('dataSourceConfig', newConfig)
@@ -1241,21 +1237,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </SelectContent>
                                 </Select>
                             </div>
-                            {props.dataSourceConfig?.sourceType === 'field' && (
+                            {element.dataSourceConfig?.sourceType === 'field' && (
                                 <>
                                     <div className="flex flex-col gap-2">
                                         <Label>Source Field</Label>
                                         <Select
-                                            value={props.dataSourceConfig.sourceElementId}
+                                            value={element.dataSourceConfig.sourceElementId}
                                             onValueChange={v => {
-                                                updateProperty('dataSourceConfig', { ...props.dataSourceConfig, sourceElementId: v, displayKey: '' });
+                                                updateProperty('dataSourceConfig', { ...element.dataSourceConfig, sourceElementId: v, displayKey: '' });
                                                 updateProperty('leadTextKey', '');
                                                 updateProperty('linkUrlKey', '');
                                             }}
                                         >
                                             <SelectTrigger><SelectValue placeholder="Select a field..."/></SelectTrigger>
                                             <SelectContent>
-                                                {allElements.filter(el => 'type' in el && el.id !== props.id).map(el => (
+                                                {allElements.filter(el => 'type' in el && el.id !== element.id).map(el => (
                                                     <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>
                                                 ))}
                                             </SelectContent>
@@ -1264,8 +1260,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <div className="flex flex-col gap-2">
                                         <Label>Display Key from Source</Label>
                                         <Select
-                                            value={props.dataSourceConfig.displayKey}
-                                            onValueChange={(value) => updateProperty('dataSourceConfig', { ...props.dataSourceConfig, displayKey: value })}
+                                            value={element.dataSourceConfig.displayKey}
+                                            onValueChange={(value) => updateProperty('dataSourceConfig', { ...element.dataSourceConfig, displayKey: value })}
                                         >
                                             <SelectTrigger>
                                                 <SelectValue placeholder={displayDataSourceKeys.length > 0 ? "Select a key" : "No keys available from source"} />
@@ -1277,12 +1273,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                 </>
                             )}
-                             {props.dataSourceConfig?.sourceType === 'currentUser' && (
+                             {element.dataSourceConfig?.sourceType === 'currentUser' && (
                                 <div className="flex flex-col gap-2">
                                     <Label>User Property</Label>
                                     <Input 
-                                        value={props.dataSourceConfig.displayKey}
-                                        onChange={e => updateProperty('dataSourceConfig', {...props.dataSourceConfig, displayKey: e.target.value})}
+                                        value={element.dataSourceConfig.displayKey}
+                                        onChange={e => updateProperty('dataSourceConfig', {...element.dataSourceConfig, displayKey: e.target.value})}
                                         placeholder="e.g., email, uid"
                                     />
                                 </div>
@@ -1294,12 +1290,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                            <div className="flex flex-col gap-2">
                                 <Label htmlFor="leadText">Lead Text (Fallback)</Label>
-                                <Input id="leadText" value={props.leadText || ''} onChange={(e) => updateProperty('leadText', e.target.value)} />
+                                <Input id="leadText" value={element.leadText || ''} onChange={(e) => updateProperty('leadText', e.target.value)} />
                             </div>
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="leadTextKey">Lead Text Data Key</Label>
                                 <Select
-                                    value={props.leadTextKey || ''}
+                                    value={element.leadTextKey || ''}
                                     onValueChange={(value) => updateProperty('leadTextKey', value)}
                                 >
                                     <SelectTrigger>
@@ -1313,7 +1309,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                              <div className="flex flex-col gap-2">
                                 <Label>Direction</Label>
                                 <RadioGroup
-                                    value={props.direction || 'horizontal'}
+                                    value={element.direction || 'horizontal'}
                                     onValueChange={(value) => updateProperty('direction', value as 'horizontal' | 'vertical')}
                                     className="flex gap-4"
                                 >
@@ -1334,7 +1330,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label>Format Type</Label>
-                                <Select value={props.formatType || 'none'} onValueChange={v => updateMultipleProperties({ formatType: v as any, currency: v === 'currency' ? (props.currency || 'USD') : undefined, decimalPlaces: v !== 'none' ? (props.decimalPlaces ?? 2) : undefined })}>
+                                <Select value={element.formatType || 'none'} onValueChange={v => updateMultipleProperties({ formatType: v as any, currency: v === 'currency' ? (element.currency || 'USD') : undefined, decimalPlaces: v !== 'none' ? (element.decimalPlaces ?? 2) : undefined })}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">None</SelectItem>
@@ -1344,21 +1340,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </SelectContent>
                                 </Select>
                             </div>
-                            {props.formatType === 'currency' && (
+                            {element.formatType === 'currency' && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="currency-code">Currency Code</Label>
-                                    <Input id="currency-code" value={props.currency || 'USD'} onChange={e => updateProperty('currency', e.target.value)} placeholder="e.g., USD, EUR" />
+                                    <Input id="currency-code" value={element.currency || 'USD'} onChange={e => updateProperty('currency', e.target.value)} placeholder="e.g., USD, EUR" />
                                 </div>
                             )}
-                            {(props.formatType === 'currency' || props.formatType === 'decimal' || props.formatType === 'percentage') && (
+                            {(element.formatType === 'currency' || element.formatType === 'decimal' || element.formatType === 'percentage') && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="decimal-places">Decimal Places</Label>
-                                    <Input id="decimal-places" type="number" min="0" value={props.decimalPlaces ?? 2} onChange={e => updateProperty('decimalPlaces', parseInt(e.target.value))} />
+                                    <Input id="decimal-places" type="number" min="0" value={element.decimalPlaces ?? 2} onChange={e => updateProperty('decimalPlaces', parseInt(e.target.value))} />
                                 </div>
                             )}
                              <div className="flex flex-col gap-2">
                                 <Label>Text Style</Label>
-                                <Select value={props.textStyle || 'p'} onValueChange={v => updateProperty('textStyle', v as any)}>
+                                <Select value={element.textStyle || 'p'} onValueChange={v => updateProperty('textStyle', v as any)}>
                                     <SelectTrigger><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="p">Paragraph</SelectItem>
@@ -1376,7 +1372,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Input
                                     id="text-color"
                                     type="color"
-                                    value={props.color || '#000000'}
+                                    value={element.color || '#000000'}
                                     onChange={(e) => updateProperty('color', e.target.value)}
                                 />
                             </div>
@@ -1389,7 +1385,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="formula">Formula (Optional)</Label>
                                 <Textarea
                                     id="formula"
-                                    value={props.formula || ''}
+                                    value={element.formula || ''}
                                     onChange={(e) => updateProperty('formula', e.target.value)}
                                     placeholder="e.g., {field_a} + {field_b}"
                                 />
@@ -1404,13 +1400,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="is-link">Enable as Link</Label>
-                                <Switch id="is-link" checked={!!props.isLink} onCheckedChange={(checked) => updateMultipleProperties({ isLink: checked, linkUrl: checked ? (props.linkUrl || '') : null })} />
+                                <Switch id="is-link" checked={!!element.isLink} onCheckedChange={(checked) => updateMultipleProperties({ isLink: checked, linkUrl: checked ? (element.linkUrl || '') : null })} />
                             </div>
-                            {props.isLink && (
+                            {element.isLink && (
                                 <>
                                     <div className="flex flex-col gap-2">
                                         <Label htmlFor="link-url">URL Template (Fallback)</Label>
-                                        <Input id="link-url" value={props.linkUrl || ''} onChange={(e) => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com/users/{id}" />
+                                        <Input id="link-url" value={element.linkUrl || ''} onChange={(e) => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com/users/{id}" />
                                         <p className="text-xs text-muted-foreground">
                                             Use {'{key}'} to insert values from the data source.
                                         </p>
@@ -1418,7 +1414,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                      <div className="flex flex-col gap-2">
                                         <Label htmlFor="linkUrlKey">Link URL Data Key</Label>
                                         <Select
-                                            value={props.linkUrlKey || ''}
+                                            value={element.linkUrlKey || ''}
                                             onValueChange={(value) => updateProperty('linkUrlKey', value)}
                                         >
                                             <SelectTrigger>
@@ -1432,7 +1428,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <div className="flex flex-col gap-2">
                                         <Label>URL Data Source</Label>
                                         <Select 
-                                            value={props.linkUrlSourceElementId || "none"}
+                                            value={element.linkUrlSourceElementId || "none"}
                                             onValueChange={v => updateProperty('linkUrlSourceElementId', v === 'none' ? null : v)}
                                         >
                                             <SelectTrigger><SelectValue placeholder="Select a field..." /></SelectTrigger>
@@ -1461,19 +1457,19 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="label">Label</Label>
-                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                                <Input id="label" value={element.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="expose-for-validation">Expose for validation</Label>
                                 <Switch
                                     id="expose-for-validation"
-                                    checked={props.exposeForValidation || false}
+                                    checked={element.exposeForValidation || false}
                                     onCheckedChange={(checked) => updateProperty('exposeForValidation', checked)}
                                 />
                             </div>
                              <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden">Hidden in Form</Label>
-                                <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                                <Switch id="hidden" checked={element.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="content">Content</Label>
@@ -1484,7 +1480,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     editable: true,
                                 }}>
                                     <LexicalEditor
-                                        initialValue={props.content}
+                                        initialValue={element.content}
                                         onChange={(html) => updateProperty('content', html)}
                                     />
                                 </LexicalComposer>
@@ -1503,11 +1499,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {placeholderField}
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="defaultValue">Default Value</Label>
-                                <Input id="defaultValue" value={props.defaultValue || ''} onChange={(e) => updateProperty('defaultValue', e.target.value)} />
+                                <Input id="defaultValue" value={element.defaultValue || ''} onChange={(e) => updateProperty('defaultValue', e.target.value)} />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="readOnly">Read-Only</Label>
-                                <Switch id="readOnly" checked={props.readOnly} onCheckedChange={(checked) => updateProperty('readOnly', checked)} />
+                                <Switch id="readOnly" checked={element.readOnly} onCheckedChange={(checked) => updateProperty('readOnly', checked)} />
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1517,7 +1513,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                              <div className="flex flex-col gap-2">
                                 <Label>Label Alignment</Label>
                                 <RadioGroup
-                                    value={props.labelDirection || 'vertical'}
+                                    value={element.labelDirection || 'vertical'}
                                     onValueChange={(value) => updateProperty('labelDirection', value as 'horizontal' | 'vertical')}
                                     className="flex gap-4"
                                 >
@@ -1538,7 +1534,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                              <div className="flex flex-col gap-2">
                                 <Label htmlFor="input-format">Format</Label>
-                                <Select value={props.inputFormat || 'text'} onValueChange={(v) => updateProperty('inputFormat', v as 'text' | 'number' | 'alphanumeric')}>
+                                <Select value={element.inputFormat || 'text'} onValueChange={(v) => updateProperty('inputFormat', v as 'text' | 'number' | 'alphanumeric')}>
                                     <SelectTrigger><SelectValue/></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="text">Text</SelectItem>
@@ -1551,7 +1547,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="formula">Formula (Optional)</Label>
                                 <Input
                                     id="formula"
-                                    value={props.formula || ''}
+                                    value={element.formula || ''}
                                     onChange={(e) => updateProperty('formula', e.target.value)}
                                     placeholder="e.g., {field_a} + {field_b}"
                                 />
@@ -1559,28 +1555,28 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     Use the 'Field Key' from another column. You can find this by editing the column.
                                 </p>
                             </div>
-                            {props.inputFormat === 'number' && (
+                            {element.inputFormat === 'number' && (
                                 <div className="space-y-4 pt-2 border-t">
                                     <div className="flex flex-col gap-2">
-                                        <Label htmlFor="fixed-length" className={cn(!!props.formula && 'text-muted-foreground')}>Fixed Digit Length</Label>
+                                        <Label htmlFor="fixed-length" className={cn(!!element.formula && 'text-muted-foreground')}>Fixed Digit Length</Label>
                                         <Input
                                             id="fixed-length"
                                             type="number"
                                             placeholder="e.g., 8"
-                                            value={props.fixedLength || ''}
+                                            value={element.fixedLength || ''}
                                             onChange={(e) => updateProperty('fixedLength', e.target.value ? parseInt(e.target.value, 10) : undefined)}
-                                            disabled={!!props.formula}
+                                            disabled={!!element.formula}
                                         />
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <Label htmlFor="leading-char" className={cn(!!props.formula && 'text-muted-foreground')}>Leading Character (for padding)</Label>
+                                        <Label htmlFor="leading-char" className={cn(!!element.formula && 'text-muted-foreground')}>Leading Character (for padding)</Label>
                                         <Input
                                             id="leading-char"
                                             placeholder="e.g., 0"
-                                            value={props.leadingChar || ''}
+                                            value={element.leadingChar || ''}
                                             onChange={(e) => updateProperty('leadingChar', e.target.value)}
                                             maxLength={1}
-                                            disabled={!!props.formula}
+                                            disabled={!!element.formula}
                                         />
                                     </div>
                                 </div>
@@ -1608,7 +1604,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {props.placeholder !== undefined && placeholderField}
+                            {element.placeholder !== undefined && placeholderField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
@@ -1617,18 +1613,18 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                              <div className="flex flex-col gap-2 mb-1.5">
                                 <Label>Source Type</Label>
                                 <RadioGroup
-                                    value={props.dataSource || 'static'}
+                                    value={element.dataSource || 'static'}
                                     onValueChange={(val) => {
                                       const newDataSource = val as 'static' | 'dynamic' | 'fromParent';
                                       updateMultipleProperties({
                                         dataSource: newDataSource,
-                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : undefined,
-                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : undefined,
-                                        valueKey: newDataSource !== 'static' ? props.valueKey : undefined,
-                                        labelKey: newDataSource !== 'static' ? props.labelKey : undefined,
-                                        dataSourceParentId: newDataSource === 'fromParent' || (newDataSource === 'dynamic' && props.apiUrl?.includes('{')) ? props.dataSourceParentId : undefined,
-                                        dataSourceParentKey: newDataSource === 'fromParent' ? props.dataSourceParentKey : undefined,
-                                        customOptions: newDataSource === 'dynamic' ? (props.customOptions || []) : undefined,
+                                        options: newDataSource === 'static' ? (element.options || ['Option 1']) : undefined,
+                                        apiUrl: newDataSource === 'dynamic' ? (element.apiUrl || '') : undefined,
+                                        valueKey: newDataSource !== 'static' ? element.valueKey : undefined,
+                                        labelKey: newDataSource !== 'static' ? element.labelKey : undefined,
+                                        dataSourceParentId: newDataSource === 'fromParent' || (newDataSource === 'dynamic' && element.apiUrl?.includes('{')) ? element.dataSourceParentId : undefined,
+                                        dataSourceParentKey: newDataSource === 'fromParent' ? element.dataSourceParentKey : undefined,
+                                        customOptions: newDataSource === 'dynamic' ? (element.customOptions || []) : undefined,
                                       })
                                     }}
                                     className="grid grid-cols-3 gap-2"
@@ -1647,9 +1643,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </Label>
                                 </RadioGroup>
                             </div>
-                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : 
-                             props.dataSource === 'fromParent' ? parentDataSourceFields() : 
-                             optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                            {element.dataSource === 'dynamic' ? dynamicDataSourceFields() : 
+                             element.dataSource === 'fromParent' ? parentDataSourceFields() : 
+                             optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1661,22 +1657,22 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {props.placeholder !== undefined && placeholderField}
+                            {element.placeholder !== undefined && placeholderField}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
                         <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             <RadioGroup
-                                value={props.dataSource || 'static'}
+                                value={element.dataSource || 'static'}
                                 onValueChange={(val) => {
                                       const newDataSource = val as 'static' | 'dynamic';
                                       updateMultipleProperties({
                                         dataSource: newDataSource,
-                                        options: newDataSource === 'static' ? (props.options || ['Option 1']) : undefined,
-                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : undefined,
-                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : undefined,
-                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : undefined,
+                                        options: newDataSource === 'static' ? (element.options || ['Option 1']) : undefined,
+                                        apiUrl: newDataSource === 'dynamic' ? (element.apiUrl || '') : undefined,
+                                        valueKey: newDataSource === 'dynamic' ? element.valueKey : undefined,
+                                        labelKey: newDataSource === 'dynamic' ? element.labelKey : undefined,
                                       })
                                     }}
                                 className="flex"
@@ -1690,7 +1686,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Label htmlFor="source-dynamic-combo">Dynamic</Label>
                                 </div>
                             </RadioGroup>
-                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
+                            {element.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1705,7 +1701,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="flex flex-col gap-2">
                                 <Label>List Type</Label>
                                  <RadioGroup
-                                    value={props.listType || 'checkbox'}
+                                    value={element.listType || 'checkbox'}
                                     onValueChange={(value) => updateProperty('listType', value as 'checkbox' | 'radio' | 'display')}
                                     className="flex gap-4"
                                 >
@@ -1723,10 +1719,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </div>
                                 </RadioGroup>
                             </div>
-                            {props.listType !== 'display' &&
+                            {element.listType !== 'display' &&
                                 <div className="flex flex-col gap-2">
                                     <Label>Display Selection</Label>
-                                    <Select value={props.displaySelection || 'none'} onValueChange={(value) => updateProperty('displaySelection', value)}>
+                                    <Select value={element.displaySelection || 'none'} onValueChange={(value) => updateProperty('displaySelection', value)}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">None</SelectItem>
@@ -1742,12 +1738,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hasSecondaryText">Add Secondary Text</Label>
-                                <Switch id="hasSecondaryText" checked={props.hasSecondaryText} onCheckedChange={(checked) => updateMultipleProperties({ hasSecondaryText: checked, isSecondaryTextLink: checked ? props.isSecondaryTextLink : false })} />
+                                <Switch id="hasSecondaryText" checked={element.hasSecondaryText} onCheckedChange={(checked) => updateMultipleProperties({ hasSecondaryText: checked, isSecondaryTextLink: checked ? element.isSecondaryTextLink : false })} />
                             </div>
-                             {props.hasSecondaryText && (
+                             {element.hasSecondaryText && (
                                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                     <Label htmlFor="isSecondaryTextLink">Enable as Link</Label>
-                                    <Switch id="isSecondaryTextLink" checked={props.isSecondaryTextLink} onCheckedChange={(checked) => updateProperty('isSecondaryTextLink', checked)} />
+                                    <Switch id="isSecondaryTextLink" checked={element.isSecondaryTextLink} onCheckedChange={(checked) => updateProperty('isSecondaryTextLink', checked)} />
                                 </div>
                             )}
                         </AccordionContent>
@@ -1756,17 +1752,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                            <RadioGroup
-                                value={props.dataSource || 'static'}
+                                value={element.dataSource || 'static'}
                                 onValueChange={(val) => {
                                     const newDataSource = val as 'static' | 'dynamic';
                                     updateMultipleProperties({
                                         dataSource: newDataSource,
-                                        staticData: newDataSource === 'static' ? (props.staticData || [{ id: crypto.randomUUID(), label: "Option 1" }]) : undefined,
-                                        apiUrl: newDataSource === 'dynamic' ? (props.apiUrl || '') : undefined,
-                                        valueKey: newDataSource === 'dynamic' ? props.valueKey : 'id',
-                                        labelKey: newDataSource === 'dynamic' ? props.labelKey : 'label',
-                                        secondaryTextKey: newDataSource === 'dynamic' ? props.secondaryTextKey : 'secondaryText',
-                                        linkUrlKey: newDataSource === 'dynamic' ? props.linkUrlKey : 'linkUrl',
+                                        staticData: newDataSource === 'static' ? (element.staticData || [{ id: crypto.randomUUID(), label: "Option 1" }]) : undefined,
+                                        apiUrl: newDataSource === 'dynamic' ? (element.apiUrl || '') : undefined,
+                                        valueKey: newDataSource === 'dynamic' ? element.valueKey : 'id',
+                                        labelKey: newDataSource === 'dynamic' ? element.labelKey : 'label',
+                                        secondaryTextKey: newDataSource === 'dynamic' ? element.secondaryTextKey : 'secondaryText',
+                                        linkUrlKey: newDataSource === 'dynamic' ? element.linkUrlKey : 'linkUrl',
                                     })
                                 }}
                                 className="flex"
@@ -1780,7 +1776,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Label htmlFor="list-source-dynamic">Dynamic</Label>
                                 </div>
                             </RadioGroup>
-                            {props.dataSource === 'dynamic' ? dynamicDataSourceFields() : staticDataEditor()}
+                            {element.dataSource === 'dynamic' ? dynamicDataSourceFields() : staticDataEditor()}
                         </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="scoring">
@@ -1788,17 +1784,17 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="enable-scoring">Enable Scoring</Label>
-                                <Switch id="enable-scoring" checked={props.enableScoring || false} onCheckedChange={(checked) => updateMultipleProperties({ 
+                                <Switch id="enable-scoring" checked={element.enableScoring || false} onCheckedChange={(checked) => updateMultipleProperties({ 
                                     enableScoring: checked,
-                                    scorePerItem: checked ? (props.scorePerItem ?? 1) : null,
-                                    passingScore: checked ? (props.passingScore ?? 1) : null,
+                                    scorePerItem: checked ? (element.scorePerItem ?? 1) : null,
+                                    passingScore: checked ? (element.passingScore ?? 1) : null,
                                  })} />
                             </div>
-                            {props.enableScoring && (
+                            {element.enableScoring && (
                                 <>
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="score-per-item">Score per Item</Label>
-                                    <Input id="score-per-item" type="number" value={props.scorePerItem || 1} onChange={(e) => updateProperty('scorePerItem', parseInt(e.target.value))} />
+                                    <Input id="score-per-item" type="number" value={element.scorePerItem || 1} onChange={(e) => updateProperty('scorePerItem', parseInt(e.target.value))} />
                                 </div>
                                 </>
                             )}
@@ -1813,8 +1809,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {optionsField(props.options, (newOptions) => updateProperty('options', newOptions))}
-                            <PopupSettings element={props} onUpdate={(popup) => updateProperty('popup', popup)} />
+                            {optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
+                            <PopupSettings element={element} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="layout">
@@ -1823,7 +1819,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                            <div className="flex flex-col gap-2">
                                 <Label>Alignment</Label>
                                 <RadioGroup
-                                    value={props.direction || 'vertical'}
+                                    value={element.direction || 'vertical'}
                                     onValueChange={(value) => updateProperty('direction', value as 'horizontal' | 'vertical')}
                                     className="flex gap-4"
                                 >
@@ -1849,21 +1845,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="key">Field Key</Label>
-                                <Input id="key" value={props.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                <Input id="key" value={element.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
                             </div>
                             <div className="flex flex-col gap-2 mt-[6px]">
                                 <Label htmlFor="label">Label</Label>
-                                <Input id="label" value={props.label} onChange={(e) => updateProperty('label', e.target.value)} />
+                                <Input id="label" value={element.label} onChange={(e) => updateProperty('label', e.target.value)} />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="required">Required</Label>
-                                <Switch id="required" checked={props.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
+                                <Switch id="required" checked={element.required} onCheckedChange={(checked) => updateProperty('required', checked)} />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hidden">Hidden in Form</Label>
-                                <Switch id="hidden" checked={props.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
+                                <Switch id="hidden" checked={element.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
-                            <PopupSettings element={props} onUpdate={(popup) => updateProperty('popup', popup)} />
+                            <PopupSettings element={element} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1877,7 +1873,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {commonFields}
                             <div className="flex flex-col gap-2">
                                 <Label>Validation</Label>
-                                <Select value={props.dateValidation || 'all'} onValueChange={v => updateProperty('dateValidation', v)}>
+                                <Select value={element.dateValidation || 'all'} onValueChange={v => updateProperty('dateValidation', v)}>
                                     <SelectTrigger>
                                         <SelectValue />
                                     </SelectTrigger>
@@ -1889,15 +1885,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </SelectContent>
                                 </Select>
                             </div>
-                             {props.dateValidation === 'dateRange' && (
+                             {element.dateValidation === 'dateRange' && (
                                 <div className="grid grid-cols-2 gap-2">
                                     <div className="flex flex-col gap-2">
                                         <Label htmlFor="range-from">From</Label>
                                         <Input 
                                             id="range-from" 
                                             type="date" 
-                                            value={props.dateValidationRange?.from || ''}
-                                            onChange={(e) => updateProperty('dateValidationRange', { ...props.dateValidationRange, from: e.target.value })}
+                                            value={element.dateValidationRange?.from || ''}
+                                            onChange={(e) => updateProperty('dateValidationRange', { ...element.dateValidationRange, from: e.target.value })}
                                         />
                                     </div>
                                     <div className="flex flex-col gap-2">
@@ -1905,8 +1901,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                          <Input 
                                             id="range-to" 
                                             type="date" 
-                                            value={props.dateValidationRange?.to || ''}
-                                            onChange={(e) => updateProperty('dateValidationRange', { ...props.dateValidationRange, to: e.target.value })}
+                                            value={element.dateValidationRange?.to || ''}
+                                            onChange={(e) => updateProperty('dateValidationRange', { ...element.dateValidationRange, to: e.target.value })}
                                         />
                                     </div>
                                 </div>
@@ -1923,16 +1919,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                             <div className="flex flex-col gap-2">
-                                <Label htmlFor="defaultRows" className={cn(props.allowUserToAddRows && 'text-muted-foreground')}>Default Rows</Label>
+                                <Label htmlFor="defaultRows" className={cn(element.allowUserToAddRows && 'text-muted-foreground')}>Default Rows</Label>
                                 <Input
                                     id="defaultRows"
                                     type="number"
                                     min="0"
-                                    value={props.defaultRows || 0}
+                                    value={element.defaultRows || 0}
                                     onChange={(e) => updateProperty('defaultRows', parseInt(e.target.value) >= 0 ? parseInt(e.target.value) : 0)}
-                                    disabled={props.allowUserToAddRows}
+                                    disabled={element.allowUserToAddRows}
                                 />
-                                {props.allowUserToAddRows && <p className="text-xs text-muted-foreground -mt-1">Disable "Allow User to Add Rows" to set default rows.</p>}
+                                {element.allowUserToAddRows && <p className="text-xs text-muted-foreground -mt-1">Disable "Allow User to Add Rows" to set default rows.</p>}
                             </div>
                         </AccordionContent>
                     </AccordionItem>
@@ -1940,7 +1936,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                         <AccordionContent>
                             <ColumnManager
-                                columns={props.columns || []}
+                                columns={element.columns || []}
                                 onUpdate={(newColumns) => updateProperty('columns', newColumns)}
                                 columnType="table"
                             />
@@ -1951,21 +1947,21 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="enable-search">Enable Search</Label>
-                                <Switch id="enable-search" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
+                                <Switch id="enable-search" checked={element.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
                             </div>
                              <div className="flex flex-col gap-2">
                                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <Label htmlFor="allow-user-add-rows" className={cn((props.defaultRows || 0) > 0 && 'text-muted-foreground')}>Allow User to Add Rows</Label>
+                                    <Label htmlFor="allow-user-add-rows" className={cn((element.defaultRows || 0) > 0 && 'text-muted-foreground')}>Allow User to Add Rows</Label>
                                     <Switch 
                                         id="allow-user-add-rows" 
-                                        checked={props.allowUserToAddRows} 
+                                        checked={element.allowUserToAddRows} 
                                         onCheckedChange={(checked) => updateProperty('allowUserToAddRows', checked)}
-                                        disabled={(props.defaultRows || 0) > 0}
+                                        disabled={(element.defaultRows || 0) > 0}
                                     />
                                 </div>
-                                {(props.defaultRows || 0) > 0 && <p className="text-xs text-muted-foreground -mt-3 pl-3">Set "Default Rows" to 0 to enable this.</p>}
+                                {(element.defaultRows || 0) > 0 && <p className="text-xs text-muted-foreground -mt-3 pl-3">Set "Default Rows" to 0 to enable this.</p>}
                             </div>
-                            {props.allowUserToAddRows && (
+                            {element.allowUserToAddRows && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="maxRows">Max Rows</Label>
                                     <Input
@@ -1973,7 +1969,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         type="number"
                                         min="1"
                                         placeholder="Unlimited"
-                                        value={props.maxRows || ''}
+                                        value={element.maxRows || ''}
                                         onChange={(e) => updateProperty('maxRows', e.target.value ? parseInt(e.target.value) : undefined)}
                                     />
                                 </div>
@@ -1997,8 +1993,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <div className="space-y-2">
                                 <Label htmlFor="api-url">API URL</Label>
                                  <div className="flex gap-2">
-                                    <Input id="api-url" value={props.apiUrl || ""} onChange={e => handleApiUrlChange(e.target.value)} placeholder="https://api.example.com/data"/>
-                                    <Button onClick={() => handleFetchSchema(props.apiUrl, true)} disabled={isFetching} size="sm">
+                                    <Input id="api-url" value={element.apiUrl || ""} onChange={e => handleApiUrlChange(e.target.value)} placeholder="https://api.example.com/data"/>
+                                    <Button onClick={() => handleFetchSchema(element.apiUrl, true)} disabled={isFetching} size="sm">
                                         {isFetching ? "Fetching..." : "Fetch"}
                                     </Button>
                                 </div>
@@ -2009,7 +2005,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Columns</AccordionTrigger>
                         <AccordionContent>
                              <DataGridColumnManager
-                                columns={props.dataGridColumns || []}
+                                columns={element.dataGridColumns || []}
                                 onUpdate={newColumns => updateProperty('dataGridColumns', newColumns)}
                             />
                         </AccordionContent>
@@ -2019,20 +2015,20 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="enable-search-grid">Enable Search</Label>
-                                <Switch id="enable-search-grid" checked={props.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
+                                <Switch id="enable-search-grid" checked={element.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
                             </div>
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="enable-pagination-grid">Enable Pagination</Label>
-                                <Switch id="enable-pagination-grid" checked={props.enablePagination} onCheckedChange={(checked) => updateProperty('enablePagination', checked)} />
+                                <Switch id="enable-pagination-grid" checked={element.enablePagination} onCheckedChange={(checked) => updateProperty('enablePagination', checked)} />
                             </div>
-                            {props.enablePagination && (
+                            {element.enablePagination && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="pageSize-grid">Page Size</Label>
                                     <Input
                                         id="pageSize-grid"
                                         type="number"
                                         min="1"
-                                        value={props.pageSize || 10}
+                                        value={element.pageSize || 10}
                                         onChange={(e) => updateProperty('pageSize', e.target.value ? parseInt(e.target.value, 10) : 10)}
                                     />
                                 </div>
@@ -2050,14 +2046,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                            {commonFields}
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="multiple-files">Allow Multiple Files</Label>
-                                <Switch id="multiple-files" checked={props.multiple || false} onCheckedChange={(checked) => updateProperty('multiple', checked)} />
+                                <Switch id="multiple-files" checked={element.multiple || false} onCheckedChange={(checked) => updateProperty('multiple', checked)} />
                             </div>
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="allowedFileTypes">Allowed File Types</Label>
                                 <Input
                                     id="allowedFileTypes"
                                     placeholder="e.g., image/png, application/pdf"
-                                    value={props.allowedFileTypes?.join(', ') || ''}
+                                    value={element.allowedFileTypes?.join(', ') || ''}
                                     onChange={(e) => updateProperty('allowedFileTypes', e.target.value.split(',').map(s => s.trim()))}
                                 />
                                 <p className="text-xs text-muted-foreground">Comma-separated MIME types.</p>
@@ -2068,7 +2064,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     id="maxFileSize"
                                     type="number"
                                     min="1"
-                                    value={props.maxFileSize || 5}
+                                    value={element.maxFileSize || 5}
                                     onChange={(e) => updateProperty('maxFileSize', parseInt(e.target.value))}
                                 />
                             </div>
