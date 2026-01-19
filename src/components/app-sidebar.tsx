@@ -54,7 +54,7 @@ const menuItems: MenuItem[] = [
         ] },
         { href: "#", label: "User Management", icon: Users, children: [] },
         { href: "#", label: "Task Management", icon: ListTodo, children: [] },
-        { href: "#", label: "Audit Log", icon: FileClock },
+        { href: "/task-history", label: "Task History", icon: FileClock },
         { href: "#", label: "Announcement", icon: Megaphone },
         { href: "#", label: "Mail Setup", icon: Mail },
         { href: "#", label: "Configurations", icon: Cog },

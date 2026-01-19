@@ -75,6 +75,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   } else if (pathname === '/all-tasks') {
     title = 'All Tasks';
     description = 'View and track all assigned and submitted tasks across all sites.';
+  } else if (pathname === '/task-history') {
+    title = 'Task History';
+    description = 'View a chronological history of all task assignments and submissions.';
   }
 
   return (
