@@ -435,6 +435,26 @@ function ColumnEditorDialog({
                                 />
                             </div>
                         )}
+                        
+                        {'element' in column && (
+                            <>
+                                <Separator />
+                                <h3 className="text-lg font-medium">Data Binding</h3>
+                                <div className="space-y-2">
+                                <Label>Column Data Key</Label>
+                                <Input
+                                    value={column.element.key || ''}
+                                    onChange={e => handleElementUpdate({ ...column.element, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    A unique key to store this column's data for each row.
+                                </p>
+                                </div>
+                                <Separator/>
+                            </>
+                        )}
+
+
                         {'element' in column && (
                             <>
                                 <h3 className="text-lg font-medium">Field Properties</h3>
@@ -587,7 +607,7 @@ function DataGridColumnEditor({
 
   const allowedColumnTypes: ElementType[] = [
     'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker', 'Textarea'
-  ]
+  ];
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -612,6 +632,20 @@ function DataGridColumnEditor({
                     placeholder="e.g. 150px, 20%"
                 />
             </div>
+            
+            <Separator />
+            <h3 className="text-lg font-medium">Data Binding</h3>
+            <div className="space-y-2">
+              <Label>Column Data Key</Label>
+              <Input
+                value={column.element.key || ''}
+                onChange={e => handleElementUpdate({ ...column.element, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Key from the data source to display. To create a column for user input, provide a new, unique key that is not in your data source.
+              </p>
+            </div>
+
             <Separator />
             <h3 className="text-lg font-medium">Field Properties</h3>
             <div className="space-y-2">
@@ -873,13 +907,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const commonFields = (
     <>
-      {(element.type !== 'Display' || isColumnElement) && element.type !== 'Container' ? (
+      {!isColumnElement && (element.type !== 'Display' && element.type !== 'Container') && (
           <div className="flex flex-col gap-2">
-            <Label htmlFor="key">{isColumnElement ? 'Column Data Key' : 'Field Key'}</Label>
+            <Label htmlFor="key">Field Key</Label>
             <Input id="key" value={element.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
-            {isColumnElement && <p className="text-xs text-muted-foreground">Key from the row's data to bind to this field.</p>}
           </div>
-       ) : null}
+       )}
       <div className="flex flex-col gap-2">
         <Label htmlFor="label">Label</Label>
         <Input id="label" value={element.label} onChange={(e) => updateProperty('label', e.target.value)} />
@@ -1284,11 +1317,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Input id="label" value={element.label} onChange={(e) => updateProperty('label', e.target.value)} placeholder="Text to display if no data source" />
                                 {isColumnElement && <p className="text-xs text-muted-foreground">This text is shown if the data key is not found.</p>}
                             </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="key">{isColumnElement ? 'Column Data Key' : 'Field Key'}</Label>
-                                <Input id="key" value={element.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
-                                {isColumnElement && <p className="text-xs text-muted-foreground">Enter the key from your data source that contains the text to display for each row.</p>}
-                            </div>
+                            {!isColumnElement && (
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="key">Field Key</Label>
+                                    <Input id="key" value={element.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                </div>
+                            )}
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="expose-for-validation">Expose for validation</Label>
                                 <Switch
