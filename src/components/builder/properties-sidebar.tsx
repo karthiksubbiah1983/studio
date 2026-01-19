@@ -33,6 +33,7 @@ import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { LexicalEditor } from "../lexical/lexical-editor";
 import { ScrollArea } from "../ui/scroll-area";
 import { ListOptionsDialog } from "./list-options-dialog";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 
 
 export function PropertiesSidebar() {
@@ -375,8 +376,8 @@ function ColumnEditorDialog({
     isOpen,
     onOpenChange,
     onSave,
-    column,
-    onUpdate,
+    column: initialColumn,
+    onUpdate: onUpdateProp,
     columnType,
 }: {
     isOpen: boolean;
@@ -386,19 +387,21 @@ function ColumnEditorDialog({
     onUpdate: (column: TableColumn | ListItemElement) => void;
     columnType: 'table' | 'listitem';
 }) {
+    const column = initialColumn;
+
     if (!isOpen || !column) {
         return null;
     }
 
     const handleElementUpdate = (updatedElement: FormElementInstance) => {
         if (column && 'element' in column) {
-            onUpdate({ ...column, element: updatedElement });
+            onUpdateProp({ ...column, element: updatedElement });
         }
     }
     
     const updateColumnProperty = (key: string, value: any) => {
         if (column) {
-            onUpdate({ ...column, [key]: value });
+            onUpdateProp({ ...column, [key]: value });
         }
     };
     
@@ -559,9 +562,9 @@ function DataGridColumnManager({
 function DataGridColumnEditor({
   isOpen,
   onOpenChange,
-  column,
+  column: initialColumn,
   onSave,
-  onUpdate,
+  onUpdate: onUpdateProp,
 }: {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -570,10 +573,11 @@ function DataGridColumnEditor({
   onUpdate: (column: DataGridColumn) => void;
 }) {
 
+  const column = initialColumn;
   if (!isOpen || !column) return null;
 
   const handleElementUpdate = (updatedElement: FormElementInstance) => {
-    onUpdate({ ...column, element: updatedElement });
+    onUpdateProp({ ...column, element: updatedElement });
   }
 
   const handleFieldTypeChange = (type: ElementType) => {
@@ -597,14 +601,14 @@ function DataGridColumnEditor({
               <Label>Column Header Text</Label>
               <Input
                 value={column.header}
-                onChange={e => onUpdate({ ...column, header: e.target.value })}
+                onChange={e => onUpdateProp({ ...column, header: e.target.value })}
               />
             </div>
              <div className="space-y-2">
                 <Label>Column Width</Label>
                 <Input
                     value={column.width || ''}
-                    onChange={e => onUpdate({ ...column, width: e.target.value })}
+                    onChange={e => onUpdateProp({ ...column, width: e.target.value })}
                     placeholder="e.g. 150px, 20%"
                 />
             </div>
@@ -642,8 +646,116 @@ function DataGridColumnEditor({
   );
 }
 
+function StaticDataEditorDialog({
+  isOpen,
+  onOpenChange,
+  columns,
+  data,
+  onSave,
+}: {
+  isOpen: boolean;
+  onOpenChange: (isOpen: boolean) => void;
+  columns: DataGridColumn[];
+  data: any[];
+  onSave: (newData: any[]) => void;
+}) {
+  const [localData, setLocalData] = useState<any[]>([]);
 
-function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
+  useEffect(() => {
+    // Deep copy to avoid mutating the original state directly
+    setLocalData(JSON.parse(JSON.stringify(data || [])));
+  }, [data, isOpen]);
+
+  const handleAddRow = () => {
+    const newRow = columns.reduce((acc, col) => {
+      if (col.element.key) {
+        acc[col.element.key] = "";
+      }
+      return acc;
+    }, {} as Record<string, any>);
+    setLocalData([...localData, newRow]);
+  };
+
+  const handleDeleteRow = (index: number) => {
+    const newData = [...localData];
+    newData.splice(index, 1);
+    setLocalData(newData);
+  };
+
+  const handleCellChange = (index: number, key: string, value: string) => {
+    const newData = [...localData];
+    newData[index] = { ...newData[index], [key]: value };
+    setLocalData(newData);
+  };
+
+  const handleSaveChanges = () => {
+    onSave(localData);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>Edit Static Row Data</DialogTitle>
+          <DialogDescription>
+            Add, remove, and edit the rows for your Data Grid.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex-1 min-h-0">
+          <div className="border rounded-md h-full flex flex-col">
+            <ScrollArea className="flex-1">
+              <Table>
+                <TableHeader className="sticky top-0 bg-muted/50 z-10">
+                  <TableRow>
+                    {columns.map(col => (
+                      <TableHead key={col.id}>{col.header}</TableHead>
+                    ))}
+                    <TableHead className="w-[50px]"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {localData.map((row, rowIndex) => (
+                    <TableRow key={rowIndex}>
+                      {columns.map(col => (
+                        <TableCell key={col.id}>
+                          {col.element.key && (
+                            <Input
+                              value={row[col.element.key] || ""}
+                              onChange={(e) => handleCellChange(rowIndex, col.element.key!, e.target.value)}
+                              className="h-8"
+                            />
+                          )}
+                        </TableCell>
+                      ))}
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
+                          <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+            <div className="p-2 border-t">
+              <Button variant="outline" size="sm" onClick={handleAddRow} className="w-full">
+                <Plus className="mr-2 h-4 w-4" /> Add Row
+              </Button>
+            </div>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSaveChanges}>Save Changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
+function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
   const { dispatch, state, sections, rules } = useBuilder();
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
@@ -652,11 +764,11 @@ function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, is
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
   const [isListOptionsOpen, setIsListOptionsOpen] = useState(false);
   const [displayDataSourceKeys, setDisplayDataSourceKeys] = useState<string[]>([]);
+  const [isStaticDataEditorOpen, setIsStaticDataEditorOpen] = useState(false);
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
-  const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== initialElement.id && el.type === 'Select') as FormElementInstance[], [allElements, initialElement.id]);
+  const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== element.id && el.type === 'Select') as FormElementInstance[], [allElements, element.id]);
   
-  const element = initialElement;
 
   useEffect(() => {
     if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'DataGrid') && element.dataSource === 'dynamic' && element.apiUrl) {
@@ -1956,34 +2068,6 @@ function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, is
                 </Accordion>
             );
         case "DataGrid": {
-            const [staticDataJson, setStaticDataJson] = useState(JSON.stringify(element.staticData || [], null, 2));
-            const [jsonError, setJsonError] = useState<string | null>(null);
-
-            useEffect(() => {
-                setStaticDataJson(JSON.stringify(element.staticData || [], null, 2));
-                setJsonError(null);
-            }, [element.staticData, element.id]);
-
-            const handleJsonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                const jsonString = e.target.value;
-                setStaticDataJson(jsonString);
-                try {
-                    if (jsonString.trim() === '') {
-                        updateProperty('staticData', []);
-                        setJsonError(null);
-                        return;
-                    }
-                    const parsed = JSON.parse(jsonString);
-                    if (!Array.isArray(parsed)) {
-                        throw new Error("Data must be a JSON array.");
-                    }
-                    updateProperty('staticData', parsed);
-                    setJsonError(null);
-                } catch (err) {
-                    setJsonError((err as Error).message);
-                }
-            };
-
             return (
                 <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
                      <AccordionItem value="general">
@@ -2012,16 +2096,10 @@ function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, is
 
                             {element.dataSource === 'static' ? (
                                 <div className="flex flex-col gap-2">
-                                    <Label htmlFor="static-data-json">Row Data (JSON Array)</Label>
-                                    <Textarea
-                                        id="static-data-json"
-                                        value={staticDataJson}
-                                        onChange={handleJsonChange}
-                                        rows={10}
-                                        className={cn(jsonError && "border-destructive")}
-                                    />
-                                    {jsonError && <p className="text-sm text-destructive">{jsonError}</p>}
-                                    <p className="text-xs text-muted-foreground">Enter an array of JSON objects. The object keys should match the 'Column Data Key' of your columns.</p>
+                                    <Label>Row Data</Label>
+                                    <Button variant="outline" onClick={() => setIsStaticDataEditorOpen(true)}>
+                                        Manage Data ({element.staticData?.length || 0} rows)
+                                    </Button>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
@@ -2121,6 +2199,15 @@ function ElementProperties({ element: initialElement, onUpdate: onUpdateProp, is
         onOpenChange={setIsFetchedJsonDialogOpen}
         jsonData={fetchedJsonData}
       />
+      {element.type === 'DataGrid' && (
+        <StaticDataEditorDialog
+            isOpen={isStaticDataEditorOpen}
+            onOpenChange={setIsStaticDataEditorOpen}
+            columns={element.dataGridColumns || []}
+            data={element.staticData || []}
+            onSave={(newData) => updateProperty('staticData', newData)}
+        />
+      )}
     </div>
   );
 }
