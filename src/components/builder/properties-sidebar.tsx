@@ -852,7 +852,14 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   };
 
   const updateProperty = (key: keyof FormElementInstance, value: any) => {
-      const newProps = { ...element, [key]: value };
+      let newProps = { ...element, [key]: value };
+
+      // If adding a formula to an element without a key, auto-generate one.
+      if (key === 'formula' && value && !newProps.key) {
+          const generatedKey = `${newProps.type.toLowerCase().replace(/\s/g, '_')}_${Math.random().toString(36).substring(2, 7)}`;
+          newProps.key = generatedKey;
+      }
+
       onUpdate(newProps);
   };
   
@@ -2245,3 +2252,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
