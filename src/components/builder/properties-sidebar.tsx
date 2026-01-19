@@ -582,7 +582,7 @@ function DataGridColumnEditor({
   }
 
   const allowedColumnTypes: ElementType[] = [
-    'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker',
+    'Display', 'Input', 'Select', 'Checkbox', 'RadioGroup', 'DatePicker', 'Textarea',
   ]
 
   return (
