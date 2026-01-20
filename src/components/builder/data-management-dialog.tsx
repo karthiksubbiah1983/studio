@@ -166,15 +166,20 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
 
   useEffect(() => {
     if (isOpen) {
+      // Deep copy to prevent mutating the original state
       const initialDatasets = JSON.parse(JSON.stringify(datasets || []));
       setLocalDatasets(initialDatasets);
-      if (initialDatasets.length > 0 && !initialDatasets.some((d: Dataset) => d.id === selectedDatasetId)) {
+      
+      const selectedDatasetStillExists = initialDatasets.some((d: Dataset) => d.id === selectedDatasetId);
+
+      // If no dataset is selected or the selected one no longer exists, select the first one.
+      if (initialDatasets.length > 0 && !selectedDatasetStillExists) {
         setSelectedDatasetId(initialDatasets[0].id);
       } else if (initialDatasets.length === 0) {
         setSelectedDatasetId(null);
       }
     }
-  }, [isOpen, datasets, selectedDatasetId]);
+  }, [isOpen, datasets]);
 
   const handleSaveChanges = () => {
     updateDatasets(localDatasets);
@@ -197,9 +202,10 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
   };
 
   const handleDeleteDataset = (id: string) => {
-    setLocalDatasets(prev => prev.filter(ds => ds.id !== id));
+    const newDatasets = localDatasets.filter(ds => ds.id !== id);
+    setLocalDatasets(newDatasets);
     if (selectedDatasetId === id) {
-        setSelectedDatasetId(localDatasets.length > 1 ? localDatasets[0].id : null);
+        setSelectedDatasetId(newDatasets.length > 0 ? newDatasets[0].id : null);
     }
   };
 
