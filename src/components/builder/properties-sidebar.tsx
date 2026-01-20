@@ -26,7 +26,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { fetchFromApi } from "@/services/api";
-import { findFirstArray, flattenObject, getAllElements } from "@/lib/utils";
+import { findFirstArray, flattenObject, getAllElements, findElementRecursive } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
 import { createNewElement } from "@/lib/form-elements";
 import { FetchedJsonDialog } from "./fetched-json-dialog";
@@ -599,7 +599,8 @@ function DataGridColumnEditor({
   onUpdate: (column: DataGridColumn) => void;
   isTaskHistory?: boolean;
 }) {
-  const { sections } = useBuilder();
+  const { sections, datasets, state } = useBuilder();
+  const { selectedElement } = state;
 
   const allEditableTableColumns = useMemo(() => {
     if (!isTaskHistory) return [];
@@ -616,6 +617,19 @@ function DataGridColumnEditor({
     });
     return groupedColumns;
   }, [sections, isTaskHistory]);
+  
+  const availableKeys = useMemo(() => {
+    if (selectedElement?.elementId) {
+        const dataGridElement = findElementRecursive(sections, selectedElement.elementId);
+        if (dataGridElement?.type === 'DataGrid' && dataGridElement.dataSource === 'local' && dataGridElement.localDatasetName) {
+            const dataset = datasets.find(ds => ds.name === dataGridElement.localDatasetName);
+            if (dataset) {
+                return dataset.columns.map(col => col.key);
+            }
+        }
+    }
+    return [];
+  }, [selectedElement, sections, datasets]);
 
   const column = initialColumn;
   if (!isOpen || !column) return null;
@@ -723,6 +737,7 @@ function DataGridColumnEditor({
                 element={column.element}
                 onUpdate={handleElementUpdate}
                 isColumnElement={true}
+                dataSourceKeys={availableKeys}
             />
           </div>
         </ScrollArea>
@@ -735,7 +750,7 @@ function DataGridColumnEditor({
   );
 }
 
-function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
+function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false, dataSourceKeys = [] }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean, dataSourceKeys?: string[] }) {
   const { dispatch, state, sections, rules, datasets } = useBuilder();
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
@@ -747,6 +762,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
   const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== element.id && el.type === 'Select') as FormElementInstance[], [allElements, element.id]);
+
+  const allAvailableKeys = useMemo(() => {
+    const keys = new Set<string>();
+    dataSourceKeys.forEach(k => keys.add(k));
+    displayDataSourceKeys.forEach(k => keys.add(k));
+    return Array.from(keys);
+  }, [dataSourceKeys, displayDataSourceKeys]);
   
 
   useEffect(() => {
@@ -1374,10 +1396,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     onValueChange={(value) => updateProperty('leadTextKey', value)}
                                 >
                                     <SelectTrigger>
-                                        <SelectValue placeholder={displayDataSourceKeys.length > 0 ? "Select a key" : "No keys available from source"} />
+                                        <SelectValue placeholder={allAvailableKeys.length > 0 ? "Select a key" : "No keys available"} />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {displayDataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                        {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -1493,10 +1515,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                             onValueChange={(value) => updateProperty('linkUrlKey', value)}
                                         >
                                             <SelectTrigger>
-                                                <SelectValue placeholder={displayDataSourceKeys.length > 0 ? "Select a key" : "No keys available from source"} />
+                                                <SelectValue placeholder={allAvailableKeys.length > 0 ? "Select a key" : "No keys available"} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {displayDataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
