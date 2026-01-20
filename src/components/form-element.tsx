@@ -91,12 +91,6 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
                     onValueChange(element.id, arrayData);
                 })
                 .finally(() => setIsLoading(false));
-        } else if (element.dataSource === 'static') {
-            const staticData = element.staticData || [];
-            setInternalData(staticData);
-            if (JSON.stringify(value) !== JSON.stringify(staticData)) {
-                onValueChange(element.id, staticData);
-            }
         } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
             const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
             if (localDataset) {
@@ -112,7 +106,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
                 }
             }
         }
-    }, [element.apiUrl, element.id, element.dataSource, element.staticData, element.localDatasetName, datasets, onValueChange, value]);
+    }, [element.apiUrl, element.id, element.dataSource, element.localDatasetName, datasets, onValueChange, value]);
 
      useEffect(() => {
         if (Array.isArray(value)) {
@@ -1513,3 +1507,4 @@ const alignmentClasses = {
 }
 
     
+

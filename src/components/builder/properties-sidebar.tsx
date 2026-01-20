@@ -735,115 +735,6 @@ function DataGridColumnEditor({
   );
 }
 
-function StaticDataEditorDialog({
-  isOpen,
-  onOpenChange,
-  columns,
-  data,
-  onSave,
-}: {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  columns: DataGridColumn[];
-  data: any[];
-  onSave: (newData: any[]) => void;
-}) {
-  const [localData, setLocalData] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Deep copy to avoid mutating the original state directly
-    setLocalData(JSON.parse(JSON.stringify(data || [])));
-  }, [data, isOpen]);
-
-  const handleAddRow = () => {
-    const newRow = columns.reduce((acc, col) => {
-      if (col.element.key) {
-        acc[col.element.key] = "";
-      }
-      return acc;
-    }, {} as Record<string, any>);
-    setLocalData([...localData, newRow]);
-  };
-
-  const handleDeleteRow = (index: number) => {
-    const newData = [...localData];
-    newData.splice(index, 1);
-    setLocalData(newData);
-  };
-
-  const handleCellChange = (index: number, key: string, value: string) => {
-    const newData = [...localData];
-    newData[index] = { ...newData[index], [key]: value };
-    setLocalData(newData);
-  };
-
-  const handleSaveChanges = () => {
-    onSave(localData);
-    onOpenChange(false);
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Edit Static Row Data</DialogTitle>
-          <DialogDescription>
-            Add, remove, and edit the rows for your Data Grid.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="flex-1 min-h-0">
-          <div className="border rounded-md h-full flex flex-col">
-            <ScrollArea className="flex-1">
-              <Table>
-                <TableHeader className="sticky top-0 bg-muted/50 z-10">
-                  <TableRow>
-                    {columns.map(col => (
-                      <TableHead key={col.id}>{col.header}</TableHead>
-                    ))}
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {localData.map((row, rowIndex) => (
-                    <TableRow key={rowIndex}>
-                      {columns.map(col => (
-                        <TableCell key={col.id}>
-                          {col.element.key && (
-                            <Input
-                              value={row[col.element.key] || ""}
-                              onChange={(e) => handleCellChange(rowIndex, col.element.key!, e.target.value)}
-                              className="h-8"
-                            />
-                          )}
-                        </TableCell>
-                      ))}
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
-                          <Trash className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ScrollArea>
-            <div className="p-2 border-t">
-              <Button variant="outline" size="sm" onClick={handleAddRow} className="w-full">
-                <Plus className="mr-2 h-4 w-4" /> Add Row
-              </Button>
-            </div>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSaveChanges}>Save Changes</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
   const { dispatch, state, sections, rules, datasets } = useBuilder();
   const { selectedElement } = state;
@@ -853,7 +744,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
   const [isListOptionsOpen, setIsListOptionsOpen] = useState(false);
   const [displayDataSourceKeys, setDisplayDataSourceKeys] = useState<string[]>([]);
-  const [isStaticDataEditorOpen, setIsStaticDataEditorOpen] = useState(false);
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
   const parentSelectFields = useMemo(() => allElements.filter(el => 'type' in el && el.id !== element.id && el.type === 'Select') as FormElementInstance[], [allElements, element.id]);
@@ -2176,17 +2066,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             <RadioGroup
-                                value={element.dataSource || 'dynamic'}
+                                value={element.dataSource === 'static' ? 'dynamic' : (element.dataSource || 'dynamic')}
                                 onValueChange={(val) => updateProperty('dataSource', val)}
-                                className="grid grid-cols-3 gap-2"
+                                className="grid grid-cols-2 gap-2"
                             >
                                 <Label htmlFor="dg-source-dynamic" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                     <RadioGroupItem value="dynamic" id="dg-source-dynamic" />
                                     API
-                                </Label>
-                                <Label htmlFor="dg-source-static" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
-                                    <RadioGroupItem value="static" id="dg-source-static" />
-                                    Static
                                 </Label>
                                  <Label htmlFor="dg-source-local" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                     <RadioGroupItem value="local" id="dg-source-local" />
@@ -2194,14 +2080,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 </Label>
                             </RadioGroup>
 
-                            {element.dataSource === 'static' ? (
-                                <div className="flex flex-col gap-2">
-                                    <Label>Row Data</Label>
-                                    <Button variant="outline" onClick={() => setIsStaticDataEditorOpen(true)}>
-                                        Manage Data ({element.staticData?.length || 0} rows)
-                                    </Button>
-                                </div>
-                            ) : element.dataSource === 'local' ? (
+                            {element.dataSource === 'local' ? (
                                 <div className="space-y-2">
                                     <Label>Dataset</Label>
                                     <Select
@@ -2361,18 +2240,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         onOpenChange={setIsFetchedJsonDialogOpen}
         jsonData={fetchedJsonData}
       />
-      {element.type === 'DataGrid' && (
-        <StaticDataEditorDialog
-            isOpen={isStaticDataEditorOpen}
-            onOpenChange={setIsStaticDataEditorOpen}
-            columns={element.dataGridColumns || []}
-            data={element.staticData || []}
-            onSave={(newData) => updateProperty('staticData', newData)}
-        />
-      )}
     </div>
   );
 }
 
     
+
 
