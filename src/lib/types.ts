@@ -104,6 +104,20 @@ export type CustomOption = {
   value: string;
 };
 
+export type DatasetColumn = {
+  id: string;
+  header: string;
+  key: string;
+};
+
+export type Dataset = {
+  id: string;
+  name: string;
+  columns: DatasetColumn[];
+  data: Record<string, any>[];
+};
+
+
 export type FormElementInstance = {
     id: string;
     type: ElementType;
@@ -179,6 +193,7 @@ export type FormElementInstance = {
     enableSearch?: boolean;
     enablePagination?: boolean;
     pageSize?: number;
+    localDatasetName?: string;
     // General Layout
     labelDirection?: 'horizontal' | 'vertical';
     // For DatePicker
@@ -215,6 +230,7 @@ export type FormVersion = {
   rules: Rule[];
   workflows: Workflow[];
   configurations?: Configuration[];
+  datasets?: Dataset[];
 };
 
 export type SubCategory = {

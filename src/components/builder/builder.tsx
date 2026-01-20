@@ -13,7 +13,7 @@ import { TemplatesSidebar } from "./templates-sidebar";
 import { RightSidebar } from "./right-sidebar";
 import { useBuilder } from "@/hooks/use-builder";
 import { Button } from "@/components/ui/button";
-import { Eye, Save, Send, Settings2, Code, Zap } from "lucide-react";
+import { Eye, Save, Send, Settings2, Code, Zap, Database } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { PreviewDialog } from "./preview-dialog";
@@ -23,6 +23,7 @@ import { RulesDialog } from "./rules-dialog";
 import { JsonPreviewDialog } from "./json-preview-dialog";
 import { WorkflowsDialog } from "./workflows-dialog";
 import { useIsClient } from "@/hooks/use-is-client";
+import { DataManagementDialog } from "./data-management-dialog";
 
 type Props = {
     formId: string;
@@ -43,6 +44,7 @@ export function Builder({ formId }: Props) {
   const [isRulesOpen, setIsRulesOpen] = useState(false);
   const [isWorkflowsOpen, setIsWorkflowsOpen] = useState(false);
   const [isJsonPreviewOpen, setIsJsonPreviewOpen] = useState(false);
+  const [isDataManagementOpen, setIsDataManagementOpen] = useState(false);
   const [saveType, setSaveType] = useState<"draft" | "published">("draft");
   
   const [activeVersionId, setActiveVersionId] = useState<string | undefined>();
@@ -108,6 +110,10 @@ export function Builder({ formId }: Props) {
         <Button variant="outline" size="sm" onClick={() => setIsJsonPreviewOpen(true)}>
             <Code className="mr-1 h-4 w-4" />
             View JSON
+        </Button>
+         <Button variant="outline" size="sm" onClick={() => setIsDataManagementOpen(true)}>
+            <Database className="mr-1 h-4 w-4" />
+            Manage Data
         </Button>
         <Button variant="outline" size="sm" onClick={() => setIsRulesOpen(true)}>
             <Settings2 className="mr-1 h-4 w-4" />
@@ -209,6 +215,10 @@ export function Builder({ formId }: Props) {
        <RulesDialog 
             isOpen={isRulesOpen}
             onOpenChange={setIsRulesOpen}
+        />
+        <DataManagementDialog
+            isOpen={isDataManagementOpen}
+            onOpenChange={setIsDataManagementOpen}
         />
         <WorkflowsDialog
             isOpen={isWorkflowsOpen}

@@ -3,7 +3,7 @@
 "use client";
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, RuleBehavior } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, RuleBehavior, Dataset } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
@@ -125,7 +125,8 @@ const editableTableCascadingDemo: Form = {
             ],
             rules: [],
             workflows: [],
-            configurations: []
+            configurations: [],
+            datasets: [],
         }
     ]
 };
@@ -209,7 +210,8 @@ const cascadingDemoTemplate: Form = {
             ],
             rules: [],
             workflows: [],
-            configurations: []
+            configurations: [],
+            datasets: [],
         }
     ]
 };
@@ -325,7 +327,8 @@ const demoTemplate: Form = {
             configurations: [
                 { id: "config1", key: "approver_level", value: "manager" },
                 { id: "config2", key: "requires_urgent_review", value: "false" }
-            ]
+            ],
+            datasets: [],
         },
     ],
 };
@@ -576,7 +579,7 @@ type Action =
   | { type: "SET_DRAGGED_ELEMENT"; payload: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null }
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string, elementId: string }, to: { sectionId: string, index?: number, parentId?: string } } }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number; toIndex: number } }
-  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[]; rules: Rule[]; workflows: Workflow[]; configurations?: Configuration[], timestamp: string; } }
+  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[]; rules: Rule[]; workflows: Workflow[]; configurations?: Configuration[]; datasets?: Dataset[]; timestamp: string; } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any>, taskId?: string } }
@@ -960,8 +963,8 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SAVE_VERSION": {
         if (!activeForm) return state;
-        const { name, description, type, sections, rules, workflows, configurations, timestamp } = action.payload;
-        const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp, sections, rules, workflows, configurations };
+        const { name, description, type, sections, rules, workflows, configurations, datasets, timestamp } = action.payload;
+        const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp, sections, rules, workflows, configurations, datasets };
         const updatedVersions = [newVersion, ...activeForm.versions];
         const newForms = state.forms.map(form => 
             form.id === state.activeFormId ? { ...form, versions: updatedVersions } : form
@@ -1039,6 +1042,8 @@ type BuilderContextType = {
   updateWorkflows: (workflows: Workflow[]) => void;
   configurations: Configuration[];
   updateConfigurations: (configurations: Configuration[]) => void;
+  datasets: Dataset[];
+  updateDatasets: (datasets: Dataset[]) => void;
   clipboard: ClipboardItem | null;
   submissions: Submission[];
   formState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } };
@@ -1124,6 +1129,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const rules = activeForm?.versions[0]?.rules || [];
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
+  const datasets = activeForm?.versions[0]?.datasets || [];
   const activePopupId = state.activePopupId;
 
   // Reactive rules engine
@@ -1240,7 +1246,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     const { title, description, categoryId, subCategoryId } = payload;
     const newVersion: FormVersion = {
         id: crypto.randomUUID(), name: "Version 1", description: description || "Initial version", type: "draft", timestamp: new Date().toISOString(),
-        sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }], rules: [], workflows: [], configurations: []
+        sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }], rules: [], workflows: [], configurations: [], datasets: []
     };
     const newFormWithId: Form = {
         id: crypto.randomUUID(), // Local temporary ID
@@ -1283,6 +1289,14 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
     const newFormState = getInitialFormState(newVersions[0].sections, newConfigurations);
     dispatch({ type: 'SET_STATE', payload: { forms: newForms, formState: newFormState } });
+  }
+  
+  const updateDatasets = (newDatasets: Dataset[]) => {
+    if (!activeForm) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], datasets: newDatasets, timestamp: new Date().toISOString() };
+    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
+    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
   }
 
   const setFormState = (newState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } }) => {
@@ -1328,7 +1342,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch: enhancedDispatch, addNewForm, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState, activePopupId, setActivePopupId }}>
+    <BuilderContext.Provider value={{ state, dispatch: enhancedDispatch, addNewForm, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, datasets, updateDatasets, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState, activePopupId, setActivePopupId }}>
       {children}
     </BuilderContext.Provider>
   );
@@ -1343,6 +1357,7 @@ export const useBuilder = () => {
 };
 
     
+
 
 
 

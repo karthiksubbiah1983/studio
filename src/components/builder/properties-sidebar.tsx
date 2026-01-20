@@ -845,7 +845,7 @@ function StaticDataEditorDialog({
 
 
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean }) {
-  const { dispatch, state, sections, rules } = useBuilder();
+  const { dispatch, state, sections, rules, datasets } = useBuilder();
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
@@ -2178,16 +2178,20 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             <RadioGroup
                                 value={element.dataSource || 'dynamic'}
                                 onValueChange={(val) => updateProperty('dataSource', val)}
-                                className="flex gap-4"
+                                className="grid grid-cols-3 gap-2"
                             >
-                                <div className="flex items-center space-x-2">
+                                <Label htmlFor="dg-source-dynamic" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                     <RadioGroupItem value="dynamic" id="dg-source-dynamic" />
-                                    <Label htmlFor="dg-source-dynamic">API</Label>
-                                </div>
-                                <div className="flex items-center space-x-2">
+                                    API
+                                </Label>
+                                <Label htmlFor="dg-source-static" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                     <RadioGroupItem value="static" id="dg-source-static" />
-                                    <Label htmlFor="dg-source-static">Static Data</Label>
-                                </div>
+                                    Static
+                                </Label>
+                                 <Label htmlFor="dg-source-local" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                    <RadioGroupItem value="local" id="dg-source-local" />
+                                    Local
+                                </Label>
                             </RadioGroup>
 
                             {element.dataSource === 'static' ? (
@@ -2196,6 +2200,26 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <Button variant="outline" onClick={() => setIsStaticDataEditorOpen(true)}>
                                         Manage Data ({element.staticData?.length || 0} rows)
                                     </Button>
+                                </div>
+                            ) : element.dataSource === 'local' ? (
+                                <div className="space-y-2">
+                                    <Label>Dataset</Label>
+                                    <Select
+                                        value={element.localDatasetName || ''}
+                                        onValueChange={name => updateProperty('localDatasetName', name)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select a local dataset..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {datasets?.map(ds => (
+                                                <SelectItem key={ds.id} value={ds.name}>
+                                                    {ds.name}
+                                                </SelectItem>
+                                            ))}
+                                            {(!datasets || datasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No local datasets found.</div>}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
                             ) : (
                                 <div className="space-y-2">
@@ -2351,3 +2375,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 }
 
     
+
