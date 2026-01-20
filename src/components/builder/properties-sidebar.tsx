@@ -703,12 +703,15 @@ function DataGridColumnEditor({
             {column.element.type === 'Display' && (
               <>
                 <div className="space-y-2 pt-2">
-                  <Label>Lead Text Key (Optional)</Label>
+                  <Label>Lead Text Key</Label>
                   <Input
                     value={column.element.leadTextKey || ''}
                     onChange={e => handleElementUpdate({ ...column.element, leadTextKey: e.target.value })}
                     placeholder="Key for text before the main value"
                   />
+                   <p className="text-xs text-muted-foreground">
+                    Key from the row data to use as text before the main value.
+                  </p>
                 </div>
                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm mt-2">
                     <Label htmlFor={`is-link-dg-${column.id}`}>Enable as Link</Label>
@@ -720,12 +723,15 @@ function DataGridColumnEditor({
                 </div>
                 {column.element.isLink && (
                     <div className="space-y-2 mt-2">
-                      <Label>Link URL Key (Optional)</Label>
+                      <Label>Link URL Key</Label>
                       <Input
                           value={column.element.linkUrlKey || ''}
                           onChange={e => handleElementUpdate({ ...column.element, linkUrlKey: e.target.value })}
                           placeholder="Key for the link's URL"
                       />
+                       <p className="text-xs text-muted-foreground">
+                        Key from the row data to use as the link's URL.
+                      </p>
                     </div>
                 )}
               </>
@@ -1398,7 +1404,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Input id="leadText" value={element.leadText || ''} onChange={(e) => updateProperty('leadText', e.target.value)} />
                             </div>
                              <div className="flex flex-col gap-2">
-                                <Label htmlFor="leadTextKey">Lead Text Data Key</Label>
+                                <Label htmlFor="leadTextKey">Lead Text Key</Label>
                                 <Select
                                     value={element.leadTextKey || ''}
                                     onValueChange={(value) => updateProperty('leadTextKey', value)}
@@ -1517,7 +1523,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         </p>
                                     </div>
                                      <div className="flex flex-col gap-2">
-                                        <Label htmlFor="linkUrlKey">Link URL Data Key</Label>
+                                        <Label htmlFor="linkUrlKey">Link URL Key</Label>
                                         <Select
                                             value={element.linkUrlKey || ''}
                                             onValueChange={(value) => updateProperty('linkUrlKey', value)}
@@ -2273,8 +2279,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-    
-
-
-
