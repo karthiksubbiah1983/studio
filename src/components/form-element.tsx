@@ -1435,12 +1435,37 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         content = <DataGridRenderer element={element} value={value} onValueChange={onValueChange} formState={formState} />;
         break;
     case "TaskHistory":
+        if (!element.dataGridColumns || element.dataGridColumns.length === 0) {
+            return (
+                <div>
+                    {renderLabel()}
+                    <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px] text-muted-foreground">
+                        <FileClock className="h-12 w-12" />
+                        <p className="text-sm">Task History: Please configure columns in the builder.</p>
+                    </div>
+                </div>
+            );
+        }
         return (
             <div>
                 {renderLabel()}
-                <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px] text-muted-foreground">
-                    <FileClock className="h-12 w-12" />
-                    <p className="text-sm">Task History will be displayed here.</p>
+                <div className="mt-2 rounded-lg border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {element.dataGridColumns.map(col => (
+                                    <TableHead key={col.id} style={{ width: col.width || 'auto' }}>{col.header}</TableHead>
+                                ))}
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell colSpan={element.dataGridColumns.length} className="h-24 text-center">
+                                    Historical data will be shown here.
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
                 </div>
             </div>
         );
@@ -1471,3 +1496,5 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
+    
