@@ -700,6 +700,36 @@ function DataGridColumnEditor({
                 Key from the data source to display. To create a column for user input, provide a new, unique key that is not in your data source.
               </p>
             </div>
+            {column.element.type === 'Display' && (
+              <>
+                <div className="space-y-2 pt-2">
+                  <Label>Lead Text Key (Optional)</Label>
+                  <Input
+                    value={column.element.leadTextKey || ''}
+                    onChange={e => handleElementUpdate({ ...column.element, leadTextKey: e.target.value })}
+                    placeholder="Key for text before the main value"
+                  />
+                </div>
+                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm mt-2">
+                    <Label htmlFor={`is-link-dg-${column.id}`}>Enable as Link</Label>
+                    <Switch
+                        id={`is-link-dg-${column.id}`}
+                        checked={!!column.element.isLink}
+                        onCheckedChange={(checked) => handleElementUpdate({ ...column.element, isLink: checked })}
+                    />
+                </div>
+                {column.element.isLink && (
+                    <div className="space-y-2 mt-2">
+                      <Label>Link URL Key (Optional)</Label>
+                      <Input
+                          value={column.element.linkUrlKey || ''}
+                          onChange={e => handleElementUpdate({ ...column.element, linkUrlKey: e.target.value })}
+                          placeholder="Key for the link's URL"
+                      />
+                    </div>
+                )}
+              </>
+            )}
 
             <Separator />
             <h3 className="text-lg font-medium">Field Properties</h3>
@@ -2066,7 +2096,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             <RadioGroup
-                                value={element.dataSource === 'static' ? 'dynamic' : (element.dataSource || 'dynamic')}
+                                value={element.dataSource || 'dynamic'}
                                 onValueChange={(val) => updateProperty('dataSource', val)}
                                 className="grid grid-cols-2 gap-2"
                             >
@@ -2245,5 +2275,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 }
 
     
+
 
 

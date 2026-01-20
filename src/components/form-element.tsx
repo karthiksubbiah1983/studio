@@ -659,17 +659,18 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         />
       );
     case "Display": {
+      const context = isTableCell ? rowContext : evaluationContext;
+
       let finalDisplayValue = value;
-       if ((isTableCell || isParentHorizontal) && !finalDisplayValue) {
-            // When inside a table or horizontal container, if there's no value yet, don't render anything
-            // to prevent the fallback label from cluttering the layout.
+      if ((isTableCell || isParentHorizontal) && !finalDisplayValue) {
+          // empty
       } else if (finalDisplayValue === undefined || finalDisplayValue === null) {
           finalDisplayValue = label;
       }
 
       let finalLeadText = leadText;
-      if (leadTextKey && evaluationContext) {
-          const dynamicLeadText = getNestedValue(evaluationContext, leadTextKey);
+      if (leadTextKey && context) {
+          const dynamicLeadText = getNestedValue(context, leadTextKey);
           if (dynamicLeadText !== undefined && dynamicLeadText !== null) {
               finalLeadText = String(dynamicLeadText);
           }
@@ -677,25 +678,24 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         
       if (isLink) {
           let finalUrl = "";
-          const interpolationContext = rowContext || formState || {};
-
-          if (linkUrlKey) {
-            const dynamicUrl = getNestedValue(interpolationContext, linkUrlKey);
-            if (dynamicUrl) {
-                finalUrl = String(dynamicUrl);
-            }
+          if (linkUrlKey && context) {
+              const dynamicUrl = getNestedValue(context, linkUrlKey);
+              if (dynamicUrl) {
+                  finalUrl = String(dynamicUrl);
+              }
           }
-          
           if (!finalUrl && linkUrl) {
-              finalUrl = interpolateString(linkUrl, interpolationContext);
+              finalUrl = interpolateString(linkUrl, context || {});
           }
           
-          return (
-              <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline">
-                  <Link className="h-4 w-4" />
-                  <span className="text-sm">{String(finalDisplayValue)}</span>
+          content = (
+              <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline text-sm">
+                  {finalLeadText && <span className="text-muted-foreground mr-1">{finalLeadText}</span>}
+                  <Link className="h-3 w-3" />
+                  <span>{String(finalDisplayValue)}</span>
               </a>
-          )
+          );
+          break;
       }
 
       const style = textStyle || 'p';
@@ -730,7 +730,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
               style: 'percent',
               minimumFractionDigits: decimalPlaces ?? 0,
               maximumFractionDigits: decimalPlaces ?? 0,
-            }).format(numValue / 100); // Assume input is 0-100 for percentage
+            }).format(numValue / 100);
           } else if (formatType === 'decimal') {
             formattedValue = new Intl.NumberFormat(undefined, {
               style: 'decimal',
@@ -740,7 +740,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           }
         } catch (e) {
             console.error("Error formatting value:", e);
-            // Fallback to string value
         }
       }
 
@@ -1507,4 +1506,6 @@ const alignmentClasses = {
 }
 
     
+
+
 
