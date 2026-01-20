@@ -14,6 +14,11 @@ config.autoAddCss = false;
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
+export const metadata: Metadata = {
+  title: "FormForge",
+  description: "A powerful drag-and-drop form builder.",
+};
+
 export default function RootLayout({
   children,
 }: {
