@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -75,6 +75,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
     onValueChange: (id: string, value: any) => void, 
     formState?: { [key: string]: any } 
 }) {
+    const { datasets } = useBuilder();
     const [internalData, setInternalData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -96,8 +97,22 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
             if (JSON.stringify(value) !== JSON.stringify(staticData)) {
                 onValueChange(element.id, staticData);
             }
+        } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
+            const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
+            if (localDataset) {
+                const data = localDataset.data || [];
+                setInternalData(data);
+                if (JSON.stringify(value) !== JSON.stringify(data)) {
+                    onValueChange(element.id, data);
+                }
+            } else {
+                setInternalData([]);
+                if (value && value.length > 0) {
+                     onValueChange(element.id, []);
+                }
+            }
         }
-    }, [element.apiUrl, element.id, element.dataSource, element.staticData, onValueChange, value]);
+    }, [element.apiUrl, element.id, element.dataSource, element.staticData, element.localDatasetName, datasets, onValueChange, value]);
 
      useEffect(() => {
         if (Array.isArray(value)) {
