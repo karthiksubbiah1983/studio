@@ -192,7 +192,8 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
         setSelectedDatasetId(null);
       }
     }
-  }, [isOpen, datasets, selectedDatasetId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, datasets]);
 
   const handleSaveChanges = () => {
     updateDatasets(localDatasets);
