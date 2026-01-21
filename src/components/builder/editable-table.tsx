@@ -31,16 +31,19 @@ export function EditableTable({ element, value, onValueChange }: Props) {
   const rows = Array.isArray(value) ? value : [];
 
   const handleRowChange = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
-    const newRows = [...rows];
+    const column = element.columns?.find(c => c.element.id === columnId);
+    if (!column || !column.element.key) return;
+
     // Find the original index from the unfiltered `rows` array based on the `_rowId` of the row from the `filteredRows` array.
     const originalRow = rows.find(r => r._rowId === filteredRows[rowIndex]._rowId);
     if (!originalRow) return;
     const originalRowIndex = rows.indexOf(originalRow);
     
     if (originalRowIndex !== -1) {
-        const updatedRow = { ...newRows[originalRowIndex], [columnId]: cellValue };
+        const newRows = [...rows];
+        const updatedRow = { ...newRows[originalRowIndex], [column.element.key]: cellValue };
         if (fullObject) {
-            updatedRow[`${columnId}__fullObject`] = fullObject;
+            updatedRow[`${column.element.key}__fullObject`] = fullObject;
         }
         newRows[originalRowIndex] = updatedRow;
         onValueChange(element.id, newRows);
@@ -52,7 +55,9 @@ export function EditableTable({ element, value, onValueChange }: Props) {
     
     const newRow: Record<string, any> = { _rowId: crypto.randomUUID(), _previewData: {} };
     element.columns?.forEach(col => {
-      newRow[col.element.id] = col.element.defaultValue ?? '';
+      if (col.element.key) {
+        newRow[col.element.key] = col.element.defaultValue ?? '';
+      }
     });
 
     onValueChange(element.id, [...rows, newRow]);
@@ -139,8 +144,7 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                         <React.Fragment key={row._rowId}>
                         <TableRow>
                             {element.columns?.map(col => {
-                                const cellState = row[col.element.id];
-                                const cellValue = (cellState && typeof cellState === 'object' && 'value' in cellState) ? cellState.value : cellState;
+                                const cellValue = col.element.key ? row[col.element.key] : undefined;
                                 const rowContext = { ...row };
 
                                 if (col.element.type === 'Preview') {
@@ -204,8 +208,7 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                     <Card key={row._rowId} className="border-l-4 border-primary">
                         <CardContent className="p-4 space-y-4">
                         {element.columns?.map(col => {
-                            const cellState = row[col.element.id];
-                            const cellValue = (cellState && typeof cellState === 'object' && 'value' in cellState) ? cellState.value : cellState;
+                            const cellValue = col.element.key ? row[col.element.key] : undefined;
                             const rowContext = { ...row };
 
                             return (
