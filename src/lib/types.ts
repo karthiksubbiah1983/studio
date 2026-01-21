@@ -185,7 +185,7 @@ export type FormElementInstance = {
     placeholder?: string;
     // For EditableTable / PayrollTable
     columns?: TableColumn[];
-    defaultRows?: number;
+    defaultData?: any[];
     maxRows?: number;
     allowUserToAddRows?: boolean;
     // For DataGrid / TaskHistory

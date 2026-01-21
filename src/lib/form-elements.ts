@@ -113,9 +113,8 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 columns: [
                     { id: crypto.randomUUID(), label: 'Column 1', element: createNewElement('Input') }
                 ],
-                defaultRows: 0,
+                defaultData: [],
                 maxRows: undefined,
-                enableSearch: false,
                 allowUserToAddRows: true,
                 key: 'editable_table_1'
             };
@@ -124,7 +123,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 ...baseElement,
                 label: 'Data Grid',
                 key: 'data_grid_1',
-                dataSource: 'dynamic',
+                dataSource: 'local',
                 apiUrl: null,
                 staticData: [],
                 dataGridColumns: [],

@@ -37,7 +37,7 @@ const editableTableCascadingDemo: Form = {
                             key: "locations",
                             label: "Location Selector",
                             required: false,
-                            defaultRows: 1,
+                            defaultData: [],
                             columns: [
                                 { 
                                     id: "col_region", 
@@ -85,7 +85,7 @@ const editableTableCascadingDemo: Form = {
                             key: "products",
                             label: "Product Selector",
                             required: false,
-                            defaultRows: 1,
+                            defaultData: [],
                             columns: [
                                 {
                                     id: "col_prod_family",
@@ -261,7 +261,9 @@ const demoTemplate: Form = {
                             key: "expenses",
                             label: "Expense Items",
                             required: false,
-                            defaultRows: 1,
+                            defaultData: [
+                                { "date": new Date().toISOString(), "category": "Travel", "description": "Flight to NYC" }
+                            ],
                             columns: [
                                 { id: "col_date", label: "Date", element: { ...createNewElement("DatePicker"), id: "col_date_el", key: "date", label: "Date" } },
                                 { id: "col_category", label: "Category", element: { ...createNewElement("Select"), id: "col_category_el", key: "category", label: "Category", options: ["Travel", "Meal", "Software", "Other"] } },
@@ -529,16 +531,12 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
         if ('id' in element && !state[element.id]) { // Ensure not to overwrite section state
-             if (element.type === 'EditableTable' && element.defaultRows && element.defaultRows > 0) {
+             if (element.type === 'EditableTable' && element.defaultData && element.defaultData.length > 0) {
                 if (state[element.id] === undefined) {
-                    const tableRows: any[] = [];
-                    for (let i = 0; i < element.defaultRows; i++) {
-                        const row: { [key: string]: any } = { _rowId: crypto.randomUUID() };
-                        element.columns?.forEach(col => {
-                            row[col.element.id] = col.element.defaultValue ?? null;
-                        });
-                        tableRows.push(row);
-                    }
+                    const tableRows = element.defaultData.map(row => ({
+                        ...row,
+                        _rowId: crypto.randomUUID()
+                    }));
                     state[element.id] = { value: tableRows, isVisible: !element.hidden };
                 }
             } else if (state[element.id] === undefined) {
@@ -1355,9 +1353,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-    
-
-
-
-
