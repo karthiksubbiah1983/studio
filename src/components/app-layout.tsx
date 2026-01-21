@@ -21,12 +21,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  useEffect(() => {
-    if (isClient) {
-      import('@/lib/dnd-touch-polyfill');
-    }
-  }, [isClient]);
   
   useEffect(() => {
     if (!isClient || isLoading) return;
