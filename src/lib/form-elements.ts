@@ -113,7 +113,6 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 columns: [
                     { id: crypto.randomUUID(), label: 'Column 1', element: createNewElement('Input') }
                 ],
-                defaultData: [],
                 maxRows: undefined,
                 allowUserToAddRows: true,
                 key: 'editable_table_1'
@@ -147,3 +146,5 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
             throw new Error("Invalid element type");
     }
 }
+
+    

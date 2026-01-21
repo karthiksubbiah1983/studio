@@ -37,7 +37,6 @@ const editableTableCascadingDemo: Form = {
                             key: "locations",
                             label: "Location Selector",
                             required: false,
-                            defaultData: [],
                             columns: [
                                 { 
                                     id: "col_region", 
@@ -85,7 +84,6 @@ const editableTableCascadingDemo: Form = {
                             key: "products",
                             label: "Product Selector",
                             required: false,
-                            defaultData: [],
                             columns: [
                                 {
                                     id: "col_prod_family",
@@ -261,9 +259,6 @@ const demoTemplate: Form = {
                             key: "expenses",
                             label: "Expense Items",
                             required: false,
-                            defaultData: [
-                                { "date": new Date().toISOString(), "category": "Travel", "description": "Flight to NYC" }
-                            ],
                             columns: [
                                 { id: "col_date", label: "Date", element: { ...createNewElement("DatePicker"), id: "col_date_el", key: "date", label: "Date" } },
                                 { id: "col_category", label: "Category", element: { ...createNewElement("Select"), id: "col_category_el", key: "category", label: "Category", options: ["Travel", "Meal", "Software", "Other"] } },
@@ -531,13 +526,9 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
         if ('id' in element && !state[element.id]) { // Ensure not to overwrite section state
-             if (element.type === 'EditableTable' && element.defaultData && element.defaultData.length > 0) {
+             if (element.type === 'EditableTable') {
                 if (state[element.id] === undefined) {
-                    const tableRows = element.defaultData.map(row => ({
-                        ...row,
-                        _rowId: crypto.randomUUID()
-                    }));
-                    state[element.id] = { value: tableRows, isVisible: !element.hidden };
+                    state[element.id] = { value: [], isVisible: !element.hidden };
                 }
             } else if (state[element.id] === undefined) {
                  state[element.id] = { 
@@ -1353,3 +1344,5 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    

@@ -767,8 +767,9 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     const keys = new Set<string>();
     dataSourceKeys.forEach(k => keys.add(k));
     displayDataSourceKeys.forEach(k => keys.add(k));
+    fetchedKeys.forEach(k => keys.add(k));
     return Array.from(keys);
-  }, [dataSourceKeys, displayDataSourceKeys]);
+  }, [dataSourceKeys, displayDataSourceKeys, fetchedKeys]);
   
 
   useEffect(() => {
@@ -1088,15 +1089,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             {element.isSecondaryTextLink && (
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="linkUrlKey">Link URL Key</Label>
-                    <Select
+                     <Select
                         value={element.linkUrlKey || ''}
                         onValueChange={(value) => updateProperty('linkUrlKey', value)}
                     >
                         <SelectTrigger>
-                            <SelectValue placeholder={fetchedKeys.length > 0 ? 'Select a key' : 'Fetch schema to see keys...'} />
+                            <SelectValue placeholder={allAvailableKeys.length > 0 ? 'Select a key' : 'Fetch/select data source to see keys...'} />
                         </SelectTrigger>
                         <SelectContent>
-                            {fetchedKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                            {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 </div>
@@ -1390,8 +1391,18 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Input id="leadText" value={element.leadText || ''} onChange={(e) => updateProperty('leadText', e.target.value)} />
                             </div>
                              <div className="flex flex-col gap-2">
-                                <Label htmlFor="leadTextKey">Lead Text Data Key (Optional)</Label>
-                                <Input id="leadTextKey" value={element.leadTextKey || ''} onChange={(e) => updateProperty('leadTextKey', e.target.value)} placeholder="e.g., status.name"/>
+                                <Label htmlFor="leadTextKey">Lead Text Data Key</Label>
+                                <Select
+                                    value={element.leadTextKey || ''}
+                                    onValueChange={(value) => updateProperty('leadTextKey', value)}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder={allAvailableKeys.length > 0 ? 'Select a key' : 'Fetch/select data source to see keys...'} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
                             </div>
                              <div className="flex flex-col gap-2">
                                 <Label>Direction</Label>
@@ -1499,8 +1510,18 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         </p>
                                     </div>
                                      <div className="flex flex-col gap-2">
-                                        <Label htmlFor="linkUrlKey">Link URL Data Key (Optional)</Label>
-                                        <Input id="linkUrlKey" value={element.linkUrlKey || ''} onChange={(e) => updateProperty('linkUrlKey', e.target.value)} placeholder="e.g., user.profile_url"/>
+                                        <Label htmlFor="linkUrlKey">Link URL Data Key</Label>
+                                         <Select
+                                            value={element.linkUrlKey || ''}
+                                            onValueChange={(value) => updateProperty('linkUrlKey', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder={allAvailableKeys.length > 0 ? 'Select a key' : 'Fetch/select data source to see keys...'} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <Label>URL Data Source</Label>
@@ -1990,78 +2011,11 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "EditableTable":
             return (
-                <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "columns", "features"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                        </AccordionContent>
-                    </AccordionItem>
-                     <AccordionItem value="data">
-                        <AccordionTrigger className="py-2">Default Data</AccordionTrigger>
-                        <AccordionContent>
-                             <div className="flex flex-col gap-2">
-                                <Label>Default Rows</Label>
-                                <div className="border rounded-md">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                {element.columns?.map(col => (
-                                                    <TableHead key={col.id}>{col.label}</TableHead>
-                                                ))}
-                                                <TableHead className="w-[50px]"></TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {(element.defaultData || []).map((row, rowIndex) => (
-                                                <TableRow key={rowIndex}>
-                                                    {element.columns?.map(col => {
-                                                        const cellValue = row[col.element.key || ''] || '';
-                                                        return (
-                                                            <TableCell key={col.id}>
-                                                                <Input
-                                                                    value={cellValue}
-                                                                    onChange={(e) => {
-                                                                        const newDefaultData = [...(element.defaultData || [])];
-                                                                        newDefaultData[rowIndex] = {
-                                                                            ...newDefaultData[rowIndex],
-                                                                            [col.element.key || '']: e.target.value
-                                                                        };
-                                                                        updateProperty('defaultData', newDefaultData);
-                                                                    }}
-                                                                    className="h-8"
-                                                                />
-                                                            </TableCell>
-                                                        );
-                                                    })}
-                                                    <TableCell>
-                                                        <Button variant="ghost" size="icon" onClick={() => {
-                                                            const newDefaultData = (element.defaultData || []).filter((_, i) => i !== rowIndex);
-                                                            updateProperty('defaultData', newDefaultData);
-                                                        }}>
-                                                            <Trash className="h-4 w-4 text-destructive" />
-                                                        </Button>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                    <div className="p-2 border-t">
-                                        <Button variant="outline" size="sm" className="w-full" onClick={() => {
-                                            const newRow = {};
-                                            element.columns?.forEach(col => {
-                                                if (col.element.key) {
-                                                    (newRow as any)[col.element.key] = '';
-                                                }
-                                            });
-                                            const newDefaultData = [...(element.defaultData || []), newRow];
-                                            updateProperty('defaultData', newDefaultData);
-                                        }}>
-                                            <Plus className="mr-2 h-4 w-4" /> Add Default Row
-                                        </Button>
-                                    </div>
-                                </div>
-                            </div>
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="columns">
@@ -2083,15 +2037,13 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                              <div className="flex flex-col gap-2">
                                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <Label htmlFor="allow-user-add-rows" className={cn((element.defaultData?.length || 0) > 0 && 'text-muted-foreground')}>Allow User to Add Rows</Label>
+                                    <Label htmlFor="allow-user-add-rows">Allow User to Add Rows</Label>
                                     <Switch 
                                         id="allow-user-add-rows" 
                                         checked={element.allowUserToAddRows} 
                                         onCheckedChange={(checked) => updateProperty('allowUserToAddRows', checked)}
-                                        disabled={(element.defaultData?.length || 0) > 0}
                                     />
                                 </div>
-                                {(element.defaultData?.length || 0) > 0 && <p className="text-xs text-muted-foreground -mt-3 pl-3">Clear "Default Data" to enable this.</p>}
                             </div>
                             {element.allowUserToAddRows && (
                                 <div className="flex flex-col gap-2">
@@ -2300,3 +2252,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
