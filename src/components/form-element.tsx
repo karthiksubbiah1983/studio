@@ -662,18 +662,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       const context = isTableCell ? rowContext : evaluationContext;
 
       let finalDisplayValue = value;
-      if ((isTableCell || isParentHorizontal) && !finalDisplayValue) {
+      if ((isTableCell || isParentHorizontal) && !finalDisplayValue && finalDisplayValue !== "") {
           // empty
-      } else if (finalDisplayValue === undefined || finalDisplayValue === null) {
+      } else if (finalDisplayValue === undefined || finalDisplayValue === null || finalDisplayValue === "") {
           finalDisplayValue = label;
-      }
-
-      let finalLeadText = leadText;
-      if (leadTextKey && context) {
-          const dynamicLeadText = getNestedValue(context, leadTextKey);
-          if (dynamicLeadText !== undefined && dynamicLeadText !== null) {
-              finalLeadText = String(dynamicLeadText);
-          }
       }
         
       if (isLink) {
@@ -690,7 +682,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           
           content = (
               <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline text-sm">
-                  {finalLeadText && <span className="text-muted-foreground mr-1">{finalLeadText}</span>}
+                  {leadText && <span className="text-muted-foreground mr-1">{leadText}</span>}
                   <Link className="h-3 w-3" />
                   <span>{String(finalDisplayValue)}</span>
               </a>
@@ -750,7 +742,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
               "flex items-center gap-2",
               direction === 'vertical' && 'flex-col items-start'
            )}>
-              {finalLeadText && <span className="text-sm text-muted-foreground">{finalLeadText}</span>}
+              {leadText && <span className="text-sm text-muted-foreground">{leadText}</span>}
               {mainTextContent}
           </div>
       );
@@ -1506,6 +1498,7 @@ const alignmentClasses = {
 }
 
     
+
 
 
 
