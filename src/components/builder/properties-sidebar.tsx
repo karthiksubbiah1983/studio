@@ -1342,7 +1342,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {!isColumnElement && (
                                 <div className="flex flex-col gap-2">
                                     <Label htmlFor="key">Field Key</Label>
-                                    <Input id="key" value={element.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                    <Input id="key" value={element.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s/g, '_').toLowerCase())} />
                                 </div>
                             )}
                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
@@ -1403,8 +1403,8 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                 >
                                                     <SelectTrigger><SelectValue placeholder="Select a field..."/></SelectTrigger>
                                                     <SelectContent>
-                                                        {allElements.filter(el => 'type' in el && el.id !== element.id && el.type !== 'DataGrid' && el.type !== 'EditableTable').map(el => (
-                                                            <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>
+                                                        {allElements.filter(el => 'type' in el && el.id !== element.id && !['DataGrid', 'EditableTable', 'PayrollTable'].includes(el.type)).map(el => (
+                                                            <SelectItem key={el.id} value={el.id}>{(el as any).label}</SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
@@ -1982,7 +1982,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="key">Field Key</Label>
-                                <Input id="key" value={element.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+                                <Input id="key" value={element.key} onChange={(e) => updateProperty('key', e.target.value.replace(/\s/g, '_').toLowerCase())} />
                             </div>
                             <div className="flex flex-col gap-2 mt-[6px]">
                                 <Label htmlFor="label">Label</Label>
@@ -2256,7 +2256,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     </SelectTrigger>
                                     <SelectContent>
                                         {allElements.filter(el => 'type' in el && el.type === 'EditableTable').map(table => (
-                                            <SelectItem key={table.id} value={table.id}>{table.label}</SelectItem>
+                                            <SelectItem key={table.id} value={table.id}>{(table as any).label}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
