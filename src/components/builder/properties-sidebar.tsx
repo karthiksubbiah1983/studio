@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -1367,53 +1366,15 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     <div className="text-sm p-2 bg-blue-50/50 border border-blue-200 rounded-md">
                                         Data from parent grid: <span className="font-semibold">{parentGrid.localDatasetName}</span>
                                     </div>
-                                    
                                     <div className="flex flex-col gap-2">
                                         <Label>Display Value Key</Label>
-                                        <Select value={element.dataSourceConfig?.displayKey || ''} onValueChange={v => updateProperty('dataSourceConfig', { ...element.dataSourceConfig, displayKey: v, sourceType: 'field' })}>
-                                            <SelectTrigger><SelectValue placeholder="Select a key..." /></SelectTrigger>
+                                        <Select value={element.key || ''} onValueChange={v => updateProperty('key', v)}>
+                                            <SelectTrigger><SelectValue placeholder="Select a key to display..." /></SelectTrigger>
                                             <SelectContent>
                                                 {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
-
-                                    <Separator />
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Lead Text</Label>
-                                        <Select value={element.leadTextKey || 'none'} onValueChange={v => updateProperty('leadTextKey', v === 'none' ? null : v)}>
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">Use Static Text</SelectItem>
-                                                {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{`Use value from "${key}"`}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        {(!element.leadTextKey || element.leadTextKey === 'none') && (
-                                            <Input value={element.leadText || ''} onChange={e => updateProperty('leadText', e.target.value)} placeholder="Static lead text" />
-                                        )}
-                                    </div>
-
-                                    <Separator />
-                                    <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                        <Label htmlFor="is-link">Enable as Link</Label>
-                                        <Switch id="is-link" checked={!!element.isLink} onCheckedChange={checked => updateProperty('isLink', checked)} />
-                                    </div>
-                                    {element.isLink && (
-                                        <div className="flex flex-col gap-2">
-                                            <Label>Link URL</Label>
-                                            <Select value={element.linkUrlKey || 'none'} onValueChange={v => updateProperty('linkUrlKey', v === 'none' ? null : v)}>
-                                                <SelectTrigger><SelectValue /></SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="none">Use Static URL</SelectItem>
-                                                    {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{`Use value from "${key}"`}</SelectItem>)}
-                                                </SelectContent>
-                                            </Select>
-                                            {(!element.linkUrlKey || element.linkUrlKey === 'none') && (
-                                                <Input value={element.linkUrl || ''} onChange={e => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com/{id}" />
-                                            )}
-                                        </div>
-                                    )}
-
                                 </>
                             ) : (
                                 <>
@@ -1431,7 +1392,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                             </SelectContent>
                                         </Select>
                                     </div>
-                                     {element.dataSourceConfig?.sourceType === 'field' && (
+                                    {element.dataSourceConfig?.sourceType === 'field' && (
                                         <>
                                             <div className="flex flex-col gap-2">
                                                 <Label>Source Field</Label>
@@ -1475,9 +1436,42 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     )}
                                 </>
                             )}
-
-                             <Separator />
-                             <div className="flex flex-col gap-2">
+                            <Separator />
+                            <div className="flex flex-col gap-2">
+                                <Label>Lead Text</Label>
+                                <Select value={element.leadTextKey || 'none'} onValueChange={v => updateProperty('leadTextKey', v === 'none' ? null : v)}>
+                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">Use Static Text</SelectItem>
+                                        {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{`Use value from "${key}"`}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
+                                {(!element.leadTextKey || element.leadTextKey === 'none') && (
+                                    <Input value={element.leadText || ''} onChange={e => updateProperty('leadText', e.target.value)} placeholder="Static lead text" />
+                                )}
+                            </div>
+                            <Separator />
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="is-link">Enable as Link</Label>
+                                <Switch id="is-link" checked={!!element.isLink} onCheckedChange={checked => updateProperty('isLink', checked)} />
+                            </div>
+                            {element.isLink && (
+                                <div className="flex flex-col gap-2">
+                                    <Label>Link URL</Label>
+                                    <Select value={element.linkUrlKey || 'none'} onValueChange={v => updateProperty('linkUrlKey', v === 'none' ? null : v)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Use Static URL</SelectItem>
+                                            {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{`Use value from "${key}"`}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    {(!element.linkUrlKey || element.linkUrlKey === 'none') && (
+                                        <Input value={element.linkUrl || ''} onChange={e => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com/{id}" />
+                                    )}
+                                </div>
+                            )}
+                            <Separator />
+                            <div className="flex flex-col gap-2">
                                 <Label>Direction</Label>
                                 <RadioGroup
                                     value={element.direction || 'horizontal'}
