@@ -932,7 +932,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       {!isColumnElement && (element.type !== 'Display' && element.type !== 'Container') && (
           <div className="flex flex-col gap-2">
             <Label htmlFor="key">Field Key</Label>
-            <Input id="key" value={element.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s+/g, '_').toLowerCase())} />
+            <Input id="key" value={element.key || ''} onChange={(e) => updateProperty('key', e.target.value.replace(/\s/g, '_').toLowerCase())} />
           </div>
        )}
       <div className="flex flex-col gap-2">
@@ -1403,7 +1403,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                 >
                                                     <SelectTrigger><SelectValue placeholder="Select a field..."/></SelectTrigger>
                                                     <SelectContent>
-                                                        {allElements.filter(el => 'type' in el && el.id !== element.id && !['DataGrid', 'EditableTable', 'PayrollTable'].includes(el.type)).map(el => (
+                                                        {allElements.filter(el => 'type' in el && el.id !== element.id && !['DataGrid', 'EditableTable', 'PayrollTable'].includes(el.type) && !(el as any).isTableColumn).map(el => (
                                                             <SelectItem key={el.id} value={el.id}>{(el as any).label}</SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -2295,3 +2295,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+

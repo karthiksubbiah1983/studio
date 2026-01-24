@@ -132,7 +132,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                  allElementsAndSections.push(element);
                  processedElements.add(element.id);
                  element.dataGridColumns.forEach(col => {
-                    const colElement = { ...col.element, id: col.element.id, label: `${element.label} > ${col.header}` };
+                    const colElement = { ...col.element, id: col.element.id, label: `${element.label} > ${col.header}`, isTableColumn: true };
                     allElementsAndSections.push(colElement);
                     processedElements.add(col.element.id);
                  })
@@ -152,7 +152,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance | Sect
                  processedElements.add(element.id);
                  element.columns.forEach(col => {
                     // Make column elements selectable in rules
-                    const colElement = { ...col.element, id: col.element.id, label: `${element.label} > ${col.label}` };
+                    const colElement = { ...col.element, id: col.element.id, label: `${element.label} > ${col.label}`, isTableColumn: true };
                     allElementsAndSections.push(colElement);
                     processedElements.add(col.element.id);
                  })
