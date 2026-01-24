@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -1402,7 +1403,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                 >
                                                     <SelectTrigger><SelectValue placeholder="Select a field..."/></SelectTrigger>
                                                     <SelectContent>
-                                                        {allElements.filter(el => 'type' in el && el.id !== element.id).map(el => (
+                                                        {allElements.filter(el => 'type' in el && el.id !== element.id && el.type !== 'DataGrid' && el.type !== 'EditableTable').map(el => (
                                                             <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>
                                                         ))}
                                                     </SelectContent>
@@ -1917,13 +1918,36 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
             );
         case "RadioGroup":
             return (
-                 <Accordion type="multiple" defaultValue={["general", "layout"]} className="w-full">
+                 <Accordion type="multiple" defaultValue={["general", "data", "layout"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
-                            {optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
                             <PopupSettings element={element} onUpdate={(popup) => updateProperty('popup', popup)} />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {isColumnElement ? (
+                                <>
+                                    <div className="flex flex-col gap-2">
+                                        <Label>Options Data Key (Optional)</Label>
+                                        <Select value={element.labelKey || 'none'} onValueChange={v => updateProperty('labelKey', v === 'none' ? '' : v)}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a key..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Not Applicable (Use Static)</SelectItem>
+                                                {dataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        <p className="text-xs text-muted-foreground">If a key is selected, it's expected to be an array of strings in the row data.</p>
+                                    </div>
+                                    <Separator/>
+                                </>
+                            ) : null}
+                             {optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="layout">
@@ -2267,5 +2291,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
+    
 
     
