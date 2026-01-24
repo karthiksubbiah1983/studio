@@ -676,28 +676,19 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           }
       }
 
+      let finalUrl = "";
       if (isLink) {
-          let finalUrl = "";
-          if (linkUrlKey && context) {
-              const dynamicUrl = getNestedValue(context, linkUrlKey);
-              if (dynamicUrl) {
-                  finalUrl = String(dynamicUrl);
-              }
-          }
-          if (!finalUrl && linkUrl) {
-              finalUrl = interpolateString(linkUrl, context || {});
-          }
-          
-          content = (
-              <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-1 text-primary cursor-pointer hover:underline text-sm">
-                  {finalLeadText && <span className="text-muted-foreground mr-1">{finalLeadText}</span>}
-                  <Link className="h-3 w-3" />
-                  <span>{String(finalDisplayValue)}</span>
-              </a>
-          );
-          break;
+        if (linkUrlKey && context) {
+            const dynamicUrl = getNestedValue(context, linkUrlKey);
+            if (dynamicUrl) {
+                finalUrl = String(dynamicUrl);
+            }
+        }
+        if (!finalUrl && linkUrl) {
+            finalUrl = interpolateString(linkUrl, context || {});
+        }
       }
-
+          
       const style = textStyle || 'p';
       const classes = {
           p: 'text-muted-foreground text-sm',
@@ -743,7 +734,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
       }
 
-      const mainTextContent = <Tag className={cn(classes[style], 'px-1.5 py-1')} style={finalStyle}>{formattedValue}</Tag>;
+      const mainTextContent = isLink ? (
+        <a href={finalUrl || '#'} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary cursor-pointer hover:underline">
+            <Link className="h-3 w-3" />
+            <span>{formattedValue}</span>
+        </a>
+      ) : (
+        <Tag className={cn(classes[style], 'px-1.5 py-1')} style={finalStyle}>{formattedValue}</Tag>
+      );
 
       content = (
            <div className={cn(
@@ -1506,6 +1504,7 @@ const alignmentClasses = {
 }
 
     
+
 
 
 

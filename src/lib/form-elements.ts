@@ -99,7 +99,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
         case "DatePicker":
             return { ...baseElement, label: "Date Picker" };
         case "Display":
-            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "", sourceType: 'field' }, exposeForValidation: false, textStyle: 'p', color: '#000000', isLink: false, linkUrl: null, linkUrlKey: null, linkUrlSourceElementId: null, direction: 'horizontal', leadText: '', leadTextKey: null };
+            return { ...baseElement, label: "Display Text", dataSourceConfig: { sourceElementId: "", displayKey: "", sourceType: 'field' }, exposeForValidation: false, textStyle: 'p', color: '#000000', isLink: false, linkUrl: null, linkUrlKey: null, leadText: '', leadTextKey: null };
         case "RichText":
             return { ...baseElement, label: "Rich Text Editor", content: "", exposeForValidation: false, key: '' };
         case "Container":
