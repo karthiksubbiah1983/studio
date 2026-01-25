@@ -102,6 +102,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
             } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
                 const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
                 const data = localDataset?.data || [];
+                // Compare stringified versions to avoid infinite loops from object reference changes
                 if (JSON.stringify(data) !== JSON.stringify(value)) {
                     onValueChange(element.id, data);
                 }
@@ -113,7 +114,8 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
         return () => {
             isMounted = false;
         };
-    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, onValueChange, value]);
+    // Stringify `value` and `datasets` to ensure the effect re-runs on data changes, not just reference changes.
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, JSON.stringify(datasets), element.id, onValueChange, JSON.stringify(value)]);
 
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
@@ -373,20 +375,24 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
     if (!contextToCheck) return !element.hidden;
 
-    const hideRules = rules.filter(r => r?.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
-    const isHiddenByRule = hideRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
+    const allRules = rules;
 
-    if (isHiddenByRule) {
+    const relevantRules = allRules.filter(r => r?.behaviors.some(b => (b.type === 'show' || b.type === 'hide') && b.targetElementId === element.id));
+    
+    const hideRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'hide'));
+    const showRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'show'));
+
+    // An active hide rule always wins.
+    if (hideRules.some(r => evaluateRule(r, contextToCheck, configurations, sections))) {
         return false;
     }
 
-    const showRules = rules.filter(r => r?.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
-    // If show rules exist, visibility is determined *only* by them. The default 'hidden' property is ignored.
+    // If there are show rules defined for this element, its visibility is determined *only* by them.
     if (showRules.length > 0) {
         return showRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
     }
 
-    // If no applicable show or hide rules are active, fall back to the element's static hidden property.
+    // If no visibility rules are active or defined, fall back to the element's static hidden property.
     return !element.hidden;
   }, [formState, rowContext, isTableCell, element.id, element.hidden, rules, configurations, sections]);
 
@@ -1528,6 +1534,7 @@ const alignmentClasses = {
 }
 
     
+
 
 
 

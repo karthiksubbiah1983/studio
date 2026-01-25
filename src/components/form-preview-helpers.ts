@@ -32,17 +32,16 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
         }
         
         if (valueType === 'field') {
-            const element = allElements.find(el => 'id' in el && el.id === idOrKey) as FormElementInstance | undefined;
+            const element = allElements.find(el => 'id' in el && el.id === idOrKey) as FormElementInstance & { isTableColumn?: boolean } | undefined;
             if (!element) return undefined;
 
             let value;
-            // Prioritize key for row-context lookups, then fall back to ID for global state.
-            if (element.key && context.hasOwnProperty(element.key)) {
-                value = context[element.key];
-            } else if (context.hasOwnProperty(element.id)) {
-                value = context[element.id];
+            // For elements within a table row, their value is in the context under their `key`.
+            // For other elements, their value is in the context under their `id`.
+            if (element.isTableColumn) {
+                value = context[element.key!];
             } else {
-                return undefined;
+                value = context[element.id];
             }
             
             // The value might be a raw value (in a row context) or a state object { value: ... }
