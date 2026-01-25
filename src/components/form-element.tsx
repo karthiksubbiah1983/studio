@@ -297,7 +297,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     setIsClient(true);
   }, []);
 
-  const evaluationContext = isTableCell ? rowContext : formState;
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   // Use a consistent variable for the current value throughout the component.
@@ -312,10 +311,11 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
   // Formula evaluation moved to useEffect to prevent render-time side-effects
   useEffect(() => {
-    if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) {
+    const context = isTableCell ? { ...formState, ...rowContext } : formState;
+    if ((element.type === 'Input' || element.type === 'Display') && element.formula && context) {
       let calculatedValue;
       try {
-        calculatedValue = evaluate(element.formula, evaluationContext, allElements);
+        calculatedValue = evaluate(element.formula, context, allElements);
       } catch (e) {
         console.error("Formula evaluation error:", e);
         calculatedValue = "#ERROR!";
@@ -325,7 +325,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         onValueChange(element.id, calculatedValue);
       }
     }
-  }, [evaluationContext, element.formula, element.id, allElements, value, onValueChange, element.type]);
+  }, [formState, rowContext, isTableCell, element.formula, element.id, allElements, value, onValueChange, element.type]);
 
     // This effect ensures that the value of Display components (which can be derived from other state)
     // is correctly calculated and stored in the central form state.
@@ -370,10 +370,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [value]);
   
   const isVisible = useMemo(() => {
-    let contextToCheck = evaluationContext;
-    if(isTableCell) {
-        contextToCheck = rowContext;
-    }
+    const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
 
     if (!contextToCheck) return !element.hidden;
 
@@ -393,40 +390,44 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
     
     return visible;
-  }, [evaluationContext, rowContext, isTableCell, element.id, element.hidden, rules, configurations, sections]);
+  }, [formState, rowContext, isTableCell, element.id, element.hidden, rules, configurations, sections]);
 
 
   const isDisabled = useMemo(() => {
-    if (!evaluationContext || !rules) return false;
+    const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
+    if (!contextToCheck || !rules) return false;
+
     const disableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'disable' && b.targetElementId === element.id));
-    if (disableRules.some(r => evaluateRule(r, evaluationContext, configurations, sections))) {
+    if (disableRules.some(r => evaluateRule(r, contextToCheck, configurations, sections))) {
       return true;
     }
 
     const enableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
-      return !enableRules.some(r => evaluateRule(r, evaluationContext, configurations, sections));
+      return !enableRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
     }
 
     return false;
-  }, [element.id, evaluationContext, rules, configurations, sections]);
+  }, [element.id, formState, rowContext, isTableCell, rules, configurations, sections]);
 
   const isReadOnly = useMemo(() => {
+    const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
     if (element.readOnly) return true;
-    if ((element.type === 'Input' || element.type === 'Display') && element.formula && evaluationContext) return true;
-    if (rules.some(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id && evaluateRule(rule, evaluationContext, configurations, sections)))) {
+    if ((element.type === 'Input' || element.type === 'Display') && element.formula && contextToCheck) return true;
+    if (rules.some(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id && evaluateRule(rule, contextToCheck, configurations, sections)))) {
         return true;
     }
     return false;
-  }, [element, evaluationContext, rules, configurations, sections]);
+  }, [element, formState, rowContext, isTableCell, rules, configurations, sections]);
   
   const appliedStyles = useMemo(() => {
+    const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
     const style: React.CSSProperties = {};
     let error: string | null = null;
-    if (!evaluationContext || !rules) return { style, error };
+    if (!contextToCheck || !rules) return { style, error };
 
     for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, evaluationContext, configurations, sections);
+        const isRuleMet = evaluateRule(rule, contextToCheck, configurations, sections);
 
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
@@ -439,7 +440,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         }
     }
     return { style, error };
-  }, [element.id, evaluationContext, rules, configurations, sections]);
+  }, [element.id, formState, rowContext, isTableCell, rules, configurations, sections]);
 
   const isCheckbox = useMemo(() => element.type === 'List' && element.listType === 'checkbox', [element.type, element.listType]);
   const isRadio = useMemo(() => element.type === 'List' && element.listType === 'radio', [element.type, element.listType]);
@@ -522,7 +523,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         return;
     }
 
-    const context = isTableCell ? rowContext : formState;
+    const context = isTableCell ? { ...formState, ...rowContext } : formState;
     const parentId = element.dataSourceParentId;
 
     if (element.dataSource === 'dynamic' && element.apiUrl) {
@@ -577,7 +578,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             setDynamicOptions([]);
         }
     }
-}, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState, rowContext, isTableCell, evaluationContext]);
+}, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState, rowContext, isTableCell]);
 
 
   const { type, label, required, placeholder, helperText, options, popup, inputFormat, isLink, linkUrl, linkUrlKey, textStyle, color, content: richTextContent, key, direction, leadText, leadTextKey, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
@@ -660,7 +661,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         />
       );
     case "Display": {
-      const context = isTableCell ? rowContext : evaluationContext;
+      const context = isTableCell ? { ...formState, ...rowContext } : formState;
 
       let finalDisplayValue = value;
       if ((isTableCell || isParentHorizontal) && !finalDisplayValue && finalDisplayValue !== "") {
@@ -1529,6 +1530,7 @@ const alignmentClasses = {
 }
 
     
+
 
 
 
