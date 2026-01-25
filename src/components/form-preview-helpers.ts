@@ -36,12 +36,10 @@ export const evaluateSingleCondition = (condition: Condition, context: { [key: s
             if (!element) return undefined;
 
             let value;
-            // Case 1: Context is a row object (keys are data keys from element.key)
+            // Prioritize key for row-context lookups, then fall back to ID for global state.
             if (element.key && context.hasOwnProperty(element.key)) {
                 value = context[element.key];
-            } 
-            // Case 2: Context is the global formState (keys are element IDs)
-            else if (context.hasOwnProperty(element.id)) {
+            } else if (context.hasOwnProperty(element.id)) {
                 value = context[element.id];
             } else {
                 return undefined;
