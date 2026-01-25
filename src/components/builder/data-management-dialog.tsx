@@ -5,17 +5,67 @@ import { useBuilder } from '@/hooks/use-builder';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Dataset, DatasetColumn } from '@/lib/types';
-import { Plus, Trash, Copy, Edit, Table as TableIcon } from 'lucide-react';
+import { Plus, Trash, Copy, Edit, Table as TableIcon, X } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '../ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
 type Props = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+};
+
+const TagInput = ({ value: initialValue, onChange }: { value?: string[], onChange: (value: string[]) => void }) => {
+    const [inputValue, setInputValue] = useState('');
+    const tags = Array.isArray(initialValue) ? initialValue : [];
+
+    const handleAddTag = () => {
+        const newTag = inputValue.trim();
+        if (newTag && !tags.includes(newTag)) {
+            onChange([...tags, newTag]);
+        }
+        setInputValue('');
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            handleAddTag();
+        }
+    };
+
+    const handleRemoveTag = (tagToRemove: string) => {
+        onChange(tags.filter(tag => tag !== tagToRemove));
+    };
+
+    return (
+        <div className="flex flex-wrap items-center gap-2 p-1 border rounded-md min-h-[40px]">
+            {tags.map(tag => (
+                <Badge key={tag} variant="secondary" className="group text-sm">
+                    {tag}
+                    <button
+                        onClick={() => handleRemoveTag(tag)}
+                        className="ml-1.5 rounded-full opacity-50 group-hover:opacity-100 transition-opacity"
+                    >
+                        <X className="h-3 w-3" />
+                    </button>
+                </Badge>
+            ))}
+            <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleAddTag}
+                placeholder="Add item..."
+                className="flex-1 h-auto min-w-[80px] border-none shadow-none focus-visible:ring-0 p-1"
+            />
+        </div>
+    );
 };
 
 const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate: (updated: Dataset) => void }) => {
@@ -30,12 +80,13 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
     const newColumn: DatasetColumn = {
         id: crypto.randomUUID(),
         header: `Column ${dataset.columns.length + 1}`,
-        key: `column_${dataset.columns.length + 1}`.toLowerCase()
+        key: `column_${dataset.columns.length + 1}`.toLowerCase(),
+        type: 'text',
     };
     onUpdate({ ...dataset, columns: [...dataset.columns, newColumn] });
   };
   
-  const handleUpdateColumn = (colId: string, field: 'header' | 'key', value: string) => {
+  const handleUpdateColumn = (colId: string, field: 'header' | 'key' | 'type', value: string) => {
     const newColumns = dataset.columns.map(c => {
         if (c.id === colId) {
             return { ...c, [field]: value };
@@ -52,13 +103,13 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
   // Row Handlers
   const handleAddRow = () => {
     const newRow = dataset.columns.reduce((acc, col) => {
-        acc[col.key] = '';
+        acc[col.key] = col.type === 'array' ? [] : '';
         return acc;
     }, {} as Record<string, any>);
     onUpdate({ ...dataset, data: [...dataset.data, newRow] });
   };
 
-  const handleUpdateCell = (rowIndex: number, colKey: string, value: string) => {
+  const handleUpdateCell = (rowIndex: number, colKey: string, value: any) => {
     const newData = [...dataset.data];
     newData[rowIndex] = { ...newData[rowIndex], [colKey]: value };
     onUpdate({ ...dataset, data: newData });
@@ -89,8 +140,9 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead className="w-1/2">Header</TableHead>
-                                    <TableHead className="w-1/2">Key</TableHead>
+                                    <TableHead className="w-[40%]">Header</TableHead>
+                                    <TableHead className="w-[40%]">Key</TableHead>
+                                    <TableHead className="w-[20%]">Type</TableHead>
                                     <TableHead className="w-10"></TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -102,6 +154,17 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                                         </TableCell>
                                         <TableCell>
                                             <Input defaultValue={col.key} onBlur={(e) => handleUpdateColumn(col.id, 'key', e.target.value.replace(/\s+/g, '_').toLowerCase())} className="h-8"/>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Select value={col.type || 'text'} onValueChange={(value) => handleUpdateColumn(col.id, 'type', value)}>
+                                                <SelectTrigger className="h-8 text-xs">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="text">Text</SelectItem>
+                                                    <SelectItem value="array">List</SelectItem>
+                                                </SelectContent>
+                                            </Select>
                                         </TableCell>
                                         <TableCell>
                                             <Button variant="ghost" size="icon" onClick={() => handleDeleteColumn(col.id)}>
@@ -136,11 +199,18 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                                         <TableRow key={rowIndex}>
                                             {dataset.columns.map(col => (
                                                 <TableCell key={col.id}>
-                                                    <Input
-                                                        defaultValue={row[col.key] || ''}
-                                                        onBlur={(e) => handleUpdateCell(rowIndex, col.key, e.target.value)}
-                                                        className="h-8"
-                                                    />
+                                                    {col.type === 'array' ? (
+                                                        <TagInput 
+                                                            value={row[col.key]}
+                                                            onChange={(newValue) => handleUpdateCell(rowIndex, col.key, newValue)}
+                                                        />
+                                                    ) : (
+                                                        <Input
+                                                            defaultValue={row[col.key] || ''}
+                                                            onBlur={(e) => handleUpdateCell(rowIndex, col.key, e.target.value)}
+                                                            className="h-8"
+                                                        />
+                                                    )}
                                                 </TableCell>
                                             ))}
                                             <TableCell>
@@ -204,7 +274,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
     const newDataset: Dataset = {
         id: crypto.randomUUID(),
         name: `Dataset ${localDatasets.length + 1}`,
-        columns: [{id: crypto.randomUUID(), header: 'Column 1', key: 'column_1'}],
+        columns: [{id: crypto.randomUUID(), header: 'Column 1', key: 'column_1', type: 'text'}],
         data: []
     };
     setLocalDatasets([...localDatasets, newDataset]);

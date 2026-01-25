@@ -108,6 +108,7 @@ export type DatasetColumn = {
   id: string;
   header: string;
   key: string;
+  type?: 'text' | 'array';
 };
 
 export type Dataset = {
