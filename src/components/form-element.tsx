@@ -84,38 +84,36 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
     useEffect(() => {
         let isMounted = true;
         
-        // This effect is responsible for loading the INITIAL data.
-        // It does not depend on `value` to prevent re-fetching on user edits.
-        const loadInitialData = () => {
+        const loadData = () => {
             if (element.dataSource === 'dynamic' && element.apiUrl) {
-                // Only fetch if data is not already loaded
-                if (rows.length > 0) return;
-
                 setIsLoading(true);
                 fetchFromApi(element.apiUrl)
                     .then(fetchedData => {
                         if (isMounted) {
                             const arrayData = findFirstArray(fetchedData) || [];
-                            onValueChange(element.id, arrayData);
+                             if (JSON.stringify(arrayData) !== JSON.stringify(value)) {
+                                onValueChange(element.id, arrayData);
+                            }
                         }
                     })
                     .finally(() => {
                         if (isMounted) setIsLoading(false);
                     });
             } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
-                 if (rows.length > 0 && value !== undefined) return;
                 const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
                 const data = localDataset?.data || [];
-                onValueChange(element.id, data);
+                if (JSON.stringify(data) !== JSON.stringify(value)) {
+                    onValueChange(element.id, data);
+                }
             }
         };
 
-        loadInitialData();
+        loadData();
 
         return () => {
             isMounted = false;
         };
-    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id]);
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, onValueChange, value]);
 
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
@@ -1531,6 +1529,7 @@ const alignmentClasses = {
 }
 
     
+
 
 
 
