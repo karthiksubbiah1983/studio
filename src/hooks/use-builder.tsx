@@ -1322,17 +1322,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatch(action);
   }, []);
 
-  if (!isLoaded) {
-    return (
-        <main className="flex flex-col items-center justify-center w-full min-h-screen bg-background p-4 md:p-8">
-            <div className="text-center">
-                <h1 className="text-3xl font-bold text-primary">CoPilot</h1>
-                <p className="text-muted-foreground mt-2">Loading your form builder...</p>
-            </div>
-        </main>
-    );
-  }
-  
   const contextValue = useMemo(() => ({
     state, 
     dispatch: enhancedDispatch, 
@@ -1379,7 +1368,17 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     activePopupId,
     setActivePopupId
   ]);
-
+  
+  if (!isLoaded) {
+    return (
+        <main className="flex flex-col items-center justify-center w-full min-h-screen bg-background p-4 md:p-8">
+            <div className="text-center">
+                <h1 className="text-3xl font-bold text-primary">CoPilot</h1>
+                <p className="text-muted-foreground mt-2">Loading your form builder...</p>
+            </div>
+        </main>
+    );
+  }
 
   return (
     <BuilderContext.Provider value={contextValue}>
@@ -1395,6 +1394,8 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
 
     
 
