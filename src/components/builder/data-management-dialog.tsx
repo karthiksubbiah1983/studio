@@ -120,6 +120,18 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
     onUpdate({ ...dataset, data: newData });
   };
 
+  const handleCopyRow = (rowIndex: number) => {
+    const rowToCopy = dataset.data[rowIndex];
+    if (!rowToCopy) return;
+
+    // Deep copy the row
+    const copiedRow = JSON.parse(JSON.stringify(rowToCopy));
+
+    const newData = [...dataset.data];
+    newData.splice(rowIndex + 1, 0, copiedRow);
+    onUpdate({ ...dataset, data: newData });
+  };
+
   return (
     <Tabs defaultValue="editor" className="h-full flex flex-col">
         <div className="px-6 pt-6 pb-2 shrink-0">
@@ -191,7 +203,7 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                                 <TableHeader>
                                     <TableRow>
                                         {dataset.columns.map(col => <TableHead key={col.id}>{col.header}</TableHead>)}
-                                        <TableHead className="w-10"></TableHead>
+                                        <TableHead className="w-20 text-right">Actions</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -213,7 +225,10 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                                                     )}
                                                 </TableCell>
                                             ))}
-                                            <TableCell>
+                                            <TableCell className="text-right">
+                                                <Button variant="ghost" size="icon" onClick={() => handleCopyRow(rowIndex)}>
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
                                                 <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
                                                     <Trash className="h-4 w-4 text-destructive" />
                                                 </Button>
