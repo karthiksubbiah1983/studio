@@ -314,7 +314,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
         </DialogHeader>
         
         <div className="flex-1 flex overflow-hidden bg-slate-50">
-            <aside className="w-[30%] border-r flex flex-col bg-white">
+            <aside className="w-[25%] border-r flex flex-col bg-white">
                 <div className="p-4 border-b shrink-0 flex items-center justify-center">
                     <Button variant="outline" className="w-full justify-center" onClick={handleAddDataset}>
                         <Plus className="mr-2 h-4 w-4" /> Add New Dataset
