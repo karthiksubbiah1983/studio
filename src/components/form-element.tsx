@@ -109,7 +109,8 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
         return () => {
             isMounted = false;
         };
-    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, onValueChange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id]);
 
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
@@ -371,19 +372,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
     const allRules = rules;
 
-    // An active hide rule always wins.
     const hideIsActive = allRules.some(r => r?.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id) && evaluateRule(r, contextToCheck, configurations, sections));
     if (hideIsActive) {
         return false;
     }
 
     const showRules = allRules.filter(r => r?.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
-    // If there are show rules defined for this element, its visibility is determined *only* by them.
     if (showRules.length > 0) {
         return showRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
     }
-
-    // If no visibility rules are active or defined, fall back to the element's static hidden property.
+    
     return !element.hidden;
   }, [formState, rowContext, isTableCell, element.id, element.hidden, rules, configurations, sections]);
 
