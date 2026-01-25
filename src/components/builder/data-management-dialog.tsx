@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, memo, useMemo } from 'react';
@@ -14,6 +15,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '.
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Textarea } from '../ui/textarea';
 
 type Props = {
   isOpen: boolean;
@@ -224,12 +226,14 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                                         </TableCell>
                                     ))}
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="icon" onClick={() => handleCopyRow(rowIndex)}>
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
-                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
-                                            <Trash className="h-4 w-4 text-destructive" />
-                                        </Button>
+                                        <div className="flex items-center justify-end">
+                                            <Button variant="ghost" size="icon" onClick={() => handleCopyRow(rowIndex)}>
+                                                <Copy className="h-4 w-4" />
+                                            </Button>
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
+                                                <Trash className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </div>
                                     </TableCell>
                                 </TableRow>
                             ))}
