@@ -76,46 +76,50 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
     formState?: { [key: string]: any } 
 }) {
     const { datasets } = useBuilder();
-    const [internalData, setInternalData] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+    const rows = Array.isArray(value) ? value : [];
 
     useEffect(() => {
-        if (element.dataSource === 'dynamic' && element.apiUrl) {
-            setIsLoading(true);
-            fetchFromApi(element.apiUrl)
-                .then(fetchedData => {
-                    const arrayData = findFirstArray(fetchedData) || [];
-                    setInternalData(arrayData);
-                    onValueChange(element.id, arrayData);
-                })
-                .finally(() => setIsLoading(false));
-        } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
-            const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
-            if (localDataset) {
-                const data = localDataset.data || [];
-                setInternalData(data);
-                if (JSON.stringify(value) !== JSON.stringify(data)) {
-                    onValueChange(element.id, data);
-                }
-            } else {
-                setInternalData([]);
-                if (value && value.length > 0) {
-                     onValueChange(element.id, []);
-                }
-            }
-        }
-    }, [element.apiUrl, element.id, element.dataSource, element.localDatasetName, datasets, onValueChange, value]);
+        let isMounted = true;
+        
+        // This effect is responsible for loading the INITIAL data.
+        // It does not depend on `value` to prevent re-fetching on user edits.
+        const loadInitialData = () => {
+            if (element.dataSource === 'dynamic' && element.apiUrl) {
+                // Only fetch if data is not already loaded
+                if (rows.length > 0) return;
 
-     useEffect(() => {
-        if (Array.isArray(value)) {
-            setInternalData(value);
-        }
-    }, [value]);
+                setIsLoading(true);
+                fetchFromApi(element.apiUrl)
+                    .then(fetchedData => {
+                        if (isMounted) {
+                            const arrayData = findFirstArray(fetchedData) || [];
+                            onValueChange(element.id, arrayData);
+                        }
+                    })
+                    .finally(() => {
+                        if (isMounted) setIsLoading(false);
+                    });
+            } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
+                 if (rows.length > 0 && value !== undefined) return;
+                const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
+                const data = localDataset?.data || [];
+                onValueChange(element.id, data);
+            }
+        };
+
+        loadInitialData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id]);
+
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
-        const newData = [...internalData];
+        const newData = [...rows];
         const rowToUpdate = { ...newData[rowIndex] };
 
         const column = element.dataGridColumns?.find(c => c.element.id === columnElementId);
@@ -124,13 +128,12 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
         }
 
         newData[rowIndex] = rowToUpdate;
-        setInternalData(newData);
         onValueChange(element.id, newData);
     };
     
     const filteredDataForPagination = useMemo(() => {
         if (element.enableSearch && searchTerm) {
-            return internalData.filter(row => {
+            return rows.filter(row => {
                 return element.dataGridColumns?.some(col => {
                     if (!col.element.key) return false;
                     const cellValue = String(getNestedValue(row, col.element.key) ?? '');
@@ -138,8 +141,8 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
                 });
             });
         }
-        return internalData;
-    }, [internalData, searchTerm, element.enableSearch, element.dataGridColumns]);
+        return rows;
+    }, [rows, searchTerm, element.enableSearch, element.dataGridColumns]);
 
     const paginatedData = useMemo(() => {
         if (element.enablePagination) {
@@ -208,7 +211,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
                             </TableRow>
                         ) : paginatedData.length > 0 ? (
                             paginatedData.map((row, rowIndex) => {
-                                const originalIndex = internalData.findIndex(item => item === row);
+                                const originalIndex = rows.findIndex(item => item === row);
                                 return (
                                     <TableRow key={originalIndex}>
                                         {element.dataGridColumns!.map(col => {
@@ -1504,6 +1507,7 @@ const alignmentClasses = {
 }
 
     
+
 
 
 
