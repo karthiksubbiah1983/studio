@@ -161,13 +161,13 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                     <TableBody>
                         {dataset.columns.map(col => (
                             <TableRow key={col.id}>
-                                <TableCell>
+                                <TableCell className="py-1 px-2">
                                     <Input defaultValue={col.header} onBlur={(e) => handleUpdateColumn(col.id, 'header', e.target.value)} className="h-8"/>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="py-1 px-2">
                                     <Input defaultValue={col.key} onBlur={(e) => handleUpdateColumn(col.id, 'key', e.target.value.replace(/\s+/g, '_').toLowerCase())} className="h-8"/>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="py-1 px-2">
                                     <Select value={col.type || 'text'} onValueChange={(value) => handleUpdateColumn(col.id, 'type', value)}>
                                         <SelectTrigger className="h-8 text-xs">
                                             <SelectValue />
@@ -178,7 +178,7 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                                         </SelectContent>
                                     </Select>
                                 </TableCell>
-                                <TableCell>
+                                <TableCell className="py-1 px-2">
                                     <Button variant="ghost" size="icon" onClick={() => handleDeleteColumn(col.id)}>
                                         <Trash className="h-4 w-4 text-destructive" />
                                     </Button>
@@ -210,7 +210,7 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                             {dataset.data.map((row, rowIndex) => (
                                 <TableRow key={rowIndex}>
                                     {dataset.columns.map(col => (
-                                        <TableCell key={col.id}>
+                                        <TableCell key={col.id} className="py-1 px-2">
                                             {col.type === 'array' ? (
                                                 <TagInput 
                                                     value={row[col.key]}
@@ -225,7 +225,7 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                                             )}
                                         </TableCell>
                                     ))}
-                                    <TableCell className="text-right">
+                                    <TableCell className="py-1 px-2 text-right">
                                         <div className="flex items-center justify-end">
                                             <Button variant="ghost" size="icon" onClick={() => handleCopyRow(rowIndex)}>
                                                 <Copy className="h-4 w-4" />
@@ -314,7 +314,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
         </DialogHeader>
         
         <div className="flex-1 flex overflow-hidden bg-slate-50">
-            <aside className="w-1/3 border-r flex flex-col bg-white">
+            <aside className="w-[30%] border-r flex flex-col bg-white">
                 <div className="p-4 border-b shrink-0 flex items-center justify-center">
                     <Button variant="outline" className="w-full justify-center" onClick={handleAddDataset}>
                         <Plus className="mr-2 h-4 w-4" /> Add New Dataset
