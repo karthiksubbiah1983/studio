@@ -1724,42 +1724,65 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     <AccordionItem value="data">
                         <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
-                             <div className="flex flex-col gap-2 mb-1.5">
-                                <Label>Source Type</Label>
-                                <RadioGroup
-                                    value={element.dataSource || 'static'}
-                                    onValueChange={(val) => {
-                                      const newDataSource = val as 'static' | 'dynamic' | 'fromParent';
-                                      updateMultipleProperties({
-                                        dataSource: newDataSource,
-                                        options: newDataSource === 'static' ? (element.options || ['Option 1']) : undefined,
-                                        apiUrl: newDataSource === 'dynamic' ? (element.apiUrl || '') : undefined,
-                                        valueKey: newDataSource !== 'static' ? element.valueKey : undefined,
-                                        labelKey: newDataSource !== 'static' ? element.labelKey : undefined,
-                                        dataSourceParentId: newDataSource === 'fromParent' || (newDataSource === 'dynamic' && element.apiUrl?.includes('{')) ? element.dataSourceParentId : undefined,
-                                        dataSourceParentKey: newDataSource === 'fromParent' ? element.dataSourceParentKey : undefined,
-                                        customOptions: newDataSource === 'dynamic' ? (element.customOptions || []) : undefined,
-                                      })
-                                    }}
-                                    className="grid grid-cols-3 gap-2"
-                                >
-                                    <Label htmlFor="source-static" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
-                                        <RadioGroupItem value="static" id="source-static" />
-                                        Static
-                                    </Label>
-                                    <Label htmlFor="source-dynamic" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
-                                        <RadioGroupItem value="dynamic" id="source-dynamic" />
-                                        API
-                                    </Label>
-                                    <Label htmlFor="source-from-parent" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
-                                        <RadioGroupItem value="fromParent" id="source-from-parent" />
-                                        Parent Field
-                                    </Label>
-                                </RadioGroup>
-                            </div>
-                            {element.dataSource === 'dynamic' ? dynamicDataSourceFields() : 
-                             element.dataSource === 'fromParent' ? parentDataSourceFields() : 
-                             optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
+                            {isColumnElement ? (
+                                <>
+                                   <div className="flex flex-col gap-2">
+                                       <Label>Options Data Key (Optional)</Label>
+                                       <Select value={element.optionsDataKey || 'none'} onValueChange={v => updateProperty('optionsDataKey', v === 'none' ? '' : v)}>
+                                           <SelectTrigger>
+                                               <SelectValue placeholder="Select a key..." />
+                                           </SelectTrigger>
+                                           <SelectContent>
+                                               <SelectItem value="none">Not Applicable (Use Static)</SelectItem>
+                                               {dataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                           </SelectContent>
+                                       </Select>
+                                       <p className="text-xs text-muted-foreground">If a key is selected, it must be an array of strings in the row data.</p>
+                                   </div>
+                                   <Separator/>
+                                </>
+                            ) : null}
+                             
+                            {(!isColumnElement || !element.optionsDataKey) && (
+                                <>
+                                    <div className="flex flex-col gap-2 mb-1.5">
+                                        <Label>Source Type</Label>
+                                        <RadioGroup
+                                            value={element.dataSource || 'static'}
+                                            onValueChange={(val) => {
+                                              const newDataSource = val as 'static' | 'dynamic' | 'fromParent';
+                                              updateMultipleProperties({
+                                                dataSource: newDataSource,
+                                                options: newDataSource === 'static' ? (element.options || ['Option 1']) : undefined,
+                                                apiUrl: newDataSource === 'dynamic' ? (element.apiUrl || '') : undefined,
+                                                valueKey: newDataSource !== 'static' ? element.valueKey : undefined,
+                                                labelKey: newDataSource !== 'static' ? element.labelKey : undefined,
+                                                dataSourceParentId: newDataSource === 'fromParent' || (newDataSource === 'dynamic' && element.apiUrl?.includes('{')) ? element.dataSourceParentId : undefined,
+                                                dataSourceParentKey: newDataSource === 'fromParent' ? element.dataSourceParentKey : undefined,
+                                                customOptions: newDataSource === 'dynamic' ? (element.customOptions || []) : undefined,
+                                              })
+                                            }}
+                                            className="grid grid-cols-3 gap-2"
+                                        >
+                                            <Label htmlFor="source-static" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                                <RadioGroupItem value="static" id="source-static" />
+                                                Static
+                                            </Label>
+                                            <Label htmlFor="source-dynamic" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                                <RadioGroupItem value="dynamic" id="source-dynamic" />
+                                                API
+                                            </Label>
+                                            <Label htmlFor="source-from-parent" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                                <RadioGroupItem value="fromParent" id="source-from-parent" />
+                                                Parent Field
+                                            </Label>
+                                        </RadioGroup>
+                                    </div>
+                                    {element.dataSource === 'dynamic' ? dynamicDataSourceFields() : 
+                                     element.dataSource === 'fromParent' ? parentDataSourceFields() : 
+                                     optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
+                                </>
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                 </Accordion>
@@ -1933,7 +1956,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <>
                                     <div className="flex flex-col gap-2">
                                         <Label>Options Data Key (Optional)</Label>
-                                        <Select value={element.labelKey || 'none'} onValueChange={v => updateProperty('labelKey', v === 'none' ? '' : v)}>
+                                        <Select value={element.optionsDataKey || 'none'} onValueChange={v => updateProperty('optionsDataKey', v === 'none' ? '' : v)}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a key..." />
                                             </SelectTrigger>
@@ -1942,12 +1965,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                 {dataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
-                                        <p className="text-xs text-muted-foreground">If a key is selected, it's expected to be an array of strings in the row data.</p>
+                                        <p className="text-xs text-muted-foreground">If a key is selected, it must be an array of strings in the row data.</p>
                                     </div>
                                     <Separator/>
                                 </>
                             ) : null}
-                             {optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
+                             {(!isColumnElement || !element.optionsDataKey) && optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="layout">
@@ -2295,4 +2318,5 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 

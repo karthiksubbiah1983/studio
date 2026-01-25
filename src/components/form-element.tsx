@@ -861,8 +861,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         </div>
       );
       break;
-    case "Select":
+    case "Select": {
         const handleSelectChange = (val: string) => {
+            if (isTableCell && element.optionsDataKey && rowContext) {
+                onValueChange(element.id, val);
+                return;
+            }
+
             if (element.dataSource === 'dynamic' || (element.dataSource === 'fromParent' && dynamicOptions.length > 0)) {
                 let fullObject: any;
                 if (element.customOptions?.some(opt => opt.value === val)) {
@@ -875,7 +880,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                  onValueChange(element.id, val);
             }
         }
-
+        
+        const rowOptions = isTableCell && element.optionsDataKey && rowContext ? getNestedValue(rowContext, element.optionsDataKey) : null;
+        const hasRowOptions = Array.isArray(rowOptions);
+    
         let combinedOptions = [...dynamicOptions];
         if (element.dataSource === 'dynamic' && element.customOptions) {
             const customSelectOptions = element.customOptions.map(opt => ({ [element.labelKey!]: opt.label, [element.valueKey!]: opt.value }));
@@ -885,36 +893,44 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 combinedOptions = [...combinedOptions, ...customSelectOptions];
             }
         }
-      content = (
-        <div>
-          {renderLabel()}
-          <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled}>
-            <SelectTrigger style={appliedStyles.style} className={cn(appliedStyles.error && "border-destructive")}>
-              <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
-            </SelectTrigger>
-            <SelectContent>
-              {element.dataSource === 'dynamic' || element.dataSource === 'fromParent' ? (
-                combinedOptions.map((option, index) => (
-                  <SelectItem key={index} value={String(getNestedValue(option, element.valueKey!))}>
-                    {getNestedValue(option, element.labelKey!)}
-                  </SelectItem>
-                ))
-              ) : (
-                options?.map((option, index) => (
-                  <SelectItem key={index} value={option}>
-                    {option}
-                  </SelectItem>
-                ))
+
+        content = (
+            <div>
+              {renderLabel()}
+              <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled}>
+                <SelectTrigger style={appliedStyles.style} className={cn(appliedStyles.error && "border-destructive")}>
+                  <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
+                </SelectTrigger>
+                <SelectContent>
+                    {hasRowOptions ? (
+                        rowOptions.map((option: string, index: number) => (
+                            <SelectItem key={index} value={option}>
+                                {option}
+                            </SelectItem>
+                        ))
+                    ) : element.dataSource === 'dynamic' || element.dataSource === 'fromParent' ? (
+                        combinedOptions.map((option, index) => (
+                          <SelectItem key={index} value={String(getNestedValue(option, element.valueKey!))}>
+                            {getNestedValue(option, element.labelKey!)}
+                          </SelectItem>
+                        ))
+                    ) : (
+                        options?.map((option, index) => (
+                          <SelectItem key={index} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))
+                    )}
+                </SelectContent>
+              </Select>
+              {helperText && (
+                <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
               )}
-            </SelectContent>
-          </Select>
-          {helperText && (
-            <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
-          )}
-          {renderError()}
-        </div>
-      );
-      break;
+              {renderError()}
+            </div>
+        );
+        break;
+    }
     case "Combobox": {
       const handleComboboxSelect = (currentValue: string) => {
         const newValue = currentValue === value ? "" : currentValue;
@@ -1151,7 +1167,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         );
         break;
     }
-    case "RadioGroup":
+    case "RadioGroup": {
+      let radioOptions = options || [];
+      if (isTableCell && element.optionsDataKey && rowContext) {
+          const dynamicRowOptions = getNestedValue(rowContext, element.optionsDataKey);
+          if (Array.isArray(dynamicRowOptions)) {
+              radioOptions = dynamicRowOptions;
+          }
+      }
       content = (
         <div id={element.id}>
           {renderLabelWithPopup()}
@@ -1161,7 +1184,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             className={cn("mt-3", direction === 'horizontal' ? "flex flex-row gap-4" : "grid gap-2")}
             disabled={isDisabled}
           >
-            {options?.map((option, index) => (
+            {radioOptions?.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <RadioGroupItem
                   value={option}
@@ -1178,6 +1201,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         </div>
       );
       break;
+    }
     case "DatePicker":
       const [dateValue, setDateValue] = useState<Date | undefined>(undefined);
       const [timeValue, setTimeValue] = useState('');
@@ -1507,6 +1531,7 @@ const alignmentClasses = {
 }
 
     
+
 
 
 
