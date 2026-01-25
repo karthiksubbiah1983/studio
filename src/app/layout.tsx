@@ -3,14 +3,10 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/toaster";
-import { config } from "@fortawesome/fontawesome-svg-core";
-import "@fortawesome/fontawesome-svg-core/styles.css";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppLayout } from "@/components/app-layout";
 import { FirebaseClientProvider } from "@/firebase";
 import { Providers } from "@/components/providers";
-
-config.autoAddCss = false;
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
