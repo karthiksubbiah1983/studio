@@ -1177,7 +1177,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         <div id={element.id}>
           {renderLabelWithPopup()}
           <RadioGroup 
-            value={value}
+            value={value !== undefined && value !== null ? String(value) : undefined}
             onValueChange={(val) => onValueChange(element.id, val)}
             className={cn("mt-3", direction === 'horizontal' ? "flex flex-row gap-4" : "grid gap-2")}
             disabled={isDisabled}
@@ -1185,10 +1185,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             {radioOptions?.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <RadioGroupItem
-                  value={option}
+                  value={String(option)}
                   id={`${element.id}-${index}`}
                 />
-                <Label htmlFor={`${element.id}-${index}`} style={appliedStyles.style}>{option}</Label>
+                <Label htmlFor={`${element.id}-${index}`} style={appliedStyles.style}>{String(option)}</Label>
               </div>
             ))}
           </RadioGroup>
@@ -1529,6 +1529,7 @@ const alignmentClasses = {
 }
 
     
+
 
 
 
