@@ -371,25 +371,23 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   
   const isVisible = useMemo(() => {
     const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
-
     if (!contextToCheck) return !element.hidden;
 
-    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
-    const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id));
-    
-    let visible = !element.hidden;
+    const hideRules = rules.filter(r => r?.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id));
+    const isHiddenByRule = hideRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
 
+    if (isHiddenByRule) {
+        return false;
+    }
+
+    const showRules = rules.filter(r => r?.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
+    // If show rules exist, visibility is determined *only* by them. The default 'hidden' property is ignored.
     if (showRules.length > 0) {
-        visible = showRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
+        return showRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
     }
-    
-    if (visible && hideRules.length > 0) {
-      if (hideRules.some(r => evaluateRule(r, contextToCheck, configurations, sections))) {
-        visible = false;
-      }
-    }
-    
-    return visible;
+
+    // If no applicable show or hide rules are active, fall back to the element's static hidden property.
+    return !element.hidden;
   }, [formState, rowContext, isTableCell, element.id, element.hidden, rules, configurations, sections]);
 
 
@@ -1110,7 +1108,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             <div>
                 {renderLabel()}
                 {isRadio ? (
-                    <RadioGroup id={element.id} value={value} onValueChange={handleListChange}>
+                    <RadioGroup id={element.id} value={String(value)} onValueChange={handleListChange}>
                         {listContent}
                     </RadioGroup>
                 ) : (
@@ -1530,6 +1528,7 @@ const alignmentClasses = {
 }
 
     
+
 
 
 
