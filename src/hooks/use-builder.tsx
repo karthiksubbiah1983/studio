@@ -2,7 +2,7 @@
 
 "use client";
 
-import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback } from "react";
+import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, RuleBehavior, Dataset } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
@@ -1231,93 +1231,96 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     
   }, [userDrivenState, activeForm?.id, sections, rules, configurations, isLoaded]);
   
-  const addNewForm = async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
+ const addNewForm = useCallback(async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
     const { title, description, categoryId, subCategoryId } = payload;
     const newVersion: FormVersion = {
-        id: crypto.randomUUID(), name: "Version 1", description: description || "Initial version", type: "draft", timestamp: new Date().toISOString(),
-        sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }], rules: [], workflows: [], configurations: [], datasets: []
+      id: crypto.randomUUID(),
+      name: "Version 1",
+      description: description || "Initial version",
+      type: "draft",
+      timestamp: new Date().toISOString(),
+      sections: [{ id: crypto.randomUUID(), title: "New Section", displayMode: "default", elements: [] }],
+      rules: [],
+      workflows: [],
+      configurations: [],
+      datasets: [],
     };
     const newFormWithId: Form = {
-        id: crypto.randomUUID(), // Local temporary ID
-        title, categoryId, subCategoryId,
-        versions: [newVersion]
+      id: crypto.randomUUID(),
+      title,
+      categoryId,
+      subCategoryId,
+      versions: [newVersion],
     };
     dispatch({ type: "ADD_FORM", payload: newFormWithId });
-    return Promise.resolve(null); // Return null as we are not using Firestore doc ref now
-  }
+    return Promise.resolve(null);
+  }, []);
 
-  const setSections = (newSections: Section[]) => {
+  const setSections = useCallback((newSections: Section[]) => {
     if (!activeForm) return;
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], sections: newSections, timestamp: new Date().toISOString() };
-    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
-    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
-  }
+    const newForms = state.forms.map(f => (f.id === activeForm.id ? { ...f, versions: newVersions } : f));
+    dispatch({ type: "SET_STATE", payload: { forms: newForms } });
+  }, [activeForm, state.forms]);
 
-  const updateRules = (newRules: Rule[], newConfigurations: Configuration[]) => {
+  const updateRules = useCallback((newRules: Rule[], newConfigurations: Configuration[]) => {
     if (!activeForm) return;
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], rules: newRules, configurations: newConfigurations, timestamp: new Date().toISOString() };
-    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
+    const newForms = state.forms.map(f => (f.id === activeForm.id ? { ...f, versions: newVersions } : f));
     const newFormState = getInitialFormState(newVersions[0].sections, newConfigurations);
-    dispatch({ type: 'SET_STATE', payload: { forms: newForms, formState: newFormState } });
-  }
-  
-  const updateWorkflows = (newWorkflows: Workflow[]) => {
+    dispatch({ type: "SET_STATE", payload: { forms: newForms, formState: newFormState } });
+  }, [activeForm, state.forms]);
+
+  const updateWorkflows = useCallback((newWorkflows: Workflow[]) => {
     if (!activeForm) return;
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], workflows: newWorkflows, timestamp: new Date().toISOString() };
-    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
-    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
-  }
+    const newForms = state.forms.map(f => (f.id === activeForm.id ? { ...f, versions: newVersions } : f));
+    dispatch({ type: "SET_STATE", payload: { forms: newForms } });
+  }, [activeForm, state.forms]);
 
-  const updateConfigurations = (newConfigurations: Configuration[]) => {
-     if (!activeForm) return;
+  const updateConfigurations = useCallback((newConfigurations: Configuration[]) => {
+    if (!activeForm) return;
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], configurations: newConfigurations, timestamp: new Date().toISOString() };
-    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
+    const newForms = state.forms.map(f => (f.id === activeForm.id ? { ...f, versions: newVersions } : f));
     const newFormState = getInitialFormState(newVersions[0].sections, newConfigurations);
-    dispatch({ type: 'SET_STATE', payload: { forms: newForms, formState: newFormState } });
-  }
-  
-  const updateDatasets = (newDatasets: Dataset[]) => {
+    dispatch({ type: "SET_STATE", payload: { forms: newForms, formState: newFormState } });
+  }, [activeForm, state.forms]);
+
+  const updateDatasets = useCallback((newDatasets: Dataset[]) => {
     if (!activeForm) return;
     const newVersions = [...activeForm.versions];
     newVersions[0] = { ...newVersions[0], datasets: newDatasets, timestamp: new Date().toISOString() };
-    const newForms = state.forms.map(f => f.id === activeForm.id ? {...f, versions: newVersions} : f);
-    dispatch({ type: 'SET_STATE', payload: { forms: newForms } });
-  }
+    const newForms = state.forms.map(f => (f.id === activeForm.id ? { ...f, versions: newVersions } : f));
+    dispatch({ type: "SET_STATE", payload: { forms: newForms } });
+  }, [activeForm, state.forms]);
 
-  const setFormState = (newState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } }) => {
-    dispatch({ type: 'SET_FORM_STATE', payload: newState });
-  }
+  const setFormState = useCallback((newState: { [key: string]: { value: any; fullObject?: any; isVisible?: boolean } }) => {
+    dispatch({ type: "SET_FORM_STATE", payload: newState });
+  }, []);
 
-  const updateFormState = (elementId: string, value: any, fullObject?: any, isVisible?: boolean) => {
-    dispatch({ type: 'UPDATE_USER_DRIVEN_STATE', payload: { elementId, value, fullObject, isVisible } });
-
-    // Find the element that was updated to check if it's a formula field
+  const updateFormState = useCallback((elementId: string, value: any, fullObject?: any, isVisible?: boolean) => {
+    dispatch({ type: "UPDATE_USER_DRIVEN_STATE", payload: { elementId, value, fullObject, isVisible } });
     const element = findElementRecursive(sections, elementId);
-
-    // Only trigger the rule engine if the change was from a user-editable field, not a formula result.
-    // This prevents infinite loops where a formula updates a field, which triggers the rule engine,
-    // which causes a re-render, which re-calculates the formula, and so on.
     if (!element?.formula) {
       setUserDrivenState({ elementId, value, timestamp: Date.now() });
     }
-  }
-  
-  const setActivePopupId = (id: string | null) => {
-    dispatch({ type: "SET_ACTIVE_POPUP", payload: id });
-  };
+  }, [sections]);
 
-  const enhancedDispatch = (action: Action) => {
-    if (action.type === 'UPDATE_ELEMENT') {
+  const setActivePopupId = useCallback((id: string | null) => {
+    dispatch({ type: "SET_ACTIVE_POPUP", payload: id });
+  }, []);
+
+  const enhancedDispatch = useCallback((action: Action) => {
+    if (action.type === "UPDATE_ELEMENT") {
       const { element } = action.payload;
-      // This is a user-driven change to a property, not a value
-       setUserDrivenState({ elementId: element.id, value: 'prop_change', timestamp: Date.now() });
+      setUserDrivenState({ elementId: element.id, value: "prop_change", timestamp: Date.now() });
     }
     dispatch(action);
-  }
+  }, []);
 
   if (!isLoaded) {
     return (
@@ -1329,9 +1332,57 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         </main>
     );
   }
+  
+  const contextValue = useMemo(() => ({
+    state, 
+    dispatch: enhancedDispatch, 
+    addNewForm, 
+    forms: state.forms, 
+    categories: state.categories, 
+    sites: state.sites, 
+    tasks: state.tasks, 
+    submissions: state.submissions, 
+    activeForm, 
+    sections, 
+    setSections, 
+    rules, 
+    updateRules, 
+    workflows, 
+    updateWorkflows, 
+    configurations, 
+    updateConfigurations, 
+    datasets, 
+    updateDatasets, 
+    clipboard: state.clipboard, 
+    formState: state.formState, 
+    setFormState, 
+    updateFormState, 
+    activePopupId, 
+    setActivePopupId
+  }), [
+    state,
+    enhancedDispatch,
+    addNewForm,
+    activeForm,
+    sections,
+    setSections,
+    rules,
+    updateRules,
+    workflows,
+    updateWorkflows,
+    configurations,
+    updateConfigurations,
+    datasets,
+    updateDatasets,
+    setFormState,
+    updateFormState,
+    activePopupId,
+    setActivePopupId
+  ]);
+
 
   return (
-    <BuilderContext.Provider value={{ state, dispatch: enhancedDispatch, addNewForm, forms: state.forms, categories: state.categories, sites: state.sites, tasks: state.tasks, submissions: state.submissions, activeForm, sections, setSections, rules, updateRules, workflows, updateWorkflows, configurations, updateConfigurations, datasets, updateDatasets, clipboard: state.clipboard, formState: state.formState, setFormState, updateFormState, activePopupId, setActivePopupId }}>
+    <BuilderContext.Provider value={contextValue}>
       {children}
     </BuilderContext.Provider>
   );
@@ -1344,5 +1395,7 @@ export const useBuilder = () => {
   }
   return context;
 };
+
+    
 
     
