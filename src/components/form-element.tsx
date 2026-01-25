@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset } from "@/lib/types";
@@ -91,9 +90,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
                     .then(fetchedData => {
                         if (isMounted) {
                             const arrayData = findFirstArray(fetchedData) || [];
-                             if (JSON.stringify(arrayData) !== JSON.stringify(value)) {
-                                onValueChange(element.id, arrayData);
-                            }
+                            onValueChange(element.id, arrayData);
                         }
                     })
                     .finally(() => {
@@ -102,7 +99,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
             } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
                 const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
                 const data = localDataset?.data || [];
-                // Compare stringified versions to avoid infinite loops from object reference changes
+                // Only update if the data is different to prevent overwriting user input
                 if (JSON.stringify(data) !== JSON.stringify(value)) {
                     onValueChange(element.id, data);
                 }
@@ -114,8 +111,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
         return () => {
             isMounted = false;
         };
-    // Stringify `value` and `datasets` to ensure the effect re-runs on data changes, not just reference changes.
-    }, [element.apiUrl, element.dataSource, element.localDatasetName, JSON.stringify(datasets), element.id, onValueChange, JSON.stringify(value)]);
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, JSON.stringify(datasets), element.id]);
 
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
@@ -379,13 +375,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
     const relevantRules = allRules.filter(r => r?.behaviors.some(b => (b.type === 'show' || b.type === 'hide') && b.targetElementId === element.id));
     
-    const hideRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'hide'));
-    const showRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'show'));
-
     // An active hide rule always wins.
-    if (hideRules.some(r => evaluateRule(r, contextToCheck, configurations, sections))) {
+    if (relevantRules.some(r => r.behaviors.some(b => b.type === 'hide') && evaluateRule(r, contextToCheck, configurations, sections))) {
         return false;
     }
+
+    const showRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'show'));
 
     // If there are show rules defined for this element, its visibility is determined *only* by them.
     if (showRules.length > 0) {
@@ -1535,15 +1530,4 @@ const alignmentClasses = {
 
     
 
-
-
-
-
-
-
-
-
-
-
-
-
+    
