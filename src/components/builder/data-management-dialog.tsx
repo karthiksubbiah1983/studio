@@ -44,7 +44,7 @@ const TagInput = ({ value: initialValue, onChange }: { value?: string[], onChang
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-2 p-1 border rounded-md min-h-[40px]">
+        <div className="flex flex-wrap items-center gap-2 p-1 border rounded-md min-h-[40px] bg-white">
             {tags.map(tag => (
                 <Badge key={tag} variant="secondary" className="group text-sm">
                     {tag}
@@ -69,8 +69,7 @@ const TagInput = ({ value: initialValue, onChange }: { value?: string[], onChang
 };
 
 const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate: (updated: Dataset) => void }) => {
-  const jsonString = useMemo(() => JSON.stringify(dataset, null, 2), [dataset]);
-
+  
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdate({ ...dataset, name: e.target.value });
   };
@@ -133,126 +132,114 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
   };
 
   return (
-    <Tabs defaultValue="editor" className="h-full flex flex-col">
-        <div className="px-6 pt-6 pb-2 shrink-0">
-             <div className="space-y-1.5">
-                <Label htmlFor="dataset-name">Dataset Name</Label>
-                <Input id="dataset-name" value={dataset.name} onChange={handleNameChange} className="bg-white font-medium text-lg" />
-            </div>
-            <TabsList className="grid w-full grid-cols-2 mt-4">
-                <TabsTrigger value="editor">Editor</TabsTrigger>
-                <TabsTrigger value="json">JSON</TabsTrigger>
-            </TabsList>
+    <ScrollArea className="h-full">
+      <div className="space-y-6 p-6">
+        <div>
+            <Label>Dataset Name</Label>
+            <Input id="dataset-name" value={dataset.name} onChange={handleNameChange} className="mt-1 bg-white font-medium text-lg" />
         </div>
-        <TabsContent value="editor" className="flex-1 overflow-y-auto px-6 pb-6">
-             <div className="space-y-6">
-                <div className="space-y-2">
-                    <h3 className="font-semibold text-primary">Columns</h3>
-                    <div className="border rounded-md">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-[40%]">Header</TableHead>
-                                    <TableHead className="w-[40%]">Key</TableHead>
-                                    <TableHead className="w-[20%]">Type</TableHead>
-                                    <TableHead className="w-10"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {dataset.columns.map(col => (
-                                    <TableRow key={col.id}>
-                                        <TableCell>
-                                            <Input defaultValue={col.header} onBlur={(e) => handleUpdateColumn(col.id, 'header', e.target.value)} className="h-8"/>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Input defaultValue={col.key} onBlur={(e) => handleUpdateColumn(col.id, 'key', e.target.value.replace(/\s+/g, '_').toLowerCase())} className="h-8"/>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Select value={col.type || 'text'} onValueChange={(value) => handleUpdateColumn(col.id, 'type', value)}>
-                                                <SelectTrigger className="h-8 text-xs">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="text">Text</SelectItem>
-                                                    <SelectItem value="array">List</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteColumn(col.id)}>
-                                                <Trash className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                        <div className="p-2 border-t">
-                            <Button variant="outline" size="sm" onClick={handleAddColumn} className="w-full">
-                                <Plus className="mr-2 h-4 w-4" /> Add Column
-                            </Button>
-                        </div>
-                    </div>
-                </div>
 
-                <div className="space-y-2">
-                    <h3 className="font-semibold text-primary">Data</h3>
-                    <div className="border rounded-md">
-                        <ScrollArea className="max-h-96">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        {dataset.columns.map(col => <TableHead key={col.id}>{col.header}</TableHead>)}
-                                        <TableHead className="w-20 text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {dataset.data.map((row, rowIndex) => (
-                                        <TableRow key={rowIndex}>
-                                            {dataset.columns.map(col => (
-                                                <TableCell key={col.id}>
-                                                    {col.type === 'array' ? (
-                                                        <TagInput 
-                                                            value={row[col.key]}
-                                                            onChange={(newValue) => handleUpdateCell(rowIndex, col.key, newValue)}
-                                                        />
-                                                    ) : (
-                                                        <Input
-                                                            defaultValue={row[col.key] || ''}
-                                                            onBlur={(e) => handleUpdateCell(rowIndex, col.key, e.target.value)}
-                                                            className="h-8"
-                                                        />
-                                                    )}
-                                                </TableCell>
-                                            ))}
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => handleCopyRow(rowIndex)}>
-                                                    <Copy className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
-                                                    <Trash className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </ScrollArea>
-                        <div className="p-2 border-t">
-                            <Button variant="outline" size="sm" onClick={handleAddRow} className="w-full">
-                                <Plus className="mr-2 h-4 w-4" /> Add Row
-                            </Button>
-                        </div>
-                    </div>
-                </div>
+        <div className="space-y-4">
+            <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
+                <h3 className="font-semibold text-primary">Columns</h3>
+                <Button variant="outline" size="sm" onClick={handleAddColumn}>
+                    <Plus className="mr-2 h-4 w-4" /> Column
+                </Button>
             </div>
-        </TabsContent>
-        <TabsContent value="json" className="flex-1 overflow-y-auto px-6 pb-6">
-            <ScrollArea className="h-full rounded-md border bg-muted/50">
-                 <pre className="p-4 text-xs">{jsonString}</pre>
-            </ScrollArea>
-        </TabsContent>
-    </Tabs>
+            <div className="border bg-white p-4 rounded-md">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[40%]">Header</TableHead>
+                            <TableHead className="w-[40%]">Key</TableHead>
+                            <TableHead className="w-[20%]">Type</TableHead>
+                            <TableHead className="w-10"></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {dataset.columns.map(col => (
+                            <TableRow key={col.id}>
+                                <TableCell>
+                                    <Input defaultValue={col.header} onBlur={(e) => handleUpdateColumn(col.id, 'header', e.target.value)} className="h-8"/>
+                                </TableCell>
+                                <TableCell>
+                                    <Input defaultValue={col.key} onBlur={(e) => handleUpdateColumn(col.id, 'key', e.target.value.replace(/\s+/g, '_').toLowerCase())} className="h-8"/>
+                                </TableCell>
+                                <TableCell>
+                                    <Select value={col.type || 'text'} onValueChange={(value) => handleUpdateColumn(col.id, 'type', value)}>
+                                        <SelectTrigger className="h-8 text-xs">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="text">Text</SelectItem>
+                                            <SelectItem value="array">List</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </TableCell>
+                                <TableCell>
+                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteColumn(col.id)}>
+                                        <Trash className="h-4 w-4 text-destructive" />
+                                    </Button>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </div>
+        
+        <div className="space-y-4">
+            <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
+                <h3 className="font-semibold text-primary">Data Rows</h3>
+                <Button variant="outline" size="sm" onClick={handleAddRow}>
+                    <Plus className="mr-2 h-4 w-4" /> Row
+                </Button>
+            </div>
+             <div className="border bg-white rounded-md">
+                <ScrollArea className="max-h-96">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                {dataset.columns.map(col => <TableHead key={col.id}>{col.header}</TableHead>)}
+                                <TableHead className="w-20 text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {dataset.data.map((row, rowIndex) => (
+                                <TableRow key={rowIndex}>
+                                    {dataset.columns.map(col => (
+                                        <TableCell key={col.id}>
+                                            {col.type === 'array' ? (
+                                                <TagInput 
+                                                    value={row[col.key]}
+                                                    onChange={(newValue) => handleUpdateCell(rowIndex, col.key, newValue)}
+                                                />
+                                            ) : (
+                                                <Input
+                                                    defaultValue={row[col.key] || ''}
+                                                    onBlur={(e) => handleUpdateCell(rowIndex, col.key, e.target.value)}
+                                                    className="h-8"
+                                                />
+                                            )}
+                                        </TableCell>
+                                    ))}
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => handleCopyRow(rowIndex)}>
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
+                                            <Trash className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </ScrollArea>
+             </div>
+        </div>
+      </div>
+    </ScrollArea>
   );
 });
 DatasetEditor.displayName = "DatasetEditor";
