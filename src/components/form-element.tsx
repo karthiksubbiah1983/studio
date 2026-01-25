@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset } from "@/lib/types";
@@ -99,10 +100,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
             } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
                 const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
                 const data = localDataset?.data || [];
-                // Only update if the data is different to prevent overwriting user input
-                if (JSON.stringify(data) !== JSON.stringify(value)) {
-                    onValueChange(element.id, data);
-                }
+                onValueChange(element.id, data);
             }
         };
 
@@ -111,7 +109,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
         return () => {
             isMounted = false;
         };
-    }, [element.apiUrl, element.dataSource, element.localDatasetName, JSON.stringify(datasets), element.id]);
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, onValueChange]);
 
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
@@ -373,15 +371,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
     const allRules = rules;
 
-    const relevantRules = allRules.filter(r => r?.behaviors.some(b => (b.type === 'show' || b.type === 'hide') && b.targetElementId === element.id));
-    
     // An active hide rule always wins.
-    if (relevantRules.some(r => r.behaviors.some(b => b.type === 'hide') && evaluateRule(r, contextToCheck, configurations, sections))) {
+    const hideIsActive = allRules.some(r => r?.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id) && evaluateRule(r, contextToCheck, configurations, sections));
+    if (hideIsActive) {
         return false;
     }
 
-    const showRules = relevantRules.filter(r => r.behaviors.some(b => b.type === 'show'));
-
+    const showRules = allRules.filter(r => r?.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
     // If there are show rules defined for this element, its visibility is determined *only* by them.
     if (showRules.length > 0) {
         return showRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
@@ -1166,13 +1162,21 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         break;
     }
     case "RadioGroup": {
-      let radioOptions = options || [];
+      let radioOptions: string[] = [];
+      let useDynamicOptions = false;
+
       if (isTableCell && element.optionsDataKey && rowContext) {
           const dynamicRowOptions = getNestedValue(rowContext, element.optionsDataKey);
           if (Array.isArray(dynamicRowOptions)) {
-              radioOptions = dynamicRowOptions;
+              radioOptions = dynamicRowOptions.map(String);
+              useDynamicOptions = true;
           }
       }
+      
+      if (!useDynamicOptions && Array.isArray(element.options)) {
+          radioOptions = element.options;
+      }
+      
       content = (
         <div id={element.id}>
           {renderLabelWithPopup()}
