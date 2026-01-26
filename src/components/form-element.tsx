@@ -366,26 +366,23 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     setComboboxInputValue(value || "");
   }, [value]);
   
- const isVisible = useMemo(() => {
+  const isVisible = useMemo(() => {
     if (!formState) return !element.hidden;
 
-    // A rule that hides this element
-    const hideIsActive = rules.some(r =>
-        r?.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id) &&
-        evaluateRule(r, formState, configurations, sections, isTableCell ? rowContext : undefined)
-    );
-    if (hideIsActive) return false;
-    
-    // A rule that shows this element
-    const showRules = rules.filter(r => r?.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
-    if (showRules.length > 0) {
-        // If there's at least one "show" rule, the element is only visible if one of them is met.
-        return showRules.some(r => evaluateRule(r, formState, configurations, sections, isTableCell ? rowContext : undefined));
+    // Inside a table, visibility is pre-calculated and stored in the row context.
+    if (isTableCell && rowContext?._internal?.visibility) {
+        return rowContext._internal.visibility[element.id] ?? !element.hidden;
+    }
+
+    // For non-table elements, use the centrally managed state.
+    const elementState = formState[element.id];
+    if (elementState && typeof elementState.isVisible === 'boolean') {
+        return elementState.isVisible;
     }
     
-    // Default visibility if no specific rules apply
+    // Fallback for initial render or elements not yet in state
     return !element.hidden;
-}, [formState, rowContext, isTableCell, element.id, element.hidden, rules, configurations, sections]);
+}, [formState, isTableCell, rowContext, element.id, element.hidden]);
 
 
   const isDisabled = useMemo(() => {
@@ -1535,4 +1532,5 @@ const alignmentClasses = {
     
 
     
+
 

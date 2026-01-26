@@ -1134,125 +1134,51 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
   // Reactive rules engine
   useEffect(() => {
-    if (!isLoaded || !activeForm || !userDrivenState) return;
+    if (!isLoaded || !activeForm) return;
 
     const runRuleEngine = () => {
-        let nextFormState = getInitialFormState(sections, configurations);
-        let popupToShowId: string | null = null;
-        
-        // Preserve user-driven input values from the previous state.
-        for (const key in state.formState) {
-            if (Object.prototype.hasOwnProperty.call(state.formState, key) && !key.startsWith('config::')) {
-                const oldStateForKey = state.formState[key];
-                if (oldStateForKey === undefined) continue;
-
-                const element = findElementRecursive(sections, key);
-                
-                // Special handling for EditableTable to respect defaultRowCount changes
-                if (element && element.type === 'EditableTable') {
-                    const newRows = nextFormState[key]?.value || [];
-                    const oldRows = oldStateForKey.value || [];
-                    const newDefaultRowCount = element.defaultRowCount || 0;
-
-                    if (newDefaultRowCount > oldRows.length) {
-                        const rowsToAdd = newDefaultRowCount - oldRows.length;
-                        const newEmptyRows = [];
-                        for (let i = 0; i < rowsToAdd; i++) {
-                            const newRow: Record<string, any> = { _rowId: crypto.randomUUID(), _previewData: {} };
-                            element.columns?.forEach(col => {
-                                if (col.element.key) {
-                                    newRow[col.element.key] = col.element.defaultValue ?? '';
-                                }
-                            });
-                            newEmptyRows.push(newRow);
-                        }
-                        nextFormState[key] = { ...oldStateForKey, value: [...oldRows, ...newEmptyRows] };
-                    } else if (newDefaultRowCount < oldRows.length && oldRows.length > 0) {
-                         // Only truncate if the user hasn't added more rows than the new default
-                        nextFormState[key] = { ...oldStateForKey, value: oldRows.slice(0, newDefaultRowCount) };
-                    }
-                    else {
-                        nextFormState[key] = oldStateForKey;
-                    }
-
-                } else {
-                    // For all other elements, just preserve the old state.
-                    nextFormState[key] = oldStateForKey;
-                }
-            }
-        }
-        
-        if (!rules || rules.length === 0) {
-            dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
-            dispatch({ type: "SET_ACTIVE_POPUP", payload: null });
-            return;
-        }
-
+        let nextFormState = { ...state.formState };
         const allElements = getAllElements(sections);
-        allElements.forEach(element => {
-            if (element.type === 'List' && element.enableScoring) {
-                const listState = nextFormState[element.id];
-                const selection = Array.isArray(listState?.value) ? listState.value : [];
-                const score = selection.length * (element.scorePerItem || 0);
-                const scoreId = `${element.id}::score`;
-                nextFormState[scoreId] = { ...nextFormState[scoreId], value: score };
-            }
-        });
 
-        const activeBehaviors = new Map<string, RuleBehavior[]>();
-        const applyBehavior = (behavior: RuleBehavior, rowContext?: any) => {
-            const { type, targetElementId, targetConfigurationKey } = behavior;
-            let targetId = targetElementId;
-            if (type === 'set_configuration' && targetConfigurationKey) {
-                targetId = `config::${targetConfigurationKey}`;
-            }
-            if (!targetId) return;
+        // This function determines the visibility of a single element
+        const getElementVisibility = (element: FormElementInstance, rowContext?: any): boolean => {
+            const context = rowContext ? { ...state.formState, ...rowContext } : state.formState;
 
-            if (rowContext && findElementRecursive(sections, targetId)?.isTableColumn) {
-                const currentTargetState = rowContext[targetId] || {};
-                if (type === 'set_value') {
-                    rowContext[targetId] = { ...currentTargetState, value: behavior.value };
-                }
-                const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
-                if (newVisibility !== undefined) {
-                    rowContext[targetId] = { ...currentTargetState, isVisible: newVisibility };
-                }
-            } else {
-                if (!activeBehaviors.has(targetId)) {
-                    activeBehaviors.set(targetId, []);
-                }
-                activeBehaviors.get(targetId)!.push(behavior);
+            const hideRuleMet = rules.some(r =>
+                r.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id) &&
+                evaluateRule(r, context, configurations, sections, rowContext)
+            );
+            if (hideRuleMet) return false;
+
+            const showRules = rules.filter(r => r.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
+            if (showRules.length > 0) {
+                return showRules.some(r => evaluateRule(r, context, configurations, sections, rowContext));
             }
+
+            return !element.hidden;
         };
 
-        allElements.filter(el => el.type === 'Popup').forEach(popupEl => {
-            if (popupEl.triggerRuleId) {
-                const rule = rules.find(r => r.id === popupEl.triggerRuleId);
-                if (rule && evaluateRule(rule, nextFormState, configurations, sections)) {
-                    if (!popupToShowId) {
-                         popupToShowId = popupEl.id;
-                    }
+        // Recalculate visibility for all elements
+        allElements.forEach(element => {
+            if (element.type === 'EditableTable' && state.formState[element.id]?.value) {
+                // For tables, we need to re-evaluate visibility for each column in each row
+                const newRows = state.formState[element.id].value.map((row: any) => {
+                    const newRow = { ...row, _internal: { ...row._internal, visibility: {} } };
+                    element.columns?.forEach(col => {
+                        const isVisible = getElementVisibility(col.element, newRow);
+                        newRow._internal.visibility[col.element.id] = isVisible;
+                    });
+                    return newRow;
+                });
+                nextFormState[element.id] = { ...state.formState[element.id], value: newRows };
+            } else {
+                const isVisible = getElementVisibility(element);
+                if (nextFormState[element.id]) {
+                    nextFormState[element.id].isVisible = isVisible;
+                } else {
+                    nextFormState[element.id] = { value: undefined, isVisible };
                 }
             }
-        });
-        
-        dispatch({ type: "SET_ACTIVE_POPUP", payload: popupToShowId });
-        
-        activeBehaviors.forEach((behaviors, targetId) => {
-            const currentTargetState = nextFormState[targetId] || {};
-            let finalState = { ...currentTargetState };
-
-            for (const behavior of behaviors) {
-                const { type, value } = behavior;
-                if (type === 'set_value' || type === 'set_configuration') {
-                    finalState.value = value;
-                }
-                const newVisibility = type === 'show' ? true : type === 'hide' ? false : undefined;
-                if (newVisibility !== undefined) {
-                    finalState.isVisible = newVisibility;
-                }
-            }
-            nextFormState[targetId] = finalState;
         });
         
         if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
@@ -1262,7 +1188,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
     runRuleEngine();
     
-  }, [userDrivenState, activeForm?.id, sections, rules, configurations, isLoaded]);
+  }, [userDrivenState, activeForm?.id, sections, rules, configurations, isLoaded, state.formState]);
   
  const addNewForm = useCallback(async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
     const { title, description, categoryId, subCategoryId } = payload;
@@ -1433,5 +1359,6 @@ export const useBuilder = () => {
     
 
     
+
 
 
