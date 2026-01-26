@@ -14,18 +14,24 @@ const isDateRelated = (element: FormElementInstance | Section | null) => {
 function checkConditionAgainstValue(
     sourceValue: any,
     condition: Condition,
-    context: { [key: string]: any },
+    globalContext: { [key: string]: any },
     allElements: (FormElementInstance | Section)[],
-    configurations?: Configuration[]
+    configurations: Configuration[] | undefined,
+    rowContext?: any
 ) {
     const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
 
     let comparisonValue: any;
     // Determine the comparison value based on its type
     if (condition.comparisonType === 'field' && condition.comparisonElementId) {
-        const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId) as FormElementInstance | undefined;
-        if (comparisonElement && context[comparisonElement.id]) {
-            comparisonValue = context[comparisonElement.id].value;
+        const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
+
+        if (comparisonElement && comparisonElement.isTableColumn && rowContext) {
+            // If the comparison is a table column and we have row context, use it.
+            comparisonValue = getNestedValue(rowContext, comparisonElement.key!);
+        } else if (comparisonElement && globalContext[comparisonElement.id]) {
+            // Otherwise, use the global context as before.
+            comparisonValue = globalContext[comparisonElement.id].value;
         }
     } else {
         comparisonValue = condition.value;
@@ -98,22 +104,26 @@ export const evaluateSingleCondition = (
 ): boolean => {
     const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
 
+    // This function passes the rowContext down to the worker if it exists.
+    const workerFunction = (sourceValue: any) => checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, rowContext);
+
     // Case 1: The condition's source is a table column.
     if (sourceElement && sourceElement.isTableColumn) {
         // We are evaluating FOR a target inside a row, so use the specific row's context.
         if (rowContext) {
             const sourceValue = getNestedValue(rowContext, sourceElement.key!);
-            return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations);
+            return workerFunction(sourceValue);
         }
         // We are evaluating FOR a target outside a row, so we check if ANY row meets the condition.
         else {
             const parentTable = findParentTable(allElements, sourceElement.id);
             if (parentTable && globalContext[parentTable.id]?.value) {
                 const tableRows = globalContext[parentTable.id].value as any[];
+                // Iterate all rows. For each row, check the condition.
+                // The `rowContext` for this check is the iterated `row` itself.
                 return tableRows.some(row => {
                     const rowValue = getNestedValue(row, sourceElement.key!);
-                    // When checking a row, the `rowContext` for the check is the row itself.
-                    return checkConditionAgainstValue(rowValue, condition, globalContext, allElements, configurations);
+                    return checkConditionAgainstValue(rowValue, condition, globalContext, allElements, configurations, row);
                 });
             }
             return false;
@@ -128,7 +138,7 @@ export const evaluateSingleCondition = (
              // Handle other source types like date, config etc.
              sourceValue = condition.sourceValue; // Simplified for brevity
         }
-        return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations);
+        return workerFunction(sourceValue);
     }
 }
 
