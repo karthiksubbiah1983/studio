@@ -95,7 +95,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
         case "Checkbox":
             return { ...baseElement, label: "Checkbox Field", key: key, required: false };
         case "RadioGroup":
-             return { ...baseElement, label: "Radio Group", options: ["Option 1", "Option 2"], direction: 'vertical' };
+             return { ...baseElement, label: "Radio Group", options: ["Option 1", "Option 2"], direction: 'vertical', defaultValue: undefined };
         case "DatePicker":
             return { ...baseElement, label: "Date Picker" };
         case "Display":
