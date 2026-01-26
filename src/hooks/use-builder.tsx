@@ -1137,20 +1137,50 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (!isLoaded || !activeForm || !userDrivenState) return;
 
     const runRuleEngine = () => {
-        // 1. Create a fresh state object based on the form's default structure.
         let nextFormState = getInitialFormState(sections, configurations);
-
-        // 2. Preserve user-driven input values from the previous state.
+        let popupToShowId: string | null = null;
+        
+        // Preserve user-driven input values from the previous state.
         for (const key in state.formState) {
             if (Object.prototype.hasOwnProperty.call(state.formState, key) && !key.startsWith('config::')) {
-                // If a user has input a value, keep it.
-                if (state.formState[key]?.value !== undefined) {
-                    nextFormState[key] = { ...nextFormState[key], ...state.formState[key] };
+                const oldStateForKey = state.formState[key];
+                if (oldStateForKey === undefined) continue;
+
+                const element = findElementRecursive(sections, key);
+                
+                // Special handling for EditableTable to respect defaultRowCount changes
+                if (element && element.type === 'EditableTable') {
+                    const newRows = nextFormState[key]?.value || [];
+                    const oldRows = oldStateForKey.value || [];
+                    const newDefaultRowCount = element.defaultRowCount || 0;
+
+                    if (newDefaultRowCount > oldRows.length) {
+                        const rowsToAdd = newDefaultRowCount - oldRows.length;
+                        const newEmptyRows = [];
+                        for (let i = 0; i < rowsToAdd; i++) {
+                            const newRow: Record<string, any> = { _rowId: crypto.randomUUID(), _previewData: {} };
+                            element.columns?.forEach(col => {
+                                if (col.element.key) {
+                                    newRow[col.element.key] = col.element.defaultValue ?? '';
+                                }
+                            });
+                            newEmptyRows.push(newRow);
+                        }
+                        nextFormState[key] = { ...oldStateForKey, value: [...oldRows, ...newEmptyRows] };
+                    } else if (newDefaultRowCount < oldRows.length && oldRows.length > 0) {
+                         // Only truncate if the user hasn't added more rows than the new default
+                        nextFormState[key] = { ...oldStateForKey, value: oldRows.slice(0, newDefaultRowCount) };
+                    }
+                    else {
+                        nextFormState[key] = oldStateForKey;
+                    }
+
+                } else {
+                    // For all other elements, just preserve the old state.
+                    nextFormState[key] = oldStateForKey;
                 }
             }
         }
-        
-        let popupToShowId: string | null = null;
         
         if (!rules || rules.length === 0) {
             dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
@@ -1158,7 +1188,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             return;
         }
 
-        // 3. Pre-calculate scores for all relevant lists
         const allElements = getAllElements(sections);
         allElements.forEach(element => {
             if (element.type === 'List' && element.enableScoring) {
@@ -1170,7 +1199,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
         });
 
-        // 4. Create a map to collect all active behaviors for each target.
         const activeBehaviors = new Map<string, RuleBehavior[]>();
         const applyBehavior = (behavior: RuleBehavior, rowContext?: any) => {
             const { type, targetElementId, targetConfigurationKey } = behavior;
@@ -1180,7 +1208,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
             if (!targetId) return;
 
-            // In table rules, behaviors apply directly to the row's context.
             if (rowContext && findElementRecursive(sections, targetId)?.isTableColumn) {
                 const currentTargetState = rowContext[targetId] || {};
                 if (type === 'set_value') {
@@ -1191,7 +1218,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
                     rowContext[targetId] = { ...currentTargetState, isVisible: newVisibility };
                 }
             } else {
-                 // For global elements, collect all behaviors.
                 if (!activeBehaviors.has(targetId)) {
                     activeBehaviors.set(targetId, []);
                 }
@@ -1199,12 +1225,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             }
         };
 
-        // 5. Evaluate all rules and apply their behaviors.
         allElements.filter(el => el.type === 'Popup').forEach(popupEl => {
             if (popupEl.triggerRuleId) {
                 const rule = rules.find(r => r.id === popupEl.triggerRuleId);
                 if (rule && evaluateRule(rule, nextFormState, configurations, sections)) {
-                    // Only show the first popup whose rule is met.
                     if (!popupToShowId) {
                          popupToShowId = popupEl.id;
                     }
@@ -1214,7 +1238,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         
         dispatch({ type: "SET_ACTIVE_POPUP", payload: popupToShowId });
         
-        // 6. Apply all collected global behaviors to the nextFormState.
         activeBehaviors.forEach((behaviors, targetId) => {
             const currentTargetState = nextFormState[targetId] || {};
             let finalState = { ...currentTargetState };
@@ -1232,7 +1255,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             nextFormState[targetId] = finalState;
         });
         
-        // 7. Compare and dispatch if the state has changed.
         if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
              dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
         }
@@ -1411,4 +1433,5 @@ export const useBuilder = () => {
     
 
     
+
 
