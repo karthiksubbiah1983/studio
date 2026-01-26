@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link } from "lucide-react";
+import { X, Plus, icons, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link, ArrowUp, ArrowDown } from "lucide-react";
 import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig, DataGridColumn, CustomOption } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -338,6 +338,14 @@ function ColumnManager({
     const handleUpdateEditingColumn = (updatedColumn: TableColumn | ListItemElement) => {
         setEditingColumn(updatedColumn);
     };
+    
+    const handleMove = (index: number, direction: 'up' | 'down') => {
+        const newColumns = [...columns];
+        const [movedColumn] = newColumns.splice(index, 1);
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        newColumns.splice(newIndex, 0, movedColumn);
+        onUpdate(newColumns);
+    };
 
     const isListItem = columnType === 'listitem';
 
@@ -345,10 +353,16 @@ function ColumnManager({
         <div className="flex flex-col gap-2">
             <Label>{isListItem ? 'Item Layout' : 'Columns'}</Label>
             <div className="flex flex-col gap-2 p-2 border rounded-md">
-                {columns.map(col => (
+                {columns.map((col, index) => (
                     <div key={col.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
                         <span className="text-sm font-medium">{isListItem ? (col as ListItemElement).element.label : (col as TableColumn).label}</span>
                         <div className="flex items-center gap-1">
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'up')} disabled={index === 0}>
+                                <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'down')} disabled={index === columns.length - 1}>
+                                <ArrowDown className="h-4 w-4" />
+                            </Button>
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditColumn(col)}>
                                 <Edit className="h-4 w-4" />
                             </Button>
@@ -550,15 +564,29 @@ function DataGridColumnManager({
   const handleDelete = (id: string) => {
     onUpdate(columns.filter(c => c.id !== id));
   };
+  
+  const handleMove = (index: number, direction: 'up' | 'down') => {
+    const newColumns = [...columns];
+    const [movedColumn] = newColumns.splice(index, 1);
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    newColumns.splice(newIndex, 0, movedColumn);
+    onUpdate(newColumns);
+  };
 
   return (
     <div className="flex flex-col gap-2">
       <Label>Columns</Label>
       <div className="flex flex-col gap-2 p-2 border rounded-md">
-        {columns.map(col => (
+        {columns.map((col, index) => (
           <div key={col.id} className="flex items-center justify-between p-2 rounded-md bg-muted/50">
             <span className="text-sm font-medium">{col.header}</span>
             <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'up')} disabled={index === 0}>
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'down')} disabled={index === columns.length - 1}>
+                <ArrowDown className="h-4 w-4" />
+              </Button>
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(col)}>
                 <Edit className="h-4 w-4" />
               </Button>
@@ -2318,5 +2346,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
