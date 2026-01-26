@@ -1976,12 +1976,22 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {commonFields}
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="defaultValue">Default Value</Label>
-                                <Input 
-                                    id="defaultValue" 
-                                    value={element.defaultValue || ''} 
-                                    onChange={(e) => updateProperty('defaultValue', e.target.value)} 
-                                    placeholder="Type option to be default"
-                                />
+                                <Select
+                                    value={element.defaultValue || ""}
+                                    onValueChange={(value) => updateProperty('defaultValue', value === 'none' ? undefined : value)}
+                                >
+                                    <SelectTrigger id="defaultValue">
+                                        <SelectValue placeholder="Select a default option" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="none">No default</SelectItem>
+                                        {element.options?.map((option, index) => (
+                                            <SelectItem key={index} value={option}>
+                                                {option}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <PopupSettings element={element} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
@@ -2365,6 +2375,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 
