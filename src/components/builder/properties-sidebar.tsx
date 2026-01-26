@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { X, Plus, icons, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link, ArrowUp, ArrowDown } from "lucide-react";
+import { X, Plus, icons, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link, ChevronUp, ChevronDown } from "lucide-react";
 import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig, DataGridColumn, CustomOption } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -358,10 +358,10 @@ function ColumnManager({
                         <span className="text-sm font-medium">{isListItem ? (col as ListItemElement).element.label : (col as TableColumn).label}</span>
                         <div className="flex items-center gap-1">
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'up')} disabled={index === 0}>
-                                <ArrowUp className="h-4 w-4" />
+                                <ChevronUp className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'down')} disabled={index === columns.length - 1}>
-                                <ArrowDown className="h-4 w-4" />
+                                <ChevronDown className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditColumn(col)}>
                                 <Edit className="h-4 w-4" />
@@ -582,10 +582,10 @@ function DataGridColumnManager({
             <span className="text-sm font-medium">{col.header}</span>
             <div className="flex items-center gap-1">
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'up')} disabled={index === 0}>
-                <ArrowUp className="h-4 w-4" />
+                <ChevronUp className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleMove(index, 'down')} disabled={index === columns.length - 1}>
-                <ArrowDown className="h-4 w-4" />
+                <ChevronDown className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEdit(col)}>
                 <Edit className="h-4 w-4" />
@@ -2346,6 +2346,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 
