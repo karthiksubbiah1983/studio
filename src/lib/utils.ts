@@ -291,23 +291,18 @@ export const evaluateSingleCondition = (
 ): boolean => {
     const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
 
-    // This function passes the rowContext down to the worker if it exists.
-    const workerFunction = (sourceValue: any) => checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, rowContext);
-
-    // Case 1: The condition's source is a table column.
+    // Case 1: Source is a table column
     if (sourceElement && sourceElement.isTableColumn) {
-        // We are evaluating FOR a target inside a row, so use the specific row's context.
+        // A) We are evaluating a rule FOR an element INSIDE A ROW (rowContext is provided).
         if (rowContext) {
             const sourceValue = getNestedValue(rowContext, sourceElement.key!);
-            return workerFunction(sourceValue);
-        }
-        // We are evaluating FOR a target outside a row, so we check if ANY row meets the condition.
+            return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, rowContext);
+        } 
+        // B) We are evaluating a rule FOR an element OUTSIDE THE TABLE.
         else {
             const parentTable = findParentTable(allElements, sourceElement.id);
             if (parentTable && globalContext[parentTable.id]?.value) {
                 const tableRows = globalContext[parentTable.id].value as any[];
-                // Iterate all rows. For each row, check the condition.
-                // The `rowContext` for this check is the iterated `row` itself.
                 return tableRows.some(row => {
                     const rowValue = getNestedValue(row, sourceElement.key!);
                     return checkConditionAgainstValue(rowValue, condition, globalContext, allElements, configurations, row);
@@ -316,7 +311,7 @@ export const evaluateSingleCondition = (
             return false;
         }
     }
-    // Case 2: The condition's source is a regular element, not in a table.
+    // Case 2: Source is a regular element (not in a table)
     else {
         let sourceValue: any;
         if (condition.sourceType === 'field' && sourceElement) {
@@ -325,7 +320,7 @@ export const evaluateSingleCondition = (
              // Handle other source types like date, config etc.
              sourceValue = condition.sourceValue; // Simplified for brevity
         }
-        return workerFunction(sourceValue);
+        return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, undefined);
     }
 }
 
