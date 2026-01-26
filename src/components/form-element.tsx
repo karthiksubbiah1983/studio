@@ -366,24 +366,26 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     setComboboxInputValue(value || "");
   }, [value]);
   
-  const isVisible = useMemo(() => {
-    const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
-    if (!contextToCheck) return !element.hidden;
+ const isVisible = useMemo(() => {
+    if (!formState) return !element.hidden;
 
-    const allRules = rules;
-
-    const hideIsActive = allRules.some(r => r?.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id) && evaluateRule(r, contextToCheck, configurations, sections));
-    if (hideIsActive) {
-        return false;
-    }
-
-    const showRules = allRules.filter(r => r?.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
+    // A rule that hides this element
+    const hideIsActive = rules.some(r =>
+        r?.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id) &&
+        evaluateRule(r, formState, configurations, sections, isTableCell ? rowContext : undefined)
+    );
+    if (hideIsActive) return false;
+    
+    // A rule that shows this element
+    const showRules = rules.filter(r => r?.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
     if (showRules.length > 0) {
-        return showRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
+        // If there's at least one "show" rule, the element is only visible if one of them is met.
+        return showRules.some(r => evaluateRule(r, formState, configurations, sections, isTableCell ? rowContext : undefined));
     }
     
+    // Default visibility if no specific rules apply
     return !element.hidden;
-  }, [formState, rowContext, isTableCell, element.id, element.hidden, rules, configurations, sections]);
+}, [formState, rowContext, isTableCell, element.id, element.hidden, rules, configurations, sections]);
 
 
   const isDisabled = useMemo(() => {
@@ -420,7 +422,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if (!contextToCheck || !rules) return { style, error };
 
     for (const rule of rules) {
-        const isRuleMet = evaluateRule(rule, contextToCheck, configurations, sections);
+        const isRuleMet = evaluateRule(rule, contextToCheck, configurations, sections, isTableCell ? rowContext : undefined);
 
         if (isRuleMet) {
             for (const behavior of rule.behaviors) {
@@ -1533,3 +1535,4 @@ const alignmentClasses = {
     
 
     
+
