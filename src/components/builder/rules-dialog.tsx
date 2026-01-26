@@ -32,6 +32,16 @@ const specialDateOptions = [
 ];
 const allStatuses: string[] = [...taskStatuses, 'Current Status'];
 
+const getElementDisplayName = (el: FormElementInstance | Section): string => {
+    const element = el as any;
+    if (element.label) return element.label;
+    if (element.title) return element.title;
+    if (element.key) return element.key;
+    if (element.type) return element.type;
+    return element.id;
+};
+
+
 const ConditionEditor = memo(({ 
     condition: initialCondition,
     onUpdateCondition,
@@ -146,7 +156,7 @@ const ConditionEditor = memo(({
                             <SelectTrigger><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                             <SelectContent>
                                 {selectableFields.map(el => (
-                                    <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
+                                    <SelectItem key={el.id} value={el.id}>{getElementDisplayName(el)}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -252,7 +262,7 @@ const ConditionEditor = memo(({
                         <SelectTrigger><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
                             {selectableFields.map(el => (
-                                <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
+                                <SelectItem key={el.id} value={el.id}>{getElementDisplayName(el)}</SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
@@ -417,7 +427,7 @@ const BehaviorEditor = memo(({
     , [selectableFields]);
 
     const targetField = selectableFields.find(f => f.id === behavior.targetElementId);
-    const selectedTargetFieldLabel = targetField ? `${(targetField as any).label || (targetField as Section).title}` : "Select target field...";
+    const selectedTargetFieldLabel = targetField ? getElementDisplayName(targetField) : "Select target field...";
 
 
     return (
@@ -459,7 +469,7 @@ const BehaviorEditor = memo(({
                             </SelectTrigger>
                             <SelectContent>
                                 {(behavior.type === 'set_value' ? valueSettingFields : behavior.type === 'show_popup' ? popupFields : selectableFields).map(el => (
-                                    <SelectItem key={el.id} value={el.id}>{(el as any).label || (el as Section).title}</SelectItem>
+                                    <SelectItem key={el.id} value={el.id}>{getElementDisplayName(el)}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -953,3 +963,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   );
 }
 
+
+
+    
