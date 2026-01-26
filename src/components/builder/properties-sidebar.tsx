@@ -2125,6 +2125,16 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="enable-search">Enable Search</Label>
                                 <Switch id="enable-search" checked={element.enableSearch} onCheckedChange={(checked) => updateProperty('enableSearch', checked)} />
                             </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="defaultRowCount">Default Row Count</Label>
+                                <Input
+                                    id="defaultRowCount"
+                                    type="number"
+                                    min="0"
+                                    value={element.defaultRowCount ?? 0}
+                                    onChange={(e) => updateProperty('defaultRowCount', e.target.value ? parseInt(e.target.value, 10) : 0)}
+                                />
+                            </div>
                              <div className="flex flex-col gap-2">
                                 <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                     <Label htmlFor="allow-user-add-rows">Allow User to Add Rows</Label>
@@ -2346,6 +2356,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 

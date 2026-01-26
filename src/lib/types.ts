@@ -189,6 +189,7 @@ export type FormElementInstance = {
     columns?: TableColumn[];
     maxRows?: number;
     allowUserToAddRows?: boolean;
+    defaultRowCount?: number;
     // For DataGrid / TaskHistory
     dataGridColumns?: DataGridColumn[];
     enableSearch?: boolean;

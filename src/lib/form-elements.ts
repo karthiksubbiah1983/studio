@@ -115,6 +115,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 ],
                 maxRows: undefined,
                 allowUserToAddRows: true,
+                defaultRowCount: 1,
                 key: 'editable_table_1'
             };
         case "DataGrid":

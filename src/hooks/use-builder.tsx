@@ -528,7 +528,18 @@ const getInitialFormState = (sections: Section[], configurations: Configuration[
         if ('id' in element && !state[element.id]) { // Ensure not to overwrite section state
              if (element.type === 'EditableTable') {
                 if (state[element.id] === undefined) {
-                    state[element.id] = { value: [], isVisible: !element.hidden };
+                    const defaultRowCount = element.defaultRowCount || 0;
+                    const initialRows = [];
+                    for (let i = 0; i < defaultRowCount; i++) {
+                        const newRow: Record<string, any> = { _rowId: crypto.randomUUID(), _previewData: {} };
+                        element.columns?.forEach(col => {
+                            if (col.element.key) {
+                                newRow[col.element.key] = col.element.defaultValue ?? '';
+                            }
+                        });
+                        initialRows.push(newRow);
+                    }
+                    state[element.id] = { value: initialRows, isVisible: !element.hidden };
                 }
             } else if (state[element.id] === undefined) {
                  state[element.id] = { 
@@ -1400,3 +1411,4 @@ export const useBuilder = () => {
     
 
     
+
