@@ -151,38 +151,33 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
     const state: { [key: string]: any } = {};
     const allElements = getAllElements(sections);
     allElements.forEach(element => {
-        if ('defaultValue' in element && element.defaultValue !== undefined) {
-             state[element.id] = { value: element.defaultValue, fullObject: undefined, isVisible: !element.hidden };
-        }
+        state[element.id] = { 
+            value: 'defaultValue' in element ? element.defaultValue : undefined, 
+            fullObject: undefined, 
+            isVisible: !element.hidden 
+        };
     });
     return state;
   }, [sections]);
 
-  // Use a local state for the preview, initialized correctly
   const [localFormState, setLocalFormState] = useState(() => {
     if (isControlled) {
       return initialState || {};
     }
-    const defaultState = getInitialState();
-    // Merge the global builder state on top of the default state
-    return { ...defaultState, ...builderContext.formState };
+    return getInitialState();
   });
 
-  // Re-initialize state if the sections change (e.g., loading a different form/version)
   useEffect(() => {
-    if (!isControlled) {
-      const defaultState = getInitialState();
-      setLocalFormState({ ...defaultState, ...builderContext.formState });
+    if (isControlled) {
+        setLocalFormState(initialState || {});
+    } else {
+        setLocalFormState(getInitialState());
     }
-  }, [sections, getInitialState, builderContext.formState, isControlled]);
+  }, [sections, getInitialState, isControlled, initialState]);
 
   const updateFormState = (elementId: string, value: any, fullObject?: any) => {
     const newState = { ...localFormState, [elementId]: { value, fullObject } };
     setLocalFormState(newState);
-
-    if (!isControlled) {
-      builderContext.updateFormState(elementId, value, fullObject);
-    }
   };
 
 
