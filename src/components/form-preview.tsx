@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -10,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { FormElementInstance, Section, Workflow, WorkflowAction } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -298,7 +297,3 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
     </div>
   );
 }
-
-    
-
-    
