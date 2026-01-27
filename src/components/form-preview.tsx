@@ -181,14 +181,6 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
     return state;
   });
 
-  // Re-initialize state if sections change (e.g. loading a new form version)
-  useEffect(() => {
-    if (!isControlled) {
-        setLocalFormState(getInitialState());
-    }
-  }, [sections, getInitialState, isControlled]);
-
-
   // Reactive rule engine for the preview
   useEffect(() => {
     const allElements = getAllElements(sections);
@@ -380,5 +372,3 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
     </div>
   );
 }
-
-    

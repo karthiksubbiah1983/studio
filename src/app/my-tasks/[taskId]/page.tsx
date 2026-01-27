@@ -36,8 +36,9 @@ export default function FillTaskPage({ params }: Props) {
 
   return (
       <FormPreview 
+        key={version.id}
         sections={version.sections} 
-        rules={version.rules} 
+        rules={version.rules || []} 
         configurations={version.configurations || []}
         showSubmitButton={true} 
         taskId={taskId} 

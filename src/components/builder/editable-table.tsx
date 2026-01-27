@@ -23,7 +23,7 @@ type Props = {
 };
 
 export function EditableTable({ element, value, onValueChange }: Props) {
-  const { sections } = useBuilder();
+  const { sections, rules, configurations } = useBuilder();
   const [searchTerm, setSearchTerm] = useState('');
   const [activePopupPreview, setActivePopupPreview] = useState<{ rowId: string, sections: any[] } | null>(null);
   const [activeInlinePreview, setActiveInlinePreview] = useState<{ rowId: string, sections: any[] } | null>(null);
@@ -181,7 +181,10 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                             <TableCell colSpan={(element.columns?.length || 0) + 1}>
                                 <div className="p-4 border rounded-md bg-accent/20">
                                 <FormPreview 
+                                    key={row._rowId}
                                     sections={activeInlinePreview.sections} 
+                                    rules={rules || []}
+                                    configurations={configurations || []}
                                     showSubmitButton={true}
                                     initialState={row._previewData}
                                     onSubmit={handleSavePreview(row._rowId)}
@@ -240,11 +243,14 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                         {isInlinePreviewOpen && activeInlinePreview && (
                         <div className="p-4 border-t">
                             <FormPreview 
-                            sections={activeInlinePreview.sections} 
-                            showSubmitButton={true}
-                            initialState={row._previewData}
-                            onSubmit={handleSavePreview(row._rowId)}
-                            submitButtonText="Save Checklist"
+                                key={row._rowId}
+                                sections={activeInlinePreview.sections}
+                                rules={rules || []}
+                                configurations={configurations || []}
+                                showSubmitButton={true}
+                                initialState={row._previewData}
+                                onSubmit={handleSavePreview(row._rowId)}
+                                submitButtonText="Save Checklist"
                             />
                         </div>
                         )}
@@ -276,7 +282,10 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                     <ScrollArea className="flex-1">
                         <div className="p-4">
                         <FormPreview 
+                            key={activePopupPreview.rowId}
                             sections={activePopupPreview.sections} 
+                            rules={rules || []}
+                            configurations={configurations || []}
                             showSubmitButton={true}
                             initialState={currentRowForPopupPreview?._previewData}
                             onSubmit={handleSavePreview(activePopupPreview.rowId)}
