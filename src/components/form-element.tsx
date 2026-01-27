@@ -82,8 +82,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const rows = Array.isArray(value) ? value : [];
-    const stableOnValueChange = useCallback(onValueChange, []);
-
+    
     useEffect(() => {
         let isMounted = true;
         
@@ -94,7 +93,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
                     .then(fetchedData => {
                         if (isMounted) {
                             const arrayData = findFirstArray(fetchedData) || [];
-                            stableOnValueChange(element.id, arrayData);
+                            onValueChange(element.id, arrayData);
                         }
                     })
                     .finally(() => {
@@ -103,7 +102,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
             } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
                 const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
                 const data = localDataset?.data || [];
-                stableOnValueChange(element.id, data);
+                onValueChange(element.id, data);
             }
         };
 
@@ -112,7 +111,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
         return () => {
             isMounted = false;
         };
-    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, stableOnValueChange]);
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, onValueChange]);
 
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
@@ -1540,12 +1539,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
-    
-
-    
-
-
-
-
-

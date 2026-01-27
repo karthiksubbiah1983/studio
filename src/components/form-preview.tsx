@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { FormElementInstance, Section, Workflow, WorkflowAction, Rule, Configuration } from "@/lib/types";
 import { cn, getAllElements } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -151,6 +151,11 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
   const [submissionJson, setSubmissionJson] = useState<string | null>(null);
 
   const isControlled = initialState !== undefined;
+
+  const onSubmitRef = useRef(onSubmit);
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
   
   const getInitialState = useCallback(() => {
     const state: { [key: string]: any } = {};
@@ -246,18 +251,18 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
 
 
   const updateFormState = useCallback((elementId: string, value: any, fullObject?: any) => {
-    if (isControlled) {
-        const newState = { ...localFormState, [elementId]: { ...localFormState[elementId], value, fullObject } };
-        if (onSubmit) {
-            onSubmit(newState);
+    setLocalFormState(prev => {
+        const newState = {
+            ...prev,
+            [elementId]: { ...(prev[elementId] || {}), value, fullObject },
+        };
+
+        if (isControlled && onSubmitRef.current) {
+            onSubmitRef.current(newState);
         }
-    } else {
-        setLocalFormState(prev => ({ 
-            ...prev, 
-            [elementId]: { ...(prev[elementId] || {}), value, fullObject } 
-        }));
-    }
-  }, [isControlled, localFormState, onSubmit]);
+        return newState;
+    });
+  }, [isControlled]);
 
 
   const processWorkflows = (submissionData: Record<string, any>) => {
