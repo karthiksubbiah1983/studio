@@ -12,14 +12,13 @@ import {
 import { FormElementRenderer } from "./form-element";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { FormElementInstance, Section, Workflow, WorkflowAction, Rule, Configuration } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, getAllElements } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { evaluateRule } from "./form-preview-helpers";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Zap } from "lucide-react";
-import { getAllElements, findElementRecursive } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 
@@ -160,27 +159,104 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
         state[element.id] = { 
             value: 'defaultValue' in element ? element.defaultValue : undefined, 
             fullObject: undefined, 
-            isVisible: !element.hidden 
         };
     });
     return state;
   }, [sections]);
 
   const [localFormState, setLocalFormState] = useState(() => {
-    if (isControlled) {
-      return initialState || {};
-    }
-    return getInitialState();
+    const state = isControlled ? (initialState || {}) : getInitialState();
+    // Run initial visibility calculation
+    const allElements = getAllElements(sections);
+    allElements.forEach(el => {
+        const isVisible = !rules.some(rule => 
+            rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === el.id) &&
+            evaluateRule(rule, state, configurations, sections)
+        ) && (rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === el.id)).length > 0 ?
+            rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === el.id)).some(r => evaluateRule(r, state, configurations, sections)) 
+            : !el.hidden
+        );
+        state[el.id] = { ...(state[el.id] || {}), isVisible };
+    });
+    return state;
   });
 
+  // Re-initialize state if sections change (e.g. loading a new form version)
   useEffect(() => {
-    setLocalFormState(getInitialState());
-  }, [sections, getInitialState]);
+    if (!isControlled) {
+        setLocalFormState(getInitialState());
+    }
+  }, [sections, getInitialState, isControlled]);
+
+
+  // Reactive rule engine for the preview
+  useEffect(() => {
+    const allElements = getAllElements(sections);
+    
+    const getElementVisibility = (element: FormElementInstance, formState: any, rowContext?: any): boolean => {
+        const context = rowContext ? { ...formState, ...rowContext } : formState;
+        
+        const hideRuleMet = rules.some(rule => 
+            rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id) && 
+            evaluateRule(rule, context, configurations, sections, rowContext)
+        );
+        if (hideRuleMet) return false;
+
+        const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
+        if (showRules.length > 0) {
+            return showRules.some(r => evaluateRule(r, context, configurations, sections, rowContext));
+        }
+
+        return !element.hidden;
+    };
+    
+    const nextFormState = { ...localFormState };
+    let stateChanged = false;
+
+    allElements.forEach(element => {
+      const isVisible = getElementVisibility(element, localFormState);
+      const currentVisibility = nextFormState[element.id]?.isVisible;
+      
+      if (currentVisibility !== isVisible) {
+        if (!nextFormState[element.id]) {
+          nextFormState[element.id] = { value: undefined, isVisible: isVisible };
+        } else {
+          nextFormState[element.id] = { ...nextFormState[element.id], isVisible: isVisible };
+        }
+        stateChanged = true;
+      }
+    });
+
+    if (stateChanged) {
+      // Use functional update to avoid stale state issues in rapid succession
+      setLocalFormState(currentState => {
+        const finalState = { ...currentState };
+        allElements.forEach(element => {
+            const isVisible = getElementVisibility(element, currentState);
+            if (finalState[element.id]) {
+                finalState[element.id].isVisible = isVisible;
+            } else {
+                finalState[element.id] = { value: undefined, isVisible: isVisible };
+            }
+        });
+        return finalState;
+      });
+    }
+  }, [localFormState, sections, rules, configurations]);
 
 
   const updateFormState = (elementId: string, value: any, fullObject?: any) => {
-    const newState = { ...localFormState, [elementId]: { value, fullObject } };
-    setLocalFormState(newState);
+    if (isControlled) {
+        const newState = { ...localFormState, [elementId]: { ...localFormState[elementId], value, fullObject } };
+        if (onSubmit) {
+            onSubmit(newState);
+        }
+    } else {
+        setLocalFormState(prev => ({ 
+            ...prev, 
+            [elementId]: { ...(prev[elementId] || {}), value, fullObject } 
+        }));
+    }
   };
 
 
