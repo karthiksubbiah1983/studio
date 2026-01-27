@@ -287,37 +287,28 @@ export const evaluateSingleCondition = (
 ): boolean => {
     const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
 
-    // Case 1: Source is a table column
-    if (sourceElement && sourceElement.isTableColumn) {
-        // A) We are evaluating a rule FOR an element INSIDE A ROW (rowContext is provided).
-        if (rowContext) {
-            const sourceValue = getNestedValue(rowContext, sourceElement.key!);
-            return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, rowContext);
-        } 
-        // B) We are evaluating a rule FOR an element OUTSIDE THE TABLE.
-        else {
-            const parentTable = findParentTable(allElements, sourceElement.id);
-            if (parentTable && globalContext[parentTable.id]?.value) {
-                const tableRows = globalContext[parentTable.id].value as any[];
-                return tableRows.some(row => {
-                    const rowValue = getNestedValue(row, sourceElement.key!);
-                    return checkConditionAgainstValue(rowValue, condition, globalContext, allElements, configurations, row);
-                });
+    let sourceValue: any;
+
+    // Unified value retrieval logic
+    if (condition.sourceType === 'field' && sourceElement) {
+        if (rowContext && sourceElement.key) {
+            // Prioritize rowContext if available for any field, especially table columns
+            const rowValue = getNestedValue(rowContext, sourceElement.key);
+            if (rowValue !== undefined) {
+                sourceValue = rowValue;
+            } else {
+                 sourceValue = globalContext[sourceElement.id]?.value;
             }
-            return false;
-        }
-    }
-    // Case 2: Source is a regular element (not in a table)
-    else {
-        let sourceValue: any;
-        if (condition.sourceType === 'field' && sourceElement) {
-             sourceValue = globalContext[sourceElement.id]?.value;
         } else {
-             // Handle other source types like date, config etc.
-             sourceValue = condition.sourceValue; // Simplified for brevity
+            sourceValue = globalContext[sourceElement.id]?.value;
         }
-        return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, undefined);
+    } else if (condition.sourceType === 'config' && condition.sourceValue && configurations) {
+        sourceValue = configurations.find(c => c.key === condition.sourceValue)?.value;
+    } else if (condition.sourceType !== 'field') {
+        sourceValue = condition.sourceValue;
     }
+
+    return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, rowContext);
 }
 
 
@@ -344,3 +335,5 @@ export const evaluateRule = (
     return conditionResults.some((res) => res);
   }
 };
+
+    
