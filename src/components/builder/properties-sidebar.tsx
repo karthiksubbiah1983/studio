@@ -51,7 +51,7 @@ export function PropertiesSidebar() {
         const findElementRecursive = (elements: FormElementInstance[], elementId: string): FormElementInstance | null => {
             for (const element of elements) {
                 if (element.id === elementId) return element;
-                if (element.type === 'Container' && element.elements) {
+                if ((element.type === 'Container' || element.type === 'Popup') && element.elements) {
                     const found = findElementRecursive(element.elements, elementId);
                     if (found) return found;
                 }
@@ -2396,6 +2396,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 
