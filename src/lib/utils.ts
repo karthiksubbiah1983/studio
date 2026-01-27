@@ -1,4 +1,5 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
@@ -202,8 +203,6 @@ function checkConditionAgainstValue(
     configurations: Configuration[] | undefined,
     rowContext?: any
 ) {
-    const isSourceValueEmpty = sourceValue === undefined || sourceValue === null || sourceValue === "";
-
     let comparisonValue: any;
     // Determine the comparison value based on its type
     if (condition.comparisonType === 'field' && condition.comparisonElementId) {
@@ -218,13 +217,19 @@ function checkConditionAgainstValue(
         comparisonValue = condition.value;
     }
 
-    const isComparisonValueEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === "";
+    const normalize = (val: any): string => {
+        if (val === undefined || val === null) return "";
+        return String(val);
+    }
+
+    const normalizedSource = normalize(sourceValue);
+    const normalizedComparison = normalize(comparisonValue);
 
     // Numeric Comparisons
     const isNumericComparison = ['is_greater_than', 'is_less_than', 'is_greater_than_or_equal_to', 'is_less_than_or_equal_to'].includes(condition.operator);
     if (isNumericComparison) {
-        let numSource = parseFloat(sourceValue);
-        const numComparison = parseFloat(comparisonValue);
+        let numSource = parseFloat(normalizedSource);
+        const numComparison = parseFloat(normalizedComparison);
         if (condition.offsetValue) numSource += condition.offsetValue;
         if (isNaN(numSource) || isNaN(numComparison)) return false;
         if (condition.operator === 'is_greater_than') return numSource > numComparison;
@@ -235,24 +240,15 @@ function checkConditionAgainstValue(
 
     // Equality Checks
     if (condition.operator === 'equals') {
-        if (isSourceValueEmpty) {
-            // Source is empty, so it can only equal an also-empty comparison value.
-            return isComparisonValueEmpty;
+        // Strict check: only equal if both are non-empty and identical.
+        if (normalizedSource === "" || normalizedComparison === "") {
+            return false;
         }
-        // If source is not empty, perform a direct comparison.
-        return String(sourceValue) === String(comparisonValue);
+        return normalizedSource === normalizedComparison;
     }
     if (condition.operator === 'not_equals') {
-        if (isSourceValueEmpty) {
-            // Source is empty, so it does not equal a non-empty comparison value.
-            return !isComparisonValueEmpty;
-        }
-        // If source is not empty, perform a direct comparison.
-        return String(sourceValue) !== String(comparisonValue);
+        return normalizedSource !== normalizedComparison;
     }
-
-    // String/Date comparisons require non-empty source value from this point on
-    if (isSourceValueEmpty) return false;
 
     // Date Comparisons
     const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as FormElementInstance | undefined;
@@ -261,8 +257,8 @@ function checkConditionAgainstValue(
 
     if (isDateComparison) {
         try {
-            let dateSource = new Date(sourceValue);
-            let dateComparison = new Date(comparisonValue);
+            let dateSource = new Date(normalizedSource);
+            let dateComparison = new Date(normalizedComparison);
             if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) return false;
             // ... date offset logic ...
             switch(condition.operator) {
@@ -275,10 +271,13 @@ function checkConditionAgainstValue(
         } catch (e) { return false; }
     }
 
+    // For contains/not_contains, an empty source cannot contain anything.
+    if (normalizedSource === "") return false;
+    
     // String contains
     switch (condition.operator) {
-       case 'contains': return String(sourceValue).includes(String(comparisonValue));
-       case 'not_contains': return !String(sourceValue).includes(String(comparisonValue));
+       case 'contains': return normalizedSource.includes(normalizedComparison);
+       case 'not_contains': return !normalizedSource.includes(normalizedComparison);
        default: return false;
     }
 }
@@ -335,4 +334,5 @@ export const evaluateRule = (
     return conditionResults.some((res) => res);
   }
 };
+
 

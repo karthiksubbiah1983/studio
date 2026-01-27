@@ -107,17 +107,10 @@ const ConditionEditor = memo(({
     const getFieldOptions = (element: FormElementInstance | Section | null): { label: string, value: string }[] => {
         if (!element || !('type' in element)) return [];
         if (element.type === 'Select' || element.type === 'RadioGroup') {
-            if (element.dataSource === 'dynamic') {
-                const customOpts = element.customOptions?.map(opt => ({ label: opt.label, value: opt.value })) || [];
-                const dynamicOpts = dynamicOptions.map(opt => ({
-                    label: getNestedValue(opt, element.labelKey || 'label'),
-                    value: getNestedValue(opt, element.valueKey || 'value')
-                }));
-
-                if (element.customOptionsPosition === 'top') {
-                    return [...customOpts, ...dynamicOpts];
-                }
-                return [...dynamicOpts, ...customOpts];
+             // If options are sourced dynamically (from API or another field) or from a table row's data,
+            // we can't determine them here. The user must input the value manually.
+            if (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.optionsDataKey) {
+                return [];
             }
             return element.options?.map(opt => ({ label: opt, value: opt })) || [];
         }
@@ -598,7 +591,7 @@ const RuleEditor = memo(({
     };
 
     const handleUpdateBehavior = (id: string, updatedBehavior: RuleBehavior) => {
-        const newBehaviors = rule.behaviors.map(b => b.id === id ? updatedBehavior : b);
+        const newBehaviors = rule.behaviors.map(b => b.id === id ? updatedBehavior : c);
         handleUpdate({ ...rule, behaviors: newBehaviors });
     };
 
