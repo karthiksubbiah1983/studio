@@ -151,11 +151,6 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
   const [submissionJson, setSubmissionJson] = useState<string | null>(null);
 
   const isControlled = initialState !== undefined;
-
-  const onSubmitRef = useRef(onSubmit);
-  useEffect(() => {
-    onSubmitRef.current = onSubmit;
-  }, [onSubmit]);
   
   const getInitialState = useCallback(() => {
     const state: { [key: string]: any } = {};
@@ -250,6 +245,13 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
   }, [localFormState, sections, rules, configurations]);
 
 
+  const isControlledRef = useRef(isControlled);
+  isControlledRef.current = isControlled;
+  const onSubmitRef = useRef(onSubmit);
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
+
   const updateFormState = useCallback((elementId: string, value: any, fullObject?: any) => {
     setLocalFormState(prev => {
         const newState = {
@@ -257,12 +259,12 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
             [elementId]: { ...(prev[elementId] || {}), value, fullObject },
         };
 
-        if (isControlled && onSubmitRef.current) {
+        if (isControlledRef.current && onSubmitRef.current) {
             onSubmitRef.current(newState);
         }
         return newState;
     });
-  }, [isControlled]);
+  }, []);
 
 
   const processWorkflows = (submissionData: Record<string, any>) => {
@@ -378,3 +380,5 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
     </div>
   );
 }
+
+    
