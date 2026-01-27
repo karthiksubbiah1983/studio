@@ -147,30 +147,45 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
   const [submissionJson, setSubmissionJson] = useState<string | null>(null);
 
   const isControlled = initialState !== undefined;
-
-  const [localState, setLocalState] = useState(initialState || {});
-
-  useEffect(() => {
-    if (isControlled) {
-        setLocalState(initialState || {});
-    }
-  }, [initialState, isControlled]);
   
-  const formState = isControlled ? localState : builderContext.formState;
+  const getInitialState = useCallback(() => {
+    const state: { [key: string]: any } = {};
+    const allElements = getAllElements(sections);
+    allElements.forEach(element => {
+        if ('defaultValue' in element && element.defaultValue !== undefined) {
+             state[element.id] = { value: element.defaultValue, fullObject: undefined, isVisible: !element.hidden };
+        }
+    });
+    return state;
+  }, [sections]);
+
+  // Use a local state for the preview, initialized correctly
+  const [localFormState, setLocalFormState] = useState(() => {
+    if (isControlled) {
+      return initialState || {};
+    }
+    const defaultState = getInitialState();
+    // Merge the global builder state on top of the default state
+    return { ...defaultState, ...builderContext.formState };
+  });
+
+  // Re-initialize state if the sections change (e.g., loading a different form/version)
+  useEffect(() => {
+    if (!isControlled) {
+      const defaultState = getInitialState();
+      setLocalFormState({ ...defaultState, ...builderContext.formState });
+    }
+  }, [sections, getInitialState, builderContext.formState, isControlled]);
 
   const updateFormState = (elementId: string, value: any, fullObject?: any) => {
-    if (isControlled) {
-        setLocalState(prev => ({ ...prev, [elementId]: { value, fullObject } }));
-    } else {
-        builderContext.updateFormState(elementId, value, fullObject);
+    const newState = { ...localFormState, [elementId]: { value, fullObject } };
+    setLocalFormState(newState);
+
+    if (!isControlled) {
+      builderContext.updateFormState(elementId, value, fullObject);
     }
   };
 
-  useEffect(() => {
-    if (!isControlled) {
-        // This effect is now handled centrally in useBuilder for global mode
-    }
-  }, [formState, builderContext.rules, sections, builderContext.configurations, isControlled]);
 
   const processWorkflows = (submissionData: Record<string, any>) => {
     const { workflows, configurations, dispatch } = builderContext;
@@ -216,12 +231,12 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
   
   const handleSubmit = () => {
     const allElements = getAllElements(sections);
-    const submissionData = generateSubmissionJson(allElements, isControlled ? localState : formState);
+    const submissionData = generateSubmissionJson(allElements, localFormState);
     
     setSubmissionJson(JSON.stringify(submissionData, null, 2));
 
     if (isControlled && onSubmit) {
-        onSubmit(localState);
+        onSubmit(localFormState);
         return;
     }
 
@@ -255,7 +270,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
          <SectionRenderer 
             key={section.id} 
             section={section} 
-            formState={formState}
+            formState={localFormState}
             updateFormState={updateFormState}
         />
       ))}
@@ -283,5 +298,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
     </div>
   );
 }
+
+    
 
     
