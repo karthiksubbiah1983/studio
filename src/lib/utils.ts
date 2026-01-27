@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
@@ -186,9 +187,6 @@ export const findParentTable = (allElements: (FormElementInstance | Section)[], 
     return null;
 }
 
-
-// This is a duplicate of the function in form-preview-helpers.ts to avoid circular dependencies
-// if utils are imported into form-preview-helpers.
 const isDateRelated = (element: FormElementInstance | Section | null) => {
     if (!element) return false;
     if ('type' in element) return element.type === 'DatePicker';
@@ -211,8 +209,8 @@ function checkConditionAgainstValue(
     if (condition.comparisonType === 'field' && condition.comparisonElementId) {
         const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
 
-        if (comparisonElement && comparisonElement.isTableColumn && rowContext) {
-            comparisonValue = getNestedValue(rowContext, comparisonElement.key!);
+        if (comparisonElement && comparisonElement.isTableColumn && rowContext && comparisonElement.key) {
+             comparisonValue = getNestedValue(rowContext, comparisonElement.key);
         } else if (comparisonElement && globalContext[comparisonElement.id]) {
             comparisonValue = globalContext[comparisonElement.id].value;
         }
@@ -237,15 +235,23 @@ function checkConditionAgainstValue(
 
     // Equality Checks
     if (condition.operator === 'equals') {
-        if (isSourceValueEmpty && isComparisonValueEmpty) return true;
+        if (isSourceValueEmpty) {
+            // Source is empty, so it can only equal an also-empty comparison value.
+            return isComparisonValueEmpty;
+        }
+        // If source is not empty, perform a direct comparison.
         return String(sourceValue) === String(comparisonValue);
     }
     if (condition.operator === 'not_equals') {
-        if (isSourceValueEmpty && isComparisonValueEmpty) return false;
+        if (isSourceValueEmpty) {
+            // Source is empty, so it does not equal a non-empty comparison value.
+            return !isComparisonValueEmpty;
+        }
+        // If source is not empty, perform a direct comparison.
         return String(sourceValue) !== String(comparisonValue);
     }
 
-    // String/Date comparisons require non-empty source value
+    // String/Date comparisons require non-empty source value from this point on
     if (isSourceValueEmpty) return false;
 
     // Date Comparisons
@@ -291,23 +297,17 @@ export const evaluateSingleCondition = (
 
     // Unified value retrieval logic
     if (condition.sourceType === 'field' && sourceElement) {
-        if (rowContext && sourceElement.key) {
-            // Prioritize rowContext if available for any field, especially table columns
-            const rowValue = getNestedValue(rowContext, sourceElement.key);
-            if (rowValue !== undefined) {
-                sourceValue = rowValue;
-            } else {
-                 sourceValue = globalContext[sourceElement.id]?.value;
-            }
-        } else {
+       if (sourceElement.isTableColumn && rowContext && sourceElement.key) {
+            sourceValue = getNestedValue(rowContext, sourceElement.key);
+       } else {
             sourceValue = globalContext[sourceElement.id]?.value;
-        }
+       }
     } else if (condition.sourceType === 'config' && condition.sourceValue && configurations) {
         sourceValue = configurations.find(c => c.key === condition.sourceValue)?.value;
     } else if (condition.sourceType !== 'field') {
         sourceValue = condition.sourceValue;
     }
-
+    
     return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, rowContext);
 }
 
@@ -336,4 +336,3 @@ export const evaluateRule = (
   }
 };
 
-    
