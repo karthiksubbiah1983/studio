@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function PreviewDialog({ isOpen, onOpenChange }: Props) {
-  const { sections } = useBuilder();
+  const { sections, rules, configurations } = useBuilder();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -26,9 +26,15 @@ export function PreviewDialog({ isOpen, onOpenChange }: Props) {
           <DialogTitle>Form Preview</DialogTitle>
         </DialogHeader>
         <div className="flex-grow overflow-y-auto min-h-0">
-          <FormPreview sections={sections} showSubmitButton={true} />
+          <FormPreview 
+            sections={sections} 
+            rules={rules} 
+            configurations={configurations || []}
+            showSubmitButton={true} 
+          />
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+

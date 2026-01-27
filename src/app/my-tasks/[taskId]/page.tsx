@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useBuilder } from '@/hooks/use-builder';
@@ -34,6 +35,12 @@ export default function FillTaskPage({ params }: Props) {
   }, []);
 
   return (
-      <FormPreview sections={version.sections} showSubmitButton={true} taskId={taskId} />
+      <FormPreview 
+        sections={version.sections} 
+        rules={version.rules} 
+        configurations={version.configurations || []}
+        showSubmitButton={true} 
+        taskId={taskId} 
+      />
   );
 }

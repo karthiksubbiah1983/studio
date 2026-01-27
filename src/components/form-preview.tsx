@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useBuilder } from "@/hooks/use-builder";
@@ -10,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
 import { useEffect, useMemo, useState, useCallback } from "react";
-import { FormElementInstance, Section, Workflow, WorkflowAction } from "@/lib/types";
+import { FormElementInstance, Section, Workflow, WorkflowAction, Rule, Configuration } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -51,10 +52,11 @@ type SectionRendererProps = {
   section: Section;
   formState: { [key: string]: any };
   updateFormState: (id: string, value: any, fullObject?: any) => void;
+  rules: Rule[];
+  configurations: Configuration[];
 };
 
-const SectionRenderer = ({ section, formState, updateFormState }: SectionRendererProps) => {
-    const { rules, configurations, sections } = useBuilder();
+const SectionRenderer = ({ section, formState, updateFormState, rules, configurations }: SectionRendererProps) => {
 
     const isVisible = useMemo(() => {
         let visible = !section.hidden;
@@ -62,16 +64,16 @@ const SectionRenderer = ({ section, formState, updateFormState }: SectionRendere
         const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === section.id));
 
         if (showRules.length > 0) {
-            visible = showRules.some(r => evaluateRule(r, formState || {}, configurations, sections));
+            visible = showRules.some(r => evaluateRule(r, formState || {}, configurations, [section]));
         }
 
         if (visible && hideRules.length > 0) {
-            if (hideRules.some(r => evaluateRule(r, formState || {}, configurations, sections))) {
+            if (hideRules.some(r => evaluateRule(r, formState || {}, configurations, [section]))) {
                 visible = false;
             }
         }
         return visible;
-    }, [section, formState, rules, configurations, sections]);
+    }, [section, formState, rules, configurations]);
 
 
     const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
@@ -83,6 +85,8 @@ const SectionRenderer = ({ section, formState, updateFormState }: SectionRendere
                 onValueChange={updateFormState}
                 formState={formState}
                 isParentHorizontal={isParentHorizontal}
+                rules={rules}
+                configurations={configurations}
             />
         ));
     };
@@ -133,13 +137,15 @@ const SectionRenderer = ({ section, formState, updateFormState }: SectionRendere
 type FormPreviewProps = {
   showSubmitButton?: boolean;
   sections: Section[];
+  rules: Rule[];
+  configurations: Configuration[];
   taskId?: string;
   initialState?: { [key: string]: any };
   onSubmit?: (state: { [key: string]: any }) => void;
   submitButtonText?: string;
 };
 
-export function FormPreview({ showSubmitButton = true, sections, taskId, initialState, onSubmit, submitButtonText = "Submit Form" }: FormPreviewProps) {
+export function FormPreview({ showSubmitButton = true, sections, rules, configurations, taskId, initialState, onSubmit, submitButtonText = "Submit Form" }: FormPreviewProps) {
   const builderContext = useBuilder();
   const router = useRouter();
   const { toast } = useToast();
@@ -168,12 +174,9 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
   });
 
   useEffect(() => {
-    if (isControlled) {
-        setLocalFormState(initialState || {});
-    } else {
-        setLocalFormState(getInitialState());
-    }
-  }, [sections, getInitialState, isControlled, initialState]);
+    setLocalFormState(getInitialState());
+  }, [sections, getInitialState]);
+
 
   const updateFormState = (elementId: string, value: any, fullObject?: any) => {
     const newState = { ...localFormState, [elementId]: { value, fullObject } };
@@ -182,7 +185,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
 
 
   const processWorkflows = (submissionData: Record<string, any>) => {
-    const { workflows, configurations, dispatch } = builderContext;
+    const { workflows, configurations: globalConfigurations, dispatch } = builderContext;
     if (!workflows || workflows.length === 0) return;
 
     for (const workflow of workflows) {
@@ -194,7 +197,7 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
             }
         })
         
-        const isTriggered = evaluateRule(workflow, stateForEval, configurations, sections);
+        const isTriggered = evaluateRule(workflow, stateForEval, globalConfigurations, sections);
 
         if (isTriggered) {
              for (const action of workflow.actions) {
@@ -266,6 +269,8 @@ export function FormPreview({ showSubmitButton = true, sections, taskId, initial
             section={section} 
             formState={localFormState}
             updateFormState={updateFormState}
+            rules={rules}
+            configurations={configurations}
         />
       ))}
        {showSubmitButton && <div className="flex justify-end mt-8">

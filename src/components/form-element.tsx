@@ -56,6 +56,8 @@ type Props = {
   isParentHorizontal?: boolean;
   isTableCell?: boolean;
   rowContext?: any;
+  rules?: Rule[];
+  configurations?: Configuration[];
 };
 
 const interpolateString = (template: string, data: { [key: string]: any }): string => {
@@ -267,8 +269,9 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
 }
 
 
-export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext }: Props) {
-  const { rules, sections, configurations, updateFormState } = useBuilder();
+export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp }: Props) {
+  const builderContext = useBuilder();
+  const { rules: builderRules, sections, configurations: builderConfigurations, updateFormState } = builderContext;
   const { user } = useAuth();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -288,6 +291,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   
   const [popupTriggerState, setPopupTriggerState] = useState<any>(null);
   const [showInline, setShowInline] = useState(false);
+
+  const rules = rulesProp || builderRules;
+  const configurations = configsProp || builderConfigurations;
 
 
   useEffect(() => {
@@ -765,6 +771,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         onValueChange={onValueChange} 
                         formState={formState}
                         isParentHorizontal={direction === 'horizontal'}
+                        rules={rules}
+                        configurations={configurations}
                     />
                 ))}
             </div>
@@ -1333,7 +1341,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                             </DialogHeader>
                             <ScrollArea className="flex-1">
                                <div className="p-4">
-                                <FormPreview sections={sectionsToPreview} showSubmitButton={false} />
+                                <FormPreview sections={sectionsToPreview} rules={rules} configurations={configurations} showSubmitButton={false} />
                                </div>
                             </ScrollArea>
                         </DialogContent>
@@ -1341,7 +1349,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 ) : (
                     showInline && (
                         <div className="mt-4 border rounded-lg p-4">
-                             <FormPreview sections={sectionsToPreview} showSubmitButton={false} />
+                             <FormPreview sections={sectionsToPreview} rules={rules} configurations={configurations} showSubmitButton={false} />
                         </div>
                     )
                 )}
@@ -1532,5 +1540,6 @@ const alignmentClasses = {
     
 
     
+
 
 
