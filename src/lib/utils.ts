@@ -222,9 +222,32 @@ function checkConditionAgainstValue(
         return String(val);
     }
 
+    // Date Comparisons
+    const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as FormElementInstance | undefined;
+    const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId) as FormElementInstance | undefined;
+    const isDateComparison = condition.sourceType === 'date' || condition.comparisonType === 'date' || isDateRelated(sourceElement) || isDateRelated(comparisonElement);
+
+    if (isDateComparison) {
+        try {
+            let dateSource = new Date(normalize(sourceValue));
+            let dateComparison = new Date(normalize(comparisonValue));
+            if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) return false;
+            // ... date offset logic ...
+            switch(condition.operator) {
+                case 'equals': return dateSource.getTime() === dateComparison.getTime();
+                case 'not_equals': return dateSource.getTime() !== dateComparison.getTime();
+                case 'is_greater_than': return dateSource > dateComparison;
+                case 'is_less_than': return dateSource < dateComparison;
+                case 'is_greater_than_or_equal_to': return dateSource >= dateComparison;
+                case 'is_less_than_or_equal_to': return dateSource <= dateComparison;
+                default: return false; 
+            }
+        } catch (e) { return false; }
+    }
+
     const normalizedSource = normalize(sourceValue);
     const normalizedComparison = normalize(comparisonValue);
-
+    
     // Numeric Comparisons
     const isNumericComparison = ['is_greater_than', 'is_less_than', 'is_greater_than_or_equal_to', 'is_less_than_or_equal_to'].includes(condition.operator);
     if (isNumericComparison) {
@@ -238,47 +261,24 @@ function checkConditionAgainstValue(
         if (condition.operator === 'is_less_than_or_equal_to') return numSource <= numComparison;
     }
 
-    // Equality Checks
-    if (condition.operator === 'equals') {
-        // Strict check: only equal if both are non-empty and identical.
-        if (normalizedSource === "" || normalizedComparison === "") {
-            return false;
-        }
-        return normalizedSource === normalizedComparison;
-    }
-    if (condition.operator === 'not_equals') {
-        return normalizedSource !== normalizedComparison;
-    }
-
-    // Date Comparisons
-    const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as FormElementInstance | undefined;
-    const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId) as FormElementInstance | undefined;
-    const isDateComparison = condition.sourceType === 'date' || condition.comparisonType === 'date' || isDateRelated(sourceElement) || isDateRelated(comparisonElement);
-
-    if (isDateComparison) {
-        try {
-            let dateSource = new Date(normalizedSource);
-            let dateComparison = new Date(normalizedComparison);
-            if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) return false;
-            // ... date offset logic ...
-            switch(condition.operator) {
-                case 'is_greater_than': return dateSource > dateComparison;
-                case 'is_less_than': return dateSource < dateComparison;
-                case 'is_greater_than_or_equal_to': return dateSource >= dateComparison;
-                case 'is_less_than_or_equal_to': return dateSource <= dateComparison;
-                default: return false; 
-            }
-        } catch (e) { return false; }
-    }
-
-    // For contains/not_contains, an empty source cannot contain anything.
-    if (normalizedSource === "") return false;
-    
-    // String contains
+    // Equality and String Checks
     switch (condition.operator) {
-       case 'contains': return normalizedSource.includes(normalizedComparison);
-       case 'not_contains': return !normalizedSource.includes(normalizedComparison);
-       default: return false;
+       case 'equals':
+            // Prevents a rule from firing on two uninitialized fields, which was the original problem.
+            if (sourceValue === undefined && comparisonValue === undefined) {
+                return false;
+            }
+            return normalizedSource === normalizedComparison;
+       case 'not_equals': 
+            return normalizedSource !== normalizedComparison;
+       case 'contains': 
+            if (normalizedSource === "") return false;
+            return normalizedSource.includes(normalizedComparison);
+       case 'not_contains': 
+            if (normalizedSource === "") return false;
+            return !normalizedSource.includes(normalizedComparison);
+       default: 
+            return false;
     }
 }
 
@@ -294,11 +294,12 @@ export const evaluateSingleCondition = (
 
     let sourceValue: any;
 
-    // Unified value retrieval logic
+    // This block is for getting the value to be compared
     if (condition.sourceType === 'field' && sourceElement) {
+       // This branch is for elements inside a table/grid
        if (sourceElement.isTableColumn && rowContext && sourceElement.key) {
             sourceValue = getNestedValue(rowContext, sourceElement.key);
-       } else {
+       } else { // This branch is for standalone elements
             sourceValue = globalContext[sourceElement.id]?.value;
        }
     } else if (condition.sourceType === 'config' && condition.sourceValue && configurations) {
@@ -307,6 +308,7 @@ export const evaluateSingleCondition = (
         sourceValue = condition.sourceValue;
     }
     
+    // This calls the function that does the actual comparison
     return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, rowContext);
 }
 
@@ -334,5 +336,6 @@ export const evaluateRule = (
     return conditionResults.some((res) => res);
   }
 };
+
 
 
