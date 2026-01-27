@@ -151,7 +151,6 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
           onMouseEnter={() => setMouseIsOver(true)}
           onMouseLeave={() => setMouseIsOver(false)}
           onClick={(e) => {
-            e.stopPropagation();
             dispatch({ type: "SELECT_ELEMENT", payload: { elementId: el.id, sectionId } });
           }}
           className={cn(

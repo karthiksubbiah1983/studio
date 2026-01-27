@@ -93,6 +93,9 @@ export function CanvasSection({ section }: { section: Section }) {
   const isSelected = state.selectedElement?.sectionId === section.id && !state.selectedElement?.elementId;
 
   const handleSectionClick = (e: React.MouseEvent) => {
+    if (e.target !== e.currentTarget) {
+        return;
+    }
     e.stopPropagation();
     dispatch({ type: 'SELECT_ELEMENT', payload: { sectionId: section.id, elementId: "" } });
   }
