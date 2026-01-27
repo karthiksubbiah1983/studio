@@ -264,8 +264,9 @@ function checkConditionAgainstValue(
     // Equality and String Checks
     switch (condition.operator) {
        case 'equals':
-            // Prevents a rule from firing on two uninitialized fields, which was the original problem.
-            if (sourceValue === undefined && comparisonValue === undefined) {
+            const isSourceEmpty = sourceValue === undefined || sourceValue === null || sourceValue === '';
+            const isComparisonEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === '';
+            if (isSourceEmpty && isComparisonEmpty) {
                 return false;
             }
             return normalizedSource === normalizedComparison;
@@ -336,6 +337,7 @@ export const evaluateRule = (
     return conditionResults.some((res) => res);
   }
 };
+
 
 
 
