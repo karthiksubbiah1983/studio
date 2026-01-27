@@ -2000,24 +2000,45 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
                             {isColumnElement ? (
-                                <>
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Options Data Key (Optional)</Label>
-                                        <Select value={element.optionsDataKey || 'none'} onValueChange={v => updateProperty('optionsDataKey', v === 'none' ? '' : v)}>
-                                            <SelectTrigger>
-                                                <SelectValue placeholder="Select a key..." />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="none">Not Applicable (Use Static)</SelectItem>
-                                                {dataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <p className="text-xs text-muted-foreground">If a key is selected, it must be an array of strings in the row data.</p>
-                                    </div>
-                                    <Separator/>
-                                </>
+                                <div className="flex flex-col gap-2 mb-1.5">
+                                    <Label>Source Type</Label>
+                                    <RadioGroup
+                                        value={element.optionsDataKey ? 'fromParent' : 'static'}
+                                        onValueChange={(val) => {
+                                            if (val === 'static') {
+                                                updateMultipleProperties({ optionsDataKey: undefined, options: element.options || ["Option 1"] });
+                                            } else { // fromParent
+                                                updateMultipleProperties({ optionsDataKey: '', options: undefined });
+                                            }
+                                        }}
+                                        className="grid grid-cols-2 gap-2"
+                                    >
+                                        <Label htmlFor="rg-source-static" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                            <RadioGroupItem value="static" id="rg-source-static" />
+                                            Static
+                                        </Label>
+                                        <Label htmlFor="rg-source-from-parent" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                            <RadioGroupItem value="fromParent" id="rg-source-from-parent" />
+                                            From Parent Row
+                                        </Label>
+                                    </RadioGroup>
+                                </div>
                             ) : null}
-                             {(!isColumnElement || !element.optionsDataKey) && optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
+
+                            {isColumnElement && element.optionsDataKey !== undefined ? ( // Only if from parent row
+                                <div className="flex flex-col gap-2">
+                                    <Label>Options Data Key</Label>
+                                    <Select value={element.optionsDataKey || ''} onValueChange={v => updateProperty('optionsDataKey', v)}>
+                                        <SelectTrigger><SelectValue placeholder="Select a key..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {dataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-muted-foreground">The key in the row data that holds the array of strings for the options.</p>
+                                </div>
+                            ) : ( // Static options for standalone or when column is static
+                                optionsField(element.options, (newOptions) => updateProperty('options', newOptions))
+                            )}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="layout">
@@ -2375,6 +2396,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 
