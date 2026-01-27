@@ -151,7 +151,9 @@ export function CanvasElement({ element, sectionId, index, isNested }: Props) {
           onMouseEnter={() => setMouseIsOver(true)}
           onMouseLeave={() => setMouseIsOver(false)}
           onClick={(e) => {
-            dispatch({ type: "SELECT_ELEMENT", payload: { elementId: el.id, sectionId } });
+            if (e.target === e.currentTarget) {
+                dispatch({ type: "SELECT_ELEMENT", payload: { elementId: el.id, sectionId } });
+            }
           }}
           className={cn(
             "relative flex flex-col p-4 pt-8 cursor-pointer bg-card transition-all",
