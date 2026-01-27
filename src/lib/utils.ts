@@ -1,5 +1,3 @@
-
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
@@ -214,10 +212,8 @@ function checkConditionAgainstValue(
         const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
 
         if (comparisonElement && comparisonElement.isTableColumn && rowContext) {
-            // If the comparison is a table column and we have row context, use it.
             comparisonValue = getNestedValue(rowContext, comparisonElement.key!);
         } else if (comparisonElement && globalContext[comparisonElement.id]) {
-            // Otherwise, use the global context as before.
             comparisonValue = globalContext[comparisonElement.id].value;
         }
     } else {

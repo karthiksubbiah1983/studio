@@ -53,9 +53,10 @@ type SectionRendererProps = {
   updateFormState: (id: string, value: any, fullObject?: any) => void;
   rules: Rule[];
   configurations: Configuration[];
+  sections: Section[];
 };
 
-const SectionRenderer = ({ section, formState, updateFormState, rules, configurations }: SectionRendererProps) => {
+const SectionRenderer = ({ section, formState, updateFormState, rules, configurations, sections }: SectionRendererProps) => {
 
     const isVisible = useMemo(() => {
         let visible = !section.hidden;
@@ -86,6 +87,7 @@ const SectionRenderer = ({ section, formState, updateFormState, rules, configura
                 isParentHorizontal={isParentHorizontal}
                 rules={rules}
                 configurations={configurations}
+                sections={sections}
             />
         ));
     };
@@ -164,88 +166,19 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
     return state;
   }, [sections]);
 
-  const [localFormState, setLocalFormState] = useState(() => {
-    const state = isControlled ? (initialState || {}) : getInitialState();
-    // Run initial visibility calculation
-    const allElements = getAllElements(sections);
-    allElements.forEach(el => {
-        const isVisible = !rules.some(rule => 
-            rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === el.id) &&
-            evaluateRule(rule, state, configurations, sections)
-        ) && (rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === el.id)).length > 0 ?
-            rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === el.id)).some(r => evaluateRule(r, state, configurations, sections)) 
-            : !el.hidden
-        );
-        state[el.id] = { ...(state[el.id] || {}), isVisible };
-    });
-    return state;
-  });
-
-  // Reactive rule engine for the preview
-  useEffect(() => {
-    const allElements = getAllElements(sections);
-    
-    const getElementVisibility = (element: FormElementInstance, formState: any, rowContext?: any): boolean => {
-        const context = rowContext ? { ...formState, ...rowContext } : formState;
-        
-        const hideRuleMet = rules.some(rule => 
-            rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id) && 
-            evaluateRule(rule, context, configurations, sections, rowContext)
-        );
-        if (hideRuleMet) return false;
-
-        const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
-        if (showRules.length > 0) {
-            return showRules.some(r => evaluateRule(r, context, configurations, sections, rowContext));
-        }
-
-        return !element.hidden;
-    };
-    
-    const nextFormState = { ...localFormState };
-    let stateChanged = false;
-
-    allElements.forEach(element => {
-      const isVisible = getElementVisibility(element, localFormState);
-      const currentVisibility = nextFormState[element.id]?.isVisible;
-      
-      if (currentVisibility !== isVisible) {
-        if (!nextFormState[element.id]) {
-          nextFormState[element.id] = { value: undefined, isVisible: isVisible };
-        } else {
-          nextFormState[element.id] = { ...nextFormState[element.id], isVisible: isVisible };
-        }
-        stateChanged = true;
-      }
-    });
-
-    if (stateChanged) {
-      // Use functional update to avoid stale state issues in rapid succession
-      setLocalFormState(currentState => {
-        const finalState = { ...currentState };
-        allElements.forEach(element => {
-            const isVisible = getElementVisibility(element, currentState);
-            if (finalState[element.id]) {
-                finalState[element.id].isVisible = isVisible;
-            } else {
-                finalState[element.id] = { value: undefined, isVisible: isVisible };
-            }
-        });
-        return finalState;
-      });
-    }
-  }, [localFormState, sections, rules, configurations]);
-
+  const [localFormState, setLocalFormState] = useState(isControlled ? (initialState || {}) : getInitialState());
 
   const isControlledRef = useRef(isControlled);
-  isControlledRef.current = isControlled;
   const onSubmitRef = useRef(onSubmit);
+  const stableSetLocalFormState = useCallback(setLocalFormState, []);
+
   useEffect(() => {
+    isControlledRef.current = isControlled;
     onSubmitRef.current = onSubmit;
-  }, [onSubmit]);
+  }, [isControlled, onSubmit]);
 
   const updateFormState = useCallback((elementId: string, value: any, fullObject?: any) => {
-    setLocalFormState(prev => {
+    stableSetLocalFormState(prev => {
         const newState = {
             ...prev,
             [elementId]: { ...(prev[elementId] || {}), value, fullObject },
@@ -256,7 +189,7 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
         }
         return newState;
     });
-  }, []);
+  }, [stableSetLocalFormState]);
 
 
   const processWorkflows = (submissionData: Record<string, any>) => {
@@ -346,6 +279,7 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
             updateFormState={updateFormState}
             rules={rules}
             configurations={configurations}
+            sections={sections}
         />
       ))}
        {showSubmitButton && <div className="flex justify-end mt-8">

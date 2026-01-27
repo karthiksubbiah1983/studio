@@ -58,6 +58,7 @@ type Props = {
   rowContext?: any;
   rules?: Rule[];
   configurations?: Configuration[];
+  sections?: Section[];
 };
 
 const interpolateString = (template: string, data: { [key: string]: any }): string => {
@@ -71,17 +72,21 @@ const interpolateString = (template: string, data: { [key: string]: any }): stri
     });
 }
 
-function DataGridRenderer({ element, value, onValueChange, formState }: { 
+function DataGridRenderer({ element, value, onValueChange, formState, rules, configurations, sections }: { 
     element: FormElementInstance, 
     value: any, 
     onValueChange: (id: string, value: any) => void, 
-    formState?: { [key: string]: any } 
+    formState?: { [key: string]: any },
+    rules?: Rule[],
+    configurations?: Configuration[],
+    sections?: Section[],
 }) {
     const { datasets } = useBuilder();
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const rows = Array.isArray(value) ? value : [];
+    const stableOnValueChange = useCallback(onValueChange, []);
     
     useEffect(() => {
         let isMounted = true;
@@ -93,7 +98,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
                     .then(fetchedData => {
                         if (isMounted) {
                             const arrayData = findFirstArray(fetchedData) || [];
-                            onValueChange(element.id, arrayData);
+                            stableOnValueChange(element.id, arrayData);
                         }
                     })
                     .finally(() => {
@@ -102,7 +107,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
             } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
                 const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
                 const data = localDataset?.data || [];
-                onValueChange(element.id, data);
+                stableOnValueChange(element.id, data);
             }
         };
 
@@ -111,7 +116,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
         return () => {
             isMounted = false;
         };
-    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, onValueChange]);
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, stableOnValueChange]);
 
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
@@ -223,6 +228,9 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
                                                         formState={formState}
                                                         rowContext={row}
                                                         isTableCell={true}
+                                                        rules={rules}
+                                                        configurations={configurations}
+                                                        sections={sections}
                                                     />
                                                 </TableCell>
                                             );
@@ -268,9 +276,9 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
 }
 
 
-export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp }: Props) {
+export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
   const builderContext = useBuilder();
-  const { rules: builderRules, sections, configurations: builderConfigurations, updateFormState } = builderContext;
+  const { rules: builderRules, sections: builderSections, configurations: builderConfigurations } = builderContext;
   const { user } = useAuth();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -292,18 +300,16 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const [showInline, setShowInline] = useState(false);
 
   const rules = rulesProp || builderRules;
+  const sections = sectionsProp || builderSections;
   const configurations = configsProp || builderConfigurations;
 
+  const allElements = useMemo(() => getAllElements(sections), [sections]);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  const allElements = useMemo(() => getAllElements(sections), [sections]);
-
-  // Use a consistent variable for the current value throughout the component.
   const value = useMemo(() => {
-    // This memo is now safe, it just extracts the value without side effects.
     let finalValue = initialValue;
     if (typeof finalValue === 'object' && finalValue !== null && 'value' in finalValue && Object.keys(finalValue).length === 1) {
         finalValue = finalValue.value;
@@ -311,7 +317,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     return finalValue;
   }, [initialValue]);
 
-  // Formula evaluation moved to useEffect to prevent render-time side-effects
   useEffect(() => {
     const context = isTableCell ? { ...formState, ...rowContext } : formState;
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && context) {
@@ -329,8 +334,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     }
   }, [formState, rowContext, isTableCell, element.formula, element.id, allElements, value, onValueChange, element.type]);
 
-    // This effect ensures that the value of Display components (which can be derived from other state)
-    // is correctly calculated and stored in the central form state.
     useEffect(() => {
         if (isTableCell || element.type !== 'Display' || element.formula) {
             return;
@@ -358,37 +361,34 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             finalDisplayValue = element.label;
         }
 
-        // Only call onValueChange if the value is different to avoid infinite loops.
         if (finalDisplayValue !== value) {
             onValueChange(element.id, finalDisplayValue);
         }
     }, [element.type, element.id, element.label, element.formula, element.dataSourceConfig, user, currentDateTime, formState, value, onValueChange, allElements, isTableCell]);
 
 
-  // When `initialValue` changes (e.g., from a rule), update local state
   useEffect(() => {
     setLocalValue(value || "");
     setComboboxInputValue(value || "");
   }, [value]);
   
   const isVisible = useMemo(() => {
-    if (!formState) return !element.hidden;
+    const stateContext = formState || {};
+    const rowCtx = isTableCell ? rowContext : undefined;
 
-    // Inside a table, visibility is pre-calculated and stored in the row context.
-    if (isTableCell && rowContext?._internal?.visibility) {
-        return rowContext._internal.visibility[element.id] ?? !element.hidden;
-    }
-
-    // For non-table elements, use the centrally managed state.
-    const elementState = formState[element.id];
-    if (elementState && typeof elementState.isVisible === 'boolean') {
-        return elementState.isVisible;
-    }
+    const hideRuleMet = rules.some(rule =>
+        rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id) &&
+        evaluateRule(rule, stateContext, configurations, allElements, rowCtx)
+    );
+    if (hideRuleMet) return false;
     
-    // Fallback for initial render or elements not yet in state
-    return !element.hidden;
-}, [formState, isTableCell, rowContext, element.id, element.hidden]);
+    const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
+    if (showRules.length > 0) {
+        return showRules.some(r => evaluateRule(r, stateContext, configurations, allElements, rowCtx));
+    }
 
+    return !element.hidden;
+  }, [element.id, element.hidden, formState, rowContext, isTableCell, rules, configurations, allElements]);
 
   const isDisabled = useMemo(() => {
     const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
@@ -772,6 +772,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                         isParentHorizontal={direction === 'horizontal'}
                         rules={rules}
                         configurations={configurations}
+                        sections={sections}
                     />
                 ))}
             </div>
@@ -1475,7 +1476,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             onValueChange={onValueChange}
         />;
     case "DataGrid":
-        content = <DataGridRenderer element={element} value={value} onValueChange={onValueChange} formState={formState} />;
+        content = <DataGridRenderer 
+            element={element} 
+            value={value} 
+            onValueChange={onValueChange} 
+            formState={formState}
+            rules={rules}
+            configurations={configurations}
+            sections={sections}
+        />;
         break;
     case "TaskHistory":
         if (!element.dataGridColumns || element.dataGridColumns.length === 0) {
