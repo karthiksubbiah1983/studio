@@ -245,7 +245,7 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
   }, [localFormState, sections, rules, configurations]);
 
 
-  const updateFormState = (elementId: string, value: any, fullObject?: any) => {
+  const updateFormState = useCallback((elementId: string, value: any, fullObject?: any) => {
     if (isControlled) {
         const newState = { ...localFormState, [elementId]: { ...localFormState[elementId], value, fullObject } };
         if (onSubmit) {
@@ -257,7 +257,7 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
             [elementId]: { ...(prev[elementId] || {}), value, fullObject } 
         }));
     }
-  };
+  }, [isControlled, localFormState, onSubmit]);
 
 
   const processWorkflows = (submissionData: Record<string, any>) => {

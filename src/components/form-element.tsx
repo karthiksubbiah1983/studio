@@ -111,8 +111,7 @@ function DataGridRenderer({ element, value, onValueChange, formState }: {
         return () => {
             isMounted = false;
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id]);
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, onValueChange]);
 
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
@@ -1540,6 +1539,7 @@ const alignmentClasses = {
     
 
     
+
 
 
 
