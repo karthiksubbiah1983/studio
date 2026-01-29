@@ -194,102 +194,94 @@ const evaluateSingleCondition = (
     configurations?: Configuration[],
     rowContext?: any
 ): boolean => {
-    const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
     let sourceValue: any;
-
-    // 1. Get the source value based on its type and context
-    if (condition.sourceType === 'field' && sourceElement) {
-        const elementState = globalContext[sourceElement.id];
-        
-        if (sourceElement.isTableColumn && rowContext && sourceElement.key) {
-             sourceValue = getNestedValue(rowContext, sourceElement.key);
-        } else if (elementState) {
-            if (condition.sourcePropertyKey) {
-                const { fullObject } = elementState;
-                if (Array.isArray(fullObject)) { // Multi-select component (e.g., checkbox list)
-                    sourceValue = fullObject.map(item => getNestedValue(item, condition.sourcePropertyKey!));
-                } else if (fullObject && typeof fullObject === 'object') { // Single-select component (e.g., radio list)
-                    sourceValue = getNestedValue(fullObject, condition.sourcePropertyKey);
-                } else {
-                    sourceValue = undefined; // No object to get property from
-                }
-            } else {
-                sourceValue = elementState.value; // Default to the primary value
-            }
-        }
-    } else if (condition.sourceType === 'config' && condition.sourceValue && configurations) {
-        sourceValue = configurations.find(c => c.key === condition.sourceValue)?.value;
-    } else { // Dates, direct values etc.
-        sourceValue = condition.sourceValue;
-    }
-
-    // 2. Get the comparison value
     let comparisonValue: any;
-    if (condition.comparisonType === 'field' && condition.comparisonElementId) {
-        const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
-        if (comparisonElement && comparisonElement.isTableColumn && rowContext && comparisonElement.key) {
-             comparisonValue = getNestedValue(rowContext, comparisonElement.key);
-        } else if (comparisonElement && globalContext[comparisonElement.id]) {
-            comparisonValue = globalContext[comparisonElement.id].value;
+
+    const getElementValue = (elementId: string, propertyKey?: string) => {
+        const element = allElements.find(el => el.id === elementId) as FormElementInstance | undefined;
+        if (!element) return undefined;
+
+        let contextValue: any;
+
+        // Prioritize row context if element is a table column and context is available
+        if ((element as any).isTableColumn && rowContext && element.key) {
+            contextValue = getNestedValue(rowContext, element.key);
+        } else if (globalContext[elementId]) {
+            const state = globalContext[elementId];
+            contextValue = (state && typeof state === 'object' && 'value' in state) ? state.value : state;
         }
-    } else {
-        comparisonValue = condition.value;
+
+        if (propertyKey && typeof contextValue === 'object' && contextValue !== null) {
+            return getNestedValue(contextValue, propertyKey);
+        }
+
+        return contextValue;
+    };
+
+    // 1. Get Source Value
+    switch (condition.sourceType) {
+        case 'field':
+            if (condition.sourceElementId) {
+                sourceValue = getElementValue(condition.sourceElementId, condition.sourcePropertyKey);
+            }
+            break;
+        case 'config':
+            sourceValue = configurations?.find(c => c.key === condition.sourceValue)?.value;
+            break;
+        default: // date, status
+            sourceValue = condition.sourceValue;
+    }
+    
+    // 2. Get Comparison Value
+    switch (condition.comparisonType) {
+        case 'field':
+            if (condition.comparisonElementId) {
+                comparisonValue = getElementValue(condition.comparisonElementId);
+            }
+            break;
+        case 'value':
+            comparisonValue = condition.value;
+            break;
+        default: // date, status, config
+            comparisonValue = condition.value;
     }
 
-    // 3. Perform the comparison
-    const normalize = (val: any): string => (val === undefined || val === null) ? "" : String(val);
+    // 3. Perform Comparison
+    // Normalize booleans represented as strings
+    if (typeof sourceValue === 'boolean') {
+        comparisonValue = (comparisonValue === 'true');
+    }
 
-    const sourceIsArray = Array.isArray(sourceValue);
+    const val1 = sourceValue;
+    const val2 = comparisonValue;
 
-    // Main comparison logic
+    const num1 = parseFloat(val1);
+    const num2 = parseFloat(val2);
+    const isNumericComparison = !isNaN(num1) && !isNaN(num2);
+
     switch (condition.operator) {
         case 'equals':
-            if (sourceIsArray) {
-                // True if ANY item in the source array equals the comparison value
-                return sourceValue.some(v => normalize(v) === normalize(comparisonValue));
-            }
-            return normalize(sourceValue) === normalize(comparisonValue);
-            
+            return String(val1 ?? '') === String(val2 ?? '');
         case 'not_equals':
-            if (sourceIsArray) {
-                // True if ALL items in the source array do NOT equal the comparison value
-                return !sourceValue.some(v => normalize(v) === normalize(comparisonValue));
-            }
-            return normalize(sourceValue) !== normalize(comparisonValue);
-
+            return String(val1 ?? '') !== String(val2 ?? '');
         case 'contains':
-            if (sourceIsArray) {
-                // True if ANY item in the source array contains the comparison value string
-                return sourceValue.some(v => normalize(v).includes(normalize(comparisonValue)));
+            if (Array.isArray(val1)) {
+                return val1.map(String).includes(String(val2));
             }
-            return normalize(sourceValue).includes(normalize(comparisonValue));
-
+            return String(val1 ?? '').includes(String(val2 ?? ''));
         case 'not_contains':
-            if (sourceIsArray) {
-                // True if NO items in the source array contain the comparison value string
-                return !sourceValue.some(v => normalize(v).includes(normalize(comparisonValue)));
+            if (Array.isArray(val1)) {
+                return !val1.map(String).includes(String(val2));
             }
-            return !normalize(sourceValue).includes(normalize(comparisonValue));
-        
-        // Numeric/Date comparisons
+            return !String(val1 ?? '').includes(String(val2 ?? ''));
         case 'is_greater_than':
+            return isNumericComparison ? num1 > num2 : false;
         case 'is_less_than':
+            return isNumericComparison ? num1 < num2 : false;
         case 'is_greater_than_or_equal_to':
+            return isNumericComparison ? num1 >= num2 : false;
         case 'is_less_than_or_equal_to':
-            const numSource = parseFloat(sourceValue);
-            const numComparison = parseFloat(comparisonValue);
-
-            // If either value is not a number, the comparison is invalid and returns false.
-            if (isNaN(numSource) || isNaN(numComparison)) return false;
-
-            switch(condition.operator) {
-                case 'is_greater_than': return numSource > numComparison;
-                case 'is_less_than': return numSource < numComparison;
-                case 'is_greater_than_or_equal_to': return numSource >= numComparison;
-                case 'is_less_than_or_equal_to': return numSource <= numComparison;
-            }
-            return false;
-
+            return isNumericComparison ? num1 <= num2 : false;
         default:
             return false;
     }
