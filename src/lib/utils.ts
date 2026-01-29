@@ -132,7 +132,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance & { is
                  allElementsAndSections.push(element);
                  processedElements.add(element.id);
                  element.dataGridColumns.forEach(col => {
-                    const colElement = { ...col.element, id: col.element.id, label: `${element.label} > ${col.header}`, isTableColumn: true };
+                    const colElement = { ...col.element, id: col.element.id, label: `${element.label} -> ${col.header}`, isTableColumn: true };
                     allElementsAndSections.push(colElement);
                     processedElements.add(col.element.id);
                  })
@@ -207,18 +207,20 @@ export const evaluateRule = (
         
         const sourceElement = allElements.find(el => el.id === sourceElementId);
 
+        // Get Source Value
         if (sourceType === 'field' && sourceElementId && sourceElement) {
-            // Priority 1: If in a table row context, get value from the row data using the element's key
-            if (rowContext && (sourceElement as any).isTableColumn && sourceElement.key) {
+            // Priority 1: Check for the value within the provided rowContext if it exists.
+            // This is for rules inside EditableTable or DataGrid.
+            if (rowContext && sourceElement.key && rowContext.hasOwnProperty(sourceElement.key)) {
                 sourceValue = rowContext[sourceElement.key];
             } 
-            // Priority 2: Standalone elements or full table objects
+            // Priority 2: Fallback to the global form state context.
             else if (context[sourceElementId]) {
                  const elementState = context[sourceElementId];
                  sourceValue = elementState.value;
 
                  // For multi-selects that save a full object, check for the property key
-                 if (sourcePropertyKey) {
+                 if (sourcePropertyKey && elementState.fullObject) {
                     let objectsToCheck = Array.isArray(elementState.fullObject) ? elementState.fullObject : [elementState.fullObject];
                     if(objectsToCheck[0]) {
                         const values = objectsToCheck.map(obj => getNestedValue(obj, sourcePropertyKey));
@@ -229,18 +231,26 @@ export const evaluateRule = (
             }
         } else if (sourceType === 'config' && configOrDateValue && configurations) {
             sourceValue = configurations.find(c => c.key === configOrDateValue)?.value;
+        } else if (sourceType === 'date' && configOrDateValue) {
+            // Handle date logic if necessary (currently simplified)
+            sourceValue = configOrDateValue;
         }
 
+
+        // Get Comparison Value
         let comparisonValue: any;
         if (condition.comparisonType === 'value') {
             comparisonValue = condition.value;
         } else if (condition.comparisonType === 'field' && condition.comparisonElementId) {
              const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId);
-             if (rowContext && comparisonElement && (comparisonElement as any).isTableColumn && comparisonElement.key) {
+             // Similar to source, prioritize rowContext for comparison field.
+             if (rowContext && comparisonElement && comparisonElement.key && rowContext.hasOwnProperty(comparisonElement.key)) {
                 comparisonValue = rowContext[comparisonElement.key];
              } else if (context[condition.comparisonElementId]) {
                 comparisonValue = context[condition.comparisonElementId].value;
              }
+        } else if (condition.comparisonType === 'config' && condition.value && configurations) {
+            comparisonValue = configurations.find(c => c.key === condition.value)?.value;
         }
 
         const val1 = sourceValue;
@@ -295,3 +305,6 @@ export const evaluateRule = (
         return conditionResults.some(result => result);
     }
 };
+
+
+    
