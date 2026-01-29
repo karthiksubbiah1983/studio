@@ -41,6 +41,16 @@ const getElementDisplayName = (el: FormElementInstance | Section | {id: string, 
     return element.id;
 };
 
+const getSelectValue = (elementId?: string, propertyKey?: string) => {
+    if (elementId?.includes('::score')) {
+        return elementId;
+    }
+    if (elementId && propertyKey) {
+        return `${elementId}::${propertyKey}`;
+    }
+    return elementId;
+}
+
 
 const ConditionEditor = memo(({ 
     condition: initialCondition,
@@ -136,16 +146,6 @@ const ConditionEditor = memo(({
 
     const showValueOffset = (isNumericRelated(sourceElement) || isNumericRelated(comparisonElement)) &&
         (condition.operator === 'is_greater_than' || condition.operator === 'is_less_than');
-    
-    const getSelectValue = (elementId?: string, propertyKey?: string) => {
-        if (elementId?.includes('::score')) {
-            return elementId;
-        }
-        if (elementId && propertyKey) {
-            return `${elementId}::${propertyKey}`;
-        }
-        return elementId;
-    }
     
     const handleFieldChange = (value: string, isSource: boolean) => {
         const updates: Partial<Condition> = {};
@@ -1007,3 +1007,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
 
 
+
+
+    
