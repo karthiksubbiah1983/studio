@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Link, icons, Upload, CalendarDays, Grid, List, ListFilter, Table, MessageSquare } from "lucide-react";
+import { Link, icons, Upload, CalendarDays, Grid, List, ListFilter, Table, MessageSquare, ListChecks, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -116,6 +116,17 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                     <p className="text-sm text-muted-foreground">List Field</p>
                     <p className="text-xs text-muted-foreground/70">{listTypeLabel}</p>
                      {element.enableScoring && <p className="text-xs text-muted-foreground/70">Scoring Enabled</p>}
+                </div>
+            </div>
+        );
+     case "DataList":
+        return (
+            <div>
+                {renderLabel()}
+                <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
+                    <ListChecks className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Data List</p>
+                    <p className="text-xs text-muted-foreground/70">From Dataset</p>
                 </div>
             </div>
         );

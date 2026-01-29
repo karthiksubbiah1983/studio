@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup" | "Preview" | "DataGrid" | "TaskHistory";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup" | "Preview" | "DataGrid" | "TaskHistory" | "DataList";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -138,7 +138,7 @@ export type FormElementInstance = {
     formula?: string;
     defaultValue?: any;
     // For Select, RadioGroup, Combobox
-    dataSource?: 'static' | 'dynamic' | 'fromParent';
+    dataSource?: 'static' | 'dynamic' | 'fromParent' | 'local';
     options?: string[]; // Kept for simple static lists like RadioGroup
     optionsDataKey?: string; // New: Key from row data to source options array for Select/RadioGroup in a table.
     staticData?: any[]; // For complex static lists (List, DataGrid)

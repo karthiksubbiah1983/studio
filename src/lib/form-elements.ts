@@ -1,7 +1,7 @@
 
 
 import { FormElementInstance, ElementType } from "./types";
-import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare, Grid, Eye, FileClock } from "lucide-react";
+import { CaseSensitive, CheckSquare, List, Milestone, TextCursorInput, Pilcrow, CalendarDays, FileText, RadioTower, ChevronsUpDown, Layout, Upload, ListFilter, Table, MessageSquare, Grid, Eye, FileClock, ListChecks } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 export const BasicFormElements: {
@@ -14,7 +14,8 @@ export const BasicFormElements: {
     { type: 'Textarea', icon: Pilcrow, label: 'Textarea' },
     { type: 'Select', icon: ChevronsUpDown, label: 'Select' },
     { type: 'Combobox', icon: ListFilter, label: 'Combobox' },
-    { type: 'List', icon: List, label: 'List' },
+    { type: 'List', icon: List, label: 'List (Legacy)' },
+    { type: 'DataList', icon: ListChecks, label: 'Data List' },
     { type: 'Checkbox', icon: CheckSquare, label: 'Checkbox' },
     { type: 'RadioGroup', icon: RadioTower, label: 'Radio Group' },
     { type: 'DatePicker', icon: CalendarDays, label: 'Date Picker' },
@@ -91,6 +92,23 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 scorePerItem: 1,
                 passingScore: 1,
                 apiUrl: null,
+            };
+        case "DataList":
+            return {
+                ...baseElement,
+                label: "Data List",
+                key: 'data_list_1',
+                dataSource: 'local',
+                localDatasetName: '',
+                valueKey: 'id',
+                labelKey: 'label',
+                listType: 'checkbox',
+                displaySelection: 'none',
+                hasSecondaryText: false,
+                isSecondaryTextLink: false,
+                enableScoring: false,
+                scorePerItem: 1,
+                passingScore: 1,
             };
         case "Checkbox":
             return { ...baseElement, label: "Checkbox Field", key: key, required: false };
