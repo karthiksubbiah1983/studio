@@ -1,8 +1,6 @@
-
-
 'use client';
 
-import { FormElementInstance } from '@/lib/types';
+import { FormElementInstance, Rule, Section, Configuration, TableColumn } from '@/lib/types';
 import { useBuilder } from '@/hooks/use-builder';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -25,7 +23,7 @@ type Props = {
 };
 
 export function EditableTable({ element, value, onValueChange }: Props) {
-  const { sections, rules, configurations } = useBuilder();
+  const { sections, rules, configurations, formState } = useBuilder();
   const [searchTerm, setSearchTerm] = useState('');
   const [activePopupPreview, setActivePopupPreview] = useState<{ rowId: string, sections: any[] } | null>(null);
   const [activeInlinePreview, setActiveInlinePreview] = useState<{ rowId: string, sections: any[] } | null>(null);
@@ -106,16 +104,18 @@ export function EditableTable({ element, value, onValueChange }: Props) {
   const currentRowForPopupPreview = activePopupPreview ? rows.find(r => r._rowId === activePopupPreview.rowId) : null;
   const isAnyColumnPopup = element.columns?.some(c => c.element.type === 'Preview' && c.element.displayMode !== 'inline');
 
-  const isColumnVisible = (column: any, rowContext: any) => {
-    const hideRuleMet = rules?.some(rule =>
+  const isColumnVisible = (column: TableColumn, rowContext: any) => {
+    if (!rules) return !column.element.hidden;
+
+    const hideRuleMet = rules.some(rule =>
         rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === column.element.id) &&
-        evaluateRule(rule, {}, configurations, sections, rowContext)
+        evaluateRule(rule, formState || {}, configurations, sections, rowContext)
     );
     if (hideRuleMet) return false;
     
-    const showRules = rules?.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === column.element.id));
+    const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === column.element.id));
     if (showRules && showRules.length > 0) {
-        return showRules.some(r => evaluateRule(r, {}, configurations, sections, rowContext));
+        return showRules.some(r => evaluateRule(r, formState || {}, configurations, sections, rowContext));
     }
 
     return !column.element.hidden;

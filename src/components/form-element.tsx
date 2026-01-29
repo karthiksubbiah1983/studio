@@ -2,7 +2,7 @@
 
 "use client";
 
-import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset, DataGridColumn } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,7 +35,6 @@ import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { EditableTable } from "@/components/builder/editable-table";
 import { FormPreview } from "./form-preview";
 import {
   Table,
@@ -170,6 +169,23 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
         setCurrentPage(p => Math.min(totalPages, p + 1));
     };
 
+    const isColumnVisible = (column: DataGridColumn, rowContext: any) => {
+        if (!rules) return !column.element.hidden;
+
+        const hideRuleMet = rules.some(rule =>
+            rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === column.element.id) &&
+            evaluateRule(rule, formState || {}, configurations, sections, rowContext)
+        );
+        if (hideRuleMet) return false;
+        
+        const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === column.element.id));
+        if (showRules && showRules.length > 0) {
+            return showRules.some(r => evaluateRule(r, formState || {}, configurations, sections, rowContext));
+        }
+
+        return !column.element.hidden;
+    }
+
 
     if (!element.dataGridColumns || element.dataGridColumns.length === 0) {
         return <p className="text-sm text-muted-foreground">Data Grid: Please configure columns in the builder.</p>;
@@ -215,9 +231,13 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
                                 return (
                                     <TableRow key={originalIndex}>
                                         {element.dataGridColumns!.map(col => {
+                                            const isVisible = isColumnVisible(col, row);
+                                            if (!isVisible) {
+                                                return <TableCell key={col.id} style={{ width: col.width || 'auto' }}></TableCell>;
+                                            }
                                             const cellValue = col.element.key ? getNestedValue(row, col.element.key) : undefined;
                                             return (
-                                                <TableCell key={col.id}>
+                                                <TableCell key={col.id} style={{ width: col.width || 'auto' }}>
                                                     <FormElementRenderer
                                                         element={col.element}
                                                         value={cellValue}
@@ -273,6 +293,324 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
         </div>
     );
 }
+
+type EditableTableProps = {
+  element: FormElementInstance;
+  value: any[];
+  onValueChange: (id: string, value: any) => void;
+  formState?: { [key: string]: any };
+  rules?: Rule[];
+  configurations?: Configuration[];
+  sections?: Section[];
+};
+
+function EditableTable({ element, value, onValueChange, formState, rules, configurations, sections }: EditableTableProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activePopupPreview, setActivePopupPreview] = useState<{ rowId: string, sections: any[] } | null>(null);
+  const [activeInlinePreview, setActiveInlinePreview] = useState<{ rowId: string, sections: any[] } | null>(null);
+
+  const rows = Array.isArray(value) ? value : [];
+
+  const handleRowChange = (rowIndex: number, columnId: string, cellValue: any, fullObject?: any) => {
+    const column = element.columns?.find(c => c.element.id === columnId);
+    if (!column || !column.element.key) return;
+
+    const originalRow = rows.find(r => r._rowId === filteredRows[rowIndex]._rowId);
+    if (!originalRow) return;
+    const originalRowIndex = rows.indexOf(originalRow);
+    
+    if (originalRowIndex !== -1) {
+        const newRows = [...rows];
+        const updatedRow = { ...newRows[originalRowIndex], [column.element.key]: cellValue };
+        if (fullObject) {
+            updatedRow[`${column.element.key}__fullObject`] = fullObject;
+        }
+        newRows[originalRowIndex] = updatedRow;
+        onValueChange(element.id, newRows);
+    }
+  };
+
+  const addRow = () => {
+    if (element.maxRows && rows.length >= element.maxRows) return;
+    
+    const newRow: Record<string, any> = { _rowId: crypto.randomUUID(), _previewData: {} };
+    element.columns?.forEach(col => {
+      if (col.element.key) {
+        newRow[col.element.key] = col.element.defaultValue ?? '';
+      }
+    });
+
+    onValueChange(element.id, [...rows, newRow]);
+  };
+  
+  const removeRow = (rowId: string) => {
+    const newRows = rows.filter(row => row._rowId !== rowId);
+    onValueChange(element.id, newRows);
+  };
+  
+  let filteredRows = [...rows];
+  if (element.enableSearch && searchTerm) {
+    filteredRows = filteredRows.filter(row => {
+      return Object.values(row).some(val => 
+        String(val).toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
+  }
+
+  const handleOpenPreview = (rowId: string, elementInColumn: FormElementInstance, allSections: Section[]) => {
+    if (elementInColumn.type !== 'Preview' || !elementInColumn.previewSectionIds) return;
+    const sectionsToPreview = allSections.filter(s => elementInColumn.previewSectionIds?.includes(s.id));
+
+    if (elementInColumn.displayMode === 'inline') {
+      setActiveInlinePreview(prev => prev?.rowId === rowId ? null : { rowId, sections: sectionsToPreview });
+      setActivePopupPreview(null);
+    } else { // popup mode is default
+      setActivePopupPreview({ rowId, sections: sectionsToPreview });
+      setActiveInlinePreview(null);
+    }
+  };
+
+  const handleSavePreview = (rowId: string) => (newPreviewState: any) => {
+    const newRows = rows.map(row => {
+        if (row._rowId === rowId) {
+            return { ...row, _previewData: newPreviewState };
+        }
+        return row;
+    });
+    onValueChange(element.id, newRows);
+    setActivePopupPreview(null);
+    setActiveInlinePreview(null);
+  };
+  
+  const currentRowForPopupPreview = activePopupPreview ? rows.find(r => r._rowId === activePopupPreview.rowId) : null;
+  const isAnyColumnPopup = element.columns?.some(c => c.element.type === 'Preview' && c.element.displayMode !== 'inline');
+
+  const isColumnVisible = (column: TableColumn, rowContext: any) => {
+    if (!rules) return !column.element.hidden;
+
+    const hideRuleMet = rules.some(rule =>
+        rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === column.element.id) &&
+        evaluateRule(rule, formState || {}, configurations, sections, rowContext)
+    );
+    if (hideRuleMet) return false;
+    
+    const showRules = rules.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === column.element.id));
+    if (showRules && showRules.length > 0) {
+        return showRules.some(r => evaluateRule(r, formState || {}, configurations, sections, rowContext));
+    }
+
+    return !column.element.hidden;
+  }
+  
+  return (
+    <div className='flex flex-col gap-4'>
+        <label className='text-sm font-medium'>{element.label}</label>
+
+        {element.enableSearch && (
+            <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    type="search"
+                    placeholder="Search rows..."
+                    className="pl-8 w-full"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+        )}
+
+        {/* Desktop Table View */}
+        <div className="hidden md:block">
+            <ScrollArea>
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        {element.columns?.map(col => (
+                        <TableHead key={col.id}>
+                            {col.label}
+                        </TableHead>
+                        ))}
+                        <TableHead className='w-[50px]'></TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {filteredRows.map((row, rowIndex) => {
+                    const isInlinePreviewOpen = activeInlinePreview?.rowId === row._rowId;
+                    
+                    return (
+                        <React.Fragment key={row._rowId}>
+                        <TableRow>
+                            {element.columns?.map(col => {
+                                const cellValue = col.element.key ? row[col.element.key] : undefined;
+                                const isVisible = isColumnVisible(col, row);
+
+                                if (!isVisible) {
+                                    return <TableCell key={col.id} className="min-w-[200px]"></TableCell>;
+                                }
+
+                                if (col.element.type === 'Preview') {
+                                    return (
+                                        <TableCell key={col.id} className="min-w-[200px]">
+                                            <Button variant="outline" className="w-full" onClick={() => handleOpenPreview(row._rowId, col.element, sections || [])}>
+                                                <Eye className="mr-2 h-4 w-4" />
+                                                {col.element.label}
+                                            </Button>
+                                        </TableCell>
+                                    )
+                                }
+
+                                return (
+                                    <TableCell key={col.id} className="min-w-[200px]">
+                                        <FormElementRenderer
+                                            element={col.element}
+                                            value={cellValue}
+                                            onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
+                                            rowContext={row}
+                                            isTableCell={true}
+                                            formState={formState}
+                                            rules={rules}
+                                            configurations={configurations}
+                                            sections={sections}
+                                        />
+                                    </TableCell>
+                                )
+                            })}
+                            <TableCell>
+                                <Button variant="ghost" size="icon" onClick={() => removeRow(row._rowId)}>
+                                    <Trash className="h-4 w-4 text-destructive" />
+                                </Button>
+                            </TableCell>
+                        </TableRow>
+                        {isInlinePreviewOpen && activeInlinePreview && (
+                            <TableRow>
+                            <TableCell colSpan={(element.columns?.length || 0) + 1}>
+                                <div className="p-4 border rounded-md bg-accent/20">
+                                <FormPreview 
+                                    key={row._rowId}
+                                    sections={activeInlinePreview.sections} 
+                                    rules={rules || []}
+                                    configurations={configurations || []}
+                                    showSubmitButton={true}
+                                    initialState={row._previewData}
+                                    onSubmit={handleSavePreview(row._rowId)}
+                                    submitButtonText="Save Checklist"
+                                />
+                                </div>
+                            </TableCell>
+                            </TableRow>
+                        )}
+                        </React.Fragment>
+                    )
+                    })}
+                    </TableBody>
+                </Table>
+                <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="block md:hidden space-y-4">
+            {filteredRows.map((row, rowIndex) => {
+                 const isInlinePreviewOpen = activeInlinePreview?.rowId === row._rowId;
+                 return (
+                    <Card key={row._rowId} className="border-l-4 border-primary">
+                        <CardContent className="p-4 space-y-4">
+                        {element.columns?.map(col => {
+                            const cellValue = col.element.key ? row[col.element.key] : undefined;
+                            const isVisible = isColumnVisible(col, row);
+
+                            if (!isVisible) return null;
+
+                            return (
+                            <div key={col.id} className="space-y-2">
+                                <Label>{col.label}</Label>
+                                {col.element.type === 'Preview' ? (
+                                <Button variant="outline" className="w-full" onClick={() => handleOpenPreview(row._rowId, col.element, sections || [])}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    {col.element.label}
+                                </Button>
+                                ) : (
+                                <FormElementRenderer
+                                    element={col.element}
+                                    value={cellValue}
+                                    onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
+                                    rowContext={row}
+                                    isTableCell={true}
+                                    formState={formState}
+                                    rules={rules}
+                                    configurations={configurations}
+                                    sections={sections}
+                                />
+                                )}
+                            </div>
+                            );
+                        })}
+                        </CardContent>
+                        <CardFooter className="p-4 pt-0 flex justify-end">
+                        <Button variant="ghost" size="icon" onClick={() => removeRow(row._rowId)}>
+                            <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
+                        </CardFooter>
+                        {isInlinePreviewOpen && activeInlinePreview && (
+                        <div className="p-4 border-t">
+                            <FormPreview 
+                                key={row._rowId}
+                                sections={activeInlinePreview.sections}
+                                rules={rules || []}
+                                configurations={configurations || []}
+                                showSubmitButton={true}
+                                initialState={row._previewData}
+                                onSubmit={handleSavePreview(row._rowId)}
+                                submitButtonText="Save Checklist"
+                            />
+                        </div>
+                        )}
+                    </Card>
+                 )
+            })}
+        </div>
+
+        <div className="flex items-center justify-between">
+             {element.allowUserToAddRows && (
+                <Button 
+                    variant="outline" 
+                    onClick={addRow} 
+                    className='w-fit'
+                    disabled={element.maxRows !== undefined && rows.length >= element.maxRows}
+                >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Row
+                </Button>
+             )}
+        </div>
+        
+        {isAnyColumnPopup && activePopupPreview && (
+             <Dialog open={!!activePopupPreview} onOpenChange={(isOpen) => !isOpen && setActivePopupPreview(null)}>
+                <DialogContent className="max-w-3xl h-[80vh] flex flex-col p-0">
+                    <DialogHeader className="p-4 border-b">
+                        <DialogTitle>Checklist</DialogTitle>
+                    </DialogHeader>
+                    <ScrollArea className="flex-1">
+                        <div className="p-4">
+                        <FormPreview 
+                            key={activePopupPreview.rowId}
+                            sections={activePopupPreview.sections} 
+                            rules={rules || []}
+                            configurations={configurations || []}
+                            showSubmitButton={true}
+                            initialState={currentRowForPopupPreview?._previewData}
+                            onSubmit={handleSavePreview(activePopupPreview.rowId)}
+                            submitButtonText="Save Checklist"
+                        />
+                        </div>
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+        )}
+    </div>
+  );
+}
+
 
 function DataListRenderer({ element, value, onValueChange }: { 
     element: FormElementInstance, 
@@ -554,7 +892,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [value]);
   
   const isVisible = useMemo(() => {
-    // For elements inside a table, visibility is handled by the EditableTable component itself.
+    // Visibility for cells is handled by parent tables (DataGrid/EditableTable)
     if (isTableCell) return true;
 
     const contextToCheck = formState || {};
@@ -1666,6 +2004,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             element={element} 
             value={value} 
             onValueChange={onValueChange}
+            formState={formState}
+            rules={rules}
+            configurations={configurations}
+            sections={sections}
         />;
     case "DataGrid":
         content = <DataGridRenderer 
