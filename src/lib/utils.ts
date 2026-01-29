@@ -225,27 +225,46 @@ export const evaluateRule = (
              console.log(`Karthik - DataList Score Extraction: Extracted Value:`, sourceValue);
         } else if (sourceType === 'field' && sourceElementId) {
             const sourceElement = allElements.find(el => el.id === sourceElementId);
-            const elementIdToUse = sourceElement?.id || sourceElementId;
-            const elementKeyToUse = sourceElement?.key || '';
-            let elementState = contextToUse[elementIdToUse];
-            
-            if (rowContext && elementKeyToUse && rowContext.hasOwnProperty(elementKeyToUse)) {
-                 sourceValue = rowContext[elementKeyToUse];
-            } 
-            else if (elementState) {
-                sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
-                    ? elementState.value
-                    : elementState;
-                    
-                if (sourcePropertyKey && elementState.fullObject) {
-                    const objectsToCheck = Array.isArray(elementState.fullObject) ? elementState.fullObject : [elementState.fullObject];
-                    if(objectsToCheck[0]) {
-                        const values = objectsToCheck.map(obj => getNestedValue(obj, sourcePropertyKey));
-                        sourceValue = values.length === 1 && operator !== 'contains' ? values[0] : values;
+
+            // Special handling for DataList/List: if no property is specified, assume we're checking the score.
+            if (sourceElement && (sourceElement.type === 'DataList' || sourceElement.type === 'List') && !sourcePropertyKey) {
+                const scoreId = `${sourceElement.id}::score`;
+                console.log(`Karthik - DataList Score Inference: Rule on DataList/List detected. Checking for score with ID: '${scoreId}'`);
+                if (contextToUse && contextToUse.hasOwnProperty(scoreId)) {
+                    const scoreState = contextToUse[scoreId];
+                    sourceValue = (typeof scoreState === 'object' && scoreState !== null && 'value' in scoreState)
+                        ? scoreState.value
+                        : scoreState;
+                } else {
+                    // Fallback to number of selected items if score isn't explicitly enabled/found
+                    const elementState = contextToUse[sourceElementId];
+                    if (elementState && Array.isArray(elementState.value)) {
+                        sourceValue = elementState.value.length;
+                    }
+                }
+            } else {
+                const elementIdToUse = sourceElement?.id || sourceElementId;
+                const elementKeyToUse = sourceElement?.key || '';
+                let elementState = contextToUse[elementIdToUse];
+                
+                if (rowContext && elementKeyToUse && rowContext.hasOwnProperty(elementKeyToUse)) {
+                     sourceValue = rowContext[elementKeyToUse];
+                } 
+                else if (elementState) {
+                    sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
+                        ? elementState.value
+                        : elementState;
+                        
+                    if (sourcePropertyKey && elementState.fullObject) {
+                        const objectsToCheck = Array.isArray(elementState.fullObject) ? elementState.fullObject : [elementState.fullObject];
+                        if(objectsToCheck[0]) {
+                            const values = objectsToCheck.map(obj => getNestedValue(obj, sourcePropertyKey));
+                            sourceValue = values.length === 1 && operator !== 'contains' ? values[0] : values;
+                        }
                     }
                 }
             }
-             console.log(`Karthik - Value Extraction: Rule '${rule.name}', Condition '${condition.id}', Source: '${sourceElementId || sourceType}', Extracted Value:`, sourceValue);
+            console.log(`Karthik - Value Extraction: Rule '${rule.name}', Condition '${condition.id}', Source: '${sourceElementId || sourceType}', Extracted Value:`, sourceValue);
         } else if (sourceType === 'config' && configOrDateValue && configurations) {
             sourceValue = configurations.find(c => c.key === configOrDateValue)?.value;
         } else if (sourceType === 'date' && configOrDateValue) {
@@ -348,4 +367,5 @@ export const evaluateRule = (
     
 
     
+
 
