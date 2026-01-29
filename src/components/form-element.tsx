@@ -21,7 +21,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check, FileClock } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check, FileClock, ListChecks } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -275,6 +275,181 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
     );
 }
 
+function DataListRenderer({ element, value, onValueChange }: { 
+    element: FormElementInstance, 
+    value: any, 
+    onValueChange: (id: string, value: any, fullObject?: any) => void 
+}) {
+    const { datasets } = useBuilder();
+    
+    const isCheckbox = element.listType === 'checkbox';
+    const isRadio = element.listType === 'radio';
+    const isDisplayOnly = element.listType === 'display';
+
+    const currentSelection = isCheckbox ? (Array.isArray(value) ? value : []) : (value || '');
+
+    const listOptions = useMemo(() => {
+        if (element.localDatasetName) {
+            const dataset = datasets.find(ds => ds.name === element.localDatasetName);
+            return dataset?.data || [];
+        }
+        return [];
+    }, [element.localDatasetName, datasets]);
+    
+    const mainListOptions = useMemo(() => {
+        if (!currentSelection) return listOptions;
+        if (element.displaySelection === 'selected' && !isDisplayOnly) {
+            return listOptions.filter(option => {
+                const optValue = String(getNestedValue(option, element.valueKey!) || '');
+                return isCheckbox ? !currentSelection.includes(optValue) : currentSelection !== optValue;
+            });
+        }
+        return listOptions;
+    }, [listOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
+
+    const displayedSelection = useMemo(() => {
+        if (element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
+            return [];
+        }
+        if (element.displaySelection === 'selected') {
+             return listOptions.filter(option => {
+                const itemValue = String(getNestedValue(option, element.valueKey!) || '');
+                return isCheckbox ? currentSelection.includes(itemValue) : currentSelection === itemValue;
+            });
+        }
+        return [];
+    }, [listOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
+
+    const handleListChange = (itemValue: string) => {
+        if (isDisplayOnly) return;
+    
+        const findFullObject = (val: string) => listOptions.find(opt => {
+            const optValue = String(getNestedValue(opt, element.valueKey!) || '');
+            return optValue === val;
+        });
+    
+        if (isCheckbox) {
+            const selection = (currentSelection || []) as string[];
+            const newSelection = selection.includes(itemValue)
+                ? selection.filter((v: string) => v !== itemValue)
+                : [...selection, itemValue];
+            
+            const fullObjects = newSelection.map(val => findFullObject(val)).filter(Boolean);
+            onValueChange(element.id, newSelection, fullObjects);
+    
+        } else { // isRadio
+            const newSelection = value === itemValue ? '' : itemValue;
+            const fullObject = newSelection ? findFullObject(newSelection) : null;
+            onValueChange(element.id, newSelection, fullObject);
+        }
+    };
+        
+    const renderListItemContent = (option: any) => {
+        const itemLabel = String(getNestedValue(option, element.labelKey!) || '');
+        const secondaryText = element.hasSecondaryText ? String(getNestedValue(option, element.secondaryTextKey!) || '') : null;
+        const linkUrlValue = (element.isSecondaryTextLink
+            ? getNestedValue(option, element.linkUrlKey!)
+            : null) || '#';
+
+        return (
+            <div className="flex items-center gap-6">
+                <Label className="font-normal cursor-pointer">{itemLabel}</Label>
+                 {secondaryText && (
+                    element.isSecondaryTextLink ? (
+                        <a href={linkUrlValue} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-primary cursor-pointer hover:underline text-sm">
+                            <Link className="h-3 w-3" />
+                            {secondaryText}
+                        </a>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">{secondaryText}</p>
+                    )
+                )}
+            </div>
+        );
+    };
+
+    const handleRemoveSelection = (itemValue: string) => {
+        if (isCheckbox) {
+            const selection = currentSelection as string[];
+            const newSelection = selection.filter((v: string) => v !== itemValue);
+            onValueChange(element.id, newSelection);
+        } else { // Radio button
+            onValueChange(element.id, '');
+        }
+    };
+
+    const listContent = (
+        <div className="rounded-md border p-2 space-y-2">
+            {mainListOptions.length > 0 ? (
+                mainListOptions.map((option, index) => {
+                    const itemValue = String(getNestedValue(option, element.valueKey!) || '');
+                    const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
+                    
+                    return (
+                        <div
+                            key={`${element.id}-item-${index}`}
+                            onClick={() => handleListChange(itemValue)}
+                            className={cn(
+                                "flex items-start gap-3 p-3 rounded-md transition-colors",
+                                !isDisplayOnly && "cursor-pointer",
+                                isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-accent"
+                            )}
+                        >
+                            {!isDisplayOnly && (
+                                <div className="flex-shrink-0 pt-0.5">
+                                    {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} id={`${element.id}-${index}`} />}
+                                </div>
+                            )}
+                            <div className="flex-1">
+                                {renderListItemContent(option)}
+                            </div>
+                        </div>
+                    );
+                })
+            ) : (
+                <div className="text-center text-sm text-muted-foreground p-4">
+                    No Items
+                </div>
+            )}
+        </div>
+    );
+        
+    return (
+        <div>
+            <Label className="text-[0.9rem] font-medium">{element.label}</Label>
+            {isRadio ? (
+                <RadioGroup id={element.id} value={String(value)} onValueChange={handleListChange}>
+                    {listContent}
+                </RadioGroup>
+            ) : (
+                listContent
+            )}
+             {element.displaySelection !== 'none' && displayedSelection.length > 0 && !isDisplayOnly && (
+                <div className="mt-4">
+                    <p className="text-sm font-medium mb-2">{element.displaySelection === 'selected' ? 'Selected' : 'Unselected'} Items:</p>
+                    <div className="rounded-md border p-2 space-y-1">
+                        {displayedSelection.map((option, index) => {
+                             const itemValue = String(getNestedValue(option, element.valueKey!) || '');
+                             return (
+                                <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md text-sm">
+                                    <div className="flex-1">{renderListItemContent(option)}</div>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                                        onClick={() => handleRemoveSelection(itemValue)}
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                             )
+                        })}
+                    </div>
+                </div>
+             )}
+        </div>
+    );
+}
 
 export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
   const builderContext = useBuilder();
@@ -1143,6 +1318,8 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
         );
         break;
     }
+    case "DataList":
+        return <DataListRenderer element={element} value={value} onValueChange={onValueChange} />;
     case "Checkbox": {
         const isChecked = value === true;
         const handleCheckedChange = (checked: boolean) => {
@@ -1550,3 +1727,4 @@ const alignmentClasses = {
 }
 
     
+

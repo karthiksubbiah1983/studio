@@ -1967,6 +1967,158 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                  </Accordion>
             );
+        case "DataList": {
+            const dataset = datasets.find(d => d.name === element.localDatasetName);
+            const datasetKeys = dataset ? dataset.columns.map(c => c.key) : [];
+        
+            return (
+                <Accordion type="multiple" defaultValue={["general", "data", "layout", "scoring"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                            <div className="flex flex-col gap-2">
+                                <Label>List Type</Label>
+                                <RadioGroup
+                                    value={element.listType || 'checkbox'}
+                                    onValueChange={(value) => updateProperty('listType', value as 'checkbox' | 'radio' | 'display')}
+                                    className="flex gap-4"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="checkbox" id="list-type-checkbox" />
+                                        <Label htmlFor="list-type-checkbox">Checkboxes</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="radio" id="list-type-radio" />
+                                        <Label htmlFor="list-type-radio">Radio Buttons</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="display" id="list-type-display" />
+                                        <Label htmlFor="list-type-display">Display Only</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                            {element.listType !== 'display' &&
+                                <div className="flex flex-col gap-2">
+                                    <Label>Display Selection</Label>
+                                    <Select value={element.displaySelection || 'none'} onValueChange={(value) => updateProperty('displaySelection', value)}>
+                                        <SelectTrigger><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">None</SelectItem>
+                                            <SelectItem value="selected">Show Selected</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            }
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="layout">
+                        <AccordionTrigger className="py-2">Layout</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="hasSecondaryText">Add Secondary Text</Label>
+                                <Switch id="hasSecondaryText" checked={element.hasSecondaryText} onCheckedChange={(checked) => updateMultipleProperties({ hasSecondaryText: checked, isSecondaryTextLink: checked ? element.isSecondaryTextLink : false })} />
+                            </div>
+                             {element.hasSecondaryText && (
+                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <Label htmlFor="isSecondaryTextLink">Enable as Link</Label>
+                                    <Switch id="isSecondaryTextLink" checked={element.isSecondaryTextLink} onCheckedChange={(checked) => updateProperty('isSecondaryTextLink', checked)} />
+                                </div>
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="space-y-2">
+                                <Label>Dataset</Label>
+                                <Select
+                                    value={element.localDatasetName || ''}
+                                    onValueChange={name => updateMultipleProperties({ localDatasetName: name, valueKey: '', labelKey: '', secondaryTextKey: '', linkUrlKey: '' })}
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select a local dataset..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {datasets?.map(ds => (
+                                            <SelectItem key={ds.id} value={ds.name}>
+                                                {ds.name}
+                                            </SelectItem>
+                                        ))}
+                                        {(!datasets || datasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No local datasets found.</div>}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                             {datasetKeys.length > 0 && (
+                                <>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="valueKey">Option Value Key</Label>
+                                        <Select value={element.valueKey || ''} onValueChange={(value) => updateProperty('valueKey', value)}>
+                                            <SelectTrigger><SelectValue placeholder="Select a key" /></SelectTrigger>
+                                            <SelectContent>
+                                                {datasetKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <Label htmlFor="labelKey">Option Label Key</Label>
+                                        <Select value={element.labelKey || ''} onValueChange={(value) => updateProperty('labelKey', value)}>
+                                            <SelectTrigger><SelectValue placeholder="Select a key" /></SelectTrigger>
+                                            <SelectContent>
+                                                {datasetKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {element.hasSecondaryText && (
+                                        <div className="flex flex-col gap-2">
+                                            <Label htmlFor="secondaryTextKey">Secondary Text Key</Label>
+                                            <Select value={element.secondaryTextKey || ''} onValueChange={(value) => updateProperty('secondaryTextKey', value)}>
+                                                <SelectTrigger><SelectValue placeholder="Select a key" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {datasetKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+                                    {element.isSecondaryTextLink && (
+                                        <div className="flex flex-col gap-2">
+                                            <Label htmlFor="linkUrlKey">Link URL Key</Label>
+                                            <Select value={element.linkUrlKey || ''} onValueChange={(value) => updateProperty('linkUrlKey', value)}>
+                                                <SelectTrigger><SelectValue placeholder="Select a key" /></SelectTrigger>
+                                                <SelectContent>
+                                                    {datasetKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
+                     <AccordionItem value="scoring">
+                        <AccordionTrigger className="py-2">Scoring</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="enable-scoring">Enable Scoring</Label>
+                                <Switch id="enable-scoring" checked={element.enableScoring || false} onCheckedChange={(checked) => updateMultipleProperties({ 
+                                    enableScoring: checked,
+                                    scorePerItem: checked ? (element.scorePerItem ?? 1) : null,
+                                    passingScore: checked ? (element.passingScore ?? 1) : null,
+                                 })} />
+                            </div>
+                            {element.enableScoring && (
+                                <>
+                                <div className="flex flex-col gap-2">
+                                    <Label htmlFor="score-per-item">Score per Item</Label>
+                                    <Input id="score-per-item" type="number" value={element.scorePerItem || 1} onChange={(e) => updateProperty('scorePerItem', parseInt(e.target.value))} />
+                                </div>
+                                </>
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
+        }
         case "RadioGroup":
             return (
                  <Accordion type="multiple" defaultValue={["general", "data", "layout"]} className="w-full">
@@ -2396,6 +2548,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 
