@@ -188,28 +188,9 @@ export const findParentTable = (allElements: (FormElementInstance | Section)[], 
     return null;
 }
 
-const getValueFromContext = (context: { [key: string]: any }, elementId: string, propertyKey?: string) => {
-    if (!context || !elementId) return undefined;
-
-    const elementState = context[elementId];
-    if (elementState === undefined) return undefined;
-
-    if (propertyKey) {
-        const fullObject = (typeof elementState === 'object' && elementState !== null && 'fullObject' in elementState) ? elementState.fullObject : null;
-        if (fullObject && typeof fullObject === 'object') {
-            return getNestedValue(fullObject, propertyKey);
-        }
-        return undefined;
-    }
-    
-    const baseValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState) ? elementState.value : elementState;
-    return baseValue;
-};
-
-
 export const evaluateRule = (
     rule: Rule | Workflow,
-    context: { [key:string]: any },
+    context: { [key: string]: any },
     configurations?: Configuration[],
     sections?: Section[],
     rowContext?: any
@@ -217,26 +198,50 @@ export const evaluateRule = (
     if (!rule?.conditions?.length || !context) {
         return false;
     }
-    
+
     const executionContext = rowContext ? { ...context, ...rowContext } : context;
 
     const checkCondition = (condition: Condition): boolean => {
         let sourceValue: any;
-        if (condition.sourceType === 'field' && condition.sourceElementId) {
-            if (condition.sourceElementId.endsWith('::score')) {
-                sourceValue = executionContext[condition.sourceElementId]?.value;
-            } else {
-                sourceValue = getValueFromContext(executionContext, condition.sourceElementId, condition.sourcePropertyKey);
+        const { sourceElementId, sourcePropertyKey, sourceType, sourceValue: configOrDateValue, operator } = condition;
+        
+        if (sourceType === 'field' && sourceElementId) {
+            const elementState = executionContext[sourceElementId];
+            if (elementState && sourcePropertyKey) {
+                const fullObject = elementState.fullObject;
+                if (fullObject) {
+                    if (Array.isArray(fullObject)) {
+                        sourceValue = fullObject.map(obj => getNestedValue(obj, sourcePropertyKey));
+                    } else {
+                        sourceValue = getNestedValue(fullObject, sourcePropertyKey);
+                    }
+                }
+            } else if (elementState) {
+                sourceValue = elementState.value;
             }
-        } else if (condition.sourceType === 'config' && condition.sourceValue && configurations) {
-            sourceValue = configurations.find(c => c.key === condition.sourceValue)?.value;
+        } else if (sourceType === 'config' && configOrDateValue && configurations) {
+            sourceValue = configurations.find(c => c.key === configOrDateValue)?.value;
         }
 
         let comparisonValue: any;
         if (condition.comparisonType === 'value') {
             comparisonValue = condition.value;
         } else if (condition.comparisonType === 'field' && condition.comparisonElementId) {
-            comparisonValue = getValueFromContext(executionContext, condition.comparisonElementId, condition.comparisonPropertyKey);
+            const comparisonElementState = executionContext[condition.comparisonElementId];
+            if (comparisonElementState) {
+                if (condition.comparisonPropertyKey) {
+                    const fullObject = comparisonElementState.fullObject;
+                     if (fullObject) {
+                        if (Array.isArray(fullObject)) {
+                           comparisonValue = fullObject.map(obj => getNestedValue(obj, condition.comparisonPropertyKey!));
+                        } else {
+                           comparisonValue = getNestedValue(fullObject, condition.comparisonPropertyKey);
+                        }
+                    }
+                } else {
+                    comparisonValue = comparisonElementState.value;
+                }
+            }
         }
 
         const val1 = sourceValue;
@@ -245,20 +250,20 @@ export const evaluateRule = (
         const num2 = parseFloat(val2);
         const isNumericComparison = !isNaN(num1) && !isNaN(num2);
 
-        switch (condition.operator) {
+        switch (operator) {
             case 'equals':
-                if (Array.isArray(val1)) return false;
-                return isNumericComparison ? num1 === num2 : String(val1 ?? '') === String(val2 ?? '');
+                if (isNumericComparison) return num1 === num2;
+                return String(val1 ?? '') === String(val2 ?? '');
             case 'not_equals':
-                if (Array.isArray(val1)) return false;
-                return isNumericComparison ? num1 !== num2 : String(val1 ?? '') !== String(val2 ?? '');
+                if (isNumericComparison) return num1 !== num2;
+                return String(val1 ?? '') !== String(val2 ?? '');
             case 'contains':
                 if (Array.isArray(val1)) {
                     return val1.map(String).includes(String(val2 ?? ''));
                 }
                 return String(val1 ?? '').includes(String(val2 ?? ''));
             case 'not_contains':
-                 if (Array.isArray(val1)) {
+                if (Array.isArray(val1)) {
                     return !val1.map(String).includes(String(val2 ?? ''));
                 }
                 return !String(val1 ?? '').includes(String(val2 ?? ''));

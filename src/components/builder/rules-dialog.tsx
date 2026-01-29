@@ -137,8 +137,6 @@ const ConditionEditor = memo(({
     const showValueOffset = (isNumericRelated(sourceElement) || isNumericRelated(comparisonElement)) &&
         (condition.operator === 'is_greater_than' || condition.operator === 'is_less_than');
     
-    const showPropertyKey = sourceElement && 'dataSource' in sourceElement && sourceElement.dataSource === 'dynamic';
-    
     const handleSourceFieldChange = (value: string) => {
         if (value.includes('::')) {
             const [elementId, propertyKey] = value.split('::');
@@ -1004,3 +1002,4 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
 
 
     
+
