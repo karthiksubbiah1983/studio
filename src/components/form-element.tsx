@@ -1,7 +1,7 @@
 
-
 "use client";
 
+import * as React from "react"
 import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset, DataGridColumn } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -2082,5 +2082,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
-    
