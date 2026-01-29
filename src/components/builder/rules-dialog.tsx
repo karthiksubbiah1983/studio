@@ -137,35 +137,38 @@ const ConditionEditor = memo(({
     const showValueOffset = (isNumericRelated(sourceElement) || isNumericRelated(comparisonElement)) &&
         (condition.operator === 'is_greater_than' || condition.operator === 'is_less_than');
     
-    const handleSourceFieldChange = (value: string) => {
-        if (value.includes('::')) {
-            const [elementId, propertyKey] = value.split('::');
-            handleComplexSelectChange({
-                sourceElementId: elementId,
-                sourcePropertyKey: propertyKey,
-            });
-        } else {
-            handleComplexSelectChange({
-                sourceElementId: value,
-                sourcePropertyKey: undefined,
-            });
+    const getSelectValue = (elementId?: string, propertyKey?: string) => {
+        if (elementId?.includes('::score')) {
+            return elementId;
         }
+        if (elementId && propertyKey) {
+            return `${elementId}::${propertyKey}`;
+        }
+        return elementId;
+    }
+    
+    const handleFieldChange = (value: string, isSource: boolean) => {
+        const updates: Partial<Condition> = {};
+        const elementIdField = isSource ? 'sourceElementId' : 'comparisonElementId';
+        const propertyKeyField = isSource ? 'sourcePropertyKey' : 'comparisonPropertyKey';
+    
+        if (value.endsWith('::score')) {
+            updates[elementIdField] = value;
+            updates[propertyKeyField] = undefined;
+        } else if (value.includes('::')) {
+            const [elementId, propertyKey] = value.split('::');
+            updates[elementIdField] = elementId;
+            updates[propertyKeyField] = propertyKey;
+        } else {
+            updates[elementIdField] = value;
+            updates[propertyKeyField] = undefined;
+        }
+        
+        handleComplexSelectChange(updates);
     };
     
-    const handleComparisonFieldChange = (value: string) => {
-        if (value.includes('::')) {
-            const [elementId, propertyKey] = value.split('::');
-            handleComplexSelectChange({
-                comparisonElementId: elementId,
-                comparisonPropertyKey: propertyKey,
-            });
-        } else {
-            handleComplexSelectChange({
-                comparisonElementId: value,
-                comparisonPropertyKey: undefined,
-            });
-        }
-    }
+    const handleSourceFieldChange = (value: string) => handleFieldChange(value, true);
+    const handleComparisonFieldChange = (value: string) => handleFieldChange(value, false);
 
     const renderSourceInput = () => {
         switch(condition.sourceType) {
@@ -174,7 +177,7 @@ const ConditionEditor = memo(({
                     <div className='flex flex-col gap-2'>
                         <Label>Source Field *</Label>
                          <Select
-                            value={condition.sourcePropertyKey ? `${condition.sourceElementId}::${condition.sourcePropertyKey}` : condition.sourceElementId}
+                            value={getSelectValue(condition.sourceElementId, condition.sourcePropertyKey)}
                             onValueChange={handleSourceFieldChange}
                         >
                             <SelectTrigger><SelectValue placeholder="Select a source field..." /></SelectTrigger>
@@ -269,7 +272,7 @@ const ConditionEditor = memo(({
             case 'field':
                 comparisonValueInput = (
                      <Select 
-                        value={condition.comparisonPropertyKey ? `${condition.comparisonElementId}::${condition.comparisonPropertyKey}` : condition.comparisonElementId}
+                        value={getSelectValue(condition.comparisonElementId, condition.comparisonPropertyKey)}
                         onValueChange={handleComparisonFieldChange}
                     >
                         <SelectTrigger><SelectValue placeholder="Select a field..." /></SelectTrigger>
@@ -1002,4 +1005,5 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
 
 
     
+
 
