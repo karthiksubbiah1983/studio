@@ -187,26 +187,46 @@ export const findParentTable = (allElements: (FormElementInstance | Section)[], 
     return null;
 }
 
-const isDateRelated = (element: FormElementInstance | Section | null) => {
-    if (!element) return false;
-    if ('type' in element) return element.type === 'DatePicker';
-    return false;
-};
-
-// Helper function that performs the actual comparison for a condition
-function checkConditionAgainstValue(
-    sourceValue: any,
+const evaluateSingleCondition = (
     condition: Condition,
     globalContext: { [key: string]: any },
     allElements: (FormElementInstance | Section)[],
-    configurations: Configuration[] | undefined,
+    configurations?: Configuration[],
     rowContext?: any
-) {
+): boolean => {
+    const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
+    let sourceValue: any;
+
+    // 1. Get the source value based on its type and context
+    if (condition.sourceType === 'field' && sourceElement) {
+        const elementState = globalContext[sourceElement.id];
+        
+        if (sourceElement.isTableColumn && rowContext && sourceElement.key) {
+             sourceValue = getNestedValue(rowContext, sourceElement.key);
+        } else if (elementState) {
+            if (condition.sourcePropertyKey) {
+                const { fullObject } = elementState;
+                if (Array.isArray(fullObject)) { // Multi-select component (e.g., checkbox list)
+                    sourceValue = fullObject.map(item => getNestedValue(item, condition.sourcePropertyKey!));
+                } else if (fullObject && typeof fullObject === 'object') { // Single-select component (e.g., radio list)
+                    sourceValue = getNestedValue(fullObject, condition.sourcePropertyKey);
+                } else {
+                    sourceValue = undefined; // No object to get property from
+                }
+            } else {
+                sourceValue = elementState.value; // Default to the primary value
+            }
+        }
+    } else if (condition.sourceType === 'config' && condition.sourceValue && configurations) {
+        sourceValue = configurations.find(c => c.key === condition.sourceValue)?.value;
+    } else { // Dates, direct values etc.
+        sourceValue = condition.sourceValue;
+    }
+
+    // 2. Get the comparison value
     let comparisonValue: any;
-    // Determine the comparison value based on its type
     if (condition.comparisonType === 'field' && condition.comparisonElementId) {
         const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
-
         if (comparisonElement && comparisonElement.isTableColumn && rowContext && comparisonElement.key) {
              comparisonValue = getNestedValue(rowContext, comparisonElement.key);
         } else if (comparisonElement && globalContext[comparisonElement.id]) {
@@ -216,125 +236,71 @@ function checkConditionAgainstValue(
         comparisonValue = condition.value;
     }
 
-    const normalize = (val: any): string => {
-        if (val === undefined || val === null) return "";
-        return String(val);
-    }
+    // 3. Perform the comparison
+    const normalize = (val: any): string => (val === undefined || val === null) ? "" : String(val);
 
-    // Date Comparisons
-    const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as FormElementInstance | undefined;
-    const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId) as FormElementInstance | undefined;
-    const isDateComparison = condition.sourceType === 'date' || condition.comparisonType === 'date' || isDateRelated(sourceElement) || isDateRelated(comparisonElement);
+    const sourceIsArray = Array.isArray(sourceValue);
 
-    if (isDateComparison) {
-        try {
-            let dateSource = new Date(normalize(sourceValue));
-            let dateComparison = new Date(normalize(comparisonValue));
-            if (isNaN(dateSource.getTime()) || isNaN(dateComparison.getTime())) return false;
-            // ... date offset logic ...
-            switch(condition.operator) {
-                case 'equals': return dateSource.getTime() === dateComparison.getTime();
-                case 'not_equals': return dateSource.getTime() !== dateComparison.getTime();
-                case 'is_greater_than': return dateSource > dateComparison;
-                case 'is_less_than': return dateSource < dateComparison;
-                case 'is_greater_than_or_equal_to': return dateSource >= dateComparison;
-                case 'is_less_than_or_equal_to': return dateSource <= dateComparison;
-                default: return false; 
-            }
-        } catch (e) { return false; }
-    }
-
-    // Attempt numeric comparison first if the operator is numeric
-    if (['equals', 'not_equals', 'is_greater_than', 'is_less_than', 'is_greater_than_or_equal_to', 'is_less_than_or_equal_to'].includes(condition.operator)) {
-        const numSource = parseFloat(sourceValue);
-        const numComparison = parseFloat(comparisonValue);
-
-        if (!isNaN(numSource) && !isNaN(numComparison)) {
-            let s = numSource;
-            let c = numComparison;
-            
-            if (condition.offsetValue) {
-                s += condition.offsetValue;
-            }
-
-            switch(condition.operator) {
-                case 'equals': return s === c;
-                case 'not_equals': return s !== c;
-                case 'is_greater_than': return s > c;
-                case 'is_less_than': return s < c;
-                case 'is_greater_than_or_equal_to': return s >= c;
-                case 'is_less_than_or_equal_to': return s <= c;
-            }
-        }
-    }
-
-    // Fallback to string/array comparison
+    // Main comparison logic
     switch (condition.operator) {
         case 'equals':
+            if (sourceIsArray) {
+                // True if ANY item in the source array equals the comparison value
+                return sourceValue.some(v => normalize(v) === normalize(comparisonValue));
+            }
             return normalize(sourceValue) === normalize(comparisonValue);
+            
         case 'not_equals':
+            if (sourceIsArray) {
+                // True if ALL items in the source array do NOT equal the comparison value
+                return !sourceValue.some(v => normalize(v) === normalize(comparisonValue));
+            }
             return normalize(sourceValue) !== normalize(comparisonValue);
+
         case 'contains':
-            // Array-aware CONTAINS
-            if (Array.isArray(sourceValue)) {
-                return sourceValue.map(String).includes(normalize(comparisonValue));
+            if (sourceIsArray) {
+                // True if ANY item in the source array contains the comparison value string
+                return sourceValue.some(v => normalize(v).includes(normalize(comparisonValue)));
             }
-            // String CONTAINS
-            const strSourceContains = normalize(sourceValue);
-            if (strSourceContains === "") return false;
-            return strSourceContains.includes(normalize(comparisonValue));
+            return normalize(sourceValue).includes(normalize(comparisonValue));
+
         case 'not_contains':
-            // Array-aware NOT CONTAINS
-            if (Array.isArray(sourceValue)) {
-                return !sourceValue.map(String).includes(normalize(comparisonValue));
+            if (sourceIsArray) {
+                // True if NO items in the source array contain the comparison value string
+                return !sourceValue.some(v => normalize(v).includes(normalize(comparisonValue)));
             }
-             // String NOT CONTAINS
-            const strSourceNotContains = normalize(sourceValue);
-            if (strSourceNotContains === "") return false;
-            return !strSourceNotContains.includes(normalize(comparisonValue));
+            return !normalize(sourceValue).includes(normalize(comparisonValue));
+        
+        // Numeric/Date comparisons
+        case 'is_greater_than':
+        case 'is_less_than':
+        case 'is_greater_than_or_equal_to':
+        case 'is_less_than_or_equal_to':
+            const numSource = parseFloat(sourceValue);
+            const numComparison = parseFloat(comparisonValue);
+
+            // If either value is not a number, the comparison is invalid and returns false.
+            if (isNaN(numSource) || isNaN(numComparison)) return false;
+
+            switch(condition.operator) {
+                case 'is_greater_than': return numSource > numComparison;
+                case 'is_less_than': return numSource < numComparison;
+                case 'is_greater_than_or_equal_to': return numSource >= numComparison;
+                case 'is_less_than_or_equal_to': return numSource <= numComparison;
+            }
+            return false;
+
         default:
-            // This path is taken for relational operators if numeric parse failed
             return false;
     }
-}
-
-
-export const evaluateSingleCondition = (
-    condition: Condition,
-    globalContext: { [key: string]: any },
-    allElements: (FormElementInstance | Section)[],
-    configurations?: Configuration[],
-    rowContext?: any
-): boolean => {
-    const sourceElement = allElements.find(el => el.id === condition.sourceElementId) as (FormElementInstance & { isTableColumn?: boolean }) | undefined;
-
-    let sourceValue: any;
-
-    // This block is for getting the value to be compared
-    if (condition.sourceType === 'field' && sourceElement) {
-       // This branch is for elements inside a table/grid
-       if (sourceElement.isTableColumn && rowContext && sourceElement.key) {
-            sourceValue = getNestedValue(rowContext, sourceElement.key);
-       } else { // This branch is for standalone elements
-            sourceValue = globalContext[sourceElement.id]?.value;
-       }
-    } else if (condition.sourceType === 'config' && condition.sourceValue && configurations) {
-        sourceValue = configurations.find(c => c.key === condition.sourceValue)?.value;
-    } else if (condition.sourceType !== 'field') {
-        sourceValue = condition.sourceValue;
-    }
-    
-    // This calls the function that does the actual comparison
-    return checkConditionAgainstValue(sourceValue, condition, globalContext, allElements, configurations, rowContext);
-}
-
+};
 
 export const evaluateRule = (
     rule: Rule | Workflow, 
     context: { [key: string]: any }, 
     configurations?: Configuration[], 
     sections?: Section[],
-    rowContext?: any // NEW: Optional context for the specific row being evaluated
+    rowContext?: any
 ): boolean => {
   if (!rule || !rule.conditions || rule.conditions.length === 0 || !context) {
     return false;
