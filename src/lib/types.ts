@@ -27,6 +27,7 @@ export type Condition = {
     comparisonType: ConditionComparisonType;
     value?: string; // Used for comparisonType 'value', 'date', or 'status'
     comparisonElementId?: string; // Used for comparisonType 'field'
+    comparisonPropertyKey?: string; // For nested property of comparison element
     includeTime?: boolean;
     offsetDays?: number;
     offsetHours?: number;

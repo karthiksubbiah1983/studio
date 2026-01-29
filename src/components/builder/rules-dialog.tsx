@@ -32,9 +32,9 @@ const specialDateOptions = [
 ];
 const allStatuses: string[] = [...taskStatuses, 'Current Status'];
 
-const getElementDisplayName = (el: FormElementInstance | Section): string => {
+const getElementDisplayName = (el: FormElementInstance | Section | {id: string, label: string}): string => {
+    if ('label' in el && el.label) return el.label;
     const element = el as any;
-    if (element.label) return element.label;
     if (element.title) return element.title;
     if (element.key) return element.key;
     if (element.type) return element.type;
@@ -52,7 +52,7 @@ const ConditionEditor = memo(({
     condition: Condition, 
     onUpdateCondition: (id: string, updatedCondition: Condition) => void,
     onDeleteCondition: (id: string) => void,
-    selectableFields: (FormElementInstance | Section)[],
+    selectableFields: (FormElementInstance | Section | {id: string, label: string})[],
     localConfigs: Configuration[],
 }) => {
     const [condition, setCondition] = useState(initialCondition);
@@ -139,13 +139,46 @@ const ConditionEditor = memo(({
     
     const showPropertyKey = sourceElement && 'dataSource' in sourceElement && sourceElement.dataSource === 'dynamic';
     
+    const handleSourceFieldChange = (value: string) => {
+        if (value.includes('::')) {
+            const [elementId, propertyKey] = value.split('::');
+            handleComplexSelectChange({
+                sourceElementId: elementId,
+                sourcePropertyKey: propertyKey,
+            });
+        } else {
+            handleComplexSelectChange({
+                sourceElementId: value,
+                sourcePropertyKey: undefined,
+            });
+        }
+    };
+    
+    const handleComparisonFieldChange = (value: string) => {
+        if (value.includes('::')) {
+            const [elementId, propertyKey] = value.split('::');
+            handleComplexSelectChange({
+                comparisonElementId: elementId,
+                comparisonPropertyKey: propertyKey,
+            });
+        } else {
+            handleComplexSelectChange({
+                comparisonElementId: value,
+                comparisonPropertyKey: undefined,
+            });
+        }
+    }
+
     const renderSourceInput = () => {
         switch(condition.sourceType) {
             case 'field':
                 return (
                     <div className='flex flex-col gap-2'>
                         <Label>Source Field *</Label>
-                        <Select value={condition.sourceElementId} onValueChange={(value) => handleComplexSelectChange({ sourceElementId: value, sourcePropertyKey: undefined })}>
+                         <Select
+                            value={condition.sourcePropertyKey ? `${condition.sourceElementId}::${condition.sourcePropertyKey}` : condition.sourceElementId}
+                            onValueChange={handleSourceFieldChange}
+                        >
                             <SelectTrigger><SelectValue placeholder="Select a source field..." /></SelectTrigger>
                             <SelectContent>
                                 {selectableFields.map(el => (
@@ -153,20 +186,6 @@ const ConditionEditor = memo(({
                                 ))}
                             </SelectContent>
                         </Select>
-                        {showPropertyKey && (
-                            <div className="flex flex-col gap-2 pl-2 border-l-2 border-slate-200">
-                                <Label className="text-xs">Property Key (optional)</Label>
-                                <Input
-                                    placeholder="e.g., name, status.id"
-                                    defaultValue={condition.sourcePropertyKey}
-                                    onBlur={(e) => handleUpdate('sourcePropertyKey', e.target.value)}
-                                    className="h-8 text-xs"
-                                />
-                                <p className="text-xs text-muted-foreground -mt-1">
-                                    Specify a key to check against the selected object.
-                                </p>
-                            </div>
-                        )}
                     </div>
                 );
             case 'date':
@@ -207,7 +226,7 @@ const ConditionEditor = memo(({
     const renderComparisonInput = () => {
         const commonProps = {
             value: condition.comparisonType,
-            onValueChange: (value: ConditionComparisonType) => handleComplexSelectChange({ comparisonType: value, value: '', comparisonElementId: undefined })
+            onValueChange: (value: ConditionComparisonType) => handleComplexSelectChange({ comparisonType: value, value: '', comparisonElementId: undefined, comparisonPropertyKey: undefined })
         };
         const commonTrigger = <SelectTrigger><SelectValue placeholder="Select comparison type..." /></SelectTrigger>;
         const commonContent = (
@@ -251,7 +270,10 @@ const ConditionEditor = memo(({
                 break;
             case 'field':
                 comparisonValueInput = (
-                     <Select value={condition.comparisonElementId} onValueChange={(value) => handleUpdate('comparisonElementId', value)}>
+                     <Select 
+                        value={condition.comparisonPropertyKey ? `${condition.comparisonElementId}::${condition.comparisonPropertyKey}` : condition.comparisonElementId}
+                        onValueChange={handleComparisonFieldChange}
+                    >
                         <SelectTrigger><SelectValue placeholder="Select a field..." /></SelectTrigger>
                         <SelectContent>
                             {selectableFields.map(el => (
@@ -328,7 +350,7 @@ const ConditionEditor = memo(({
             <div className="grid grid-cols-1 gap-4">
                 <div className="flex flex-col gap-2">
                     <Label>Source Type *</Label>
-                    <Select value={condition.sourceType} onValueChange={(value: ConditionSourceType) => handleComplexSelectChange({ sourceType: value, sourceElementId: undefined, sourceValue: '' })}>
+                    <Select value={condition.sourceType} onValueChange={(value: ConditionSourceType) => handleComplexSelectChange({ sourceType: value, sourceElementId: undefined, sourceValue: '', sourcePropertyKey: undefined })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                             <SelectItem value="field">Field</SelectItem>
@@ -538,7 +560,7 @@ const RuleEditor = memo(({
     onUpdate
 }: { 
     initialRule: Rule,
-    selectableFields: (FormElementInstance | Section)[],
+    selectableFields: (FormElementInstance | Section | {id: string, label: string})[],
     localConfigs: Configuration[],
     onUpdate: (updatedRule: Rule) => void
 }) => {
@@ -661,7 +683,7 @@ const RuleEditor = memo(({
                             behavior={behavior} 
                             onUpdateBehavior={handleUpdateBehavior}
                             onDeleteBehavior={handleDeleteBehavior}
-                            selectableFields={selectableFields}
+                            selectableFields={selectableFields as (FormElementInstance | Section)[]}
                             localConfigs={localConfigs}
                         />
                     ))}
@@ -730,14 +752,13 @@ ConfigurationsEditor.displayName = 'ConfigurationsEditor';
 
 
 export function RulesDialog({ isOpen, onOpenChange }: Props) {
-  const { sections, rules, configurations, updateRules } = useBuilder();
+  const { sections, rules, configurations, datasets, updateRules } = useBuilder();
   const [localRules, setLocalRules] = useState<Rule[]>([]);
   const [activeRule, setActiveRule] = useState<Rule | null>(null);
   const [localConfigs, setLocalConfigs] = useState<Configuration[]>([]);
 
   const activeRuleId = activeRule?.id;
 
-  // Ref to store the latest version of the currently edited rule
   const dirtyRuleRef = useRef<Rule | null>(null);
 
   useEffect(() => {
@@ -753,17 +774,46 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         } else {
             setActiveRule(null);
         }
-        dirtyRuleRef.current = null; // Reset dirty rule on open
+        dirtyRuleRef.current = null;
     }
   }, [isOpen, rules, configurations]);
 
   const selectableFields = useMemo(() => {
-    return getAllElements(sections);
-  }, [sections]);
+    const allFormElements = getAllElements(sections);
+    const expandedFields: (FormElementInstance | Section | { id: string; label: string; })[] = [...allFormElements];
+
+    allFormElements.forEach(element => {
+        const el = element as FormElementInstance;
+        let columns: { key: string, header: string }[] = [];
+
+        if (el.type === 'DataList' || el.type === 'List') {
+            if (el.dataSource === 'local' && el.localDatasetName && datasets) {
+                const dataset = datasets.find(ds => ds.name === el.localDatasetName);
+                if (dataset) {
+                    columns = dataset.columns.map(c => ({ key: c.key, header: c.header }));
+                }
+            } else if (el.dataSource === 'static' && el.staticData && el.staticData.length > 0) {
+                columns = Object.keys(el.staticData[0])
+                    .filter(key => key !== 'id') // 'id' is already the primary value, don't show it as a sub-property
+                    .map(key => ({ key: key, header: key.charAt(0).toUpperCase() + key.slice(1) }));
+            }
+        }
+        
+        if (columns.length > 0) {
+            columns.forEach(column => {
+                expandedFields.push({
+                    id: `${el.id}::${column.key}`,
+                    label: `${el.label} -> ${column.header}`,
+                });
+            });
+        }
+    });
+
+    return Array.from(new Map(expandedFields.map(item => [item.id, item])).values());
+}, [sections, datasets]);
   
   const handleSaveChanges = () => {
     let finalRules = localRules;
-    // If there's a dirty rule being edited, update it in the list before saving.
     if (dirtyRuleRef.current && activeRuleId) {
         finalRules = localRules.map(r => r.id === activeRuleId ? dirtyRuleRef.current! : r);
     }
@@ -774,18 +824,16 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   const handleSelectRule = (ruleId: string) => {
     if (activeRuleId === ruleId) return;
 
-    // Save the changes from the currently edited rule before switching
     if (dirtyRuleRef.current && activeRuleId) {
         setLocalRules(prev => prev.map(r => r.id === activeRuleId ? dirtyRuleRef.current! : r));
     }
 
     const nextRule = localRules.find(r => r.id === ruleId) || null;
     setActiveRule(nextRule);
-    dirtyRuleRef.current = nextRule; // Set the new dirty rule
+    dirtyRuleRef.current = nextRule;
   }
 
   const handleAddRule = () => {
-     // Save any pending changes from the current rule first
     if (dirtyRuleRef.current && activeRuleId) {
         setLocalRules(prev => prev.map(r => r.id === activeRuleId ? dirtyRuleRef.current! : r));
     }
@@ -804,8 +852,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
   };
 
   const handleUpdateActiveRule = useCallback((updatedRule: Rule) => {
-    // This function only updates the 'dirty' copy of the rule in the ref.
-    // It does NOT trigger a state update on the entire dialog.
     dirtyRuleRef.current = updatedRule;
   }, []);
 
@@ -837,7 +883,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
         newRules.splice(ruleIndex + 1, 0, newRule);
         return newRules;
     });
-    // Immediately switch to the new copied rule
     setActiveRule(newRule);
     dirtyRuleRef.current = newRule;
   }
