@@ -244,13 +244,10 @@ function checkConditionAgainstValue(
         } catch (e) { return false; }
     }
 
-    const normalizedSource = normalize(sourceValue);
-    const normalizedComparison = normalize(comparisonValue);
-    
     // Attempt numeric comparison first if the operator is numeric
     if (['equals', 'not_equals', 'is_greater_than', 'is_less_than', 'is_greater_than_or_equal_to', 'is_less_than_or_equal_to'].includes(condition.operator)) {
-        const numSource = parseFloat(normalizedSource);
-        const numComparison = parseFloat(normalizedComparison);
+        const numSource = parseFloat(sourceValue);
+        const numComparison = parseFloat(comparisonValue);
 
         if (!isNaN(numSource) && !isNaN(numComparison)) {
             let s = numSource;
@@ -271,19 +268,31 @@ function checkConditionAgainstValue(
         }
     }
 
-    // Fallback to string comparison for equality and contains checks
+    // Fallback to string/array comparison
     switch (condition.operator) {
-       case 'equals':
-            return normalizedSource === normalizedComparison;
-       case 'not_equals': 
-            return normalizedSource !== normalizedComparison;
-       case 'contains': 
-            if (normalizedSource === "") return false;
-            return normalizedSource.includes(normalizedComparison);
-       case 'not_contains': 
-            if (normalizedSource === "") return false;
-            return !normalizedSource.includes(normalizedComparison);
-       default: 
+        case 'equals':
+            return normalize(sourceValue) === normalize(comparisonValue);
+        case 'not_equals':
+            return normalize(sourceValue) !== normalize(comparisonValue);
+        case 'contains':
+            // Array-aware CONTAINS
+            if (Array.isArray(sourceValue)) {
+                return sourceValue.map(String).includes(normalize(comparisonValue));
+            }
+            // String CONTAINS
+            const strSourceContains = normalize(sourceValue);
+            if (strSourceContains === "") return false;
+            return strSourceContains.includes(normalize(comparisonValue));
+        case 'not_contains':
+            // Array-aware NOT CONTAINS
+            if (Array.isArray(sourceValue)) {
+                return !sourceValue.map(String).includes(normalize(comparisonValue));
+            }
+             // String NOT CONTAINS
+            const strSourceNotContains = normalize(sourceValue);
+            if (strSourceNotContains === "") return false;
+            return !strSourceNotContains.includes(normalize(comparisonValue));
+        default:
             // This path is taken for relational operators if numeric parse failed
             return false;
     }
