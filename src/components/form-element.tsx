@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset } from "@/lib/types";
@@ -328,9 +326,10 @@ function DataListRenderer({ element, value, onValueChange }: {
             return optValue === val;
         });
     
+        let newSelection: string[] | string;
         if (isCheckbox) {
             const selection = (currentSelection || []) as string[];
-            const newSelection = selection.includes(itemValue)
+            newSelection = selection.includes(itemValue)
                 ? selection.filter((v: string) => v !== itemValue)
                 : [...selection, itemValue];
             
@@ -338,9 +337,15 @@ function DataListRenderer({ element, value, onValueChange }: {
             onValueChange(element.id, newSelection, fullObjects);
     
         } else { // isRadio
-            const newSelection = value === itemValue ? '' : itemValue;
+            newSelection = value === itemValue ? '' : itemValue;
             const fullObject = newSelection ? findFullObject(newSelection) : null;
             onValueChange(element.id, newSelection, fullObject);
+        }
+
+        if (element.enableScoring) {
+            const selectionCount = Array.isArray(newSelection) ? newSelection.length : (newSelection ? 1 : 0);
+            const score = selectionCount * (element.scorePerItem || 0);
+            onValueChange(`${element.id}::score`, score);
         }
     };
         
@@ -1193,9 +1198,10 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 return optValue === val;
             });
         
+            let newSelection: string | string[];
             if (isCheckbox) {
                 const selection = (currentSelection || []) as string[];
-                const newSelection = selection.includes(itemValue)
+                newSelection = selection.includes(itemValue)
                     ? selection.filter((v: string) => v !== itemValue)
                     : [...selection, itemValue];
                 
@@ -1203,9 +1209,15 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
                 onValueChange(element.id, newSelection, fullObjects);
         
             } else { // isRadio
-                const newSelection = value === itemValue ? '' : itemValue;
+                newSelection = value === itemValue ? '' : itemValue;
                 const fullObject = newSelection ? findFullObject(newSelection) : null;
                 onValueChange(element.id, newSelection, fullObject);
+            }
+
+            if (element.enableScoring) {
+                const selectionCount = Array.isArray(newSelection) ? newSelection.length : (newSelection ? 1 : 0);
+                const score = selectionCount * (element.scorePerItem || 0);
+                onValueChange(`${element.id}::score`, score);
             }
         };
         
@@ -1725,6 +1737,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
-    
-

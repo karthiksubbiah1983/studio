@@ -1,5 +1,3 @@
-
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
@@ -136,7 +134,7 @@ export const getAllElements = (sections: Section[]): (FormElementInstance & { is
                     allElementsAndSections.push(colElement);
                     processedElements.add(col.element.id);
                  })
-            } else if (element.type === 'List' && element.enableScoring) {
+            } else if ((element.type === 'List' || element.type === 'DataList') && element.enableScoring) {
                  allElementsAndSections.push(element);
                  processedElements.add(element.id);
                  const scoreProxyElement: FormElementInstance = {
@@ -264,6 +262,9 @@ function checkConditionAgainstValue(
     // Equality and String Checks
     switch (condition.operator) {
        case 'equals':
+            // An empty source should only equal an empty comparison,
+            // but we don't want rules firing on form load when everything is empty.
+            // This prevents a rule like "show X if Y is empty" from firing initially.
             const isSourceEmpty = sourceValue === undefined || sourceValue === null || sourceValue === '';
             const isComparisonEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === '';
             if (isSourceEmpty && isComparisonEmpty) {
@@ -337,7 +338,3 @@ export const evaluateRule = (
     return conditionResults.some((res) => res);
   }
 };
-
-
-
-
