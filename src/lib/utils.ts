@@ -1,4 +1,5 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
@@ -213,17 +214,24 @@ export const evaluateRule = (
         const contextToUse = rowContext || context;
         
         // 1. Get Source Value
-        if (sourceType === 'field' && sourceElementId) {
+        if (sourceType === 'field' && sourceElementId && sourceElementId.includes('::score')) {
+            console.log(`Karthik - DataList Score Extraction: Rule '${rule.name}', Condition '${condition.id}', Source ID: '${sourceElementId}'`);
+            if (contextToUse && contextToUse.hasOwnProperty(sourceElementId)) {
+                const elementState = contextToUse[sourceElementId];
+                sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
+                    ? elementState.value
+                    : elementState;
+            }
+             console.log(`Karthik - DataList Score Extraction: Extracted Value:`, sourceValue);
+        } else if (sourceType === 'field' && sourceElementId) {
             const sourceElement = allElements.find(el => el.id === sourceElementId);
             const elementIdToUse = sourceElement?.id || sourceElementId;
             const elementKeyToUse = sourceElement?.key || '';
             let elementState = contextToUse[elementIdToUse];
             
-            // Special handling for row context where data might be directly on the object by key
             if (rowContext && elementKeyToUse && rowContext.hasOwnProperty(elementKeyToUse)) {
                  sourceValue = rowContext[elementKeyToUse];
             } 
-            // Handle virtual score fields and regular fields from form state
             else if (elementState) {
                 sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
                     ? elementState.value
@@ -237,13 +245,12 @@ export const evaluateRule = (
                     }
                 }
             }
+             console.log(`Karthik - Value Extraction: Rule '${rule.name}', Condition '${condition.id}', Source: '${sourceElementId || sourceType}', Extracted Value:`, sourceValue);
         } else if (sourceType === 'config' && configOrDateValue && configurations) {
             sourceValue = configurations.find(c => c.key === configOrDateValue)?.value;
         } else if (sourceType === 'date' && configOrDateValue) {
             sourceValue = configOrDateValue;
         }
-        
-        console.log(`Karthik - Value Extraction: Rule '${rule.name}', Condition '${condition.id}', Source: '${sourceElementId || sourceType}', Extracted Value:`, sourceValue);
 
 
         // 2. Get Comparison Value
@@ -341,3 +348,4 @@ export const evaluateRule = (
     
 
     
+
