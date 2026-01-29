@@ -435,7 +435,7 @@ const BehaviorEditor = memo(({
     }
 
     const valueSettingFields = useMemo(() => 
-        selectableFields.filter(el => 'type' in el && (el.type === 'Input' || el.type === 'Display' || (el.id.includes("::"))))
+        selectableFields.filter(el => 'type' in el && (el.type === 'Input' || el.type === 'Textarea' || el.type === 'Display' || (el.id.includes("::"))))
     , [selectableFields]);
     
     const popupFields = useMemo(() => 
@@ -614,7 +614,7 @@ const RuleEditor = memo(({
     };
 
     const handleUpdateBehavior = (id: string, updatedBehavior: RuleBehavior) => {
-        const newBehaviors = rule.behaviors.map(b => b.id === id ? updatedBehavior : b);
+        const newBehaviors = rule.behaviors.map(b => b.id === id ? updatedBehavior : c);
         handleUpdate({ ...rule, behaviors: newBehaviors });
     };
 
