@@ -27,7 +27,7 @@ import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
 import { cn, findFirstArray, getAllElements, getNestedValue, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { FormPreviewPopup } from "./form-preview-popup";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -2082,3 +2082,5 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
+    
