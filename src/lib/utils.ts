@@ -208,26 +208,31 @@ export const evaluateRule = (
         const sourceElement = allElements.find(el => el.id === sourceElementId);
 
         // Get Source Value
-        if (sourceType === 'field' && sourceElementId && sourceElement) {
-            // Priority 1: Check for the value within the provided rowContext if it exists.
-            // This is for rules inside EditableTable or DataGrid.
-            if (rowContext && sourceElement.key && rowContext.hasOwnProperty(sourceElement.key)) {
-                sourceValue = rowContext[sourceElement.key];
-            } 
-            // Priority 2: Fallback to the global form state context.
-            else if (context[sourceElementId]) {
-                 const elementState = context[sourceElementId];
-                 sourceValue = elementState.value;
+        if (sourceType === 'field' && sourceElementId) {
+            // This is the main change: We now have a unified way to get a value,
+            // whether it's from the main form state or a specific table row context.
+            const contextToUse = rowContext || context;
+            const elementIdToUse = sourceElement?.id || sourceElementId;
+            const elementKeyToUse = sourceElement?.key || '';
+            let elementState = contextToUse[elementIdToUse];
 
-                 // For multi-selects that save a full object, check for the property key
-                 if (sourcePropertyKey && elementState.fullObject) {
+            // If in row context, value might be directly on the row object via its key
+            if (rowContext && elementKeyToUse && rowContext.hasOwnProperty(elementKeyToUse)) {
+                sourceValue = rowContext[elementKeyToUse];
+            } 
+            // Otherwise, get it from the state object (main form state or row state for inline components)
+            else if (elementState) {
+                sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
+                    ? elementState.value
+                    : elementState;
+
+                if (sourcePropertyKey && elementState.fullObject) {
                     let objectsToCheck = Array.isArray(elementState.fullObject) ? elementState.fullObject : [elementState.fullObject];
                     if(objectsToCheck[0]) {
                         const values = objectsToCheck.map(obj => getNestedValue(obj, sourcePropertyKey));
-                        // If it's a single selection, return the value, otherwise return the array of values for 'contains' check
-                        sourceValue = values.length === 1 ? values[0] : values;
+                        sourceValue = values.length === 1 && operator !== 'contains' ? values[0] : values;
                     }
-                 }
+                }
             }
         } else if (sourceType === 'config' && configOrDateValue && configurations) {
             sourceValue = configurations.find(c => c.key === configOrDateValue)?.value;
@@ -243,11 +248,13 @@ export const evaluateRule = (
             comparisonValue = condition.value;
         } else if (condition.comparisonType === 'field' && condition.comparisonElementId) {
              const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId);
-             // Similar to source, prioritize rowContext for comparison field.
              if (rowContext && comparisonElement && comparisonElement.key && rowContext.hasOwnProperty(comparisonElement.key)) {
                 comparisonValue = rowContext[comparisonElement.key];
              } else if (context[condition.comparisonElementId]) {
-                comparisonValue = context[condition.comparisonElementId].value;
+                const compElementState = context[condition.comparisonElementId];
+                 comparisonValue = (typeof compElementState === 'object' && compElementState !== null && 'value' in compElementState)
+                    ? compElementState.value
+                    : compElementState;
              }
         } else if (condition.comparisonType === 'config' && condition.value && configurations) {
             comparisonValue = configurations.find(c => c.key === condition.value)?.value;

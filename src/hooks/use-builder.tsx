@@ -1,7 +1,5 @@
 
 
-"use client";
-
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, RuleBehavior, Dataset } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
@@ -1057,7 +1055,7 @@ const BuilderContext = createContext<BuilderContextType | undefined>(undefined);
 
 export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(builderReducer, initialState);
-  const [userDrivenState, setUserDrivenState] = useState<{ elementId: string; value: any, timestamp: number } | null>(null);
+  const [userDrivenState, setUserDrivenState] = useState<{ elementId: string; value: any; timestamp: number } | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const { firestore, user, isUserLoading } = useFirebase();
   const router = useRouter();
@@ -1132,63 +1130,57 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const datasets = activeForm?.versions[0]?.datasets || [];
   const activePopupId = state.activePopupId;
 
-  // Reactive rules engine
+  // This effect runs the rule engine whenever a user-driven state change occurs.
   useEffect(() => {
-    if (!isLoaded || !activeForm) return;
+    if (!isLoaded || !activeForm || !userDrivenState) return;
 
-    const runRuleEngine = () => {
-        let nextFormState = { ...state.formState };
-        const allElements = getAllElements(sections);
+    let nextFormState = { ...state.formState };
+    const allElements = getAllElements(sections);
 
-        // This function determines the visibility of a single element
-        const getElementVisibility = (element: FormElementInstance, rowContext?: any): boolean => {
-            const context = rowContext ? { ...state.formState, ...rowContext } : state.formState;
+    // This function determines the visibility of a single element
+    const getElementVisibility = (element: FormElementInstance, rowContext?: any): boolean => {
+        const context = rowContext ? { ...state.formState, ...rowContext } : state.formState;
 
-            const hideRuleMet = rules.some(r =>
-                r.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id) &&
-                evaluateRule(r, context, configurations, sections, rowContext)
-            );
-            if (hideRuleMet) return false;
+        const hideRuleMet = rules.some(r =>
+            r.behaviors.some(b => b.type === 'hide' && b.targetElementId === element.id) &&
+            evaluateRule(r, context, configurations, sections, rowContext)
+        );
+        if (hideRuleMet) return false;
 
-            const showRules = rules.filter(r => r.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
-            if (showRules.length > 0) {
-                return showRules.some(r => evaluateRule(r, context, configurations, sections, rowContext));
-            }
-
-            return !element.hidden;
-        };
-
-        // Recalculate visibility for all elements
-        allElements.forEach(element => {
-            if (element.type === 'EditableTable' && state.formState[element.id]?.value) {
-                // For tables, we need to re-evaluate visibility for each column in each row
-                const newRows = state.formState[element.id].value.map((row: any) => {
-                    const newRow = { ...row, _internal: { ...row._internal, visibility: {} } };
-                    element.columns?.forEach(col => {
-                        const isVisible = getElementVisibility(col.element, newRow);
-                        newRow._internal.visibility[col.element.id] = isVisible;
-                    });
-                    return newRow;
-                });
-                nextFormState[element.id] = { ...state.formState[element.id], value: newRows };
-            } else {
-                const isVisible = getElementVisibility(element);
-                if (nextFormState[element.id]) {
-                    nextFormState[element.id].isVisible = isVisible;
-                } else {
-                    nextFormState[element.id] = { value: undefined, isVisible };
-                }
-            }
-        });
-        
-        if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
-             dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+        const showRules = rules.filter(r => r.behaviors.some(b => b.type === 'show' && b.targetElementId === element.id));
+        if (showRules.length > 0) {
+            return showRules.some(r => evaluateRule(r, context, configurations, sections, rowContext));
         }
-    }
 
-    runRuleEngine();
+        return !element.hidden;
+    };
+
+    allElements.forEach(element => {
+        if (element.type === 'EditableTable' && state.formState[element.id]?.value) {
+            // For tables, re-evaluate visibility for each column in each row
+            const newRows = state.formState[element.id].value.map((row: any) => {
+                const newRow = { ...row, _internal: { ...row._internal, visibility: {} } };
+                element.columns?.forEach(col => {
+                    const isVisible = getElementVisibility(col.element, newRow);
+                    newRow._internal.visibility[col.element.id] = isVisible;
+                });
+                return newRow;
+            });
+            nextFormState[element.id] = { ...state.formState[element.id], value: newRows };
+        } else {
+            const isVisible = getElementVisibility(element);
+            if (nextFormState[element.id]) {
+                nextFormState[element.id].isVisible = isVisible;
+            } else {
+                nextFormState[element.id] = { value: undefined, isVisible };
+            }
+        }
+    });
     
-  }, [userDrivenState, activeForm?.id, sections, rules, configurations, isLoaded, state.formState]);
+    if (JSON.stringify(nextFormState) !== JSON.stringify(state.formState)) {
+         dispatch({ type: 'SET_FORM_STATE', payload: nextFormState });
+    }
+  }, [userDrivenState]);
   
  const addNewForm = useCallback(async (payload: AddNewFormPayload): Promise<DocumentReference | null> => {
     const { title, description, categoryId, subCategoryId } = payload;
@@ -1263,11 +1255,11 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
 
   const updateFormState = useCallback((elementId: string, value: any, fullObject?: any, isVisible?: boolean) => {
     dispatch({ type: "UPDATE_USER_DRIVEN_STATE", payload: { elementId, value, fullObject, isVisible } });
-    const element = findElementRecursive(sections, elementId);
-    if (!element?.formula) {
-      setUserDrivenState({ elementId, value, timestamp: Date.now() });
-    }
-  }, [sections]);
+    
+    // This is the trigger for the rule engine.
+    setUserDrivenState({ elementId, value, timestamp: Date.now() });
+    
+  }, []);
 
   const setActivePopupId = useCallback((id: string | null) => {
     dispatch({ type: "SET_ACTIVE_POPUP", payload: id });
@@ -1359,6 +1351,7 @@ export const useBuilder = () => {
     
 
     
+
 
 
 
