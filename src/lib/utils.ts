@@ -1,5 +1,4 @@
 
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
@@ -243,6 +242,9 @@ export const evaluateRule = (
         } else if (sourceType === 'date' && configOrDateValue) {
             sourceValue = configOrDateValue;
         }
+        
+        console.log(`Karthik - Value Extraction: Rule '${rule.name}', Condition '${condition.id}', Source: '${sourceElementId || sourceType}', Extracted Value:`, sourceValue);
+
 
         // 2. Get Comparison Value
         let comparisonValue: any;
@@ -271,49 +273,68 @@ export const evaluateRule = (
         const num2 = parseFloat(val2);
         const isNumericComparison = !isNaN(num1) && !isNaN(num2);
         
+        let result = false;
         switch (operator) {
             case 'equals':
-                if (isNumericComparison) return num1 === num2;
-                if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') {
-                    return String(val1) === String(val2);
+                if (isNumericComparison) {result = num1 === num2;}
+                else if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') {
+                    result = String(val1) === String(val2);
+                } else {
+                result = String(val1 ?? '').toLowerCase() === String(val2 ?? '').toLowerCase();
                 }
-                return String(val1 ?? '').toLowerCase() === String(val2 ?? '').toLowerCase();
+                break;
             case 'not_equals':
-                if (isNumericComparison) return num1 !== num2;
-                if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') {
-                    return String(val1) !== String(val2);
+                if (isNumericComparison) {result = num1 !== num2;}
+                else if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') {
+                    result = String(val1) !== String(val2);
+                } else {
+                result = String(val1 ?? '').toLowerCase() !== String(val2 ?? '').toLowerCase();
                 }
-                return String(val1 ?? '').toLowerCase() !== String(val2 ?? '').toLowerCase();
+                break;
             case 'contains':
                 if (Array.isArray(val1)) {
-                    return val1.map(String).includes(String(val2 ?? ''));
+                    result = val1.map(String).includes(String(val2 ?? ''));
+                } else {
+                result = String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
                 }
-                return String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
+                break;
             case 'not_contains':
                 if (Array.isArray(val1)) {
-                    return !val1.map(String).includes(String(val2 ?? ''));
+                    result = !val1.map(String).includes(String(val2 ?? ''));
+                } else {
+                result = !String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
                 }
-                return !String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
+                break;
             case 'is_greater_than':
-                return isNumericComparison && num1 > num2;
+                result = isNumericComparison && num1 > num2;
+                break;
             case 'is_less_than':
-                return isNumericComparison && num1 < num2;
+                result = isNumericComparison && num1 < num2;
+                break;
             case 'is_greater_than_or_equal_to':
-                return isNumericComparison && num1 >= num2;
+                result = isNumericComparison && num1 >= num2;
+                break;
             case 'is_less_than_or_equal_to':
-                return isNumericComparison && num1 <= num2;
+                result = isNumericComparison && num1 <= num2;
+                break;
             default:
-                return false;
+                result = false;
         }
+
+        console.log(`Karthik - Reliable Comparison: Comparing '${val1}' ${operator} '${val2}'. Result: ${result}`);
+        
+        return result;
     };
 
     const conditionResults = rule.conditions.map(checkCondition);
 
-    if (rule.logicType === 'and') {
-        return conditionResults.every(result => result);
-    } else {
-        return conditionResults.some(result => result);
+    const finalResult = rule.logicType === 'and' ? conditionResults.every(result => result) : conditionResults.some(result => result);
+
+    if (finalResult) {
+        console.log(`Karthik - Action Triggered: Rule '${rule.name}' passed. Actions will be executed.`);
     }
+
+    return finalResult;
 };
 
 
