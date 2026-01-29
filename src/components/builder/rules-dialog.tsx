@@ -435,11 +435,28 @@ const BehaviorEditor = memo(({
     }
 
     const valueSettingFields = useMemo(() => {
-        return selectableFields.filter(el => {
-            if (!('type' in el)) return false; // Filter out sections
-            if (el.id.includes("::")) return true; // Keep score fields
-            return ['Input', 'Textarea', 'Display'].includes(el.type);
+        const allowedTypes: ElementType[] = ['Input', 'Textarea', 'Display'];
+        console.log("Karthik: Re-calculating valueSettingFields. Allowed types:", allowedTypes);
+        const filtered = selectableFields.filter(el => {
+            if (!('type' in el)) {
+                return false; // It's a Section, filter it out.
+            }
+
+            // Keep score fields (e.g., 'elementId::score')
+            if (el.id.includes("::score")) {
+                console.log(`Karthik: Keeping score field: ${el.label} (${el.id})`);
+                return true;
+            }
+
+            // Check if the element type is in the allowed list
+            const isAllowed = allowedTypes.includes(el.type);
+            if (!isAllowed) {
+                console.log(`Karthik: Filtering out element: ${el.label} (${el.id}) because its type '${el.type}' is not in the allowed list.`);
+            }
+            return isAllowed;
         });
+        console.log("Karthik: Final list for valueSettingFields:", filtered.map(f => (f as FormElementInstance).label));
+        return filtered;
     }, [selectableFields]);
     
     const popupFields = useMemo(() => 
@@ -1016,4 +1033,5 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
 
     
+
 
