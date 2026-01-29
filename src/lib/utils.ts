@@ -199,25 +199,33 @@ export const evaluateRule = (
         return false;
     }
 
-    const executionContext = rowContext ? { ...context, ...rowContext } : context;
+    const allElements = getAllElements(sections || []);
 
     const checkCondition = (condition: Condition): boolean => {
         let sourceValue: any;
         const { sourceElementId, sourcePropertyKey, sourceType, sourceValue: configOrDateValue, operator } = condition;
         
-        if (sourceType === 'field' && sourceElementId) {
-            const elementState = executionContext[sourceElementId];
-            if (elementState && sourcePropertyKey) {
-                const fullObject = elementState.fullObject;
-                if (fullObject) {
-                    if (Array.isArray(fullObject)) {
-                        sourceValue = fullObject.map(obj => getNestedValue(obj, sourcePropertyKey));
-                    } else {
-                        sourceValue = getNestedValue(fullObject, sourcePropertyKey);
+        const sourceElement = allElements.find(el => el.id === sourceElementId);
+
+        if (sourceType === 'field' && sourceElementId && sourceElement) {
+            // Priority 1: If in a table row context, get value from the row data using the element's key
+            if (rowContext && (sourceElement as any).isTableColumn && sourceElement.key) {
+                sourceValue = rowContext[sourceElement.key];
+            } 
+            // Priority 2: Standalone elements or full table objects
+            else if (context[sourceElementId]) {
+                 const elementState = context[sourceElementId];
+                 sourceValue = elementState.value;
+
+                 // For multi-selects that save a full object, check for the property key
+                 if (sourcePropertyKey) {
+                    let objectsToCheck = Array.isArray(elementState.fullObject) ? elementState.fullObject : [elementState.fullObject];
+                    if(objectsToCheck[0]) {
+                        const values = objectsToCheck.map(obj => getNestedValue(obj, sourcePropertyKey));
+                        // If it's a single selection, return the value, otherwise return the array of values for 'contains' check
+                        sourceValue = values.length === 1 ? values[0] : values;
                     }
-                }
-            } else if (elementState) {
-                sourceValue = elementState.value;
+                 }
             }
         } else if (sourceType === 'config' && configOrDateValue && configurations) {
             sourceValue = configurations.find(c => c.key === configOrDateValue)?.value;
@@ -227,46 +235,45 @@ export const evaluateRule = (
         if (condition.comparisonType === 'value') {
             comparisonValue = condition.value;
         } else if (condition.comparisonType === 'field' && condition.comparisonElementId) {
-            const comparisonElementState = executionContext[condition.comparisonElementId];
-            if (comparisonElementState) {
-                if (condition.comparisonPropertyKey) {
-                    const fullObject = comparisonElementState.fullObject;
-                     if (fullObject) {
-                        if (Array.isArray(fullObject)) {
-                           comparisonValue = fullObject.map(obj => getNestedValue(obj, condition.comparisonPropertyKey!));
-                        } else {
-                           comparisonValue = getNestedValue(fullObject, condition.comparisonPropertyKey);
-                        }
-                    }
-                } else {
-                    comparisonValue = comparisonElementState.value;
-                }
-            }
+             const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId);
+             if (rowContext && comparisonElement && (comparisonElement as any).isTableColumn && comparisonElement.key) {
+                comparisonValue = rowContext[comparisonElement.key];
+             } else if (context[condition.comparisonElementId]) {
+                comparisonValue = context[condition.comparisonElementId].value;
+             }
         }
 
         const val1 = sourceValue;
         const val2 = comparisonValue;
+
+        // Smart comparison
         const num1 = parseFloat(val1);
         const num2 = parseFloat(val2);
         const isNumericComparison = !isNaN(num1) && !isNaN(num2);
-
+        
         switch (operator) {
             case 'equals':
                 if (isNumericComparison) return num1 === num2;
-                return String(val1 ?? '') === String(val2 ?? '');
+                if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') {
+                    return String(val1) === String(val2);
+                }
+                return String(val1 ?? '').toLowerCase() === String(val2 ?? '').toLowerCase();
             case 'not_equals':
                 if (isNumericComparison) return num1 !== num2;
-                return String(val1 ?? '') !== String(val2 ?? '');
+                if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') {
+                    return String(val1) !== String(val2);
+                }
+                return String(val1 ?? '').toLowerCase() !== String(val2 ?? '').toLowerCase();
             case 'contains':
                 if (Array.isArray(val1)) {
                     return val1.map(String).includes(String(val2 ?? ''));
                 }
-                return String(val1 ?? '').includes(String(val2 ?? ''));
+                return String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
             case 'not_contains':
                 if (Array.isArray(val1)) {
                     return !val1.map(String).includes(String(val2 ?? ''));
                 }
-                return !String(val1 ?? '').includes(String(val2 ?? ''));
+                return !String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
             case 'is_greater_than':
                 return isNumericComparison && num1 > num2;
             case 'is_less_than':

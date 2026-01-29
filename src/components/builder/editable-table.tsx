@@ -9,12 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FormElementRenderer } from '@/components/form-element';
 import { Plus, Trash, Search, Eye } from 'lucide-react';
 import { ScrollArea, ScrollBar } from '../ui/scroll-area';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Input } from '../ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { FormPreview } from '../form-preview';
 import { Card, CardContent, CardFooter } from '../ui/card';
 import { Label } from '../ui/label';
+import { evaluateRule } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 
 type Props = {
   element: FormElementInstance;
@@ -34,7 +36,6 @@ export function EditableTable({ element, value, onValueChange }: Props) {
     const column = element.columns?.find(c => c.element.id === columnId);
     if (!column || !column.element.key) return;
 
-    // Find the original index from the unfiltered `rows` array based on the `_rowId` of the row from the `filteredRows` array.
     const originalRow = rows.find(r => r._rowId === filteredRows[rowIndex]._rowId);
     if (!originalRow) return;
     const originalRowIndex = rows.indexOf(originalRow);
@@ -104,6 +105,21 @@ export function EditableTable({ element, value, onValueChange }: Props) {
   
   const currentRowForPopupPreview = activePopupPreview ? rows.find(r => r._rowId === activePopupPreview.rowId) : null;
   const isAnyColumnPopup = element.columns?.some(c => c.element.type === 'Preview' && c.element.displayMode !== 'inline');
+
+  const isColumnVisible = (column: any, rowContext: any) => {
+    const hideRuleMet = rules?.some(rule =>
+        rule.behaviors.some(b => b.type === 'hide' && b.targetElementId === column.element.id) &&
+        evaluateRule(rule, {}, configurations, sections, rowContext)
+    );
+    if (hideRuleMet) return false;
+    
+    const showRules = rules?.filter(rule => rule.behaviors.some(b => b.type === 'show' && b.targetElementId === column.element.id));
+    if (showRules && showRules.length > 0) {
+        return showRules.some(r => evaluateRule(r, {}, configurations, sections, rowContext));
+    }
+
+    return !column.element.hidden;
+  }
   
   return (
     <div className='flex flex-col gap-4'>
@@ -145,7 +161,11 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                         <TableRow>
                             {element.columns?.map(col => {
                                 const cellValue = col.element.key ? row[col.element.key] : undefined;
-                                const rowContext = { ...row };
+                                const isVisible = isColumnVisible(col, row);
+
+                                if (!isVisible) {
+                                    return <TableCell key={col.id} className="min-w-[200px]"></TableCell>;
+                                }
 
                                 if (col.element.type === 'Preview') {
                                     return (
@@ -164,7 +184,7 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                                             element={col.element}
                                             value={cellValue}
                                             onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
-                                            rowContext={rowContext}
+                                            rowContext={row}
                                             isTableCell={true}
                                         />
                                     </TableCell>
@@ -212,7 +232,9 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                         <CardContent className="p-4 space-y-4">
                         {element.columns?.map(col => {
                             const cellValue = col.element.key ? row[col.element.key] : undefined;
-                            const rowContext = { ...row };
+                            const isVisible = isColumnVisible(col, row);
+
+                            if (!isVisible) return null;
 
                             return (
                             <div key={col.id} className="space-y-2">
@@ -227,7 +249,7 @@ export function EditableTable({ element, value, onValueChange }: Props) {
                                     element={col.element}
                                     value={cellValue}
                                     onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
-                                    rowContext={rowContext}
+                                    rowContext={row}
                                     isTableCell={true}
                                 />
                                 )}

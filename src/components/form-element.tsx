@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset } from "@/lib/types";
@@ -24,8 +25,7 @@ import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye,
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
-import { cn, findFirstArray, getAllElements, getNestedValue, findElementRecursive } from "@/lib/utils";
-import { evaluateRule } from "@/components/form-preview-helpers";
+import { cn, findFirstArray, getAllElements, getNestedValue, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useBuilder } from "@/hooks/use-builder";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -328,7 +328,6 @@ function DataListRenderer({ element, value, onValueChange }: {
         });
     
         let newSelection: string[] | string;
-        let score = 0; // Define score here to be accessible for logging
         if (isCheckbox) {
             const selection = (currentSelection || []) as string[];
             newSelection = selection.includes(itemValue)
@@ -346,14 +345,9 @@ function DataListRenderer({ element, value, onValueChange }: {
 
         if (element.enableScoring) {
             const selectionCount = Array.isArray(newSelection) ? newSelection.length : (newSelection ? 1 : 0);
-            score = selectionCount * (element.scorePerItem || 0);
+            const score = selectionCount * (element.scorePerItem || 0);
             onValueChange(`${element.id}::score`, score);
         }
-
-        console.log("DataList Change:", { 
-            selection: newSelection, 
-            score: element.enableScoring ? score : 'Not Enabled'
-        });
     };
         
     const renderListItemContent = (option: any) => {
@@ -560,22 +554,24 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [value]);
   
   const isVisible = useMemo(() => {
-    const stateContext = formState || {};
-    const rowCtx = isTableCell ? rowContext : undefined;
+    // For elements inside a table, visibility is handled by the EditableTable component itself.
+    if (isTableCell) return true;
 
+    const contextToCheck = formState || {};
     const hideRuleMet = rules.some(rule =>
         rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id) &&
-        evaluateRule(rule, stateContext, configurations, allElements, rowCtx)
+        evaluateRule(rule, contextToCheck, configurations, allElements)
     );
     if (hideRuleMet) return false;
     
     const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
     if (showRules.length > 0) {
-        return showRules.some(r => evaluateRule(r, stateContext, configurations, allElements, rowCtx));
+        return showRules.some(r => evaluateRule(r, contextToCheck, configurations, allElements));
     }
 
     return !element.hidden;
-  }, [element.id, element.hidden, formState, rowContext, isTableCell, rules, configurations, allElements]);
+  }, [element.id, element.hidden, formState, isTableCell, rules, configurations, allElements]);
+
 
   const isDisabled = useMemo(() => {
     const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
@@ -1206,7 +1202,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             });
         
             let newSelection: string | string[];
-            let score = 0; // Define score here to be accessible for logging
             if (isCheckbox) {
                 const selection = (currentSelection || []) as string[];
                 newSelection = selection.includes(itemValue)
@@ -1224,14 +1219,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
             if (element.enableScoring) {
                 const selectionCount = Array.isArray(newSelection) ? newSelection.length : (newSelection ? 1 : 0);
-                score = selectionCount * (element.scorePerItem || 0);
+                const score = selectionCount * (element.scorePerItem || 0);
                 onValueChange(`${element.id}::score`, score);
             }
-
-            console.log("List Change:", { 
-                selection: newSelection, 
-                score: element.enableScoring ? score : 'Not Enabled'
-            });
         };
         
         const renderListItemContent = (option: any) => {
