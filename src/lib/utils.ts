@@ -1,3 +1,4 @@
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
@@ -246,30 +247,33 @@ function checkConditionAgainstValue(
     const normalizedSource = normalize(sourceValue);
     const normalizedComparison = normalize(comparisonValue);
     
-    // Numeric Comparisons
-    const isNumericComparison = ['is_greater_than', 'is_less_than', 'is_greater_than_or_equal_to', 'is_less_than_or_equal_to'].includes(condition.operator);
-    if (isNumericComparison) {
-        let numSource = parseFloat(normalizedSource);
+    // Attempt numeric comparison first if the operator is numeric
+    if (['equals', 'not_equals', 'is_greater_than', 'is_less_than', 'is_greater_than_or_equal_to', 'is_less_than_or_equal_to'].includes(condition.operator)) {
+        const numSource = parseFloat(normalizedSource);
         const numComparison = parseFloat(normalizedComparison);
-        if (condition.offsetValue) numSource += condition.offsetValue;
-        if (isNaN(numSource) || isNaN(numComparison)) return false;
-        if (condition.operator === 'is_greater_than') return numSource > numComparison;
-        if (condition.operator === 'is_less_than') return numSource < numComparison;
-        if (condition.operator === 'is_greater_than_or_equal_to') return numSource >= numComparison;
-        if (condition.operator === 'is_less_than_or_equal_to') return numSource <= numComparison;
+
+        if (!isNaN(numSource) && !isNaN(numComparison)) {
+            let s = numSource;
+            let c = numComparison;
+            
+            if (condition.offsetValue) {
+                s += condition.offsetValue;
+            }
+
+            switch(condition.operator) {
+                case 'equals': return s === c;
+                case 'not_equals': return s !== c;
+                case 'is_greater_than': return s > c;
+                case 'is_less_than': return s < c;
+                case 'is_greater_than_or_equal_to': return s >= c;
+                case 'is_less_than_or_equal_to': return s <= c;
+            }
+        }
     }
 
-    // Equality and String Checks
+    // Fallback to string comparison for equality and contains checks
     switch (condition.operator) {
        case 'equals':
-            // An empty source should only equal an empty comparison,
-            // but we don't want rules firing on form load when everything is empty.
-            // This prevents a rule like "show X if Y is empty" from firing initially.
-            const isSourceEmpty = sourceValue === undefined || sourceValue === null || sourceValue === '';
-            const isComparisonEmpty = comparisonValue === undefined || comparisonValue === null || comparisonValue === '';
-            if (isSourceEmpty && isComparisonEmpty) {
-                return false;
-            }
             return normalizedSource === normalizedComparison;
        case 'not_equals': 
             return normalizedSource !== normalizedComparison;
@@ -280,6 +284,7 @@ function checkConditionAgainstValue(
             if (normalizedSource === "") return false;
             return !normalizedSource.includes(normalizedComparison);
        default: 
+            // This path is taken for relational operators if numeric parse failed
             return false;
     }
 }
