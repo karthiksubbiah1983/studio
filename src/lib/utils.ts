@@ -195,7 +195,12 @@ export const evaluateRule = (
     sections?: Section[],
     rowContext?: any
 ): boolean => {
-    if (!rule?.conditions?.length || !context) {
+    if (!rule?.conditions?.length) {
+        return false;
+    }
+    if (!context) {
+        // If context is not ready, we can't evaluate, so assume rule is not met.
+        // This prevents rules from firing incorrectly on initial load.
         return false;
     }
 
@@ -205,29 +210,28 @@ export const evaluateRule = (
         let sourceValue: any;
         const { sourceElementId, sourcePropertyKey, sourceType, sourceValue: configOrDateValue, operator } = condition;
         
-        const sourceElement = allElements.find(el => el.id === sourceElementId);
-
-        // Get Source Value
+        // Use a consistent context for evaluation, prioritizing the specific row if it exists.
+        const contextToUse = rowContext || context;
+        
+        // 1. Get Source Value
         if (sourceType === 'field' && sourceElementId) {
-            // This is the main change: We now have a unified way to get a value,
-            // whether it's from the main form state or a specific table row context.
-            const contextToUse = rowContext || context;
+            const sourceElement = allElements.find(el => el.id === sourceElementId);
             const elementIdToUse = sourceElement?.id || sourceElementId;
             const elementKeyToUse = sourceElement?.key || '';
             let elementState = contextToUse[elementIdToUse];
-
-            // If in row context, value might be directly on the row object via its key
+            
+            // Special handling for row context where data might be directly on the object by key
             if (rowContext && elementKeyToUse && rowContext.hasOwnProperty(elementKeyToUse)) {
-                sourceValue = rowContext[elementKeyToUse];
+                 sourceValue = rowContext[elementKeyToUse];
             } 
-            // Otherwise, get it from the state object (main form state or row state for inline components)
+            // Handle virtual score fields and regular fields from form state
             else if (elementState) {
                 sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
                     ? elementState.value
                     : elementState;
-
+                    
                 if (sourcePropertyKey && elementState.fullObject) {
-                    let objectsToCheck = Array.isArray(elementState.fullObject) ? elementState.fullObject : [elementState.fullObject];
+                    const objectsToCheck = Array.isArray(elementState.fullObject) ? elementState.fullObject : [elementState.fullObject];
                     if(objectsToCheck[0]) {
                         const values = objectsToCheck.map(obj => getNestedValue(obj, sourcePropertyKey));
                         sourceValue = values.length === 1 && operator !== 'contains' ? values[0] : values;
@@ -237,12 +241,10 @@ export const evaluateRule = (
         } else if (sourceType === 'config' && configOrDateValue && configurations) {
             sourceValue = configurations.find(c => c.key === configOrDateValue)?.value;
         } else if (sourceType === 'date' && configOrDateValue) {
-            // Handle date logic if necessary (currently simplified)
             sourceValue = configOrDateValue;
         }
 
-
-        // Get Comparison Value
+        // 2. Get Comparison Value
         let comparisonValue: any;
         if (condition.comparisonType === 'value') {
             comparisonValue = condition.value;
@@ -260,9 +262,10 @@ export const evaluateRule = (
             comparisonValue = configurations.find(c => c.key === condition.value)?.value;
         }
 
+        // 3. Perform Comparison
         const val1 = sourceValue;
         const val2 = comparisonValue;
-
+        
         // Smart comparison
         const num1 = parseFloat(val1);
         const num2 = parseFloat(val2);
@@ -313,5 +316,7 @@ export const evaluateRule = (
     }
 };
 
+
+    
 
     
