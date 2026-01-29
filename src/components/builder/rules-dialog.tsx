@@ -434,9 +434,13 @@ const BehaviorEditor = memo(({
         onDeleteBehavior(behavior.id);
     }
 
-    const valueSettingFields = useMemo(() => 
-        selectableFields.filter(el => 'type' in el && (el.type === 'Input' || el.type === 'Textarea' || el.type === 'Display' || (el.id.includes("::"))))
-    , [selectableFields]);
+    const valueSettingFields = useMemo(() => {
+        return selectableFields.filter(el => {
+            if (!('type' in el)) return false; // Filter out sections
+            if (el.id.includes("::")) return true; // Keep score fields
+            return ['Input', 'Textarea', 'Display'].includes(el.type);
+        });
+    }, [selectableFields]);
     
     const popupFields = useMemo(() => 
         selectableFields.filter(el => 'type' in el && el.type === 'Popup')
@@ -614,7 +618,7 @@ const RuleEditor = memo(({
     };
 
     const handleUpdateBehavior = (id: string, updatedBehavior: RuleBehavior) => {
-        const newBehaviors = rule.behaviors.map(b => b.id === id ? updatedBehavior : c);
+        const newBehaviors = rule.behaviors.map(b => b.id === id ? updatedBehavior : b);
         handleUpdate({ ...rule, behaviors: newBehaviors });
     };
 
@@ -1012,3 +1016,4 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
 
     
+
