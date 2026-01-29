@@ -1,3 +1,4 @@
+
 "use client";
 
 import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset } from "@/lib/types";
@@ -327,6 +328,7 @@ function DataListRenderer({ element, value, onValueChange }: {
         });
     
         let newSelection: string[] | string;
+        let score = 0; // Define score here to be accessible for logging
         if (isCheckbox) {
             const selection = (currentSelection || []) as string[];
             newSelection = selection.includes(itemValue)
@@ -344,9 +346,14 @@ function DataListRenderer({ element, value, onValueChange }: {
 
         if (element.enableScoring) {
             const selectionCount = Array.isArray(newSelection) ? newSelection.length : (newSelection ? 1 : 0);
-            const score = selectionCount * (element.scorePerItem || 0);
+            score = selectionCount * (element.scorePerItem || 0);
             onValueChange(`${element.id}::score`, score);
         }
+
+        console.log("DataList Change:", { 
+            selection: newSelection, 
+            score: element.enableScoring ? score : 'Not Enabled'
+        });
     };
         
     const renderListItemContent = (option: any) => {
@@ -1199,6 +1206,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
             });
         
             let newSelection: string | string[];
+            let score = 0; // Define score here to be accessible for logging
             if (isCheckbox) {
                 const selection = (currentSelection || []) as string[];
                 newSelection = selection.includes(itemValue)
@@ -1216,9 +1224,14 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
 
             if (element.enableScoring) {
                 const selectionCount = Array.isArray(newSelection) ? newSelection.length : (newSelection ? 1 : 0);
-                const score = selectionCount * (element.scorePerItem || 0);
+                score = selectionCount * (element.scorePerItem || 0);
                 onValueChange(`${element.id}::score`, score);
             }
+
+            console.log("List Change:", { 
+                selection: newSelection, 
+                score: element.enableScoring ? score : 'Not Enabled'
+            });
         };
         
         const renderListItemContent = (option: any) => {
@@ -1737,3 +1750,5 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
+    
