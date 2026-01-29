@@ -6,9 +6,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash } from "lucide-react";
+import { Plus, Trash, X } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Separator } from "../ui/separator";
 
 type StaticDataItem = {
     id: string;
@@ -62,90 +63,128 @@ export function ListOptionsDialog({
       localData.map((item) => (item.id === id ? { ...item, [key]: value } : item))
     );
   };
+  
+  const handleUpdateProperty = (itemId: string, oldKey: string, newKey: string, value: any) => {
+    if (!newKey.trim() && oldKey !== newKey) return; // Prevent renaming to an empty key
+    setLocalData(prev => prev.map(item => {
+        if (item.id === itemId) {
+            const { [oldKey]: _, ...rest } = item;
+            return { ...rest, [newKey.trim()]: value };
+        }
+        return item;
+    }));
+  };
+
+  const handleRemoveProperty = (itemId: string, keyToRemove: string) => {
+    setLocalData(prev => prev.map(item => {
+        if (item.id === itemId) {
+            const { [keyToRemove]: _, ...rest } = item;
+            return rest;
+        }
+        return item;
+    }));
+  };
+
+  const handleAddNewProperty = (itemId: string) => {
+    setLocalData(prev => prev.map(item => {
+        if (item.id === itemId) {
+            let newKey = 'new_property';
+            let i = 1;
+            while (Object.prototype.hasOwnProperty.call(item, newKey)) {
+                newKey = `new_property_${i++}`;
+            }
+            return { ...item, [newKey]: '' };
+        }
+        return item;
+    }));
+  };
+
 
   const handleSaveChanges = () => {
     onSave(localData);
     onOpenChange(false);
   };
 
-  const hasLinks = isSecondaryTextLink && hasSecondaryText;
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Manage Static List Items</DialogTitle>
           <DialogDescription>
-            Add, edit, or remove the options for your list component.
+            Add, edit, or remove the options for your list component. You can add hidden data properties to each item.
           </DialogDescription>
         </DialogHeader>
         <div className="flex-1 min-h-0">
-            <div className="border rounded-md h-full flex flex-col">
-                 <div className="grid grid-cols-[1fr_auto] items-center p-2 border-b font-medium text-sm text-muted-foreground bg-muted/50">
-                    <div className="px-2">Labels & Links</div>
-                    <div className="w-10"></div>
-                </div>
-                <ScrollArea className="flex-1">
-                <div className="p-2 space-y-2">
+            <ScrollArea className="h-full pr-6">
+                <div className="space-y-4">
                     {localData.map((item) => (
-                    <div 
-                        key={item.id} 
-                        className="grid grid-cols-[1fr_auto] items-start gap-x-2 p-2 rounded-md hover:bg-muted/50"
-                    >
-                       <div className="flex flex-col gap-2">
-                            <div className={cn("flex items-center", hasSecondaryText ? "gap-6" : "gap-2")}>
-                                <div className="flex-1">
-                                    <Label className="text-xs text-muted-foreground">Primary Label</Label>
-                                    <Input
-                                        value={item.label || ""}
-                                        onChange={(e) => handleItemChange(item.id, "label", e.target.value)}
-                                        placeholder="Primary Label"
-                                        className="h-9"
-                                    />
-                                </div>
-                                {hasSecondaryText && (
-                                    <div className="flex-1">
-                                        <Label className="text-xs text-muted-foreground">Secondary Text</Label>
-                                        <Input
-                                            value={item.secondaryText || ""}
-                                            onChange={(e) => handleItemChange(item.id, "secondaryText", e.target.value)}
-                                            placeholder="Secondary Text"
-                                            className="h-9"
-                                        />
-                                    </div>
-                                )}
-                            </div>
-
-                            {hasLinks && (
-                                <div className="mt-1">
-                                     <Label className="text-xs text-muted-foreground">Link URL</Label>
-                                    <Input
-                                        value={item.linkUrl || ""}
-                                        onChange={(e) => handleItemChange(item.id, "linkUrl", e.target.value)}
-                                        placeholder="https://example.com"
-                                        className="h-9"
-                                    />
+                    <Card key={item.id} className="overflow-hidden">
+                        <CardHeader className="p-4 flex flex-row items-center justify-between bg-muted/30">
+                            <CardTitle className="text-base flex-1">
+                                <Input
+                                    value={item.label || ""}
+                                    onChange={(e) => handleItemChange(item.id, "label", e.target.value)}
+                                    placeholder="Primary Label"
+                                    className="h-9 font-medium bg-white"
+                                />
+                            </CardTitle>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveItem(item.id)}>
+                                <Trash className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </CardHeader>
+                        <CardContent className="p-4 space-y-4">
+                            {(hasSecondaryText || isSecondaryTextLink) && (
+                                <div className="space-y-2">
+                                     {hasSecondaryText && (
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground">Secondary Text</Label>
+                                            <Input
+                                                value={item.secondaryText || ""}
+                                                onChange={(e) => handleItemChange(item.id, "secondaryText", e.target.value)}
+                                                placeholder="Secondary Text"
+                                                className="h-9"
+                                            />
+                                        </div>
+                                    )}
+                                    {isSecondaryTextLink && (
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground">Link URL</Label>
+                                            <Input
+                                                value={item.linkUrl || ""}
+                                                onChange={(e) => handleItemChange(item.id, "linkUrl", e.target.value)}
+                                                placeholder="https://example.com"
+                                                className="h-9"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
-                       </div>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9 mt-4"
-                            onClick={() => handleRemoveItem(item.id)}
-                        >
-                            <Trash className="h-4 w-4 text-destructive" />
-                        </Button>
-                    </div>
+                            <Separator/>
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium">Hidden Data Properties</Label>
+                                <div className="space-y-2">
+                                    {Object.entries(item).filter(([key]) => !['id', 'label', 'secondaryText', 'linkUrl'].includes(key)).map(([key, value]) => (
+                                        <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                                            <Input value={key} onChange={(e) => handleUpdateProperty(item.id, key, e.target.value, value)} placeholder="Key" className="h-8 text-xs"/>
+                                            <Input value={value as string} onChange={(e) => handleUpdateProperty(item.id, key, key, e.target.value)} placeholder="Value" className="h-8 text-xs"/>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveProperty(item.id, key)}>
+                                                <X className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button variant="outline" size="sm" onClick={() => handleAddNewProperty(item.id)} className="mt-2">
+                                    <Plus className="h-4 w-4 mr-2"/> Add Property
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                     ))}
-                </div>
-                </ScrollArea>
-                 <div className="p-2 border-t">
-                    <Button variant="outline" size="sm" onClick={handleAddItem} className="w-full">
+                    <Button variant="outline" onClick={handleAddItem} className="w-full">
                         <Plus className="mr-2 h-4 w-4" /> Add Item
                     </Button>
                 </div>
-            </div>
+            </ScrollArea>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
