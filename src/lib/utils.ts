@@ -187,126 +187,67 @@ export const findParentTable = (allElements: (FormElementInstance | Section)[], 
     return null;
 }
 
-const evaluateSingleCondition = (
-    condition: Condition,
-    globalContext: { [key: string]: any },
-    allElements: (FormElementInstance | Section)[],
-    configurations?: Configuration[],
-    rowContext?: any
-): boolean => {
-    let sourceValue: any;
-    let comparisonValue: any;
+// Helper to get the raw value from the complex form state.
+const getValueFromContext = (context: { [key: string]: any }, elementId: string) => {
+  if (!context || !elementId) return undefined;
 
-    const getElementValue = (elementId: string, propertyKey?: string) => {
-        const element = allElements.find(el => el.id === elementId) as FormElementInstance | undefined;
-        if (!element) return undefined;
+  const elementState = context[elementId];
+  if (elementState === undefined) return undefined;
 
-        let contextValue: any;
+  // Handles state being `{ value: 'the_value' }` or just `'the_value'`
+  if (typeof elementState === 'object' && elementState !== null && 'value' in elementState) {
+    return elementState.value;
+  }
+  
+  return elementState;
+};
 
-        // Prioritize row context if element is a table column and context is available
-        if ((element as any).isTableColumn && rowContext && element.key) {
-            contextValue = getNestedValue(rowContext, element.key);
-        } else if (globalContext[elementId]) {
-            const state = globalContext[elementId];
-            contextValue = (state && typeof state === 'object' && 'value' in state) ? state.value : state;
-        }
-
-        if (propertyKey && typeof contextValue === 'object' && contextValue !== null) {
-            return getNestedValue(contextValue, propertyKey);
-        }
-
-        return contextValue;
-    };
-
-    // 1. Get Source Value
-    switch (condition.sourceType) {
-        case 'field':
-            if (condition.sourceElementId) {
-                sourceValue = getElementValue(condition.sourceElementId, condition.sourcePropertyKey);
-            }
-            break;
-        case 'config':
-            sourceValue = configurations?.find(c => c.key === condition.sourceValue)?.value;
-            break;
-        default: // date, status
-            sourceValue = condition.sourceValue;
-    }
-    
-    // 2. Get Comparison Value
-    switch (condition.comparisonType) {
-        case 'field':
-            if (condition.comparisonElementId) {
-                comparisonValue = getElementValue(condition.comparisonElementId);
-            }
-            break;
-        case 'value':
-            comparisonValue = condition.value;
-            break;
-        default: // date, status, config
-            comparisonValue = condition.value;
+// A simplified, specific condition evaluator for the primary use case.
+const evaluateSingleCondition = (condition: Condition, context: { [key: string]: any }): boolean => {
+    // This function is designed to handle the core scenario:
+    // an element's value is compared to a static string.
+    if (condition.sourceType !== 'field' || !condition.sourceElementId || condition.comparisonType !== 'value') {
+        return false;
     }
 
-    // 3. Perform Comparison
-    // Normalize booleans represented as strings
-    if (typeof sourceValue === 'boolean') {
-        comparisonValue = (comparisonValue === 'true');
-    }
-
-    const val1 = sourceValue;
-    const val2 = comparisonValue;
-
-    const num1 = parseFloat(val1);
-    const num2 = parseFloat(val2);
-    const isNumericComparison = !isNaN(num1) && !isNaN(num2);
+    const sourceValue = getValueFromContext(context, condition.sourceElementId);
+    const comparisonValue = condition.value;
 
     switch (condition.operator) {
         case 'equals':
-            return String(val1 ?? '') === String(val2 ?? '');
+            return String(sourceValue ?? '') === String(comparisonValue ?? '');
         case 'not_equals':
-            return String(val1 ?? '') !== String(val2 ?? '');
-        case 'contains':
-            if (Array.isArray(val1)) {
-                return val1.map(String).includes(String(val2));
-            }
-            return String(val1 ?? '').includes(String(val2 ?? ''));
-        case 'not_contains':
-            if (Array.isArray(val1)) {
-                return !val1.map(String).includes(String(val2));
-            }
-            return !String(val1 ?? '').includes(String(val2 ?? ''));
-        case 'is_greater_than':
-            return isNumericComparison ? num1 > num2 : false;
-        case 'is_less_than':
-            return isNumericComparison ? num1 < num2 : false;
-        case 'is_greater_than_or_equal_to':
-            return isNumericComparison ? num1 >= num2 : false;
-        case 'is_less_than_or_equal_to':
-            return isNumericComparison ? num1 <= num2 : false;
+            return String(sourceValue ?? '') !== String(comparisonValue ?? '');
+        // Other operators can be added here once the core logic is validated.
         default:
             return false;
     }
-};
+}
 
+// The new, simplified rule evaluation engine.
 export const evaluateRule = (
-    rule: Rule | Workflow, 
-    context: { [key: string]: any }, 
-    configurations?: Configuration[], 
+    rule: Rule | Workflow,
+    context: { [key:string]: any },
+    // The following parameters are kept for API compatibility with existing components.
+    configurations?: Configuration[],
     sections?: Section[],
     rowContext?: any
 ): boolean => {
-  if (!rule || !rule.conditions || rule.conditions.length === 0 || !context) {
-    return false;
-  }
+    if (!rule?.conditions?.length || !context) {
+        return false;
+    }
+    
+    // For now, we only evaluate rules against the main form context.
+    // Logic for row-specific context in tables can be added later.
+    const executionContext = context;
 
-  const allElements = sections ? getAllElements(sections) : [];
+    const conditionResults = rule.conditions.map(condition => 
+        evaluateSingleCondition(condition, executionContext)
+    );
 
-  const conditionResults = rule.conditions.map((cond) =>
-    evaluateSingleCondition(cond, context, allElements, configurations, rowContext)
-  );
-
-  if (rule.logicType === 'and') {
-    return conditionResults.every((res) => res);
-  } else {
-    return conditionResults.some((res) => res);
-  }
+    if (rule.logicType === 'and') {
+        return conditionResults.every(result => result);
+    } else {
+        return conditionResults.some(result => result);
+    }
 };
