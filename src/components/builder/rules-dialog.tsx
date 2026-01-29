@@ -614,7 +614,7 @@ const RuleEditor = memo(({
     };
 
     const handleUpdateBehavior = (id: string, updatedBehavior: RuleBehavior) => {
-        const newBehaviors = rule.behaviors.map(b => b.id === id ? updatedBehavior : c);
+        const newBehaviors = rule.behaviors.map(b => b.id === id ? updatedBehavior : b);
         handleUpdate({ ...rule, behaviors: newBehaviors });
     };
 
@@ -1008,5 +1008,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
 
 
 
+
+    
 
     
