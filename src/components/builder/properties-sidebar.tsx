@@ -1349,7 +1349,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                     { value: 'center', label: 'Center', icon: AlignCenterVertical },
                                     { value: 'end', label: 'End', icon: AlignEndVertical },
                                     { value: 'stretch', label: 'Stretch', icon: StretchVertical },
-                                    { value: 'baseline', label: 'Baseline' },
+                                    { value: 'baseline', label: 'Baseline', icon: Baseline },
                                 ]}
                             />
                         </AccordionContent>
@@ -2548,6 +2548,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 
