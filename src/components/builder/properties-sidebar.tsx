@@ -2136,22 +2136,37 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             {commonFields}
                             <div className="flex flex-col gap-2">
                                 <Label htmlFor="defaultValue">Default Value</Label>
-                                <Select
-                                    value={element.defaultValue || ""}
-                                    onValueChange={(value) => updateProperty('defaultValue', value === 'none' ? undefined : value)}
-                                >
-                                    <SelectTrigger id="defaultValue">
-                                        <SelectValue placeholder="Select a default option" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">No default</SelectItem>
-                                        {element.options?.map((option, index) => (
-                                            <SelectItem key={index} value={option}>
-                                                {option}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                {isColumnElement ? (
+                                    <Select
+                                        value={element.defaultValueKey || 'none'}
+                                        onValueChange={v => updateProperty('defaultValueKey', v === 'none' ? undefined : v)}
+                                    >
+                                        <SelectTrigger id="defaultValueKey">
+                                            <SelectValue placeholder="Select a key for the default value..."/>
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">No Default Value Source</SelectItem>
+                                            {dataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <Select
+                                        value={element.defaultValue || ""}
+                                        onValueChange={(value) => updateProperty('defaultValue', value === 'none' ? undefined : value)}
+                                    >
+                                        <SelectTrigger id="defaultValue">
+                                            <SelectValue placeholder="Select a default option" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">No default</SelectItem>
+                                            {element.options?.map((option, index) => (
+                                                <SelectItem key={index} value={option}>
+                                                    {option}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             </div>
                             <PopupSettings element={element} onUpdate={(popup) => updateProperty('popup', popup)} />
                         </AccordionContent>
@@ -2556,6 +2571,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 

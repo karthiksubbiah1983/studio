@@ -1717,12 +1717,22 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       const handleRadioChange = useCallback((val: string) => {
         onValueChange(element.id, val);
       }, [onValueChange, element.id]);
+
+      useEffect(() => {
+        // Apply dynamic default value from row context if available and no value is currently set
+        if (isTableCell && rowContext && element.defaultValueKey && (value === undefined || value === null)) {
+            const dynamicDefaultValue = getNestedValue(rowContext, element.defaultValueKey);
+            if (dynamicDefaultValue !== undefined && dynamicDefaultValue !== null) {
+                onValueChange(element.id, String(dynamicDefaultValue));
+            }
+        }
+      }, [isTableCell, rowContext, element.defaultValueKey, value, onValueChange, element.id]);
       
       content = (
         <div id={element.id}>
           {renderLabelWithPopup()}
           <RadioGroup 
-            value={value !== undefined && value !== null ? String(value) : undefined}
+            value={value !== undefined && value !== null ? String(value) : (element.defaultValue || undefined)}
             onValueChange={handleRadioChange}
             className={cn("mt-3", direction === 'horizontal' ? "flex flex-row gap-4" : "grid gap-2")}
             disabled={isDisabled}

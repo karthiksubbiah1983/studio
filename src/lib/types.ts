@@ -139,6 +139,7 @@ export type FormElementInstance = {
     leadingChar?: string;
     formula?: string;
     defaultValue?: any;
+    defaultValueKey?: string;
     // For Select, RadioGroup, Combobox
     dataSource?: 'static' | 'dynamic' | 'fromParent' | 'local';
     options?: string[]; // Kept for simple static lists like RadioGroup
