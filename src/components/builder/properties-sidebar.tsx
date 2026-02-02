@@ -698,6 +698,14 @@ function DataGridColumnEditor({
                     placeholder="e.g. 150px, 20%"
                 />
             </div>
+            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                <Label htmlFor="column-hidden">Hide in UI</Label>
+                <Switch
+                    id="column-hidden"
+                    checked={column.hidden || false}
+                    onCheckedChange={checked => onUpdateProp({ ...column, hidden: checked })}
+                />
+            </div>
             
             {isTaskHistory && (
               <>
@@ -2548,6 +2556,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 

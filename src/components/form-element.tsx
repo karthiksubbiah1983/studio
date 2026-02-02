@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react"
@@ -85,6 +86,7 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
     const [currentPage, setCurrentPage] = useState(1);
     const rows = Array.isArray(value) ? value : [];
     const stableOnValueChange = useCallback(onValueChange, []);
+    const visibleColumns = useMemo(() => element.dataGridColumns?.filter(col => !col.hidden) || [], [element.dataGridColumns]);
     
     useEffect(() => {
         let isMounted = true;
@@ -133,7 +135,7 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
     const filteredDataForPagination = useMemo(() => {
         if (element.enableSearch && searchTerm) {
             return rows.filter(row => {
-                return element.dataGridColumns?.some(col => {
+                return visibleColumns.some(col => {
                     if (!col.element.key) return false;
                     const cellValue = String(getNestedValue(row, col.element.key) ?? '');
                     return cellValue.toLowerCase().includes(searchTerm.toLowerCase());
@@ -141,7 +143,7 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
             });
         }
         return rows;
-    }, [rows, searchTerm, element.enableSearch, element.dataGridColumns]);
+    }, [rows, searchTerm, element.enableSearch, visibleColumns]);
 
     const paginatedData = useMemo(() => {
         if (element.enablePagination) {
@@ -213,7 +215,7 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            {element.dataGridColumns.map(col => (
+                            {visibleColumns.map(col => (
                                 <TableHead key={col.id} style={{ width: col.width || 'auto' }}>{col.header}</TableHead>
                             ))}
                         </TableRow>
@@ -221,7 +223,7 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
                     <TableBody>
                         {isLoading ? (
                              <TableRow>
-                                <TableCell colSpan={element.dataGridColumns.length} className="h-24 text-center">
+                                <TableCell colSpan={visibleColumns.length} className="h-24 text-center">
                                     <div className="flex items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin"/>Loading data...</div>
                                 </TableCell>
                             </TableRow>
@@ -230,7 +232,7 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
                                 const originalIndex = rows.findIndex(item => item === row);
                                 return (
                                     <TableRow key={originalIndex}>
-                                        {element.dataGridColumns!.map(col => {
+                                        {visibleColumns.map(col => {
                                             const isVisible = isColumnVisible(col, row);
                                             if (!isVisible) {
                                                 return <TableCell key={col.id} style={{ width: col.width || 'auto' }}></TableCell>;
@@ -259,7 +261,7 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
                             })
                          ) : (
                             <TableRow>
-                                <TableCell colSpan={element.dataGridColumns.length} className="h-24 text-center">
+                                <TableCell colSpan={visibleColumns.length} className="h-24 text-center">
                                     No data available.
                                 </TableCell>
                             </TableRow>

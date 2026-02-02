@@ -97,6 +97,7 @@ export type DataGridColumn = {
   element: FormElementInstance;
   width?: string;
   sourceColumnId?: string;
+  hidden?: boolean;
 };
 
 export type CustomOption = {
