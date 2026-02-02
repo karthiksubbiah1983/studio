@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, memo, useMemo } from 'react';
@@ -71,6 +70,7 @@ const TagInput = ({ value: initialValue, onChange }: { value?: string[], onChang
 };
 
 const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate: (updated: Dataset) => void }) => {
+  const [editingCell, setEditingCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string } | null>(null);
   
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdate({ ...dataset, name: e.target.value });
@@ -133,117 +133,152 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
     onUpdate({ ...dataset, data: newData });
   };
 
-  return (
-    <ScrollArea className="h-full">
-      <div className="space-y-6 p-6">
-        <div>
-            <Label>Dataset Name</Label>
-            <Input id="dataset-name" value={dataset.name} onChange={handleNameChange} className="mt-1 bg-white font-medium text-lg" />
-        </div>
+  const handleSaveModal = () => {
+    if (editingCell) {
+        handleUpdateCell(editingCell.rowIndex, editingCell.colKey, editingCell.value);
+        setEditingCell(null);
+    }
+  };
 
-        <div className="space-y-4">
-            <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
-                <h3 className="font-semibold text-primary">Columns</h3>
-                <Button variant="outline" size="sm" onClick={handleAddColumn}>
-                    <Plus className="mr-2 h-4 w-4" /> Column
-                </Button>
+  return (
+    <div className="h-full relative">
+      <ScrollArea className="h-full">
+        <div className="space-y-6 p-6">
+            <div>
+                <Label>Dataset Name</Label>
+                <Input id="dataset-name" value={dataset.name} onChange={handleNameChange} className="mt-1 bg-white font-medium text-lg" />
             </div>
-            <div className="border bg-white p-4 rounded-md">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="w-[40%]">Header</TableHead>
-                            <TableHead className="w-[40%]">Key</TableHead>
-                            <TableHead className="w-[20%]">Type</TableHead>
-                            <TableHead className="w-10"></TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {dataset.columns.map(col => (
-                            <TableRow key={col.id}>
-                                <TableCell className="py-1 px-2">
-                                    <Input defaultValue={col.header} onBlur={(e) => handleUpdateColumn(col.id, 'header', e.target.value)} className="h-8"/>
-                                </TableCell>
-                                <TableCell className="py-1 px-2">
-                                    <Input defaultValue={col.key} onBlur={(e) => handleUpdateColumn(col.id, 'key', e.target.value.replace(/\s+/g, '_').toLowerCase())} className="h-8"/>
-                                </TableCell>
-                                <TableCell className="py-1 px-2">
-                                    <Select value={col.type || 'text'} onValueChange={(value) => handleUpdateColumn(col.id, 'type', value)}>
-                                        <SelectTrigger className="h-8 text-xs">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="text">Text</SelectItem>
-                                            <SelectItem value="array">List</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </TableCell>
-                                <TableCell className="py-1 px-2">
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteColumn(col.id)}>
-                                        <Trash className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </div>
-        </div>
-        
-        <div className="space-y-4">
-            <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
-                <h3 className="font-semibold text-primary">Data Rows</h3>
-                <Button variant="outline" size="sm" onClick={handleAddRow}>
-                    <Plus className="mr-2 h-4 w-4" /> Row
-                </Button>
-            </div>
-             <div className="border bg-white rounded-md">
-                <ScrollArea className="max-h-96">
+
+            <div className="space-y-4">
+                <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
+                    <h3 className="font-semibold text-primary">Columns</h3>
+                    <Button variant="outline" size="sm" onClick={handleAddColumn}>
+                        <Plus className="mr-2 h-4 w-4" /> Column
+                    </Button>
+                </div>
+                <div className="border bg-white p-4 rounded-md">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                {dataset.columns.map(col => <TableHead key={col.id}>{col.header}</TableHead>)}
-                                <TableHead className="w-20 text-right">Actions</TableHead>
+                                <TableHead className="w-[40%]">Header</TableHead>
+                                <TableHead className="w-[40%]">Key</TableHead>
+                                <TableHead className="w-[20%]">Type</TableHead>
+                                <TableHead className="w-10"></TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {dataset.data.map((row, rowIndex) => (
-                                <TableRow key={rowIndex}>
-                                    {dataset.columns.map(col => (
-                                        <TableCell key={col.id} className="py-1 px-2">
-                                            {col.type === 'array' ? (
-                                                <TagInput 
-                                                    value={row[col.key]}
-                                                    onChange={(newValue) => handleUpdateCell(rowIndex, col.key, newValue)}
-                                                />
-                                            ) : (
-                                                <Input
-                                                    defaultValue={row[col.key] || ''}
-                                                    onBlur={(e) => handleUpdateCell(rowIndex, col.key, e.target.value)}
-                                                    className="h-8"
-                                                />
-                                            )}
-                                        </TableCell>
-                                    ))}
-                                    <TableCell className="py-1 px-2 text-right">
-                                        <div className="flex items-center justify-end">
-                                            <Button variant="ghost" size="icon" onClick={() => handleCopyRow(rowIndex)}>
-                                                <Copy className="h-4 w-4" />
-                                            </Button>
-                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
-                                                <Trash className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </div>
+                            {dataset.columns.map(col => (
+                                <TableRow key={col.id}>
+                                    <TableCell className="py-1 px-2">
+                                        <Input defaultValue={col.header} onBlur={(e) => handleUpdateColumn(col.id, 'header', e.target.value)} className="h-8"/>
+                                    </TableCell>
+                                    <TableCell className="py-1 px-2">
+                                        <Input defaultValue={col.key} onBlur={(e) => handleUpdateColumn(col.id, 'key', e.target.value.replace(/\s+/g, '_').toLowerCase())} className="h-8"/>
+                                    </TableCell>
+                                    <TableCell className="py-1 px-2">
+                                        <Select value={col.type || 'text'} onValueChange={(value) => handleUpdateColumn(col.id, 'type', value)}>
+                                            <SelectTrigger className="h-8 text-xs">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="text">Text</SelectItem>
+                                                <SelectItem value="array">List</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </TableCell>
+                                    <TableCell className="py-1 px-2">
+                                        <Button variant="ghost" size="icon" onClick={() => handleDeleteColumn(col.id)}>
+                                            <Trash className="h-4 w-4 text-destructive" />
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
-                </ScrollArea>
-             </div>
+                </div>
+            </div>
+            
+            <div className="space-y-4">
+                <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
+                    <h3 className="font-semibold text-primary">Data Rows</h3>
+                    <Button variant="outline" size="sm" onClick={handleAddRow}>
+                        <Plus className="mr-2 h-4 w-4" /> Row
+                    </Button>
+                </div>
+                <div className="border bg-white rounded-md">
+                    <ScrollArea className="max-h-96">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    {dataset.columns.map(col => <TableHead key={col.id}>{col.header}</TableHead>)}
+                                    <TableHead className="w-20 text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {dataset.data.map((row, rowIndex) => (
+                                    <TableRow key={rowIndex}>
+                                        {dataset.columns.map(col => {
+                                            const cellValue = row[col.key] || '';
+                                            return (
+                                                <TableCell key={col.id} className="py-1 px-2">
+                                                    {col.type === 'array' ? (
+                                                        <TagInput 
+                                                            value={cellValue}
+                                                            onChange={(newValue) => handleUpdateCell(rowIndex, col.key, newValue)}
+                                                        />
+                                                    ) : (
+                                                        <div
+                                                            className="truncate cursor-pointer hover:bg-muted/50 p-1.5 rounded-sm h-8 flex items-center"
+                                                            onClick={() => setEditingCell({ rowIndex, colKey: col.key, header: col.header, value: cellValue })}
+                                                        >
+                                                            {cellValue}
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                            )
+                                        })}
+                                        <TableCell className="py-1 px-2 text-right">
+                                            <div className="flex items-center justify-end">
+                                                <Button variant="ghost" size="icon" onClick={() => handleCopyRow(rowIndex)}>
+                                                    <Copy className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}>
+                                                    <Trash className="h-4 w-4 text-destructive" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </div>
+            </div>
         </div>
-      </div>
-    </ScrollArea>
+      </ScrollArea>
+      {editingCell && (
+        <Dialog open={!!editingCell} onOpenChange={() => setEditingCell(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit: {editingCell.header}</DialogTitle>
+                    <DialogDescription>
+                        Editing row {editingCell.rowIndex + 1}.
+                    </DialogDescription>
+                </DialogHeader>
+                <Textarea
+                    value={editingCell.value}
+                    onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)}
+                    className="min-h-[200px] text-sm"
+                    rows={10}
+                />
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setEditingCell(null)}>Cancel</Button>
+                    <Button onClick={handleSaveModal}>Save</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
+    </div>
   );
 });
 DatasetEditor.displayName = "DatasetEditor";
