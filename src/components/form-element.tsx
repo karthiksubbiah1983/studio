@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react"
@@ -625,8 +624,6 @@ function DataListRenderer({ element, value, onValueChange }: {
     const isRadio = element.listType === 'radio';
     const isDisplayOnly = element.listType === 'display';
 
-    const currentSelection = isCheckbox ? (Array.isArray(value) ? value : []) : (value || '');
-
     const listOptions = useMemo(() => {
         if (element.localDatasetName) {
             const dataset = datasets.find(ds => ds.name === element.localDatasetName);
@@ -636,53 +633,48 @@ function DataListRenderer({ element, value, onValueChange }: {
     }, [element.localDatasetName, datasets]);
     
     const mainListOptions = useMemo(() => {
-        if (!currentSelection) return listOptions;
+        if (!value) return listOptions;
         if (element.displaySelection === 'selected' && !isDisplayOnly) {
-            return listOptions.filter(option => {
-                const optValue = String(getNestedValue(option, element.valueKey!) || '');
-                return isCheckbox ? !currentSelection.includes(optValue) : currentSelection !== optValue;
-            });
+            if (isCheckbox) {
+                if (!Array.isArray(value)) return listOptions;
+                return listOptions.filter(option => !(value as any[]).includes(option));
+            }
+            return listOptions.filter(option => value !== option);
         }
         return listOptions;
-    }, [listOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
+    }, [listOptions, value, isCheckbox, isDisplayOnly, element.displaySelection]);
 
     const displayedSelection = useMemo(() => {
-        if (element.displaySelection === 'none' || !currentSelection || isDisplayOnly) {
+        if (element.displaySelection !== 'selected' || !value || isDisplayOnly) {
             return [];
         }
-        if (element.displaySelection === 'selected') {
-             return listOptions.filter(option => {
-                const itemValue = String(getNestedValue(option, element.valueKey!) || '');
-                return isCheckbox ? currentSelection.includes(itemValue) : currentSelection === itemValue;
-            });
+        if (isCheckbox) {
+             if (!Array.isArray(value)) return [];
+            return value;
         }
-        return [];
-    }, [listOptions, currentSelection, isCheckbox, isDisplayOnly, element]);
+        return [value];
+    }, [value, isCheckbox, isDisplayOnly, element.displaySelection]);
 
-    const handleListChange = (itemValue: string) => {
+    const handleListChange = (itemObject: any) => {
         if (isDisplayOnly) return;
     
-        const findFullObject = (val: string) => listOptions.find(opt => {
-            const optValue = String(getNestedValue(opt, element.valueKey!) || '');
-            return optValue === val;
-        });
+        let newSelection: any[] | any;
     
-        let newSelection: string[] | string;
         if (isCheckbox) {
-            const selection = (currentSelection || []) as string[];
-            newSelection = selection.includes(itemValue)
-                ? selection.filter((v: string) => v !== itemValue)
-                : [...selection, itemValue];
+            const selection = (Array.isArray(value) ? value : []) as any[];
+            const isAlreadySelected = selection.includes(itemObject);
             
-            const fullObjects = newSelection.map(val => findFullObject(val)).filter(Boolean);
-            onValueChange(element.id, newSelection, fullObjects);
+            newSelection = isAlreadySelected
+                ? selection.filter(item => item !== itemObject)
+                : [...selection, itemObject];
     
         } else { // isRadio
-            newSelection = value === itemValue ? '' : itemValue;
-            const fullObject = newSelection ? findFullObject(newSelection) : null;
-            onValueChange(element.id, newSelection, fullObject);
+            newSelection = value === itemObject ? null : itemObject;
         }
-
+    
+        // For both cases, the fullObject is the selection itself.
+        onValueChange(element.id, newSelection, newSelection);
+    
         if (element.enableScoring) {
             const selectionCount = Array.isArray(newSelection) ? newSelection.length : (newSelection ? 1 : 0);
             const score = selectionCount * (element.scorePerItem || 0);
@@ -714,27 +706,37 @@ function DataListRenderer({ element, value, onValueChange }: {
         );
     };
 
-    const handleRemoveSelection = (itemValue: string) => {
+    const handleRemoveSelection = (itemObject: any) => {
         if (isCheckbox) {
-            const selection = currentSelection as string[];
-            const newSelection = selection.filter((v: string) => v !== itemValue);
-            onValueChange(element.id, newSelection);
+            const selection = (value || []) as any[];
+            const newSelection = selection.filter((item: any) => item !== itemObject);
+            onValueChange(element.id, newSelection, newSelection);
         } else { // Radio button
-            onValueChange(element.id, '');
+            onValueChange(element.id, null, null);
         }
     };
+
+    const CustomRadio = ({ selected }: { selected: boolean }) => (
+        <div className={cn("aspect-square h-4 w-4 rounded-full border border-primary text-primary ring-offset-background flex items-center justify-center", selected && "border-[#0077FF] text-[#0077FF]")}>
+            {selected && <div className="h-2.5 w-2.5 rounded-full bg-current" />}
+        </div>
+    );
 
     const listContent = (
         <div className="rounded-md border p-2 space-y-2">
             {mainListOptions.length > 0 ? (
                 mainListOptions.map((option, index) => {
-                    const itemValue = String(getNestedValue(option, element.valueKey!) || '');
-                    const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
+                    let isSelected: boolean;
+                    if (isCheckbox) {
+                        isSelected = Array.isArray(value) && value.includes(option);
+                    } else {
+                        isSelected = value === option;
+                    }
                     
                     return (
                         <div
-                            key={`${element.id}-item-${index}`}
-                            onClick={() => handleListChange(itemValue)}
+                            key={index}
+                            onClick={() => handleListChange(option)}
                             className={cn(
                                 "flex items-start gap-3 p-3 rounded-md transition-colors",
                                 !isDisplayOnly && "cursor-pointer",
@@ -743,7 +745,11 @@ function DataListRenderer({ element, value, onValueChange }: {
                         >
                             {!isDisplayOnly && (
                                 <div className="flex-shrink-0 pt-0.5">
-                                    {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} id={`${element.id}-${index}`} />}
+                                    {isCheckbox ? (
+                                      <Checkbox checked={isSelected} readOnly />
+                                    ) : isRadio ? (
+                                      <CustomRadio selected={isSelected} />
+                                    ) : null}
                                 </div>
                             )}
                             <div className="flex-1">
@@ -763,19 +769,12 @@ function DataListRenderer({ element, value, onValueChange }: {
     return (
         <div>
             <Label className="text-[0.9rem] font-medium">{element.label}</Label>
-            {isRadio ? (
-                <RadioGroup id={element.id} value={String(value)} onValueChange={handleListChange}>
-                    {listContent}
-                </RadioGroup>
-            ) : (
-                listContent
-            )}
+            {listContent}
              {element.displaySelection !== 'none' && displayedSelection.length > 0 && !isDisplayOnly && (
                 <div className="mt-4">
                     <p className="text-sm font-medium mb-2">{element.displaySelection === 'selected' ? 'Selected' : 'Unselected'} Items:</p>
                     <div className="rounded-md border p-2 space-y-1">
                         {displayedSelection.map((option, index) => {
-                             const itemValue = String(getNestedValue(option, element.valueKey!) || '');
                              return (
                                 <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded-md text-sm">
                                     <div className="flex-1">{renderListItemContent(option)}</div>
@@ -783,7 +782,7 @@ function DataListRenderer({ element, value, onValueChange }: {
                                         variant="ghost"
                                         size="icon"
                                         className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                                        onClick={() => handleRemoveSelection(itemValue)}
+                                        onClick={() => handleRemoveSelection(option)}
                                     >
                                         <X className="h-4 w-4" />
                                     </Button>
@@ -2096,3 +2095,4 @@ const alignmentClasses = {
 }
 
     
+
