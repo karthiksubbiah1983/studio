@@ -184,9 +184,9 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
             [elementId]: { ...(prev[elementId] || {}), value, fullObject },
         };
 
-        if (isControlledRef.current && onSubmitRef.current) {
-            onSubmitRef.current(newState);
-        }
+        // if (isControlledRef.current && onSubmitRef.current) {
+        //     onSubmitRef.current(newState);
+        // }
         return newState;
     });
   }, [stableSetLocalFormState]);
