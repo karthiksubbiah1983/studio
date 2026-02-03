@@ -1252,7 +1252,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     <AccordionItem value="sections">
                         <AccordionTrigger className="py-2">Sections to Preview</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-2">
-                             {sections.filter(s => s.popupOnly).map(section => (
+                             {sections.map(section => (
                                 <div key={section.id} className="flex items-center space-x-2">
                                     <Checkbox
                                         id={`preview-${section.id}`}
@@ -2571,6 +2571,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 
