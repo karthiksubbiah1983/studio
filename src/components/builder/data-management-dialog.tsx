@@ -71,6 +71,7 @@ const TagInput = ({ value: initialValue, onChange }: { value?: string[], onChang
 
 const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate: (updated: Dataset) => void }) => {
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string } | null>(null);
+  const [editingListCell, setEditingListCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string[] } | null>(null);
   
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdate({ ...dataset, name: e.target.value });
@@ -139,6 +140,14 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
         setEditingCell(null);
     }
   };
+
+  const handleSaveListModal = () => {
+    if (editingListCell) {
+        handleUpdateCell(editingListCell.rowIndex, editingListCell.colKey, editingListCell.value);
+        setEditingListCell(null);
+    }
+  };
+
 
   return (
     <div className="h-full relative">
@@ -222,10 +231,14 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                                             return (
                                                 <TableCell key={col.id} className="py-1 px-2">
                                                     {col.type === 'array' ? (
-                                                        <TagInput 
-                                                            value={cellValue}
-                                                            onChange={(newValue) => handleUpdateCell(rowIndex, col.key, newValue)}
-                                                        />
+                                                        <div
+                                                            className="truncate cursor-pointer hover:bg-muted/50 p-1.5 rounded-sm h-8 flex items-center"
+                                                            onClick={() => setEditingListCell({ rowIndex, colKey: col.key, header: col.header, value: Array.isArray(cellValue) ? cellValue : [] })}
+                                                        >
+                                                            {Array.isArray(cellValue) && cellValue.length > 0
+                                                                ? cellValue.join(', ')
+                                                                : <span className="text-muted-foreground italic">Empty list</span>}
+                                                        </div>
                                                     ) : (
                                                         <div
                                                             className="truncate cursor-pointer hover:bg-muted/50 p-1.5 rounded-sm h-8 flex items-center"
@@ -274,6 +287,28 @@ const DatasetEditor = memo(({ dataset, onUpdate }: { dataset: Dataset, onUpdate:
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setEditingCell(null)}>Cancel</Button>
                     <Button onClick={handleSaveModal}>Save</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
+      {editingListCell && (
+        <Dialog open={!!editingListCell} onOpenChange={() => setEditingListCell(null)}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit List: {editingListCell.header}</DialogTitle>
+                    <DialogDescription>
+                        Editing row {editingListCell.rowIndex + 1}. Add or remove items from the list.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                    <TagInput 
+                        value={editingListCell.value}
+                        onChange={(newValue) => setEditingListCell(prev => prev ? { ...prev, value: newValue } : null)}
+                    />
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setEditingListCell(null)}>Cancel</Button>
+                    <Button onClick={handleSaveListModal}>Save</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
