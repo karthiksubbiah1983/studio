@@ -64,16 +64,16 @@ const SectionRenderer = ({ section, formState, updateFormState, rules, configura
         const hideRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === section.id));
 
         if (showRules.length > 0) {
-            visible = showRules.some(r => evaluateRule(r, formState || {}, configurations, [section]));
+            visible = showRules.some(r => evaluateRule(r, formState || {}, configurations, sections, undefined));
         }
 
         if (visible && hideRules.length > 0) {
-            if (hideRules.some(r => evaluateRule(r, formState || {}, configurations, [section]))) {
+            if (hideRules.some(r => evaluateRule(r, formState || {}, configurations, sections, undefined))) {
                 visible = false;
             }
         }
         return visible;
-    }, [section, formState, rules, configurations]);
+    }, [section, formState, rules, configurations, sections]);
 
 
     const renderElements = (elements: FormElementInstance[], isParentHorizontal?: boolean) => {
@@ -183,10 +183,6 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
             ...prev,
             [elementId]: { ...(prev[elementId] || {}), value, fullObject },
         };
-
-        // if (isControlledRef.current && onSubmitRef.current) {
-        //     onSubmitRef.current(newState);
-        // }
         return newState;
     });
   }, [stableSetLocalFormState]);
@@ -235,15 +231,15 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
   }
   
   const handleSubmit = () => {
-    const allElements = getAllElements(sections);
-    const submissionData = generateSubmissionJson(allElements, localFormState);
-    
-    setSubmissionJson(JSON.stringify(submissionData, null, 2));
-
     if (isControlled && onSubmit) {
         onSubmit(localFormState);
         return;
     }
+    
+    const allElements = getAllElements(sections);
+    const submissionData = generateSubmissionJson(allElements, localFormState);
+    
+    setSubmissionJson(JSON.stringify(submissionData, null, 2));
 
     const { state, activeForm, dispatch } = builderContext;
     const formId = taskId ? state.tasks.find(t => t.id === taskId)?.formId : activeForm?.id;

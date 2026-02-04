@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react"
@@ -796,7 +797,7 @@ function DataListRenderer({ element, value, onValueChange }: {
     );
 }
 
-export function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
+const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
   const builderContext = useBuilder();
   const { rules: builderRules, sections: builderSections, configurations: builderConfigurations } = builderContext;
   const { user } = useAuth();
@@ -893,7 +894,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   }, [value]);
   
   const isVisible = useMemo(() => {
-    // Visibility for cells is handled by parent tables (DataGrid/EditableTable)
     if (isTableCell) return true;
 
     const contextToCheck = formState || {};
@@ -917,13 +917,13 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     if (!contextToCheck || !rules) return false;
 
     const disableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'disable' && b.targetElementId === element.id));
-    if (disableRules.some(r => evaluateRule(r, contextToCheck, configurations, sections))) {
+    if (disableRules.some(r => evaluateRule(r, contextToCheck, configurations, sections, isTableCell ? rowContext : undefined))) {
       return true;
     }
 
     const enableRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'enable' && b.targetElementId === element.id));
     if (enableRules.length > 0) {
-      return !enableRules.some(r => evaluateRule(r, contextToCheck, configurations, sections));
+      return !enableRules.some(r => evaluateRule(r, contextToCheck, configurations, sections, isTableCell ? rowContext : undefined));
     }
 
     return false;
@@ -933,7 +933,7 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
     const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
     if (element.readOnly) return true;
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && contextToCheck) return true;
-    if (rules.some(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id && evaluateRule(rule, contextToCheck, configurations, sections)))) {
+    if (rules.some(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id && evaluateRule(rule, contextToCheck, configurations, sections, isTableCell ? rowContext : undefined)))) {
         return true;
     }
     return false;
@@ -1177,6 +1177,12 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
           onOpenChange={setIsRulePopupOpen}
           element={popupElement}
           formState={formState || {}}
+          onConfirm={() => {
+            const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
+            if (rules.some(rule => rule.behaviors.some(b => b.type === 'set_value' && b.targetElementId === element.id && evaluateRule(rule, contextToCheck, configurations, sections, isTableCell ? rowContext : undefined)))) {
+              onValueChange(element.id, true);
+            }
+          }}
         />
       );
     case "Display": {
@@ -1718,7 +1724,6 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
       }, [onValueChange, element.id]);
 
       useEffect(() => {
-        // Apply dynamic default value from row context if available and no value is currently set
         if (isTableCell && rowContext && element.defaultValueKey && (value === undefined || value === null)) {
             const dynamicDefaultValue = getNestedValue(rowContext, element.defaultValueKey);
             if (dynamicDefaultValue !== undefined && dynamicDefaultValue !== null) {
@@ -2074,7 +2079,9 @@ export function FormElementRenderer({ element, value: initialValue, onValueChang
   const wrapperStyle = element.type === 'Container' && width ? { width } : {};
 
   return <div style={wrapperStyle}>{content}</div>;
-}
+});
+
+export { MemoizedFormElementRenderer as FormElementRenderer };
 
 const alignmentClasses = {
     justify: {
@@ -2093,6 +2100,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
-    
-

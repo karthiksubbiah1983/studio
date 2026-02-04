@@ -1,5 +1,4 @@
 
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
@@ -199,8 +198,6 @@ export const evaluateRule = (
         return false;
     }
     if (!context) {
-        // If context is not ready, we can't evaluate, so assume rule is not met.
-        // This prevents rules from firing incorrectly on initial load.
         return false;
     }
 
@@ -210,61 +207,35 @@ export const evaluateRule = (
         let sourceValue: any;
         const { sourceElementId, sourcePropertyKey, sourceType, sourceValue: configOrDateValue, operator } = condition;
         
-        // Use a consistent context for evaluation, prioritizing the specific row if it exists.
         const contextToUse = rowContext || context;
         
-        // 1. Get Source Value
-        if (sourceType === 'field' && sourceElementId && sourceElementId.includes('::score')) {
-            console.log(`Karthik - DataList Score Extraction: Rule '${rule.name}', Condition '${condition.id}', Source ID: '${sourceElementId}'`);
-            if (contextToUse && contextToUse.hasOwnProperty(sourceElementId)) {
-                const elementState = contextToUse[sourceElementId];
-                sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
-                    ? elementState.value
-                    : elementState;
-            }
-             console.log(`Karthik - DataList Score Extraction: Extracted Value:`, sourceValue);
-        } else if (sourceType === 'field' && sourceElementId) {
+        if (sourceType === 'field' && sourceElementId) {
             const sourceElement = allElements.find(el => el.id === sourceElementId);
+            const isScoreField = sourceElementId.includes('::score');
 
-            // Special handling for DataList/List: if no property is specified, assume we're checking the score.
-            if (sourceElement && (sourceElement.type === 'DataList' || sourceElement.type === 'List') && !sourcePropertyKey) {
-                const scoreId = `${sourceElement.id}::score`;
-                console.log(`Karthik - DataList Score Inference: Rule on DataList/List detected. Checking for score with ID: '${scoreId}'`);
-                if (contextToUse && contextToUse.hasOwnProperty(scoreId)) {
-                    const scoreState = contextToUse[scoreId];
-                    sourceValue = (typeof scoreState === 'object' && scoreState !== null && 'value' in scoreState)
-                        ? scoreState.value
-                        : scoreState;
-                } else {
-                    // Fallback to number of selected items if score isn't explicitly enabled/found
+            if (isScoreField) {
+                 if (contextToUse && contextToUse.hasOwnProperty(sourceElementId)) {
                     const elementState = contextToUse[sourceElementId];
-                    if (elementState && Array.isArray(elementState.value)) {
-                        sourceValue = elementState.value.length;
-                    }
-                }
-            } else {
-                const elementIdToUse = sourceElement?.id || sourceElementId;
-                const elementKeyToUse = sourceElement?.key || '';
-                let elementState = contextToUse[elementIdToUse];
-                
-                if (rowContext && elementKeyToUse && rowContext.hasOwnProperty(elementKeyToUse)) {
-                     sourceValue = rowContext[elementKeyToUse];
-                } 
-                else if (elementState) {
                     sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
                         ? elementState.value
                         : elementState;
-                        
-                    if (sourcePropertyKey && elementState.fullObject) {
-                        const objectsToCheck = Array.isArray(elementState.fullObject) ? elementState.fullObject : [elementState.fullObject];
-                        if(objectsToCheck[0]) {
-                            const values = objectsToCheck.map(obj => getNestedValue(obj, sourcePropertyKey));
-                            sourceValue = values.length === 1 && operator !== 'contains' ? values[0] : values;
-                        }
+                }
+            } else if (sourceElement) {
+                // Prioritize rowContext if the source element is a column in a table
+                if (rowContext && sourceElement.isTableColumn) {
+                    sourceValue = getNestedValue(rowContext, sourceElement.key || '');
+                } else { // Fallback to global context
+                    const elementState = context[sourceElementId];
+                    if (elementState) {
+                        sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
+                            ? elementState.value
+                            : elementState;
                     }
                 }
+                 if (sourcePropertyKey && sourceValue) {
+                    sourceValue = getNestedValue(sourceValue, sourcePropertyKey);
+                }
             }
-            console.log(`Karthik - Value Extraction: Rule '${rule.name}', Condition '${condition.id}', Source: '${sourceElementId || sourceType}', Extracted Value:`, sourceValue);
         } else if (sourceType === 'config' && configOrDateValue && configurations) {
             sourceValue = configurations.find(c => c.key === configOrDateValue)?.value;
         } else if (sourceType === 'date' && configOrDateValue) {
@@ -278,8 +249,8 @@ export const evaluateRule = (
             comparisonValue = condition.value;
         } else if (condition.comparisonType === 'field' && condition.comparisonElementId) {
              const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId);
-             if (rowContext && comparisonElement && comparisonElement.key && rowContext.hasOwnProperty(comparisonElement.key)) {
-                comparisonValue = rowContext[comparisonElement.key];
+             if (rowContext && comparisonElement?.isTableColumn) {
+                comparisonValue = getNestedValue(rowContext, comparisonElement.key || '');
              } else if (context[condition.comparisonElementId]) {
                 const compElementState = context[condition.comparisonElementId];
                  comparisonValue = (typeof compElementState === 'object' && compElementState !== null && 'value' in compElementState)
@@ -294,7 +265,6 @@ export const evaluateRule = (
         const val1 = sourceValue;
         const val2 = comparisonValue;
         
-        // Smart comparison
         const num1 = parseFloat(val1);
         const num2 = parseFloat(val2);
         const isNumericComparison = !isNaN(num1) && !isNaN(num2);
@@ -346,26 +316,11 @@ export const evaluateRule = (
             default:
                 result = false;
         }
-
-        console.log(`Karthik - Reliable Comparison: Comparing '${val1}' ${operator} '${val2}'. Result: ${result}`);
         
         return result;
     };
 
     const conditionResults = rule.conditions.map(checkCondition);
 
-    const finalResult = rule.logicType === 'and' ? conditionResults.every(result => result) : conditionResults.some(result => result);
-
-    if (finalResult) {
-        console.log(`Karthik - Action Triggered: Rule '${rule.name}' passed. Actions will be executed.`);
-    }
-
-    return finalResult;
+    return rule.logicType === 'and' ? conditionResults.every(result => result) : conditionResults.some(result => result);
 };
-
-
-    
-
-    
-
-
