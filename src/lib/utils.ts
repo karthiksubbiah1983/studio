@@ -1,4 +1,5 @@
 
+
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { FormElementInstance, Section, Rule, Workflow, Condition, Configuration } from "./types";
@@ -207,24 +208,21 @@ export const evaluateRule = (
         let sourceValue: any;
         const { sourceElementId, sourcePropertyKey, sourceType, sourceValue: configOrDateValue, operator } = condition;
         
-        const contextToUse = rowContext || context;
-        
         if (sourceType === 'field' && sourceElementId) {
             const sourceElement = allElements.find(el => el.id === sourceElementId);
             const isScoreField = sourceElementId.includes('::score');
 
             if (isScoreField) {
-                 if (contextToUse && contextToUse.hasOwnProperty(sourceElementId)) {
-                    const elementState = contextToUse[sourceElementId];
+                 if (context && context.hasOwnProperty(sourceElementId)) {
+                    const elementState = context[sourceElementId];
                     sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
                         ? elementState.value
                         : elementState;
                 }
             } else if (sourceElement) {
-                // Prioritize rowContext if the source element is a column in a table
                 if (rowContext && sourceElement.isTableColumn) {
                     sourceValue = getNestedValue(rowContext, sourceElement.key || '');
-                } else { // Fallback to global context
+                } else {
                     const elementState = context[sourceElementId];
                     if (elementState) {
                         sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
