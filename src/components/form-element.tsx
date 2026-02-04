@@ -240,7 +240,7 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
                                             const cellValue = col.element.key ? getNestedValue(row, col.element.key) : undefined;
                                             return (
                                                 <TableCell key={col.id} style={{ width: col.width || 'auto' }}>
-                                                    <FormElementRenderer
+                                                    <MemoizedFormElementRenderer
                                                         element={col.element}
                                                         value={cellValue}
                                                         onValueChange={(id, val) => {
@@ -463,7 +463,7 @@ function EditableTable({ element, value, onValueChange, formState, rules, config
 
                                 return (
                                     <TableCell key={col.id} className="min-w-[200px]">
-                                        <FormElementRenderer
+                                        <MemoizedFormElementRenderer
                                             element={col.element}
                                             value={cellValue}
                                             onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
@@ -532,7 +532,7 @@ function EditableTable({ element, value, onValueChange, formState, rules, config
                                     {col.element.label}
                                 </Button>
                                 ) : (
-                                <FormElementRenderer
+                                <MemoizedFormElementRenderer
                                     element={col.element}
                                     value={cellValue}
                                     onValueChange={(id, val, fullObj) => handleRowChange(rowIndex, col.element.id, val, fullObj)}
@@ -1291,7 +1291,7 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
                 align && alignmentClasses.align[align],
             )}>
                 {elements?.map(el => (
-                    <FormElementRenderer 
+                    <MemoizedFormElementRenderer 
                         key={el.id} 
                         element={el} 
                         value={formState?.[el.id]?.value} 
