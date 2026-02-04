@@ -190,15 +190,12 @@ export const findParentTable = (allElements: (FormElementInstance | Section)[], 
 
 export const evaluateRule = (
     rule: Rule | Workflow,
-    context: { [key: string]: any },
+    formState: { [key: string]: any },
     configurations?: Configuration[],
     sections?: Section[],
     rowContext?: any
 ): boolean => {
-    if (!rule?.conditions?.length) {
-        return false;
-    }
-    if (!context) {
+    if (!rule?.conditions?.length || !formState) {
         return false;
     }
 
@@ -208,30 +205,30 @@ export const evaluateRule = (
         let sourceValue: any;
         const { sourceElementId, sourcePropertyKey, sourceType, sourceValue: configOrDateValue, operator } = condition;
         
+        // --- Get Source Value ---
         if (sourceType === 'field' && sourceElementId) {
             const sourceElement = allElements.find(el => el.id === sourceElementId);
-            const isScoreField = sourceElementId.includes('::score');
-
-            if (isScoreField) {
-                 if (context && context.hasOwnProperty(sourceElementId)) {
-                    const elementState = context[sourceElementId];
-                    sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
-                        ? elementState.value
-                        : elementState;
-                }
-            } else if (sourceElement) {
-                if (rowContext && sourceElement.isTableColumn) {
-                    sourceValue = getNestedValue(rowContext, sourceElement.key || '');
-                } else {
-                    const elementState = context[sourceElementId];
+            if (sourceElement) {
+                if (sourceElement.isTableColumn) {
+                    if (rowContext) { // Evaluating for a specific row
+                        sourceValue = getNestedValue(rowContext, sourceElement.key || '');
+                    } else { // Aggregating from outside a row
+                        const table = findParentTable(allElements, sourceElementId);
+                        if (table && formState[table.id]?.value) {
+                            const tableData = formState[table.id].value as any[];
+                            sourceValue = tableData.map(row => getNestedValue(row, sourceElement.key || ''));
+                        }
+                    }
+                } else { // Source is a regular field
+                    const elementState = formState[sourceElementId];
                     if (elementState) {
                         sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
                             ? elementState.value
                             : elementState;
+                        if (sourcePropertyKey && sourceValue) {
+                           sourceValue = getNestedValue(sourceValue, sourcePropertyKey);
+                        }
                     }
-                }
-                 if (sourcePropertyKey && sourceValue) {
-                    sourceValue = getNestedValue(sourceValue, sourcePropertyKey);
                 }
             }
         } else if (sourceType === 'config' && configOrDateValue && configurations) {
@@ -241,81 +238,63 @@ export const evaluateRule = (
         }
 
 
-        // 2. Get Comparison Value
+        // --- Get Comparison Value ---
         let comparisonValue: any;
         if (condition.comparisonType === 'value') {
             comparisonValue = condition.value;
         } else if (condition.comparisonType === 'field' && condition.comparisonElementId) {
              const comparisonElement = allElements.find(el => el.id === condition.comparisonElementId);
-             if (rowContext && comparisonElement?.isTableColumn) {
-                comparisonValue = getNestedValue(rowContext, comparisonElement.key || '');
-             } else if (context[condition.comparisonElementId]) {
-                const compElementState = context[condition.comparisonElementId];
-                 comparisonValue = (typeof compElementState === 'object' && compElementState !== null && 'value' in compElementState)
-                    ? compElementState.value
-                    : compElementState;
+             if (comparisonElement) {
+                if (rowContext && comparisonElement.isTableColumn) {
+                    comparisonValue = getNestedValue(rowContext, comparisonElement.key || '');
+                } else {
+                    const compElementState = formState[condition.comparisonElementId];
+                    if (compElementState) {
+                        comparisonValue = (typeof compElementState === 'object' && compElementState !== null && 'value' in compElementState)
+                            ? compElementState.value
+                            : compElementState;
+                    }
+                }
              }
         } else if (condition.comparisonType === 'config' && condition.value && configurations) {
             comparisonValue = configurations.find(c => c.key === condition.value)?.value;
         }
 
-        // 3. Perform Comparison
-        const val1 = sourceValue;
-        const val2 = comparisonValue;
-        
-        const num1 = parseFloat(val1);
-        const num2 = parseFloat(val2);
-        const isNumericComparison = !isNaN(num1) && !isNaN(num2);
-        
-        let result = false;
-        switch (operator) {
-            case 'equals':
-                if (isNumericComparison) {result = num1 === num2;}
-                else if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') {
-                    result = String(val1) === String(val2);
-                } else {
-                result = String(val1 ?? '').toLowerCase() === String(val2 ?? '').toLowerCase();
-                }
-                break;
-            case 'not_equals':
-                if (isNumericComparison) {result = num1 !== num2;}
-                else if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') {
-                    result = String(val1) !== String(val2);
-                } else {
-                result = String(val1 ?? '').toLowerCase() !== String(val2 ?? '').toLowerCase();
-                }
-                break;
-            case 'contains':
-                if (Array.isArray(val1)) {
-                    result = val1.map(String).includes(String(val2 ?? ''));
-                } else {
-                result = String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
-                }
-                break;
-            case 'not_contains':
-                if (Array.isArray(val1)) {
-                    result = !val1.map(String).includes(String(val2 ?? ''));
-                } else {
-                result = !String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
-                }
-                break;
-            case 'is_greater_than':
-                result = isNumericComparison && num1 > num2;
-                break;
-            case 'is_less_than':
-                result = isNumericComparison && num1 < num2;
-                break;
-            case 'is_greater_than_or_equal_to':
-                result = isNumericComparison && num1 >= num2;
-                break;
-            case 'is_less_than_or_equal_to':
-                result = isNumericComparison && num1 <= num2;
-                break;
-            default:
-                result = false;
+        // --- Perform Comparison ---
+        const compare = (val1: any, val2: any): boolean => {
+            const num1 = parseFloat(val1);
+            const num2 = parseFloat(val2);
+            const isNumericComparison = !isNaN(num1) && !isNaN(num2);
+
+            switch (operator) {
+                case 'equals':
+                    if (isNumericComparison) return num1 === num2;
+                    if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') return String(val1) === String(val2);
+                    return String(val1 ?? '').toLowerCase() === String(val2 ?? '').toLowerCase();
+                case 'not_equals':
+                    if (isNumericComparison) return num1 !== num2;
+                    if (typeof val1 === 'boolean' || val2 === 'true' || val2 === 'false') return String(val1) !== String(val2);
+                    return String(val1 ?? '').toLowerCase() !== String(val2 ?? '').toLowerCase();
+                case 'contains':
+                    if (Array.isArray(val1)) return val1.map(String).includes(String(val2 ?? ''));
+                    return String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
+                case 'not_contains':
+                     if (Array.isArray(val1)) return !val1.map(String).includes(String(val2 ?? ''));
+                    return !String(val1 ?? '').toLowerCase().includes(String(val2 ?? '').toLowerCase());
+                case 'is_greater_than': return isNumericComparison && num1 > num2;
+                case 'is_less_than': return isNumericComparison && num1 < num2;
+                case 'is_greater_than_or_equal_to': return isNumericComparison && num1 >= num2;
+                case 'is_less_than_or_equal_to': return isNumericComparison && num1 <= num2;
+                default: return false;
+            }
         }
         
-        return result;
+        if (Array.isArray(sourceValue)) {
+            // If source is an array (from aggregation), check if 'any' item meets the condition
+            return sourceValue.some(sv => compare(sv, comparisonValue));
+        }
+
+        return compare(sourceValue, comparisonValue);
     };
 
     const conditionResults = rule.conditions.map(checkCondition);

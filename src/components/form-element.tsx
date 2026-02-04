@@ -894,20 +894,19 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
   }, [value]);
   
   const isVisible = useMemo(() => {
-    const contextToCheck = formState || {};
     const hideRuleMet = rules.some(rule =>
         rule?.behaviors?.some(b => b.type === 'hide' && b.targetElementId === element.id) &&
-        evaluateRule(rule, contextToCheck, configurations, allElements, rowContext)
+        evaluateRule(rule, formState || {}, configurations, sections, rowContext)
     );
     if (hideRuleMet) return false;
     
     const showRules = rules.filter(rule => rule?.behaviors?.some(b => b.type === 'show' && b.targetElementId === element.id));
     if (showRules.length > 0) {
-        return showRules.some(r => evaluateRule(r, contextToCheck, configurations, allElements, rowContext));
+        return showRules.some(r => evaluateRule(r, formState || {}, configurations, sections, rowContext));
     }
 
     return !element.hidden;
-  }, [element.id, element.hidden, formState, rowContext, rules, configurations, allElements]);
+  }, [element.id, element.hidden, formState, rowContext, rules, configurations, sections]);
 
 
   const isDisabled = useMemo(() => {
@@ -2098,3 +2097,4 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
