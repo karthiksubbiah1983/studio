@@ -35,7 +35,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { FormPreview } from "./form-preview";
 import {
   Table,
@@ -806,8 +805,6 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
   const [infoPopupOpen, setInfoPopupOpen] = useState(false);
   const [isPreviewPopupOpen, setIsPreviewPopupOpen] = useState(false);
   const [currentDateTime, setCurrentDateTime] = useState<Date | null>(null);
-  const [comboboxOpen, setComboboxOpen] = useState(false);
-  const [comboboxInputValue, setComboboxInputValue] = useState(initialValue || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
@@ -890,7 +887,6 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
 
   useEffect(() => {
     setLocalValue(value || "");
-    setComboboxInputValue(value || "");
   }, [value]);
   
   const isVisible = useMemo(() => {
@@ -1456,76 +1452,84 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
         break;
     }
     case "Combobox": {
-      const handleComboboxSelect = (currentValue: string) => {
+      const [isOpen, setIsOpen] = useState(false);
+      const [searchTerm, setSearchTerm] = useState("");
+
+      const handleSelect = (currentValue: string) => {
         const newValue = currentValue === value ? "" : currentValue;
         onValueChange(element.id, newValue);
-        setComboboxInputValue(newValue);
-        setComboboxOpen(false);
+        setIsOpen(false);
       };
-      
-       const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setComboboxInputValue(e.target.value);
-        onValueChange(element.id, e.target.value); // Allow free text entry
-      };
-      
-      let currentOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
 
-      const filteredOptions = currentOptions.filter(option => {
-          const label = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option;
-          return label.toLowerCase().includes(comboboxInputValue.toLowerCase());
-      });
-      
+      const currentOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
+
+      const filteredOptions = searchTerm
+        ? currentOptions.filter(option => {
+            const label = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option;
+            return label.toLowerCase().includes(searchTerm.toLowerCase());
+          })
+        : currentOptions;
+
       const getDisplayValue = () => {
-          if (element.dataSource === 'dynamic') {
-              const selectedOption = currentOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === value);
-              return selectedOption ? getNestedValue(selectedOption, element.labelKey!) : value;
+          if (value) {
+            if (element.dataSource === 'dynamic') {
+                const selectedOption = currentOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === value);
+                return selectedOption ? getNestedValue(selectedOption, element.labelKey!) : placeholder;
+            }
+            return value;
           }
-          return value;
+          return placeholder;
       }
       
       content = (
         <div>
           {renderLabel()}
-            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+            <Popover open={isOpen} onOpenChange={setIsOpen}>
                 <PopoverTrigger asChild>
-                    <div className="relative">
-                        <Input
-                            value={comboboxInputValue}
-                            onChange={handleInputChange}
-                            placeholder={placeholder}
-                            className="pr-8"
-                        />
-                        <ChevronsUpDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 shrink-0 opacity-50" />
-                    </div>
+                    <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={isOpen}
+                        className="w-full justify-between font-normal"
+                        disabled={isDisabled}
+                    >
+                        <span className="truncate">{getDisplayValue()}</span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                    <Command>
-                        <CommandList>
-                             {isLoading ? (
-                                <div className="p-2 flex justify-center"><Loader2 className="h-4 w-4 animate-spin"/></div>
-                             ) : (
-                                <>
-                                    <CommandEmpty>No results found.</CommandEmpty>
-                                    <CommandGroup>
-                                        {filteredOptions.map((option, index) => {
-                                             const optionValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
-                                             const optionLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
-                                             return (
-                                                <CommandItem
-                                                    key={index}
-                                                    value={optionLabel}
-                                                    onSelect={() => handleComboboxSelect(optionValue)}
-                                                >
-                                                    <Check className={cn("mr-2 h-4 w-4", value === optionValue ? "opacity-100" : "opacity-0")} />
-                                                    {optionLabel}
-                                                </CommandItem>
-                                            )
-                                        })}
-                                    </CommandGroup>
-                                </>
-                             )}
-                        </CommandList>
-                    </Command>
+                    <div className="p-2">
+                        <Input 
+                            placeholder="Search..." 
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="h-9"
+                        />
+                    </div>
+                    <ScrollArea className="max-h-60">
+                        <div className="p-1">
+                        {isLoading ? (
+                            <div className="p-2 text-center text-sm text-muted-foreground">Loading...</div>
+                        ) : filteredOptions.length === 0 ? (
+                            <div className="p-2 text-center text-sm text-muted-foreground">No options found.</div>
+                        ) : (
+                            filteredOptions.map((option, index) => {
+                                const optionValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                                const optionLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
+                                return (
+                                <div
+                                    key={index}
+                                    onClick={() => handleSelect(optionValue)}
+                                    className="text-sm p-2 rounded-sm cursor-pointer hover:bg-accent flex items-center"
+                                >
+                                    <Check className={cn("mr-2 h-4 w-4", value === optionValue ? "opacity-100" : "opacity-0")} />
+                                    {optionLabel}
+                                </div>
+                                );
+                            })
+                        )}
+                        </div>
+                    </ScrollArea>
                 </PopoverContent>
             </Popover>
            {helperText && (<p className="text-sm text-muted-foreground mt-1">{helperText}</p>)}
@@ -2097,4 +2101,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
