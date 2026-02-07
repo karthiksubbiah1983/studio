@@ -45,6 +45,14 @@ export type RuleBehavior = {
     targetConfigurationKey?: string; // For set_configuration
 }
 
+export type Rule = {
+  id: string;
+  name: string;
+  conditions: Condition[];
+  logicType: 'and' | 'or';
+  behaviors: RuleBehavior[];
+}
+
 export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Escalated' | 'Assigned' | 'Submitted';
 
 export type WorkflowAction = 

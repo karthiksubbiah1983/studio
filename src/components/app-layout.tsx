@@ -72,6 +72,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   } else if (pathname === '/task-history') {
     title = 'Task History';
     description = 'View a chronological history of all task assignments and submissions.';
+  } else if (pathname === '/checklists') {
+    title = 'Checklist Management';
+    description = 'Manage the central repository of checklist categories and questions.';
+  } else if (pathname === '/task-types') {
+    title = 'Task Type Configurations';
+    description = 'Configure which checklist items are active for different types of tasks.';
   }
 
   return (
