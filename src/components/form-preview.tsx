@@ -36,7 +36,9 @@ const generateSubmissionJson = (allElements: (FormElementInstance | Section)[], 
                         size: file.size,
                         type: file.type,
                     }));
-                } else if (elementState.fullObject) {
+                 } else if (element.type === 'Checklist') {
+                     submission[element.key] = elementState.value; // The whole value object with `responses`
+                 } else if (elementState.fullObject) {
                     submission[element.key] = elementState.fullObject;
                 } else {
                     submission[element.key] = elementState.value;
