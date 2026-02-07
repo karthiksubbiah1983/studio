@@ -1,7 +1,7 @@
 
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, RuleBehavior, Dataset } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, RuleBehavior, Dataset, ChecklistRepository, TaskType, TaskTypeConfiguration, ChecklistCategory, ChecklistQuestion, ChecklistAnswerOption } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
@@ -334,12 +334,173 @@ const demoCategory: Category = {
     subCategories: []
 };
 
+// Sample Data for Checklist
+const sampleChecklistRepository: ChecklistRepository = {
+    categories: [
+        {
+            id: 'cat_building_safety',
+            name: 'Building Safety',
+            children: [
+                {
+                    id: 'cat_fire_safety',
+                    name: 'Fire Safety',
+                    children: [
+                        { id: 'cat_fire_extinguishers', name: 'Fire Extinguishers', children: [] },
+                        { id: 'cat_fire_alarms', name: 'Fire Alarms', children: [] },
+                    ],
+                },
+                { id: 'cat_electrical_safety', name: 'Electrical Safety', children: [] },
+            ],
+        },
+        {
+            id: 'cat_operational_checks',
+            name: 'Operational Checks',
+            children: [
+                { id: 'cat_machinery', name: 'Machinery', children: [] },
+            ],
+        },
+    ],
+    questions: [
+        {
+            id: 'q_extinguisher_present',
+            label: 'Is the fire extinguisher present and accessible?',
+            answerType: 'yes-no',
+            answerOptions: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No', isCommentRequired: true, commentPlaceholder: 'Explain why it is not accessible.' },
+            ],
+            categoryId: 'cat_building_safety',
+            subCategoryId: 'cat_fire_safety',
+            subSubCategoryId: 'cat_fire_extinguishers',
+        },
+        {
+            id: 'q_pressure_gauge',
+            label: 'Is the pressure gauge in the green zone?',
+            answerType: 'yes-no',
+            answerOptions: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No', isCommentRequired: true, commentPlaceholder: 'Record the pressure reading and report it.' },
+            ],
+            categoryId: 'cat_building_safety',
+            subCategoryId: 'cat_fire_safety',
+            subSubCategoryId: 'cat_fire_extinguishers',
+        },
+        {
+            id: 'q_alarm_panel_faults',
+            label: 'Is the alarm panel showing any faults?',
+            answerType: 'yes-no',
+            answerOptions: [
+                { id: 'yes', label: 'Yes', isCommentRequired: true, commentPlaceholder: 'Describe the fault codes shown on the panel.' },
+                { id: 'no', label: 'No' },
+            ],
+            categoryId: 'cat_building_safety',
+            subCategoryId: 'cat_fire_safety',
+            subSubCategoryId: 'cat_fire_alarms',
+        },
+        {
+            id: 'q_exits_clear',
+            label: 'Are all emergency exits clear of obstructions?',
+            answerType: 'yes-no',
+            answerOptions: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No', isCommentRequired: true, commentPlaceholder: 'List which exits are blocked and why.' },
+            ],
+            categoryId: 'cat_building_safety',
+        },
+        {
+            id: 'q_machine_guarding',
+            label: 'Are all machines guarded properly?',
+            answerType: 'single-select',
+            answerOptions: [
+                { id: 'fully_guarded', label: 'Fully Guarded' },
+                { id: 'partially_guarded', label: 'Partially Guarded', isCommentRequired: true, commentPlaceholder: 'Specify which parts are unguarded.' },
+                { id: 'not_guarded', label: 'Not Guarded', isCommentRequired: true, commentPlaceholder: 'Specify which machines are not guarded.' },
+            ],
+            categoryId: 'cat_operational_checks',
+            subCategoryId: 'cat_machinery',
+        },
+    ],
+};
+
+const sampleTaskTypes: TaskType[] = [
+    { id: 'tt_general_inspection', name: 'General Inspection' },
+    { id: 'tt_monthly_safety_audit', name: 'Monthly Safety Audit' },
+];
+
+const sampleTaskTypeConfigurations: TaskTypeConfiguration[] = [
+    {
+        taskTypeId: 'tt_general_inspection',
+        enabledCategoryIds: [
+            'cat_building_safety',
+            'cat_fire_safety',
+            'cat_fire_extinguishers',
+            'cat_fire_alarms',
+            'cat_operational_checks',
+            'cat_machinery',
+        ],
+        enabledQuestionIds: [
+            'q_extinguisher_present',
+            'q_pressure_gauge',
+            'q_alarm_panel_faults',
+            'q_exits_clear',
+            'q_machine_guarding',
+        ],
+        overrides: [],
+    },
+    // Example of a more limited config for another task type
+    {
+        taskTypeId: 'tt_monthly_safety_audit',
+        enabledCategoryIds: ['cat_building_safety', 'cat_fire_safety', 'cat_fire_extinguishers'],
+        enabledQuestionIds: ['q_extinguisher_present', 'q_pressure_gauge'],
+        overrides: [],
+    }
+];
+
+const demoChecklistTemplate: Form = {
+    id: "demo-checklist-form",
+    title: "Daily Inspection Checklist",
+    categoryId: "demo-templates",
+    versions: [
+        {
+            id: crypto.randomUUID(),
+            name: "Initial Version",
+            description: "A sample form demonstrating the reusable checklist component.",
+            type: "published",
+            timestamp: new Date().toISOString(),
+            sections: [
+                {
+                    id: "checklist_section",
+                    title: "Inspection Checklist",
+                    displayMode: "default",
+                    elements: [
+                        {
+                            ...createNewElement("Checklist"),
+                            id: "main_checklist",
+                            key: "inspection_results",
+                            label: "Building & Equipment Inspection",
+                            taskTypeId: 'tt_general_inspection', // Link to the task type config
+                        },
+                    ],
+                },
+            ],
+            rules: [],
+            workflows: [],
+            configurations: [],
+            datasets: [],
+        },
+    ],
+};
+
+
 type State = {
   forms: Form[];
   categories: Category[];
   sites: Site[];
   tasks: Task[];
   submissions: Submission[];
+  checklistRepository: ChecklistRepository;
+  taskTypes: TaskType[];
+  taskTypeConfigurations: TaskTypeConfiguration[];
   activeFormId: string | null;
   selectedElement: { elementId: string; sectionId: string } | null;
   draggedElement: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null;
@@ -354,6 +515,9 @@ const initialState: State = {
   sites: [],
   tasks: [],
   submissions: [],
+  checklistRepository: { categories: [], questions: [] },
+  taskTypes: [],
+  taskTypeConfigurations: [],
   activeFormId: null,
   selectedElement: null,
   draggedElement: null,
@@ -1042,6 +1206,9 @@ type BuilderContextType = {
   updateConfigurations: (configurations: Configuration[]) => void;
   datasets: Dataset[];
   updateDatasets: (datasets: Dataset[]) => void;
+  checklistRepository: ChecklistRepository;
+  taskTypes: TaskType[];
+  taskTypeConfigurations: TaskTypeConfiguration[];
   clipboard: ClipboardItem | null;
   submissions: Submission[];
   formState: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } };
@@ -1097,6 +1264,13 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (!mergedState.categories.some(c => c.id === demoCategory.id)) {
         mergedState.categories.unshift(demoCategory);
     }
+    if (!mergedState.forms.some(f => f.id === demoChecklistTemplate.id)) {
+        mergedState.forms.unshift(demoChecklistTemplate);
+    }
+
+    mergedState.checklistRepository = sampleChecklistRepository;
+    mergedState.taskTypes = sampleTaskTypes;
+    mergedState.taskTypeConfigurations = sampleTaskTypeConfigurations;
 
     dispatch({ type: 'SET_STATE', payload: mergedState });
     setIsLoaded(true);
@@ -1116,10 +1290,13 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
             sites: state.sites,
             tasks: state.tasks,
             submissions: state.submissions,
+            checklistRepository: state.checklistRepository,
+            taskTypes: state.taskTypes,
+            taskTypeConfigurations: state.taskTypeConfigurations,
         };
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stateToSave));
     }
-  }, [state.forms, state.categories, state.sites, state.tasks, state.submissions, isLoaded]);
+  }, [state.forms, state.categories, state.sites, state.tasks, state.submissions, state.checklistRepository, state.taskTypes, state.taskTypeConfigurations, isLoaded]);
 
 
   const activeForm = state.forms.find(f => f.id === state.activeFormId) || null;
@@ -1129,6 +1306,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const configurations = activeForm?.versions[0]?.configurations || [];
   const datasets = activeForm?.versions[0]?.datasets || [];
   const activePopupId = state.activePopupId;
+  const checklistRepository = state.checklistRepository;
+  const taskTypes = state.taskTypes;
+  const taskTypeConfigurations = state.taskTypeConfigurations;
 
   // This effect runs the rule engine whenever a user-driven state change occurs.
   useEffect(() => {
@@ -1293,6 +1473,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     updateConfigurations, 
     datasets, 
     updateDatasets, 
+    checklistRepository,
+    taskTypes,
+    taskTypeConfigurations,
     clipboard: state.clipboard, 
     formState: state.formState, 
     setFormState, 
@@ -1314,6 +1497,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     updateConfigurations,
     datasets,
     updateDatasets,
+    checklistRepository,
+    taskTypes,
+    taskTypeConfigurations,
     setFormState,
     updateFormState,
     activePopupId,
@@ -1351,6 +1537,7 @@ export const useBuilder = () => {
     
 
     
+
 
 
 
