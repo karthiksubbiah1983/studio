@@ -53,7 +53,7 @@ const CategoryTree = ({
                         >
                             <span className="text-sm">{cat.name}</span>
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                        <div className="flex items-center gap-1 md:opacity-0 group-hover:opacity-100">
                              {level < 2 && (
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onAdd(cat.id)}>
                                     <Plus className="h-4 w-4" />
@@ -143,7 +143,7 @@ const QuestionEditorModal = ({
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl">
+            <DialogContent className="max-w-lg md:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{question.id ? 'Edit' : 'Add'} Checklist Question</DialogTitle>
                 </DialogHeader>
@@ -154,7 +154,7 @@ const QuestionEditorModal = ({
                             <Input id="q-label" value={question.label || ''} onChange={e => setQuestion({...question, label: e.target.value })} />
                         </div>
                         
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                              <div className="space-y-2">
                                 <Label>Category (L1)</Label>
                                 <Select value={question.categoryId || ''} onValueChange={id => setQuestion({...question, categoryId: id, subCategoryId: undefined, subSubCategoryId: undefined })}>
@@ -375,8 +375,8 @@ export default function ChecklistPage() {
     });
 
     return (
-        <div className="h-full flex">
-            <aside className="w-1/3 border-r h-full overflow-y-auto">
+        <div className="h-full flex flex-col md:flex-row">
+            <aside className="w-full md:w-1/3 border-b md:border-b-0 md:border-r h-auto md:h-full overflow-y-auto">
                 <div className="p-4 border-b flex justify-between items-center">
                     <h3 className="font-semibold">Categories</h3>
                     <Button variant="outline" size="sm" onClick={() => handleAddCategory()}>
@@ -394,7 +394,7 @@ export default function ChecklistPage() {
                     />
                 </div>
             </aside>
-            <main className="w-2/3 h-full flex flex-col">
+            <main className="w-full md:w-2/3 h-full flex flex-col">
                 <div className="p-4 border-b flex justify-between items-center">
                     <h3 className="font-semibold">Questions</h3>
                     <Button variant="outline" size="sm" onClick={handleAddQuestion}>
@@ -405,9 +405,9 @@ export default function ChecklistPage() {
                     <div className="p-4 space-y-2">
                         {questionsToShow.map(q => (
                             <Card key={q.id}>
-                                <CardContent className="p-3 flex justify-between items-center">
+                                <CardContent className="p-3 flex justify-between items-center group">
                                     <span className="text-sm">{q.label}</span>
-                                     <div className="flex items-center gap-1">
+                                     <div className="flex items-center gap-1 md:opacity-0 group-hover:opacity-100">
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditQuestion(q)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -418,6 +418,12 @@ export default function ChecklistPage() {
                                 </CardContent>
                             </Card>
                         ))}
+                         {questionsToShow.length === 0 && (
+                            <div className="text-center text-muted-foreground py-12">
+                                <p>No questions found.</p>
+                                <p className="text-xs">Select a category or add a new question.</p>
+                            </div>
+                        )}
                     </div>
                 </ScrollArea>
             </main>

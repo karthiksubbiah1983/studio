@@ -181,8 +181,8 @@ export default function TaskTypesPage() {
     const selectedConfig = taskTypeConfigurations.find(c => c.taskTypeId === selectedTaskTypeId);
     
     return (
-        <div className="h-full flex">
-            <aside className="w-1/3 border-r h-full overflow-y-auto">
+        <div className="h-full flex flex-col md:flex-row">
+            <aside className="w-full md:w-1/3 border-b md:border-b-0 md:border-r h-auto md:h-full overflow-y-auto">
                 <div className="p-4 border-b flex justify-between items-center">
                     <h3 className="font-semibold">Task Types</h3>
                     <Button variant="outline" size="sm" onClick={() => setEditingTaskType({} as TaskType)}>
@@ -195,7 +195,7 @@ export default function TaskTypesPage() {
                             <div className="flex-1 cursor-pointer" onClick={() => setSelectedTaskTypeId(tt.id)}>
                                 <span className="text-sm">{tt.name}</span>
                             </div>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                            <div className="flex items-center gap-1 md:opacity-0 group-hover:opacity-100">
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingTaskType(tt)}><Edit className="h-4 w-4" /></Button>
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteTaskType(tt.id)}><Trash className="h-4 w-4 text-destructive" /></Button>
                             </div>
@@ -203,7 +203,7 @@ export default function TaskTypesPage() {
                     ))}
                 </div>
             </aside>
-            <main className="w-2/3 h-full flex flex-col">
+            <main className="w-full md:w-2/3 h-full flex flex-col">
                 <div className="p-4 border-b">
                     <h3 className="font-semibold">Checklist Configuration</h3>
                     <p className="text-sm text-muted-foreground">
