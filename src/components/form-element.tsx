@@ -956,32 +956,41 @@ const ChecklistRenderer = ({ element, value, onValueChange }: {
             <div key={question.id} className="p-4 border rounded-md bg-background">
                 <Label className="font-medium">{question.label}</Label>
                 <div className="mt-2 space-y-2">
-                    {question.answerOptions.map(opt => {
-                        const isChecked = selectedAnswers.includes(opt.id);
-                        return (
-                             <div key={opt.id} className="flex items-start space-x-3">
-                                <div className="flex items-center h-5">
-                                    {(question.answerType === 'multi-select' || question.answerType === 'yes-no') ? (
+                    {question.answerType === 'single-select' || question.answerType === 'yes-no' ? (
+                        <RadioGroup
+                            value={selectedAnswers[0] || ""}
+                            onValueChange={(value) => handleAnswerSelect(question, value)}
+                        >
+                            {question.answerOptions.map(opt => (
+                                <div key={opt.id} className="flex items-start space-x-3">
+                                    <div className="flex items-center h-5">
+                                        <RadioGroupItem value={opt.id} id={`${question.id}-${opt.id}`} />
+                                    </div>
+                                    <div className="text-sm">
+                                        <Label htmlFor={`${question.id}-${opt.id}`} className="font-normal">{opt.label}</Label>
+                                    </div>
+                                </div>
+                            ))}
+                        </RadioGroup>
+                    ) : ( // 'multi-select'
+                        question.answerOptions.map(opt => {
+                            const isChecked = selectedAnswers.includes(opt.id);
+                            return (
+                                <div key={opt.id} className="flex items-start space-x-3">
+                                    <div className="flex items-center h-5">
                                         <Checkbox 
                                             id={`${question.id}-${opt.id}`} 
                                             checked={isChecked}
                                             onCheckedChange={() => handleAnswerSelect(question, opt.id)}
                                         />
-                                    ) : (
-                                        <RadioGroupItem 
-                                            value={opt.id} 
-                                            id={`${question.id}-${opt.id}`} 
-                                            onClick={() => handleAnswerSelect(question, opt.id)}
-                                            checked={isChecked}
-                                        />
-                                    )}
+                                    </div>
+                                    <div className="text-sm">
+                                        <Label htmlFor={`${question.id}-${opt.id}`} className="font-normal">{opt.label}</Label>
+                                    </div>
                                 </div>
-                                <div className="text-sm">
-                                    <Label htmlFor={`${question.id}-${opt.id}`} className="font-normal">{opt.label}</Label>
-                                </div>
-                            </div>
-                        )
-                    })}
+                            )
+                        })
+                    )}
                 </div>
                 {isCommentRequired && (
                     <div className="mt-3 space-y-1">
