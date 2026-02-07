@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useBuilder } from '@/hooks/use-builder';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,7 +40,7 @@ const CategoryTree = ({
     selectedCategoryId: string | null,
 }) => {
     return (
-        <div className={cn(level > 0 && "pl-4")}>
+        <div className={cn(level > 0 && "pl-4", "w-full md:w-auto")}>
             {categories.map(cat => (
                 <div key={cat.id}>
                     <div className={cn(
@@ -53,7 +53,7 @@ const CategoryTree = ({
                         >
                             <span className="text-sm">{cat.name}</span>
                         </div>
-                        <div className="flex items-center gap-1 md:opacity-0 group-hover:opacity-100">
+                        <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100">
                              {level < 2 && (
                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => onAdd(cat.id)}>
                                     <Plus className="h-4 w-4" />
@@ -313,44 +313,38 @@ export default function ChecklistPage() {
 
     // Question Handlers
     const handleAddQuestion = () => {
-        let catId, subId, subSubId;
+        let catId: string | undefined, subId: string | undefined, subSubId: string | undefined;
+
         if (selectedCategoryId) {
-            const findCat = (cats: ChecklistCategory[], id: string): {cat: ChecklistCategory, level: number} | null => {
-                for (const cat of cats) {
-                    if (cat.id === id) return {cat, level: 0};
-                    for (const sub of cat.children) {
-                        if (sub.id === id) return {cat, level: 1};
-                         for (const subSub of sub.children) {
-                            if (subSub.id === id) return {cat, level: 2};
-                        }
+            const findCategoryPath = (id: string, categories: ChecklistCategory[], path: ChecklistCategory[] = []): ChecklistCategory[] | null => {
+                for (const cat of categories) {
+                    const currentPath = [...path, cat];
+                    if (cat.id === id) {
+                        return currentPath;
+                    }
+                    if (cat.children && cat.children.length > 0) {
+                        const found = findCategoryPath(id, cat.children, currentPath);
+                        if (found) return found;
                     }
                 }
                 return null;
             }
-            // This is not perfect logic to find parent cats but will do for now
-            const findLevel = (cats: ChecklistCategory[], id: string, level = 0): number => {
-                for (const cat of cats) {
-                    if (cat.id === id) return level;
-                    if (cat.children) {
-                        const foundLevel = findLevel(cat.children, id, level + 1);
-                        if (foundLevel > level) return foundLevel;
-                    }
-                }
-                return -1;
+            const path = findCategoryPath(selectedCategoryId, checklistRepository.categories);
+            if (path) {
+                catId = path[0]?.id;
+                subId = path[1]?.id;
+                subSubId = path[2]?.id;
             }
-            const level = findLevel(checklistRepository.categories, selectedCategoryId);
-
-            if (level === 0) catId = selectedCategoryId;
-            // This needs more robust logic to find parent categories, skipping for now
         }
-
+        
         setEditingQuestion({
-            categoryId: catId || undefined,
-            subCategoryId: subId || undefined,
-            subSubCategoryId: subSubId || undefined,
+            categoryId: catId,
+            subCategoryId: subId,
+            subSubCategoryId: subSubId,
             answerOptions: [],
         });
     }
+
     const handleEditQuestion = (question: ChecklistQuestion) => {
         setEditingQuestion(question);
     }
@@ -369,10 +363,43 @@ export default function ChecklistPage() {
         toast({ title: 'Question Saved' });
     }
     
-    const questionsToShow = checklistRepository.questions.filter(q => {
-        if (!selectedCategoryId) return true;
-        return q.categoryId === selectedCategoryId || q.subCategoryId === selectedCategoryId || q.subSubCategoryId === selectedCategoryId;
-    });
+    const questionsToShow = useMemo(() => {
+        if (!selectedCategoryId) {
+            return checklistRepository.questions;
+        }
+
+        const idsToShow = new Set<string>();
+        
+        const findAndCollectIds = (categories: ChecklistCategory[], targetId: string): boolean => {
+            for (const category of categories) {
+                if (category.id === targetId) {
+                    const collect = (cat: ChecklistCategory) => {
+                        idsToShow.add(cat.id);
+                        cat.children.forEach(collect);
+                    };
+                    collect(category);
+                    return true;
+                }
+                if (category.children && findAndCollectIds(category.children, targetId)) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
+        findAndCollectIds(checklistRepository.categories, selectedCategoryId);
+
+        if (idsToShow.size === 0) {
+             idsToShow.add(selectedCategoryId);
+        }
+
+        return checklistRepository.questions.filter(q => 
+            (q.categoryId && idsToShow.has(q.categoryId)) || 
+            (q.subCategoryId && idsToShow.has(q.subCategoryId)) || 
+            (q.subSubCategoryId && idsToShow.has(q.subSubCategoryId))
+        );
+    }, [selectedCategoryId, checklistRepository.categories, checklistRepository.questions]);
+
 
     return (
         <div className="h-full flex flex-col md:flex-row">
@@ -443,3 +470,6 @@ export default function ChecklistPage() {
         </div>
     );
 }
+
+
+    
