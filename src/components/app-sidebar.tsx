@@ -23,6 +23,7 @@ import {
   Cog,
   Link as LinkIcon,
   ChevronDown,
+  ClipboardCheck,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -51,6 +52,7 @@ const menuItems: MenuItem[] = [
         { href: "/sites", label: "Site Management", icon: Building, children: [
           { href: "/", label: "Manage Templates", icon: Folder },
           { href: "/categories", label: "Categories", icon: Folder },
+          { href: "/checklists", label: "Checklists", icon: ClipboardCheck },
         ] },
         { href: "#", label: "User Management", icon: Users, children: [] },
         { href: "#", label: "Task Management", icon: ListTodo, children: [] },

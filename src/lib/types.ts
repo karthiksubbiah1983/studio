@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup" | "Preview" | "DataGrid" | "TaskHistory" | "DataList";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup" | "Preview" | "DataGrid" | "TaskHistory" | "DataList" | "Checklist";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -48,7 +48,7 @@ export type RuleBehavior = {
 export type TaskStatus = 'Open' | 'In Progress' | 'Resolved' | 'Closed' | 'Escalated' | 'Assigned' | 'Submitted';
 
 export type WorkflowAction = 
-    | { type: 'CREATE_TASK', payload: { taskType: string; } }
+    | { type: 'CREATE_TASK', payload: { taskType: string; sourceFieldIds?: string[] } }
     | { type: 'SET_TASK_STATUS', payload: { status: TaskStatus; } }
     | { type: 'CONFIGURE_MAIL', payload: { mailFormat: string; } };
 
@@ -119,6 +119,55 @@ export type Dataset = {
   columns: DatasetColumn[];
   data: Record<string, any>[];
 };
+
+// --- CHECKLIST TYPES ---
+export type ChecklistAnswerOption = {
+  id: string;
+  label: string;
+  isDefaultSelected?: boolean;
+  isCommentRequired?: boolean;
+  commentPlaceholder?: string;
+};
+
+export type ChecklistQuestion = {
+  id: string;
+  label: string;
+  answerType: 'single-select' | 'multi-select' | 'yes-no';
+  answerOptions: ChecklistAnswerOption[];
+  categoryId: string;
+  subCategoryId?: string;
+  subSubCategoryId?: string;
+};
+
+export type ChecklistCategory = {
+  id: string;
+  name: string;
+  children: ChecklistCategory[]; // For Level 2
+};
+
+export type ChecklistRepository = {
+  categories: ChecklistCategory[];
+  questions: ChecklistQuestion[];
+};
+
+export type TaskType = {
+  id: string;
+  name: string;
+};
+
+export type ChecklistOverride = {
+  questionId: string;
+  defaultAnswerIds?: string[];
+  commentRequiredAnswerIds?: string[];
+};
+
+export type TaskTypeConfiguration = {
+  taskTypeId: string;
+  enabledCategoryIds: string[];
+  enabledQuestionIds: string[];
+  overrides: ChecklistOverride[];
+};
+// --- END CHECKLIST TYPES ---
 
 
 export type FormElementInstance = {
@@ -211,6 +260,8 @@ export type FormElementInstance = {
     // For Preview
     previewSectionIds?: string[];
     displayMode?: 'popup' | 'inline';
+    // For Checklist
+    taskTypeId?: string;
 };
 
 export type Section = {
@@ -284,5 +335,3 @@ export type Task = {
     assignedAt: string;
     submittedAt?: string;
 };
-
-    
