@@ -117,7 +117,7 @@ export function Builder({ formId }: Props) {
         </Button>
         <Button variant="outline" size="sm" onClick={() => setIsRulesOpen(true)}>
             <Settings2 className="mr-1 h-4 w-4" />
-            Manage Rules
+            Rules & Configs
         </Button>
         <Button variant="outline" size="sm" onClick={() => setIsWorkflowsOpen(true)}>
             <Zap className="mr-1 h-4 w-4" />
