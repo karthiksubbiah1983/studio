@@ -568,6 +568,11 @@ const demoChecklistTemplate: Form = {
     ],
 };
 
+const sampleSite: Site = {
+    id: "demo-site-1",
+    name: "Main Office"
+};
+
 
 type State = {
   forms: Form[];
@@ -1461,6 +1466,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (!mergedState.forms.some(f => f.id === demoChecklistTemplate.id)) {
         mergedState.forms.unshift(demoChecklistTemplate);
     }
+    if (!mergedState.sites.some(s => s.id === sampleSite.id)) {
+        mergedState.sites.unshift(sampleSite);
+    }
 
     mergedState.checklistRepository = sampleChecklistRepository;
     mergedState.taskTypes = sampleTaskTypes;
@@ -1477,11 +1485,12 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
         // Filter out demo data before saving to prevent persistence issues.
         const formsToSave = state.forms.filter(f => !f.id.startsWith('demo-'));
         const categoriesToSave = state.categories.filter(c => c.id !== 'demo-templates');
+        const sitesToSave = state.sites.filter(s => s.id !== 'demo-site-1');
 
         const stateToSave = {
             forms: formsToSave,
             categories: categoriesToSave,
-            sites: state.sites,
+            sites: sitesToSave,
             tasks: state.tasks,
             submissions: state.submissions,
             checklistRepository: state.checklistRepository,
@@ -1731,6 +1740,7 @@ export const useBuilder = () => {
     
 
     
+
 
 
 
