@@ -63,6 +63,7 @@ export function RoomEntry({ task, taskType, categoryId, onUpdateTask }: Props) {
                     value={selectedEntry.checklistData}
                     onChange={(data) => handleUpdateChecklistData(selectedEntryId, data)}
                     onBack={() => setSelectedEntryId(null)}
+                    user={user}
                 />
             );
         }
@@ -116,4 +117,3 @@ export function RoomEntry({ task, taskType, categoryId, onUpdateTask }: Props) {
         </Card>
     );
 }
-

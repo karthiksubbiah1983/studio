@@ -21,10 +21,19 @@ type Response = {
     category?: string;
     subCategory?: string;
     subSubCategory?: string;
+    userId?: string;
+    userName?: string;
+    timestamp?: string;
 };
 
 type ChecklistData = {
     responses: Response[];
+};
+
+type User = {
+  uid: string;
+  email: string | null;
+  username: string | null;
 };
 
 type Props = {
@@ -33,9 +42,10 @@ type Props = {
     value?: ChecklistData;
     onChange: (data: ChecklistData) => void;
     onBack: () => void;
+    user: User | null;
 };
 
-export function Checklist({ taskTypeId, categoryId, value, onChange, onBack }: Props) {
+export function Checklist({ taskTypeId, categoryId, value, onChange, onBack, user }: Props) {
     const { checklistRepository, taskTypeConfigurations } = useBuilder().state;
     const { toast } = useToast();
     const [responses, setResponses] = useState<Response[]>(value?.responses || []);
@@ -80,9 +90,19 @@ export function Checklist({ taskTypeId, categoryId, value, onChange, onBack }: P
         setResponses(prev => {
             const existingIndex = prev.findIndex(r => r.questionId === questionId);
             let newResponses = [...prev];
+            
+            const metadata = {
+                userId: user?.uid,
+                userName: user?.username || user?.email,
+                timestamp: new Date().toISOString(),
+            };
 
             if (existingIndex > -1) {
-                newResponses[existingIndex] = { ...newResponses[existingIndex], ...updates };
+                newResponses[existingIndex] = { 
+                    ...newResponses[existingIndex], 
+                    ...updates,
+                    ...metadata
+                };
             } else {
                 const path = getFullCategoryPath(questionId);
                 newResponses.push({
@@ -91,7 +111,8 @@ export function Checklist({ taskTypeId, categoryId, value, onChange, onBack }: P
                     category: path[0] || undefined,
                     subCategory: path[1] || undefined,
                     subSubCategory: path[2] || undefined,
-                    ...updates
+                    ...updates,
+                    ...metadata
                 });
             }
             return newResponses;
