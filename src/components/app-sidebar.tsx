@@ -42,6 +42,7 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
   { href: "#", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/my-tasks", label: "My Tasks", icon: ListTodo },
   { href: "/all-tasks", label: "All Task", icon: ClipboardList },
   { href: "#", label: "Site Overview", icon: Table },
   {
