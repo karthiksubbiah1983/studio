@@ -393,11 +393,10 @@ export default function ChecklistPage() {
              idsToShow.add(selectedCategoryId);
         }
 
-        return checklistRepository.questions.filter(q => 
-            (q.categoryId && idsToShow.has(q.categoryId)) || 
-            (q.subCategoryId && idsToShow.has(q.subCategoryId)) || 
-            (q.subSubCategoryId && idsToShow.has(q.subSubCategoryId))
-        );
+        return checklistRepository.questions.filter(q => {
+            const mostSpecificCatId = q.subSubCategoryId || q.subCategoryId || q.categoryId;
+            return idsToShow.has(mostSpecificCatId);
+        });
     }, [selectedCategoryId, checklistRepository.categories, checklistRepository.questions]);
 
 
@@ -434,7 +433,7 @@ export default function ChecklistPage() {
                             <Card key={q.id}>
                                 <CardContent className="p-3 flex justify-between items-center group">
                                     <span className="text-sm">{q.label}</span>
-                                     <div className="flex items-center gap-1 md:opacity-0 group-hover:opacity-100">
+                                     <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100">
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditQuestion(q)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -471,5 +470,7 @@ export default function ChecklistPage() {
     );
 }
 
+
+    
 
     
