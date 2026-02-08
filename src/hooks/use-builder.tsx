@@ -359,6 +359,16 @@ const sampleChecklistRepository: ChecklistRepository = {
                 { id: 'cat_machinery', name: 'Machinery', children: [] },
             ],
         },
+         {
+            id: 'cat_bedroom',
+            name: 'Bedroom',
+            children: [],
+        },
+        {
+            id: 'cat_bathroom',
+            name: 'Bathroom',
+            children: [],
+        }
     ],
     questions: [
         {
@@ -419,12 +429,69 @@ const sampleChecklistRepository: ChecklistRepository = {
             categoryId: 'cat_operational_checks',
             subCategoryId: 'cat_machinery',
         },
+        {
+            id: 'q_bed_linens',
+            label: 'Are bed linens clean and wrinkle-free?',
+            answerType: 'yes-no',
+            answerOptions: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No', isCommentRequired: true },
+            ],
+            categoryId: 'cat_bedroom',
+        },
+        {
+            id: 'q_surfaces_dusted',
+            label: 'Are all surfaces dusted and polished?',
+            answerType: 'yes-no',
+            answerOptions: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No', isCommentRequired: true, commentPlaceholder: 'Specify which surfaces are not dusted.' },
+            ],
+            categoryId: 'cat_bedroom',
+        },
+        {
+            id: 'q_sink_clean',
+            label: 'Is the sink and countertop clean and sanitized?',
+            answerType: 'yes-no',
+            answerOptions: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No', isCommentRequired: true },
+            ],
+            categoryId: 'cat_bathroom',
+        },
+        {
+            id: 'q_toilet_clean',
+            label: 'Is the toilet clean and sanitized?',
+            answerType: 'yes-no',
+            answerOptions: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No', isCommentRequired: true },
+            ],
+            categoryId: 'cat_bathroom',
+        },
+        {
+            id: 'q_towels_stocked',
+            label: 'Are towels fresh and fully stocked?',
+            answerType: 'yes-no',
+            answerOptions: [
+                { id: 'yes', label: 'Yes' },
+                { id: 'no', label: 'No' },
+            ],
+            categoryId: 'cat_bathroom',
+        },
     ],
 };
 
 const sampleTaskTypes: TaskType[] = [
-    { id: 'tt_general_inspection', name: 'General Inspection' },
-    { id: 'tt_monthly_safety_audit', name: 'Monthly Safety Audit' },
+    { id: 'tt_general_inspection', name: 'General Inspection', categorySelection: 'single', uiLayout: 'single-table', allowedCategoryIds: ['cat_building_safety'], roomEntryLabel: 'Area/Unit' },
+    {
+        id: 'tt_housekeeping',
+        name: 'Housekeeping Checklist',
+        categorySelection: 'multiple',
+        uiLayout: 'tabs',
+        allowedCategoryIds: ['cat_bedroom', 'cat_bathroom', 'cat_building_safety'],
+        roomEntryLabel: 'Room Number',
+    },
 ];
 
 const sampleTaskTypeConfigurations: TaskTypeConfiguration[] = [
@@ -435,25 +502,35 @@ const sampleTaskTypeConfigurations: TaskTypeConfiguration[] = [
             'cat_fire_safety',
             'cat_fire_extinguishers',
             'cat_fire_alarms',
-            'cat_operational_checks',
-            'cat_machinery',
         ],
         enabledQuestionIds: [
             'q_extinguisher_present',
             'q_pressure_gauge',
             'q_alarm_panel_faults',
             'q_exits_clear',
-            'q_machine_guarding',
         ],
         overrides: [],
     },
-    // Example of a more limited config for another task type
-    {
-        taskTypeId: 'tt_monthly_safety_audit',
-        enabledCategoryIds: ['cat_building_safety', 'cat_fire_safety', 'cat_fire_extinguishers'],
-        enabledQuestionIds: ['q_extinguisher_present', 'q_pressure_gauge'],
+     {
+        taskTypeId: 'tt_housekeeping',
+        enabledCategoryIds: [
+            'cat_bedroom',
+            'cat_bathroom',
+            'cat_building_safety',
+            'cat_fire_safety',
+            'cat_fire_extinguishers',
+        ],
+        enabledQuestionIds: [
+            'q_bed_linens',
+            'q_surfaces_dusted',
+            'q_sink_clean',
+            'q_toilet_clean',
+            'q_towels_stocked',
+            'q_exits_clear',
+            'q_extinguisher_present',
+        ],
         overrides: [],
-    }
+    },
 ];
 
 const demoChecklistTemplate: Form = {
@@ -755,12 +832,61 @@ type Action =
   | { type: "PASTE_FROM_CLIPBOARD"; payload: { sectionId?: string; index?: number } }
   | { type: "ADD_SITE"; payload: { name: string } }
   | { type: "DELETE_SITE"; payload: { siteId: string } }
-  | { type: "ADD_TASK"; payload: { formId: string; versionId: string; siteId: string; assignedAt: string; } }
+  | { type: "ADD_TASK"; payload: { taskTypeId: string; siteId: string; } }
+  | { type: "UPDATE_TASK"; payload: Task }
   | { type: "SET_USER_SETTINGS"; payload: { categories: Category[], sites: Site[] } }
   | { type: "SET_FORM_STATE"; payload: { [key: string]: { value: any, fullObject?: any, isVisible?: boolean } } }
   | { type: "UPDATE_USER_DRIVEN_STATE"; payload: { elementId: string; value: any; fullObject?: any, isVisible?: boolean } }
-  | { type: "SET_ACTIVE_POPUP"; payload: string | null };
+  | { type: "SET_ACTIVE_POPUP"; payload: string | null }
+  | { type: 'SAVE_CHECKLIST_CATEGORY', payload: Partial<ChecklistCategory> }
+  | { type: 'DELETE_CHECKLIST_CATEGORY', payload: { categoryId: string } }
+  | { type: 'SAVE_CHECKLIST_QUESTION', payload: ChecklistQuestion }
+  | { type: 'DELETE_CHECKLIST_QUESTION', payload: { questionId: string } }
+  | { type: 'ADD_TASK_TYPE', payload: { name: string } }
+  | { type: 'UPDATE_TASK_TYPE', payload: { id: string, name: string } }
+  | { type: 'DELETE_TASK_TYPE', payload: { id: string } }
+  | { type: 'UPDATE_TASK_TYPE_CONFIG', payload: TaskTypeConfiguration };
 
+
+// Helper to recursively manage categories
+const manageCategory = (
+    categories: ChecklistCategory[], 
+    action: 
+        | { type: 'SAVE_CHECKLIST_CATEGORY', payload: Partial<ChecklistCategory> }
+        | { type: 'DELETE_CHECKLIST_CATEGORY', payload: { categoryId: string } }
+): ChecklistCategory[] => {
+    switch (action.type) {
+        case 'SAVE_CHECKLIST_CATEGORY': {
+            const { id, parentId, ...rest } = action.payload;
+            if (id) { // Update existing
+                return categories.map(cat => 
+                    cat.id === id 
+                        ? { ...cat, ...rest }
+                        : { ...cat, children: manageCategory(cat.children || [], action) }
+                );
+            } else { // Add new
+                const newCategory: ChecklistCategory = { id: crypto.randomUUID(), name: rest.name || 'New Category', children: [], ...rest };
+                if (parentId) {
+                    return categories.map(cat => 
+                        cat.id === parentId
+                            ? { ...cat, children: [...(cat.children || []), newCategory] }
+                            : { ...cat, children: manageCategory(cat.children || [], action) }
+                    );
+                }
+                return [...categories, newCategory]; // Add to root
+            }
+        }
+        case 'DELETE_CHECKLIST_CATEGORY': {
+            const { categoryId } = action.payload;
+            return categories.filter(cat => cat.id !== categoryId).map(cat => ({
+                ...cat,
+                children: manageCategory(cat.children || [], action)
+            }));
+        }
+        default:
+            return categories;
+    }
+};
 
 const builderReducer = (state: State, action: Action): State => {
   const activeForm = state.forms.find(f => f.id === state.activeFormId);
@@ -768,6 +894,69 @@ const builderReducer = (state: State, action: Action): State => {
   const activeFormConfigurations = activeForm?.versions[0]?.configurations || [];
 
   switch (action.type) {
+    case 'SAVE_CHECKLIST_CATEGORY':
+    case 'DELETE_CHECKLIST_CATEGORY':
+        return {
+            ...state,
+            checklistRepository: {
+                ...state.checklistRepository,
+                categories: manageCategory(state.checklistRepository.categories, action),
+            }
+        };
+
+    case 'SAVE_CHECKLIST_QUESTION': {
+        const questions = [...state.checklistRepository.questions];
+        const index = questions.findIndex(q => q.id === action.payload.id);
+        if (index > -1) {
+            questions[index] = action.payload;
+        } else {
+            questions.push({ ...action.payload, id: crypto.randomUUID() });
+        }
+        return { ...state, checklistRepository: { ...state.checklistRepository, questions } };
+    }
+
+    case 'DELETE_CHECKLIST_QUESTION':
+        return {
+            ...state,
+            checklistRepository: {
+                ...state.checklistRepository,
+                questions: state.checklistRepository.questions.filter(q => q.id !== action.payload.questionId),
+            }
+        };
+    
+    case 'ADD_TASK_TYPE': {
+        const newTaskType: TaskType = { 
+            id: crypto.randomUUID(), 
+            name: action.payload.name, 
+            allowedCategoryIds: [],
+            categorySelection: 'single',
+            uiLayout: 'single-table',
+            roomEntryLabel: 'Room/Unit'
+        };
+        const newConfig: TaskTypeConfiguration = {
+            taskTypeId: newTaskType.id,
+            enabledCategoryIds: [],
+            enabledQuestionIds: [],
+            overrides: [],
+        }
+        return { ...state, taskTypes: [...state.taskTypes, newTaskType], taskTypeConfigurations: [...state.taskTypeConfigurations, newConfig] };
+    }
+
+    case 'UPDATE_TASK_TYPE':
+        return { ...state, taskTypes: state.taskTypes.map(tt => tt.id === action.payload.id ? { ...tt, name: action.payload.name } : tt) };
+
+    case 'DELETE_TASK_TYPE':
+        return {
+            ...state,
+            taskTypes: state.taskTypes.filter(tt => tt.id !== action.payload.id),
+            taskTypeConfigurations: state.taskTypeConfigurations.filter(c => c.taskTypeId !== action.payload.id),
+        }
+
+    case 'UPDATE_TASK_TYPE_CONFIG':
+        return {
+            ...state,
+            taskTypeConfigurations: state.taskTypeConfigurations.map(c => c.taskTypeId === action.payload.taskTypeId ? action.payload : c)
+        };
     case "ADD_FORM": {
         const newForm = action.payload;
         const newState = { ...state, forms: [...state.forms, newForm] };
@@ -816,16 +1005,21 @@ const builderReducer = (state: State, action: Action): State => {
       return { ...state, sites: state.sites.filter(s => s.id !== action.payload.siteId) };
     }
     case "ADD_TASK": {
-      const { formId, versionId, siteId, assignedAt } = action.payload;
+      const { taskTypeId, siteId } = action.payload;
       const newTask: Task = {
         id: crypto.randomUUID(),
-        formId,
-        versionId,
+        taskTypeId,
         siteId,
         status: 'Assigned',
-        assignedAt,
+        assignedAt: new Date().toISOString(),
       };
       return { ...state, tasks: [...state.tasks, newTask] };
+    }
+    case "UPDATE_TASK": {
+      return {
+        ...state,
+        tasks: state.tasks.map(t => t.id === action.payload.id ? action.payload : t)
+      }
     }
     case "COPY_TO_CLIPBOARD": {
         return { ...state, clipboard: action.payload };
@@ -1537,6 +1731,7 @@ export const useBuilder = () => {
     
 
     
+
 
 
 
