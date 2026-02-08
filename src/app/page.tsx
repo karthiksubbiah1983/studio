@@ -61,7 +61,7 @@ function FormattedDate({ timestamp }: { timestamp: string }) {
 
 export default function Home() {
   const { state, dispatch, addNewForm } = useBuilder();
-  const { forms, categories, sites } = state;
+  const { forms, categories, sites, taskTypes } = state;
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
@@ -80,8 +80,7 @@ export default function Home() {
 
   // Assign Task Dialog State
   const [isAssignTaskOpen, setIsAssignTaskOpen] = useState(false);
-  const [assigningFormId, setAssigningFormId] = useState<string | null>(null);
-  const [assigningVersionId, setAssigningVersionId] = useState<string | null>(null);
+  const [assigningTaskTypeId, setAssigningTaskTypeId] = useState<string | null>(null);
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
 
   const getCategoryName = (categoryId: string | undefined) => {
@@ -145,34 +144,26 @@ export default function Home() {
     setIsCloneDialogOpen(true);
   };
 
-  const handleOpenAssignDialog = (formId: string, versionId: string) => {
-    setAssigningFormId(formId);
-    setAssigningVersionId(versionId);
-    setIsAssignTaskOpen(true);
-  }
-
   const handleAssignTask = () => {
-    if (!assigningFormId || !assigningVersionId || !selectedSiteId) return;
-    const form = forms.find(f => f.id === assigningFormId);
-    if (!form) return;
+    if (!assigningTaskTypeId || !selectedSiteId) return;
+    const taskType = taskTypes.find(tt => tt.id === assigningTaskTypeId);
+    if (!taskType) return;
 
     dispatch({
       type: 'ADD_TASK',
       payload: {
-        formId: assigningFormId,
-        versionId: assigningVersionId,
+        taskTypeId: assigningTaskTypeId,
         siteId: selectedSiteId,
       }
     });
 
     toast({
       title: "Task Assigned!",
-      description: `Assigned "${form.title}" to site.`,
+      description: `Assigned "${taskType.name}" to site.`,
     });
 
     setIsAssignTaskOpen(false);
-    setAssigningFormId(null);
-    setAssigningVersionId(null);
+    setAssigningTaskTypeId(null);
     setSelectedSiteId(null);
   }
 
@@ -241,6 +232,10 @@ export default function Home() {
             />
         </div>
         <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsAssignTaskOpen(true)}>
+                <Send className="mr-2 h-4 w-4" />
+                Assign Task
+            </Button>
             <Link href="/categories">
                 <Button variant="outline">Manage Categories</Button>
             </Link>
@@ -345,9 +340,6 @@ export default function Home() {
                             <FormattedDate timestamp={form.version.timestamp} />
                         </div>
                         <div className="flex justify-end gap-0">
-                            <Button variant="ghost" size="icon" onClick={() => handleOpenAssignDialog(form.id, form.version.id)} disabled={!form.isPublished}>
-                              <Send className="h-4 w-4" />
-                            </Button>
                              <Button variant="ghost" size="icon" onClick={() => handleOpenCloneDialog(form.id)}>
                               <Copy className="h-4 w-4" />
                             </Button>
@@ -429,10 +421,26 @@ export default function Home() {
           <DialogHeader>
             <DialogTitle>Assign Task</DialogTitle>
             <DialogDescription>
-              Select a site to assign this form to.
+              Select a task type and a site to assign it to.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="task-type" className="text-right">
+                Task Type
+              </Label>
+              <Select value={assigningTaskTypeId || ""} onValueChange={setAssigningTaskTypeId}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select a task type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {taskTypes.map(tt => (
+                    <SelectItem key={tt.id} value={tt.id}>{tt.name}</SelectItem>
+                  ))}
+                  {taskTypes.length === 0 && <div className="p-4 text-center text-sm text-muted-foreground">No task types found. <Link href="/task-types" className="text-primary underline">Create one?</Link></div>}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="site" className="text-right">
                 Site
@@ -452,7 +460,7 @@ export default function Home() {
           </div>
           <DialogFooter>
             <Button variant="secondary" onClick={() => setIsAssignTaskOpen(false)}>Cancel</Button>
-            <Button onClick={handleAssignTask} disabled={!selectedSiteId}>Assign</Button>
+            <Button onClick={handleAssignTask} disabled={!selectedSiteId || !assigningTaskTypeId}>Assign</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

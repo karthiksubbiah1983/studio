@@ -31,13 +31,13 @@ function FormattedDate({ timestamp }: { timestamp: string }) {
 
 export default function MyTasksPage() {
   const { state } = useBuilder();
-  const { tasks, forms } = state;
+  const { tasks, taskTypes } = state;
   const router = useRouter();
 
   const assignedTasks = tasks.filter(t => t.status === 'Assigned');
 
-  const getFormTitle = (formId: string) => {
-    return forms.find(f => f.id === formId)?.title || "Unknown Form";
+  const getTaskTypeName = (taskTypeId: string) => {
+    return taskTypes.find(t => t.id === taskTypeId)?.name || "Unknown Task";
   }
 
   return (
@@ -46,7 +46,7 @@ export default function MyTasksPage() {
         <CardContent className="pt-0">
           <div className="border-t">
             <div className="hidden md:grid grid-cols-[3fr_1fr_auto] items-center p-4 border-b font-medium text-sm text-muted-foreground">
-              <div>Form</div>
+              <div>Task Type</div>
               <div>Assigned At</div>
               <div className="text-right">Actions</div>
             </div>
@@ -54,7 +54,7 @@ export default function MyTasksPage() {
               {assignedTasks.length > 0 ? (
                 assignedTasks.map((task: Task) => (
                   <div key={task.id} className="grid grid-cols-1 md:grid-cols-[3fr_1fr_auto] items-center p-4 gap-4 md:gap-2">
-                    <div className="font-medium">{getFormTitle(task.formId)}</div>
+                    <div className="font-medium">{getTaskTypeName(task.taskTypeId)}</div>
                     <div>
                       <span className="md:hidden font-medium mr-2">Assigned:</span>
                       <FormattedDate timestamp={task.assignedAt} />
@@ -62,10 +62,10 @@ export default function MyTasksPage() {
                     <div className="flex justify-end gap-0">
                       <button 
                         className="flex items-center gap-2 text-primary"
-                        onClick={() => router.push(`/my-tasks/${task.id}`)}
+                        onClick={() => router.push(`/tasks/${task.id}`)}
                       >
                         <Edit className="h-4 w-4" />
-                        <span>Fill Form</span>
+                        <span>Start Task</span>
                       </button>
                     </div>
                   </div>

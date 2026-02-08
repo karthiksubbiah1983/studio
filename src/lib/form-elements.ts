@@ -36,7 +36,6 @@ export const FunctionalFormElements: {
   label: string;
 }[] = [
     { type: 'TaskHistory', icon: FileClock, label: 'Task History' },
-    { type: 'Checklist', icon: ClipboardCheck, label: 'Checklist' },
 ];
 
 export const createNewElement = (type: ElementType, id?: string): FormElementInstance => {

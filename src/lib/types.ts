@@ -128,7 +128,7 @@ export type Dataset = {
   data: Record<string, any>[];
 };
 
-// --- CHECKLIST TYPES ---
+// --- CHECKLIST & TASK TYPES ---
 export type ChecklistAnswerOption = {
   id: string;
   label: string;
@@ -150,7 +150,8 @@ export type ChecklistQuestion = {
 export type ChecklistCategory = {
   id: string;
   name: string;
-  children: ChecklistCategory[]; // For Level 2
+  parentId?: string; // To establish hierarchy
+  children: ChecklistCategory[];
 };
 
 export type ChecklistRepository = {
@@ -161,6 +162,10 @@ export type ChecklistRepository = {
 export type TaskType = {
   id: string;
   name: string;
+  categorySelection: 'single' | 'multiple';
+  uiLayout: 'tabs' | 'single-table';
+  allowedCategoryIds: string[];
+  roomEntryLabel: string;
 };
 
 export type ChecklistOverride = {
@@ -175,7 +180,23 @@ export type TaskTypeConfiguration = {
   enabledQuestionIds: string[];
   overrides: ChecklistOverride[];
 };
-// --- END CHECKLIST TYPES ---
+
+export type RoomEntry = {
+    id: string;
+    label: string; // The room number or custom label
+    timestamp: string;
+    userId: string;
+    userName: string;
+    categoryId: string; // The category this entry belongs to
+    checklistData?: { // The submitted checklist data for this entry
+        responses: {
+            questionId: string;
+            selectedAnswers: string[];
+            comment?: string;
+        }[];
+    };
+};
+// --- END CHECKLIST & TASK TYPES ---
 
 
 export type FormElementInstance = {
@@ -334,12 +355,13 @@ export type Site = {
 };
 
 export type Task = {
-    id: string;
-    formId: string;
-    versionId: string;
-    siteId: string;
-    status: 'Assigned' | 'Submitted';
-    submissionId?: string;
-    assignedAt: string;
-    submittedAt?: string;
+  id: string;
+  taskTypeId: string;
+  siteId: string;
+  status: 'Assigned' | 'Submitted';
+  submissionId?: string;
+  assignedAt: string;
+  submittedAt?: string;
+  selectedCategoryIds?: string[];
+  entries?: RoomEntry[];
 };
