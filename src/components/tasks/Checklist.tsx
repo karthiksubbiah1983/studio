@@ -18,12 +18,6 @@ type Response = {
     questionId: string;
     selectedAnswers: string[];
     comment?: string;
-    category?: string;
-    subCategory?: string;
-    subSubCategory?: string;
-    userId?: string;
-    userName?: string;
-    timestamp?: string;
 };
 
 type ChecklistData = {
@@ -54,66 +48,15 @@ export function Checklist({ taskTypeId, categoryId, value, onChange, onBack, use
         () => taskTypeConfigurations.find(c => c.taskTypeId === taskTypeId),
         [taskTypeConfigurations, taskTypeId]
     );
-
-    const findCategory = useCallback((catId: string, searchIn: ChecklistCategory[]): ChecklistCategory | null => {
-        for (const cat of searchIn) {
-            if (cat.id === catId) return cat;
-            if (cat.children) {
-                const found = findCategory(catId, cat.children);
-                if (found) return found;
-            }
-        }
-        return null;
-    }, []);
-
-    const getFullCategoryPath = useCallback((questionId: string): string[] => {
-        const question = checklistRepository.questions.find(q => q.id === questionId);
-        if (!question) return [];
-
-        const path: string[] = [];
-        const catL1 = findCategory(question.categoryId, checklistRepository.categories);
-        if (catL1) path.push(catL1.name);
-
-        if (question.subCategoryId && catL1?.children) {
-            const catL2 = findCategory(question.subCategoryId, catL1.children);
-            if (catL2) path.push(catL2.name);
-
-            if (question.subSubCategoryId && catL2?.children) {
-                const catL3 = findCategory(question.subSubCategoryId, catL2.children);
-                if (catL3) path.push(catL3.name);
-            }
-        }
-        return path;
-    }, [checklistRepository, findCategory]);
     
     const updateResponse = (questionId: string, updates: Partial<Response>) => {
         setResponses(prev => {
             const existingIndex = prev.findIndex(r => r.questionId === questionId);
             let newResponses = [...prev];
-            
-            const metadata = {
-                userId: user?.uid,
-                userName: user?.username || user?.email,
-                timestamp: new Date().toISOString(),
-            };
-
             if (existingIndex > -1) {
-                newResponses[existingIndex] = { 
-                    ...newResponses[existingIndex], 
-                    ...updates,
-                    ...metadata
-                };
+                newResponses[existingIndex] = { ...newResponses[existingIndex], ...updates };
             } else {
-                const path = getFullCategoryPath(questionId);
-                newResponses.push({
-                    questionId,
-                    selectedAnswers: [],
-                    category: path[0] || undefined,
-                    subCategory: path[1] || undefined,
-                    subSubCategory: path[2] || undefined,
-                    ...updates,
-                    ...metadata
-                });
+                newResponses.push({ questionId, selectedAnswers: [], ...updates });
             }
             return newResponses;
         });

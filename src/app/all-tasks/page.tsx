@@ -40,20 +40,20 @@ function FormattedDate({ timestamp }: { timestamp: string | undefined }) {
 
 export default function AllTasksPage() {
   const { state } = useBuilder();
-  const { tasks, forms, sites, submissions } = state;
+  const { tasks, taskTypes, sites, submissions } = state;
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSubmission, setSelectedSubmission] = useState<Record<string, any> | null>(null);
 
-  const getFormData = (formId: string) => forms.find(f => f.id === formId);
+  const getTaskTypeName = (taskTypeId: string) => taskTypes.find(t => t.id === taskTypeId)?.name || "Unknown Task Type";
   const getSiteData = (siteId: string) => sites.find(s => s.id === siteId);
 
   const filteredTasks = tasks.filter(task => {
-    const form = getFormData(task.formId);
+    const taskType = getTaskTypeName(task.taskTypeId);
     const site = getSiteData(task.siteId);
     const lowerSearchTerm = searchTerm.toLowerCase();
 
     return (
-      form?.title.toLowerCase().includes(lowerSearchTerm) ||
+      taskType.toLowerCase().includes(lowerSearchTerm) ||
       site?.name.toLowerCase().includes(lowerSearchTerm) ||
       task.status.toLowerCase().includes(lowerSearchTerm)
     );
@@ -85,7 +85,7 @@ export default function AllTasksPage() {
         <CardContent className="pt-0">
           <div className="border-t">
               <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_auto] items-center p-4 border-b font-medium text-sm text-muted-foreground">
-                  <div>Form</div>
+                  <div>Task Type</div>
                   <div>Site</div>
                   <div>Status</div>
                   <div>Submitted At</div>
@@ -94,12 +94,12 @@ export default function AllTasksPage() {
               <div className="divide-y">
                 {filteredTasks.length > 0 ? (
                   filteredTasks.map((task: Task) => {
-                    const form = getFormData(task.formId);
+                    const taskTypeName = getTaskTypeName(task.taskTypeId);
                     const site = getSiteData(task.siteId);
 
                     return (
                       <div key={task.id} className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr_auto] items-center p-4 gap-4 md:gap-2">
-                        <div className="font-medium">{form?.title || 'Unknown Form'}</div>
+                        <div className="font-medium">{taskTypeName}</div>
                         <div>
                             <span className="md:hidden font-medium mr-2">Site:</span>
                             {site?.name || 'Unknown Site'}

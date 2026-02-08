@@ -64,4 +64,3 @@ export function CategorySelector({ availableCategories, onSelect }: Props) {
         </div>
     );
 }
-

@@ -161,8 +161,6 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
             return { ...baseElement, label: "Preview Button", previewSectionIds: [], displayMode: 'popup' };
         case "TaskHistory":
             return { ...baseElement, label: "Task History", key: '', dataGridColumns: [] };
-        case "Checklist":
-             return { ...baseElement, label: 'Checklist', taskTypeId: '' };
         default:
             throw new Error("Invalid element type");
     }
