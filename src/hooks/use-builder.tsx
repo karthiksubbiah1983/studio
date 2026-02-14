@@ -533,41 +533,6 @@ const sampleTaskTypeConfigurations: TaskTypeConfiguration[] = [
     },
 ];
 
-const demoChecklistTemplate: Form = {
-    id: "demo-checklist-form",
-    title: "Daily Inspection Checklist",
-    categoryId: "demo-templates",
-    versions: [
-        {
-            id: crypto.randomUUID(),
-            name: "Initial Version",
-            description: "A sample form demonstrating the reusable checklist component.",
-            type: "published",
-            timestamp: new Date().toISOString(),
-            sections: [
-                {
-                    id: "checklist_section",
-                    title: "Inspection Checklist",
-                    displayMode: "default",
-                    elements: [
-                        {
-                            ...createNewElement("Checklist"),
-                            id: "main_checklist",
-                            key: "inspection_results",
-                            label: "Building & Equipment Inspection",
-                            taskTypeId: 'tt_general_inspection', // Link to the task type config
-                        },
-                    ],
-                },
-            ],
-            rules: [],
-            workflows: [],
-            configurations: [],
-            datasets: [],
-        },
-    ],
-};
-
 const sampleSite: Site = {
     id: "demo-site-1",
     name: "Main Office"
@@ -1463,9 +1428,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     if (!mergedState.categories.some(c => c.id === demoCategory.id)) {
         mergedState.categories.unshift(demoCategory);
     }
-    if (!mergedState.forms.some(f => f.id === demoChecklistTemplate.id)) {
-        mergedState.forms.unshift(demoChecklistTemplate);
-    }
     if (!mergedState.sites.some(s => s.id === sampleSite.id)) {
         mergedState.sites.unshift(sampleSite);
     }
@@ -1740,6 +1702,7 @@ export const useBuilder = () => {
     
 
     
+
 
 
 

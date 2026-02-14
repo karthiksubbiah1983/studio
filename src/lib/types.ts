@@ -1,6 +1,6 @@
 
 
-export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup" | "Preview" | "DataGrid" | "TaskHistory" | "DataList" | "Checklist";
+export type ElementType = "Separator" | "Input" | "Textarea" | "Select" | "Checkbox" | "RadioGroup" | "DatePicker" | "Display" | "RichText" | "Container" | "FileUpload" | "List" | "Combobox" | "EditableTable" | "PayrollTable" | "Popup" | "Preview" | "DataGrid" | "TaskHistory" | "DataList";
 
 export type RuleConditionOperator = 
     | 'equals' 
@@ -289,8 +289,8 @@ export type FormElementInstance = {
     // For Preview
     previewSectionIds?: string[];
     displayMode?: 'popup' | 'inline';
-    // For Checklist
-    taskTypeId?: string;
+    // For TaskHistory
+    sourceEditableTableId?: string;
 };
 
 export type Section = {
