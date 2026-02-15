@@ -152,10 +152,7 @@ const ConditionEditor = memo(({
         const elementIdField = isSource ? 'sourceElementId' : 'comparisonElementId';
         const propertyKeyField = isSource ? 'sourcePropertyKey' : 'comparisonPropertyKey';
     
-        if (value.endsWith('::score')) {
-            updates[elementIdField] = value;
-            updates[propertyKeyField] = undefined;
-        } else if (value.includes('::')) {
+        if (value.includes('::')) {
             const [elementId, propertyKey] = value.split('::');
             updates[elementIdField] = elementId;
             updates[propertyKeyField] = propertyKey;
@@ -816,7 +813,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
                 }
             } else if (el.dataSource === 'static' && el.staticData && el.staticData.length > 0) {
                 columns = Object.keys(el.staticData[0])
-                    .filter(key => key !== 'id') // 'id' is already the primary value, don't show it as a sub-property
+                    .filter(key => key !== 'id') 
                     .map(key => ({ key: key, header: key.charAt(0).toUpperCase() + key.slice(1) }));
             }
         }
@@ -1033,5 +1030,6 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
 
     
+
 
 

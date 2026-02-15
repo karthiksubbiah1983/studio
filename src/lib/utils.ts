@@ -222,11 +222,17 @@ export const evaluateRule = (
                 } else { // Source is a regular field
                     const elementState = formState[sourceElementId];
                     if (elementState) {
-                        sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
-                            ? elementState.value
-                            : elementState;
-                        if (sourcePropertyKey && sourceValue) {
-                           sourceValue = getNestedValue(sourceValue, sourcePropertyKey);
+                        if (sourcePropertyKey) {
+                            const fullObject = (elementState.fullObject) ? elementState.fullObject : undefined;
+                             if(fullObject) {
+                                sourceValue = getNestedValue(fullObject, sourcePropertyKey);
+                            } else {
+                                sourceValue = undefined; // No object to get property from
+                            }
+                        } else {
+                            sourceValue = (typeof elementState === 'object' && elementState !== null && 'value' in elementState)
+                                ? elementState.value
+                                : elementState;
                         }
                     }
                 }
@@ -301,3 +307,4 @@ export const evaluateRule = (
 
     return rule.logicType === 'and' ? conditionResults.every(result => result) : conditionResults.some(result => result);
 };
+
