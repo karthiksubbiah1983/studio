@@ -1909,6 +1909,19 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                      <AccordionItem value="layout">
                         <AccordionTrigger className="py-2">Layout</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="list-columns">Columns</Label>
+                                <Input
+                                    id="list-columns"
+                                    type="number"
+                                    min="1"
+                                    placeholder="1"
+                                    value={element.listColumns || 1}
+                                    onChange={(e) => updateProperty('listColumns', e.target.value ? parseInt(e.target.value) : 1)}
+                                />
+                                <p className="text-xs text-muted-foreground">Set to 1 for a single vertical list. More than 1 will create a grid.</p>
+                            </div>
+                            <Separator />
                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
                                 <Label htmlFor="hasSecondaryText">Add Secondary Text</Label>
                                 <Switch id="hasSecondaryText" checked={element.hasSecondaryText} onCheckedChange={(checked) => updateMultipleProperties({ hasSecondaryText: checked, isSecondaryTextLink: checked ? element.isSecondaryTextLink : false })} />
@@ -2571,6 +2584,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 

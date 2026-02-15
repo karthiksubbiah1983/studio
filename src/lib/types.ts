@@ -265,6 +265,7 @@ export type FormElementInstance = {
     enableScoring?: boolean | null;
     scorePerItem?: number | null;
     passingScore?: number | null;
+    listColumns?: number;
     placeholder?: string;
     // For EditableTable / PayrollTable
     columns?: TableColumn[];

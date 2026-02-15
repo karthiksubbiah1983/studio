@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react"
@@ -1594,40 +1595,60 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
             );
         };
         
-        const listContent = (
-            <div className="rounded-md border p-2 space-y-2">
-                {isLoading ? (
-                    <Loader2 className="animate-spin" />
-                ) : mainListOptions.length > 0 ? (
-                    mainListOptions.map((option, index) => {
-                        const itemValue = String(element.dataSource === 'dynamic' ? getNestedValue(option, element.valueKey!) : option.id);
-                        const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
-                        
-                        return (
-                            <div
-                                key={`${element.id}-item-${index}`}
-                                onClick={() => handleListChange(itemValue)}
-                                className={cn(
-                                    "flex items-start gap-3 p-3 rounded-md transition-colors",
-                                    !isDisplayOnly && "cursor-pointer",
-                                    isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-accent"
-                                )}
-                            >
-                                {!isDisplayOnly && (
-                                    <div className="flex-shrink-0 pt-0.5">
-                                        {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} id={`${element.id}-${index}`} />}
-                                    </div>
-                                )}
-                                <div className="flex-1">
-                                    {renderListItemContent(option)}
-                                </div>
+        const listItems = isLoading ? (
+            <Loader2 className="animate-spin" />
+        ) : mainListOptions.length > 0 ? (
+            mainListOptions.map((option, index) => {
+                const itemValue = String(element.dataSource === 'dynamic' ? getNestedValue(option, element.valueKey!) : option.id);
+                const isSelected = isCheckbox ? (currentSelection as string[]).includes(itemValue) : currentSelection === itemValue;
+                
+                return (
+                    <div
+                        key={`${element.id}-item-${index}`}
+                        onClick={() => handleListChange(itemValue)}
+                        className={cn(
+                            "flex items-start gap-3 p-3 rounded-md transition-colors",
+                            !isDisplayOnly && "cursor-pointer",
+                            isSelected ? "bg-primary/10 border-primary/30" : "hover:bg-accent"
+                        )}
+                    >
+                        {!isDisplayOnly && (
+                            <div className="flex-shrink-0 pt-0.5">
+                                {isCheckbox ? <Checkbox checked={isSelected} readOnly /> : <RadioGroupItem value={itemValue} id={`${element.id}-${index}`} />}
                             </div>
-                        );
-                    })
-                ) : (
-                    <div className="text-center text-sm text-muted-foreground p-4">
-                        No More Items
+                        )}
+                        <div className="flex-1">
+                            {renderListItemContent(option)}
+                        </div>
                     </div>
+                );
+            })
+        ) : (
+            <div className="text-center text-sm text-muted-foreground p-4">
+                No More Items
+            </div>
+        );
+
+        const listContainer = (
+            <div
+                className={cn(
+                    "rounded-md border p-2",
+                    element.listColumns && element.listColumns > 1
+                        ? "grid"
+                        : "space-y-2"
+                )}
+                style={
+                    element.listColumns && element.listColumns > 1
+                        ? { gridTemplateColumns: `repeat(${element.listColumns}, 1fr)`, gap: '1rem' }
+                        : {}
+                }
+            >
+                {isRadio ? (
+                    <RadioGroup id={element.id} value={String(value)} onValueChange={handleListChange} className="contents">
+                        {listItems}
+                    </RadioGroup>
+                ) : (
+                    listItems
                 )}
             </div>
         );
@@ -1645,13 +1666,7 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
         content = (
             <div>
                 {renderLabel()}
-                {isRadio ? (
-                    <RadioGroup id={element.id} value={String(value)} onValueChange={handleListChange}>
-                        {listContent}
-                    </RadioGroup>
-                ) : (
-                    listContent
-                )}
+                {listContainer}
                  {element.displaySelection !== 'none' && displayedSelection.length > 0 && !isDisplayOnly && (
                     <div className="mt-4">
                         <p className="text-sm font-medium mb-2">{element.displaySelection === 'selected' ? 'Selected' : 'Unselected'} Items:</p>
