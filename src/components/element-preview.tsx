@@ -143,7 +143,7 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
         return (
             <div>
                 {renderLabel()}
-                <RadioGroup>
+                <RadioGroup className="grid gap-2">
                     {options?.map((option, index) => (
                         <div key={index} className="flex items-center space-x-2">
                             <RadioGroupItem value={option} id={`${element.id}-${index}`} />
