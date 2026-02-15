@@ -2,20 +2,25 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash, X } from "lucide-react";
+import { Plus, Trash, Edit, ChevronDown } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Separator } from "../ui/separator";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "../ui/checkbox";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 type StaticDataItem = {
     id: string;
     label: string;
-    secondaryText?: string;
-    linkUrl?: string;
+    priority?: 'na' | 'high' | 'medium' | 'low';
+    brand?: string[];
+    riddor?: boolean;
     [key: string]: any;
 };
 
@@ -24,8 +29,48 @@ type Props = {
     onOpenChange: (isOpen: boolean) => void;
     staticData: StaticDataItem[];
     onSave: (data: StaticDataItem[]) => void;
-    hasSecondaryText: boolean;
-    isSecondaryTextLink: boolean;
+};
+
+// A custom multi-select dropdown component
+const MultiSelectDropdown = ({
+  options,
+  selected,
+  onChange,
+  placeholder = "Select brands...",
+}: {
+  options: string[];
+  selected: string[];
+  onChange: (selected: string[]) => void;
+  placeholder?: string;
+}) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="w-full justify-between font-normal">
+          <span className="truncate">
+            {selected.length > 0 ? selected.join(", ") : placeholder}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+        {options.map((option) => (
+          <DropdownMenuCheckboxItem
+            key={option}
+            checked={selected.includes(option)}
+            onCheckedChange={(checked) => {
+              const newSelection = checked
+                ? [...selected, option]
+                : selected.filter((item) => item !== option);
+              onChange(newSelection);
+            }}
+          >
+            {option}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 };
 
 export function ListOptionsDialog({ 
@@ -33,164 +78,171 @@ export function ListOptionsDialog({
     onOpenChange, 
     staticData, 
     onSave,
-    hasSecondaryText,
-    isSecondaryTextLink 
 }: Props) {
   const [localData, setLocalData] = useState<StaticDataItem[]>([]);
+  const [editingItem, setEditingItem] = useState<StaticDataItem | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setLocalData(JSON.parse(JSON.stringify(staticData || [])));
+      setEditingItem(null); // Reset editing state when dialog opens
     }
   }, [isOpen, staticData]);
 
-  const handleAddItem = () => {
-    const newItem: StaticDataItem = {
-      id: crypto.randomUUID(),
-      label: `Option ${localData.length + 1}`,
-    };
-    if (hasSecondaryText) newItem.secondaryText = "Secondary Text";
-    if (isSecondaryTextLink) newItem.linkUrl = "#";
-    setLocalData([...localData, newItem]);
-  };
+  const handleStartAddNew = () => {
+    setEditingItem({
+        id: `new_${crypto.randomUUID()}`,
+        label: "",
+        priority: "na",
+        brand: [],
+        riddor: false
+    });
+  }
 
-  const handleRemoveItem = (id: string) => {
-    setLocalData(localData.filter((item) => item.id !== id));
-  };
+  const handleEditItem = (item: StaticDataItem) => {
+    setEditingItem(JSON.parse(JSON.stringify(item))); // Deep copy to avoid direct mutation
+  }
 
-  const handleItemChange = (id: string, key: string, value: any) => {
-    setLocalData(
-      localData.map((item) => (item.id === id ? { ...item, [key]: value } : item))
-    );
-  };
+  const handleUpdateEditingItem = (field: keyof StaticDataItem, value: any) => {
+    if (!editingItem) return;
+    setEditingItem({ ...editingItem, [field]: value });
+  }
+
+  const handleSaveEditingItem = () => {
+    if (!editingItem || !editingItem.label.trim()) return;
+
+    if (editingItem.id.startsWith('new_')) {
+      // It's a new item
+      setLocalData([...localData, { ...editingItem, id: crypto.randomUUID() }]);
+    } else {
+      // It's an existing item
+      setLocalData(localData.map(item => item.id === editingItem.id ? editingItem : item));
+    }
+    setEditingItem(null); // Clear the form
+  }
   
-  const handleUpdateProperty = (itemId: string, oldKey: string, newKey: string, value: any) => {
-    if (!newKey.trim() && oldKey !== newKey) return; // Prevent renaming to an empty key
-    setLocalData(prev => prev.map(item => {
-        if (item.id === itemId) {
-            const { [oldKey]: _, ...rest } = item;
-            return { ...rest, [newKey.trim()]: value };
-        }
-        return item;
-    }));
-  };
+  const handleCancelEdit = () => {
+      setEditingItem(null);
+  }
 
-  const handleRemoveProperty = (itemId: string, keyToRemove: string) => {
-    setLocalData(prev => prev.map(item => {
-        if (item.id === itemId) {
-            const { [keyToRemove]: _, ...rest } = item;
-            return rest;
-        }
-        return item;
-    }));
+  const handleDeleteItem = (id: string) => {
+    setLocalData(localData.filter((item) => item.id !== id));
+    if (editingItem?.id === id) {
+        setEditingItem(null);
+    }
   };
-
-  const handleAddNewProperty = (itemId: string) => {
-    setLocalData(prev => prev.map(item => {
-        if (item.id === itemId) {
-            let newKey = 'new_property';
-            let i = 1;
-            while (Object.prototype.hasOwnProperty.call(item, newKey)) {
-                newKey = `new_property_${i++}`;
-            }
-            return { ...item, [newKey]: '' };
-        }
-        return item;
-    }));
-  };
-
 
   const handleSaveChanges = () => {
     onSave(localData);
     onOpenChange(false);
   };
+  
+  const priorityOptions = [
+      { value: 'na', label: 'Not Applicable' },
+      { value: 'high', label: 'High' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'low', label: 'Low' },
+  ];
+  
+  const brandOptions = ['Restaurant', 'Premiere Inn'];
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Manage Static List Items</DialogTitle>
-          <DialogDescription>
-            Add, edit, or remove the options for your list component. You can add hidden data properties to each item.
-          </DialogDescription>
+      <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
+        <DialogHeader className="p-6 border-b">
+          <DialogTitle>Add List and Meta Properties</DialogTitle>
         </DialogHeader>
-        <div className="flex-1 min-h-0">
-            <ScrollArea className="h-full pr-6">
-                <div className="space-y-4">
-                    {localData.map((item) => (
-                    <Card key={item.id} className="overflow-hidden">
-                        <CardHeader className="p-4 flex flex-row items-center justify-between bg-muted/30">
-                            <CardTitle className="text-base flex-1">
-                                <Input
-                                    value={item.label || ""}
-                                    onChange={(e) => handleItemChange(item.id, "label", e.target.value)}
-                                    placeholder="Primary Label"
-                                    className="h-9 font-medium bg-white"
-                                />
-                            </CardTitle>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveItem(item.id)}>
-                                <Trash className="h-4 w-4 text-destructive" />
+        <div className="flex-1 min-h-0 bg-muted/20">
+            <ScrollArea className="h-full">
+                <div className="p-6 space-y-6">
+                    {/* Display Table */}
+                    <div className="bg-white p-4 rounded-lg border">
+                         <div className="flex justify-between items-center mb-4">
+                            <h3 className="font-semibold text-lg">Options</h3>
+                             <Button variant="outline" size="sm" onClick={handleStartAddNew}>
+                                <Plus className="h-4 w-4 mr-2" /> Add
                             </Button>
-                        </CardHeader>
-                        <CardContent className="p-4 space-y-4">
-                            {(hasSecondaryText || isSecondaryTextLink) && (
-                                <div className="space-y-2">
-                                     {hasSecondaryText && (
-                                        <div>
-                                            <Label className="text-xs text-muted-foreground">Secondary Text</Label>
-                                            <Input
-                                                value={item.secondaryText || ""}
-                                                onChange={(e) => handleItemChange(item.id, "secondaryText", e.target.value)}
-                                                placeholder="Secondary Text"
-                                                className="h-9"
-                                            />
-                                        </div>
-                                    )}
-                                    {isSecondaryTextLink && (
-                                        <div>
-                                            <Label className="text-xs text-muted-foreground">Link URL</Label>
-                                            <Input
-                                                value={item.linkUrl || ""}
-                                                onChange={(e) => handleItemChange(item.id, "linkUrl", e.target.value)}
-                                                placeholder="https://example.com"
-                                                className="h-9"
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                            <Separator/>
-                            <div className="space-y-2">
-                                <Label className="text-sm font-medium">Hidden Data Properties</Label>
-                                <div className="space-y-2">
-                                    {Object.entries(item).filter(([key]) => !['id', 'label', 'secondaryText', 'linkUrl'].includes(key)).map(([key, value]) => (
-                                        <div key={key} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
-                                            <Input value={key} onChange={(e) => handleUpdateProperty(item.id, key, e.target.value, value)} placeholder="Key" className="h-8 text-xs"/>
-                                            <Input value={value as string} onChange={(e) => handleUpdateProperty(item.id, key, key, e.target.value)} placeholder="Value" className="h-8 text-xs"/>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleRemoveProperty(item.id, key)}>
-                                                <X className="h-4 w-4 text-destructive" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                                <Button variant="outline" size="sm" onClick={() => handleAddNewProperty(item.id)} className="mt-2">
-                                    <Plus className="h-4 w-4 mr-2"/> Add Property
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                    ))}
-                    <Button variant="outline" onClick={handleAddItem} className="w-full">
-                        <Plus className="mr-2 h-4 w-4" /> Add Item
-                    </Button>
+                         </div>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead className="w-[40%]">Options</TableHead>
+                                    <TableHead>Meta Properties</TableHead>
+                                    <TableHead className="w-[80px] text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {localData.map((item) => (
+                                    <TableRow key={item.id} className={cn("hover:bg-blue-50/50", editingItem?.id === item.id && "bg-blue-50")}>
+                                        <TableCell className="font-medium align-top cursor-pointer" onClick={() => handleEditItem(item)}>{item.label}</TableCell>
+                                        <TableCell className="align-top cursor-pointer" onClick={() => handleEditItem(item)}>
+                                            <div className="flex flex-wrap gap-2">
+                                                {item.priority && item.priority !== 'na' && <Badge variant="secondary">Priority: {priorityOptions.find(p => p.value === item.priority)?.label}</Badge>}
+                                                {item.brand && item.brand.length > 0 && <Badge variant="secondary">Brand: {item.brand.join(', ')}</Badge>}
+                                                {item.riddor && <Badge variant="secondary">Riddor: True</Badge>}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right align-top">
+                                            <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditItem(item)}>
+                                                    <Edit className="h-4 w-4"/>
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteItem(item.id)}>
+                                                    <Trash className="h-4 w-4 text-destructive"/>
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {localData.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={3} className="text-center text-muted-foreground h-24">
+                                            No options added yet.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    {/* Edit Form */}
+                    {editingItem && (
+                        <div className="bg-white p-6 rounded-lg border">
+                             <h3 className="font-semibold text-lg mb-4">{editingItem.id.startsWith('new_') ? 'Add' : 'Edit'} Options & Meta Properties</h3>
+                             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                 <div className="md:col-span-2 space-y-2">
+                                     <Label htmlFor="edit-option">Edit Options</Label>
+                                     <Input id="edit-option" value={editingItem.label} onChange={(e) => handleUpdateEditingItem('label', e.target.value)} />
+                                 </div>
+                                  <div className="space-y-2">
+                                     <Label htmlFor="edit-priority">Priority</Label>
+                                     <Select value={editingItem.priority || 'na'} onValueChange={(value) => handleUpdateEditingItem('priority', value)}>
+                                         <SelectTrigger id="edit-priority"><SelectValue/></SelectTrigger>
+                                         <SelectContent>
+                                             {priorityOptions.map(opt => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}
+                                         </SelectContent>
+                                     </Select>
+                                 </div>
+                                  <div className="space-y-2">
+                                     <Label htmlFor="edit-brand">Brand</Label>
+                                     <MultiSelectDropdown options={brandOptions} selected={editingItem.brand || []} onChange={(value) => handleUpdateEditingItem('brand', value)}/>
+                                 </div>
+                                  <div className="md:col-span-4 flex items-center space-x-2 pt-2">
+                                     <Checkbox id="edit-riddor" checked={!!editingItem.riddor} onCheckedChange={(checked) => handleUpdateEditingItem('riddor', !!checked)} />
+                                     <Label htmlFor="edit-riddor">Riddor</Label>
+                                 </div>
+                             </div>
+                             <div className="flex justify-end gap-2 mt-6">
+                                <Button variant="outline" onClick={handleCancelEdit}>Cancel</Button>
+                                <Button onClick={handleSaveEditingItem}>{editingItem.id.startsWith('new_') ? 'Add' : 'Update'}</Button>
+                             </div>
+                        </div>
+                    )}
                 </div>
             </ScrollArea>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button onClick={handleSaveChanges}>Save Changes</Button>
+        <DialogFooter className="p-4 border-t bg-card">
+          <Button onClick={handleSaveChanges}>Done</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

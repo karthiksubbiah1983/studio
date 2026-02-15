@@ -1036,8 +1036,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                 onOpenChange={setIsListOptionsOpen}
                 staticData={element.staticData || []}
                 onSave={(data) => updateProperty('staticData', data)}
-                hasSecondaryText={!!element.hasSecondaryText}
-                isSecondaryTextLink={!!element.isSecondaryTextLink}
             />
         </div>
     );
@@ -1153,7 +1151,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </SelectContent>
                 </Select>
             </div>
-            {element.hasSecondaryText && (
+            {element.secondaryTextKey !== undefined && (
                  <div className="flex flex-col gap-2">
                     <Label htmlFor="secondaryTextKey">Secondary Text Key</Label>
                     <Select
@@ -1169,7 +1167,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </Select>
                 </div>
             )}
-            {element.isSecondaryTextLink && (
+            {element.linkUrlKey !== undefined && (
                 <div className="flex flex-col gap-2">
                     <Label htmlFor="linkUrlKey">Link URL Key</Label>
                      <Select
@@ -1921,17 +1919,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 />
                                 <p className="text-xs text-muted-foreground">Set to 1 for a single vertical list. More than 1 will create a grid.</p>
                             </div>
-                            <Separator />
-                           <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="hasSecondaryText">Add Secondary Text</Label>
-                                <Switch id="hasSecondaryText" checked={element.hasSecondaryText} onCheckedChange={(checked) => updateMultipleProperties({ hasSecondaryText: checked, isSecondaryTextLink: checked ? element.isSecondaryTextLink : false })} />
-                            </div>
-                             {element.hasSecondaryText && (
-                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                    <Label htmlFor="isSecondaryTextLink">Enable as Link</Label>
-                                    <Switch id="isSecondaryTextLink" checked={element.isSecondaryTextLink} onCheckedChange={(checked) => updateProperty('isSecondaryTextLink', checked)} />
-                                </div>
-                            )}
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
@@ -2584,6 +2571,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 

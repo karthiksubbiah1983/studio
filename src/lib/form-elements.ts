@@ -86,8 +86,6 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 labelKey: 'label', // Use 'label' for display in static data
                 listType: 'checkbox',
                 displaySelection: 'none',
-                hasSecondaryText: false,
-                isSecondaryTextLink: false,
                 enableScoring: false,
                 scorePerItem: 1,
                 passingScore: 1,

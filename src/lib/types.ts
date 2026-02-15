@@ -193,6 +193,9 @@ export type RoomEntry = {
             questionId: string;
             selectedAnswers: string[];
             comment?: string;
+            userId?: string;
+            userName?: string;
+            timestamp?: string;
         }[];
     };
 };
@@ -260,8 +263,6 @@ export type FormElementInstance = {
     // For List
     listType?: 'checkbox' | 'radio' | 'display';
     displaySelection?: 'none' | 'selected' | 'unselected';
-    hasSecondaryText?: boolean;
-    isSecondaryTextLink?: boolean;
     enableScoring?: boolean | null;
     scorePerItem?: number | null;
     passingScore?: number | null;
