@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash, Edit, ChevronDown } from "lucide-react";
+import { Plus, Trash, Edit, ChevronDown, Copy, X } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +125,21 @@ export function ListOptionsDialog({
       setEditingItem(null);
   }
 
+  const handleCopyItem = (id: string) => {
+    const itemToCopy = localData.find((item) => item.id === id);
+    if (itemToCopy) {
+      const newItem = {
+        ...JSON.parse(JSON.stringify(itemToCopy)),
+        id: crypto.randomUUID(),
+        label: `${itemToCopy.label} (Copy)`,
+      };
+      const index = localData.findIndex((item) => item.id === id);
+      const newData = [...localData];
+      newData.splice(index + 1, 0, newItem);
+      setLocalData(newData);
+    }
+  };
+
   const handleDeleteItem = (id: string) => {
     setLocalData(localData.filter((item) => item.id !== id));
     if (editingItem?.id === id) {
@@ -168,7 +183,7 @@ export function ListOptionsDialog({
                                 <TableRow>
                                     <TableHead className="w-[40%]">Options</TableHead>
                                     <TableHead>Meta Properties</TableHead>
-                                    <TableHead className="w-[80px] text-right">Actions</TableHead>
+                                    <TableHead className="w-[120px] text-right">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -184,6 +199,9 @@ export function ListOptionsDialog({
                                         </TableCell>
                                         <TableCell className="text-right align-top">
                                             <div className="flex justify-end gap-1">
+                                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleCopyItem(item.id)}>
+                                                    <Copy className="h-4 w-4"/>
+                                                </Button>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEditItem(item)}>
                                                     <Edit className="h-4 w-4"/>
                                                 </Button>
