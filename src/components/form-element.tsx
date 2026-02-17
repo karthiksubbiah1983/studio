@@ -836,6 +836,22 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
     return finalValue;
   }, [initialValue]);
 
+    const handleRadioChange = useCallback((val: string) => {
+        if (element.type === 'RadioGroup') {
+            onValueChange(element.id, val);
+        }
+    }, [onValueChange, element.id, element.type]);
+
+    useEffect(() => {
+        if (element.type === 'RadioGroup' && isTableCell && rowContext && element.defaultValueKey && (value === undefined || value === null)) {
+            const dynamicDefaultValue = getNestedValue(rowContext, element.defaultValueKey);
+            if (dynamicDefaultValue !== undefined && dynamicDefaultValue !== null) {
+                onValueChange(element.id, String(dynamicDefaultValue));
+            }
+        }
+    }, [isTableCell, rowContext, element.type, element.defaultValueKey, value, onValueChange, element.id]);
+
+
   useEffect(() => {
     const context = isTableCell ? { ...formState, ...rowContext } : formState;
     if ((element.type === 'Input' || element.type === 'Display') && element.formula && context) {
@@ -1734,19 +1750,6 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
       if (!useDynamicOptions && Array.isArray(element.options)) {
           radioOptions = element.options;
       }
-      
-      const handleRadioChange = useCallback((val: string) => {
-        onValueChange(element.id, val);
-      }, [onValueChange, element.id]);
-
-      useEffect(() => {
-        if (isTableCell && rowContext && element.defaultValueKey && (value === undefined || value === null)) {
-            const dynamicDefaultValue = getNestedValue(rowContext, element.defaultValueKey);
-            if (dynamicDefaultValue !== undefined && dynamicDefaultValue !== null) {
-                onValueChange(element.id, String(dynamicDefaultValue));
-            }
-        }
-      }, [isTableCell, rowContext, element.defaultValueKey, value, onValueChange, element.id]);
       
       content = (
         <div id={element.id}>
