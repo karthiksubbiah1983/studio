@@ -614,10 +614,11 @@ function EditableTable({ element, value, onValueChange, formState, rules, config
 }
 
 
-function DataListRenderer({ element, value, onValueChange }: { 
+function DataListRenderer({ element, value, onValueChange, activeFilters }: { 
     element: FormElementInstance, 
     value: any, 
-    onValueChange: (id: string, value: any, fullObject?: any) => void 
+    onValueChange: (id: string, value: any, fullObject?: any) => void,
+    activeFilters: { key: string; value: any; operator: 'equals' | 'contains' }[]
 }) {
     const { datasets } = useBuilder();
     
@@ -626,12 +627,24 @@ function DataListRenderer({ element, value, onValueChange }: {
     const isDisplayOnly = element.listType === 'display';
 
     const listOptions = useMemo(() => {
+        let baseOptions = [];
         if (element.localDatasetName) {
             const dataset = datasets.find(ds => ds.name === element.localDatasetName);
-            return dataset?.data || [];
+            baseOptions = dataset?.data || [];
         }
-        return [];
-    }, [element.localDatasetName, datasets]);
+
+        if (activeFilters.length > 0) {
+            return baseOptions.filter(option => {
+                return activeFilters.every(filter => {
+                    const optionValue = getNestedValue(option, filter.key);
+                    // Simple equality check for now
+                    return String(optionValue).toLowerCase() === String(filter.value).toLowerCase();
+                });
+            });
+        }
+
+        return baseOptions;
+    }, [element.localDatasetName, datasets, activeFilters]);
     
     const mainListOptions = useMemo(() => {
         if (!value) return listOptions;
@@ -836,11 +849,11 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
     return finalValue;
   }, [initialValue]);
 
-    const handleRadioChange = useCallback((val: string) => {
-        if (element.type === 'RadioGroup') {
-            onValueChange(element.id, val);
-        }
-    }, [onValueChange, element.id, element.type]);
+  const handleRadioChange = useCallback((val: string) => {
+    if (element.type === 'RadioGroup') {
+        onValueChange(element.id, val);
+    }
+  }, [onValueChange, element.id, element.type]);
 
     useEffect(() => {
         if (element.type === 'RadioGroup' && isTableCell && rowContext && element.defaultValueKey && (value === undefined || value === null)) {
@@ -970,6 +983,35 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
     }
     return { style, error };
   }, [element.id, formState, rowContext, isTableCell, rules, configurations, sections]);
+  
+  const activeFilters = useMemo(() => {
+    const contextToCheck = isTableCell && rowContext ? { ...formState, ...rowContext } : formState;
+    const filters: { key: string; value: any; operator: 'equals' | 'contains' }[] = [];
+    let shouldClear = false;
+
+    if (!contextToCheck || !rules) return [];
+
+    for (const rule of rules) {
+        const isRuleMet = evaluateRule(rule, contextToCheck, configurations, sections, isTableCell ? rowContext : undefined);
+        if (isRuleMet) {
+            for (const behavior of rule.behaviors) {
+                if (behavior.targetElementId === element.id) {
+                    if (behavior.type === 'filter_list' && behavior.filterKey && behavior.filterValue !== undefined) {
+                        filters.push({
+                            key: behavior.filterKey,
+                            value: behavior.filterValue,
+                            operator: 'equals' // For now, only equals is supported.
+                        });
+                    } else if (behavior.type === 'clear_filter') {
+                        shouldClear = true;
+                    }
+                }
+            }
+        }
+    }
+    // If a "clear" rule is active, it takes precedence.
+    return shouldClear ? [] : filters;
+  }, [element.id, formState, rowContext, isTableCell, rules, configurations, sections]);
 
   const isCheckbox = useMemo(() => element.type === 'List' && element.listType === 'checkbox', [element.type, element.listType]);
   const isRadio = useMemo(() => element.type === 'List' && element.listType === 'radio', [element.type, element.listType]);
@@ -981,11 +1023,26 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
   }, [element.type, isCheckbox, value]);
 
   const allListOptions = useMemo(() => {
+    let options = [];
     if (element.type !== 'List') return [];
-    if (element.dataSource === 'dynamic') return dynamicOptions;
-    if (element.dataSource === 'static') return element.staticData || [];
-    return [];
-  }, [element, dynamicOptions]);
+
+    if (element.dataSource === 'dynamic') {
+      options = dynamicOptions;
+    } else if (element.dataSource === 'static') {
+      options = element.staticData || [];
+    }
+    
+    if (activeFilters.length > 0) {
+        return options.filter(option => {
+            return activeFilters.every(filter => {
+                const optionValue = getNestedValue(option, filter.key);
+                return String(optionValue).toLowerCase() === String(filter.value).toLowerCase();
+            });
+        });
+    }
+
+    return options;
+  }, [element, dynamicOptions, activeFilters]);
 
   const mainListOptions = useMemo(() => {
       if (element.type !== 'List' || !currentSelection) return allListOptions;
@@ -1711,7 +1768,7 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
         break;
     }
     case "DataList":
-        return <DataListRenderer element={element} value={value} onValueChange={onValueChange} />;
+        return <DataListRenderer element={element} value={value} onValueChange={onValueChange} activeFilters={activeFilters} />;
     case "Checkbox": {
         const isChecked = value === true;
         const handleCheckedChange = (checked: boolean) => {

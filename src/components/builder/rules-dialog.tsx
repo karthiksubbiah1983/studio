@@ -460,6 +460,10 @@ const BehaviorEditor = memo(({
         selectableFields.filter(el => 'type' in el && el.type === 'Popup')
     , [selectableFields]);
 
+    const listFields = useMemo(() => 
+        selectableFields.filter(el => 'type' in el && (el.type === 'List' || el.type === 'DataList'))
+    , [selectableFields]);
+
     const targetField = selectableFields.find(f => f.id === behavior.targetElementId);
     const selectedTargetFieldLabel = targetField ? getElementDisplayName(targetField) : "Select target field...";
 
@@ -487,6 +491,8 @@ const BehaviorEditor = memo(({
                         <SelectItem value="set_value">Set Value</SelectItem>
                         <SelectItem value="set_configuration">Set Configuration</SelectItem>
                         <SelectItem value="show_popup">Show Popup</SelectItem>
+                        <SelectItem value="filter_list">Filter List</SelectItem>
+                        <SelectItem value="clear_filter">Clear List Filter</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -502,7 +508,13 @@ const BehaviorEditor = memo(({
                                 <SelectValue>{selectedTargetFieldLabel}</SelectValue>
                             </SelectTrigger>
                             <SelectContent>
-                                {(behavior.type === 'set_value' ? valueSettingFields : behavior.type === 'show_popup' ? popupFields : selectableFields).map(el => (
+                                {(behavior.type === 'set_value' 
+                                    ? valueSettingFields 
+                                    : behavior.type === 'show_popup' 
+                                    ? popupFields 
+                                    : (behavior.type === 'filter_list' || behavior.type === 'clear_filter')
+                                    ? listFields
+                                    : selectableFields).map(el => (
                                     <SelectItem key={el.id} value={el.id}>{getElementDisplayName(el)}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -552,6 +564,27 @@ const BehaviorEditor = memo(({
                             value={behavior.color || '#000000'}
                             onChange={(e) => handleUpdate('color', e.target.value)}
                             className="p-1 h-10"
+                        />
+                    </div>
+                </div>
+            )}
+
+            {behavior.type === 'filter_list' && (
+                <div className="flex items-end gap-4">
+                    <div className="flex-1 space-y-2">
+                        <Label>Filter Key</Label>
+                        <Input
+                            placeholder="e.g., priority"
+                            defaultValue={behavior.filterKey || ''}
+                            onBlur={(e) => handleUpdate('filterKey', e.target.value)}
+                        />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                        <Label>Filter Value</Label>
+                        <Input
+                            placeholder="e.g., high"
+                            defaultValue={behavior.filterValue || ''}
+                            onBlur={(e) => handleUpdate('filterValue', e.target.value)}
                         />
                     </div>
                 </div>
@@ -1030,6 +1063,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
 
     
+
 
 
 

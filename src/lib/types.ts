@@ -12,7 +12,7 @@ export type RuleConditionOperator =
     | 'contains'
     | 'not_contains';
 
-export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_value' | 'set_configuration' | 'show_popup';
+export type RuleBehaviorType = 'show' | 'hide' | 'enable' | 'disable' | 'change_color' | 'set_value' | 'set_configuration' | 'show_popup' | 'filter_list' | 'clear_filter';
 
 export type ConditionSourceType = 'field' | 'date' | 'status' | 'config';
 export type ConditionComparisonType = 'value' | 'field' | 'date' | 'status' | 'config';
@@ -43,6 +43,8 @@ export type RuleBehavior = {
     targetProperty?: 'color' | 'backgroundColor'; // For change_color
     value?: string; // For set_value and set_configuration
     targetConfigurationKey?: string; // For set_configuration
+    filterKey?: string; // For filter_list
+    filterValue?: string; // For filter_list
 }
 
 export type Rule = {
