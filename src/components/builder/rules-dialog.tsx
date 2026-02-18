@@ -212,7 +212,7 @@ const ConditionEditor = memo(({
                         <Select value={condition.sourceValue} onValueChange={(value) => handleUpdate('sourceValue', value)}>
                             <SelectTrigger><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
                             <SelectContent>
-                                {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
+                                {localConfigs.filter(c => c.key).map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>
@@ -296,7 +296,7 @@ const ConditionEditor = memo(({
                     <Select value={condition.value} onValueChange={(value) => handleUpdate('value', value)}>
                         <SelectTrigger><SelectValue placeholder="Select a configuration..." /></SelectTrigger>
                         <SelectContent>
-                            {localConfigs.map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
+                            {localConfigs.filter(c => c.key).map(c => <SelectItem key={c.id} value={c.key}>{c.key}</SelectItem>)}
                         </SelectContent>
                     </Select>
                 );
@@ -531,7 +531,7 @@ const BehaviorEditor = memo(({
                                 <SelectValue placeholder="Select configuration key..."/>
                             </SelectTrigger>
                             <SelectContent>
-                                {localConfigs.map(config => (
+                                {localConfigs.filter(c => c.key).map(config => (
                                     <SelectItem key={config.id} value={config.key}>{config.key}</SelectItem>
                                 ))}
                             </SelectContent>
@@ -1063,6 +1063,7 @@ export function RulesDialog({ isOpen, onOpenChange }: Props) {
     
 
     
+
 
 
 
