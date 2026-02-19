@@ -63,7 +63,7 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
     onValueChange: (id: string, value: any) => void 
 }) {
     const { user } = useAuth();
-    const [items, setItems] = useState<PayrollItem[]>(Array.isArray(value) ? value : []);
+    const [items, setItems] = useState<PayrollItem[]>([]);
     const [isComboboxOpen, setIsComboboxOpen] = useState(false);
     const [isBestBefore, setIsBestBefore] = useState(false);
 
@@ -73,6 +73,10 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
     const [bestBefore, setBestBefore] = useState<Date | undefined>();
     const [attachments, setAttachments] = useState<File[]>([]);
     const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
+    useEffect(() => {
+        setItems(Array.isArray(value) ? value : []);
+    }, [value]);
 
     const comboboxOptions = useMemo(() => {
         const itemNames = items.map(item => item.itemName.toLowerCase());
@@ -153,7 +157,7 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
 
     return (
         <div className="space-y-6">
-            <div className="space-y-6">
+            <div className="space-y-6 p-4 border rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     <div className="space-y-2">
                         <Label>Item Name *</Label>
@@ -174,6 +178,7 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
                                                     setItemName('');
                                                 } else {
                                                     setItemName(option);
+                                                    setIsCustomItem(false);
                                                 }
                                                 setIsComboboxOpen(false);
                                             }}
@@ -249,7 +254,7 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
             </div>
 
             {items.length > 0 && (
-                 <Table>
+                <Table>
                     <TableHeader>
                         <TableRow>
                             <TableHead>Item Name</TableHead>
@@ -1055,7 +1060,7 @@ const interpolateString = (template: string, data: { [key: string]: any }): stri
     });
 }
 
-const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
+function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
   const builderContext = useBuilder();
   const { rules: builderRules, sections: builderSections, configurations: builderConfigurations } = builderContext;
   const { user } = useAuth();
@@ -2401,7 +2406,9 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
   const wrapperStyle = element.type === 'Container' && width ? { width } : {};
 
   return <div style={wrapperStyle}>{content}</div>;
-});
+}
+
+const MemoizedFormElementRenderer = React.memo(FormElementRenderer);
 
 export { MemoizedFormElementRenderer as FormElementRenderer };
 
