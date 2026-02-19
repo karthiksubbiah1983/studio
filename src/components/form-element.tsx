@@ -22,7 +22,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check, FileClock, ListChecks, ClipboardCheck } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check, FileClock, ListChecks, ClipboardCheck, Minus } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -1067,7 +1067,7 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
   const configurations = configsProp || builderConfigurations;
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
-
+  
   const handleRadioChange = useCallback((val: string) => {
     if (element.type === 'RadioGroup') {
         onValueChange(element.id, val);
