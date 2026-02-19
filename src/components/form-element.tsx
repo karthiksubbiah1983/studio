@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react"
@@ -292,31 +291,6 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
             )}
         </div>
     );
-}
-
-
-type Props = {
-  element: FormElementInstance;
-  value: any;
-  onValueChange: (id: string, value: any, fullObject?: any) => void;
-  formState?: { [key: string]: any };
-  isParentHorizontal?: boolean;
-  isTableCell?: boolean;
-  rowContext?: any;
-  rules?: Rule[];
-  configurations?: Configuration[];
-  sections?: Section[];
-};
-
-const interpolateString = (template: string, data: { [key: string]: any }): string => {
-    if (!template) return "";
-
-    // Regex to find all {key} placeholders
-    return template.replace(/\{([a-zA-Z0-9_.]+)\}/g, (match, key) => {
-        const value = getNestedValue(data, key);
-        // If the key exists in the data, replace it. Otherwise, keep the placeholder.
-        return value !== undefined ? String(value) : match;
-    });
 }
 
 function DataGridRenderer({ element, value, onValueChange, formState, rules, configurations, sections }: { 
@@ -861,7 +835,6 @@ function EditableTable({ element, value, onValueChange, formState, rules, config
   );
 }
 
-
 function DataListRenderer({ element, value, onValueChange, activeFilters }: { 
     element: FormElementInstance, 
     value: any, 
@@ -1056,6 +1029,30 @@ function DataListRenderer({ element, value, onValueChange, activeFilters }: {
              )}
         </div>
     );
+}
+
+type Props = {
+  element: FormElementInstance;
+  value: any;
+  onValueChange: (id: string, value: any, fullObject?: any) => void;
+  formState?: { [key: string]: any };
+  isParentHorizontal?: boolean;
+  isTableCell?: boolean;
+  rowContext?: any;
+  rules?: Rule[];
+  configurations?: Configuration[];
+  sections?: Section[];
+};
+
+const interpolateString = (template: string, data: { [key: string]: any }): string => {
+    if (!template) return "";
+
+    // Regex to find all {key} placeholders
+    return template.replace(/\{([a-zA-Z0-9_.]+)\}/g, (match, key) => {
+        const value = getNestedValue(data, key);
+        // If the key exists in the data, replace it. Otherwise, keep the placeholder.
+        return value !== undefined ? String(value) : match;
+    });
 }
 
 const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
