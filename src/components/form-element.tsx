@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react"
@@ -91,8 +92,19 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
         setBestBefore(undefined);
         setIsBestBefore(false);
         setAttachments([]);
-        setEditingItemId(null);
+        if (editingItemId) setEditingItemId(null);
     };
+
+    const handleItemSelect = useCallback((option: string) => {
+        if (option === 'Other') {
+            setIsCustomItem(true);
+            setItemName('');
+        } else {
+            setItemName(option);
+            setIsCustomItem(false);
+        }
+        setIsComboboxOpen(false);
+    }, []);
 
     const handleAddOrUpdateItem = () => {
         if (!itemName.trim() || !user) return;
@@ -171,21 +183,13 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
                                 </PopoverTrigger>
                                 <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
                                     {comboboxOptions.map(option => (
-                                        <div key={option} 
-                                            onClick={() => {
-                                                if (option === 'Other') {
-                                                    setIsCustomItem(true);
-                                                    setItemName('');
-                                                } else {
-                                                    setItemName(option);
-                                                    setIsCustomItem(false);
-                                                }
-                                                setIsComboboxOpen(false);
-                                            }}
-                                            className="p-2 text-sm cursor-pointer hover:bg-accent"
+                                        <button
+                                            key={option}
+                                            onClick={() => handleItemSelect(option)}
+                                            className="p-2 text-sm cursor-pointer hover:bg-accent w-full text-left"
                                         >
                                             {option}
-                                        </div>
+                                        </button>
                                     ))}
                                 </PopoverContent>
                             </Popover>
@@ -254,45 +258,47 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
             </div>
 
             {items.length > 0 && (
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Item Name</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Quantity</TableHead>
-                            <TableHead>Best Before</TableHead>
-                            <TableHead>Created BY</TableHead>
-                            <TableHead>Created ON</TableHead>
-                            <TableHead>Attachment</TableHead>
-                            <TableHead>Action</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {items.map(item => (
-                            <TableRow key={item.id}>
-                                <TableCell>{item.itemName}</TableCell>
-                                <TableCell>{item.type}</TableCell>
-                                <TableCell>{item.quantity}</TableCell>
-                                <TableCell>{item.bestBefore ? format(new Date(item.bestBefore), 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                                <TableCell>{item.createdBy}</TableCell>
-                                <TableCell>{format(new Date(item.createdOn), 'dd/MM/yyyy')}</TableCell>
-                                <TableCell>
-                                    {item.attachments.map((file, i) => (
-                                        <a key={i} href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1 text-sm">
-                                           <FileIcon className="h-4 w-4" /> {file.name}
-                                        </a>
-                                    ))}
-                                </TableCell>
-                                <TableCell>
-                                    <div className="flex gap-1">
-                                        <Button size="icon" variant="ghost" onClick={() => handleEditItem(item)}><Edit className="h-4 w-4"/></Button>
-                                        <Button size="icon" variant="ghost" onClick={() => handleDeleteItem(item.id)}><Trash className="h-4 w-4 text-destructive"/></Button>
-                                    </div>
-                                </TableCell>
+                <div className="border rounded-lg">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Item Name</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Quantity</TableHead>
+                                <TableHead>Best Before</TableHead>
+                                <TableHead>Created BY</TableHead>
+                                <TableHead>Created ON</TableHead>
+                                <TableHead>Attachment</TableHead>
+                                <TableHead>Action</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {items.map(item => (
+                                <TableRow key={item.id}>
+                                    <TableCell>{item.itemName}</TableCell>
+                                    <TableCell>{item.type}</TableCell>
+                                    <TableCell>{item.quantity}</TableCell>
+                                    <TableCell>{item.bestBefore ? format(new Date(item.bestBefore), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                                    <TableCell>{item.createdBy}</TableCell>
+                                    <TableCell>{format(new Date(item.createdOn), 'dd/MM/yyyy')}</TableCell>
+                                    <TableCell>
+                                        {item.attachments.map((file, i) => (
+                                            <a key={i} href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1 text-sm">
+                                            <FileIcon className="h-4 w-4" /> {file.name}
+                                            </a>
+                                        ))}
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex gap-1">
+                                            <Button size="icon" variant="ghost" onClick={() => handleEditItem(item)}><Edit className="h-4 w-4"/></Button>
+                                            <Button size="icon" variant="ghost" onClick={() => handleDeleteItem(item.id)}><Trash className="h-4 w-4 text-destructive"/></Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
             )}
         </div>
     );
