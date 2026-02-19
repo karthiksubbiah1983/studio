@@ -262,6 +262,7 @@ export type FormElementInstance = {
     allowedFileTypes?: string[];
     maxFileSize?: number; // in MB
     multiple?: boolean;
+    attachmentCount?: number;
     // For List
     listType?: 'checkbox' | 'radio' | 'display';
     displaySelection?: 'none' | 'selected' | 'unselected';

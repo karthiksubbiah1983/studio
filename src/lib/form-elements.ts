@@ -36,6 +36,7 @@ export const FunctionalFormElements: {
   label: string;
 }[] = [
     { type: 'TaskHistory', icon: FileClock, label: 'Task History' },
+    { type: 'PayrollTable', icon: ClipboardCheck, label: 'Purchase List' },
 ];
 
 export const createNewElement = (type: ElementType, id?: string): FormElementInstance => {
@@ -133,6 +134,15 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 allowUserToAddRows: true,
                 defaultRowCount: 1,
                 key: 'editable_table_1'
+            };
+        case "PayrollTable":
+            return {
+                ...baseElement,
+                label: "Purchase List",
+                key: 'purchase_list_1',
+                options: ["Skimmed Milk", "Cherry tomato", "Whole Milk"],
+                dataSource: 'static',
+                attachmentCount: 3,
             };
         case "DataGrid":
             return {
