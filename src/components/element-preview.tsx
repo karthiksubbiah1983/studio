@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Link, icons, Upload, CalendarDays, Grid, List, ListFilter, Table, MessageSquare, ListChecks, Eye, FileClock } from "lucide-react";
+import { Link, icons, Upload, CalendarDays, Grid, List, ListFilter, Table, MessageSquare, ListChecks, Eye, FileClock, ClipboardCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -208,6 +208,16 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
                 <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
                     <Table className="h-12 w-12 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">Editable Table</p>
+                </div>
+            </div>
+        );
+    case "PayrollTable":
+        return (
+            <div>
+                {renderLabel()}
+                <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px]">
+                    <ClipboardCheck className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Purchase List</p>
                 </div>
             </div>
         );

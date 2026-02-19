@@ -22,7 +22,7 @@ import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { fetchFromApi } from "@/services/api";
 import { Popup } from "@/components/ui/popup";
 import { Button } from "@/components/ui/button";
-import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check, FileClock, ListChecks } from "lucide-react";
+import { icons, Info, Plus, Trash, ChevronDown, AlertCircle, Loader2, Link, Eye, Upload, X, File as FileIcon, Search, ChevronLeft, ChevronRight, CalendarDays, Edit, ChevronsUpDown, Check, FileClock, ListChecks, ClipboardCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { LexicalEditor } from "@/components/lexical/lexical-editor";
 import { evaluate } from "@/lib/formula-parser";
@@ -45,6 +45,237 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
+
+type PayrollItem = {
+    id: string;
+    itemName: string;
+    isCustom: boolean;
+    quantity: number;
+    bestBefore?: string;
+    attachments: File[];
+    type: string;
+    createdBy: string;
+    createdOn: string;
+};
+
+function PayrollTableRenderer({ element, value, onValueChange }: { 
+    element: FormElementInstance, 
+    value: any, 
+    onValueChange: (id: string, value: any) => void 
+}) {
+    const { user } = useAuth();
+    const [items, setItems] = useState<PayrollItem[]>(Array.isArray(value) ? value : []);
+    const [isComboboxOpen, setIsComboboxOpen] = useState(false);
+
+    const [itemName, setItemName] = useState('');
+    const [isCustomItem, setIsCustomItem] = useState(false);
+    const [quantity, setQuantity] = useState(1);
+    const [bestBefore, setBestBefore] = useState<Date | undefined>();
+    const [attachments, setAttachments] = useState<File[]>([]);
+    const [editingItemId, setEditingItemId] = useState<string | null>(null);
+
+    const comboboxOptions = useMemo(() => {
+        const itemNames = items.map(item => item.itemName.toLowerCase());
+        const staticOptions = (element.options || []).filter(opt => !itemNames.includes(opt.toLowerCase()));
+        return [...staticOptions, "Other"];
+    }, [items, element.options]);
+
+    const resetForm = () => {
+        setItemName('');
+        setIsCustomItem(false);
+        setQuantity(1);
+        setBestBefore(undefined);
+        setAttachments([]);
+        setEditingItemId(null);
+    };
+
+    const handleAddOrUpdateItem = () => {
+        if (!itemName.trim() || !user) return;
+        const newItem: PayrollItem = {
+            id: editingItemId || crypto.randomUUID(),
+            itemName: itemName.trim(),
+            isCustom: isCustomItem,
+            quantity,
+            bestBefore: bestBefore?.toISOString(),
+            attachments,
+            type: isCustomItem ? 'Others' : 'Standard',
+            createdBy: user.username || user.email || 'N/A',
+            createdOn: new Date().toISOString(),
+        };
+
+        let newItems;
+        if (editingItemId) {
+            newItems = items.map(item => item.id === editingItemId ? newItem : item);
+        } else {
+            newItems = [...items, newItem];
+        }
+        setItems(newItems);
+        onValueChange(element.id, newItems);
+        resetForm();
+    };
+
+    const handleEditItem = (item: PayrollItem) => {
+        setEditingItemId(item.id);
+        setItemName(item.itemName);
+        setIsCustomItem(item.isCustom);
+        setQuantity(item.quantity);
+        setBestBefore(item.bestBefore ? new Date(item.bestBefore) : undefined);
+        setAttachments(item.attachments);
+    };
+
+    const handleDeleteItem = (id: string) => {
+        const newItems = items.filter(item => item.id !== id);
+        setItems(newItems);
+        onValueChange(element.id, newItems);
+    };
+    
+    const handleFileChange = (files: FileList | null) => {
+        if (!files) return;
+        const newFiles = Array.from(files);
+        const totalFiles = attachments.length + newFiles.length;
+        if (element.attachmentCount && totalFiles > element.attachmentCount) {
+            // Handle error - maybe a toast
+            console.error(`Cannot upload more than ${element.attachmentCount} files.`);
+            return;
+        }
+        setAttachments(prev => [...prev, ...newFiles]);
+    };
+
+    const removeAttachment = (index: number) => {
+        setAttachments(prev => prev.filter((_, i) => i !== index));
+    };
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>{editingItemId ? 'Edit Item' : 'Add New Item'}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Item Name</Label>
+                            {!isCustomItem ? (
+                                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
+                                    <PopoverTrigger asChild>
+                                        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                                            {itemName || "Select item..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
+                                        {comboboxOptions.map(option => (
+                                            <div key={option} 
+                                                onClick={() => {
+                                                    if (option === 'Other') {
+                                                        setIsCustomItem(true);
+                                                        setItemName('');
+                                                    } else {
+                                                        setItemName(option);
+                                                    }
+                                                    setIsComboboxOpen(false);
+                                                }}
+                                                className="p-2 text-sm cursor-pointer hover:bg-accent"
+                                            >
+                                                {option}
+                                            </div>
+                                        ))}
+                                    </PopoverContent>
+                                </Popover>
+                            ) : (
+                                <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="Enter custom item name" />
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                             <Label>Quantity</Label>
+                             <div className="flex items-center gap-2">
+                                <Button size="icon" variant="outline" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="h-4 w-4"/></Button>
+                                <Input type="number" value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="text-center" />
+                                <Button size="icon" variant="outline" onClick={() => setQuantity(q => q + 1)}><Plus className="h-4 w-4"/></Button>
+                             </div>
+                        </div>
+                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Best before (Optional)</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !bestBefore && "text-muted-foreground")}>
+                                        <CalendarDays className="mr-2 h-4 w-4" />
+                                        {bestBefore ? format(bestBefore, "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar mode="single" selected={bestBefore} onSelect={setBestBefore} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Attachments (Optional)</Label>
+                            <div className="flex flex-col items-center justify-center w-full border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-accent/50 p-2 text-center"
+                                 onClick={() => document.getElementById(`file-upload-${element.id}`)?.click()}>
+                                <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                                <p className="text-xs text-muted-foreground">Click or drag to upload</p>
+                            </div>
+                            <input id={`file-upload-${element.id}`} type="file" multiple className="hidden" onChange={e => handleFileChange(e.target.files)} />
+                        </div>
+                     </div>
+                     {attachments.length > 0 && (
+                        <div className="space-y-2">
+                            <Label>Selected Files:</Label>
+                            <div className="space-y-1">
+                            {attachments.map((file, index) => (
+                                <div key={index} className="flex items-center justify-between text-sm p-1.5 bg-muted/50 rounded-md">
+                                    <span>{file.name}</span>
+                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeAttachment(index)}><X className="h-4 w-4 text-destructive"/></Button>
+                                </div>
+                            ))}
+                            </div>
+                        </div>
+                     )}
+                </CardContent>
+                <CardFooter>
+                    <Button onClick={handleAddOrUpdateItem}>{editingItemId ? 'Update Item' : 'Add Item'}</Button>
+                    {editingItemId && <Button variant="ghost" onClick={resetForm}>Cancel Edit</Button>}
+                </CardFooter>
+            </Card>
+
+            {items.length > 0 && (
+                 <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Item Name</TableHead>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Quantity</TableHead>
+                            <TableHead>Best Before</TableHead>
+                            <TableHead>Created By</TableHead>
+                            <TableHead>Created On</TableHead>
+                            <TableHead>Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {items.map(item => (
+                            <TableRow key={item.id}>
+                                <TableCell>{item.itemName}</TableCell>
+                                <TableCell>{item.type}</TableCell>
+                                <TableCell>{item.quantity}</TableCell>
+                                <TableCell>{item.bestBefore ? format(new Date(item.bestBefore), 'PP') : 'N/A'}</TableCell>
+                                <TableCell>{item.createdBy}</TableCell>
+                                <TableCell>{format(new Date(item.createdOn), 'PP p')}</TableCell>
+                                <TableCell>
+                                    <div className="flex gap-1">
+                                        <Button size="icon" variant="ghost" onClick={() => handleEditItem(item)}><Edit className="h-4 w-4"/></Button>
+                                        <Button size="icon" variant="ghost" onClick={() => handleDeleteItem(item.id)}><Trash className="h-4 w-4 text-destructive"/></Button>
+                                    </div>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            )}
+        </div>
+    );
+}
 
 
 type Props = {
@@ -837,8 +1068,21 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
 
+  const handleRadioChange = useCallback((val: string) => {
+    if (element.type === 'RadioGroup') {
+        onValueChange(element.id, val);
+    }
+  }, [onValueChange, element.id, element.type]);
+
   useEffect(() => {
     setIsClient(true);
+
+    if (element.type === 'RadioGroup' && isTableCell && rowContext && element.defaultValueKey && (initialValue === undefined || initialValue === null)) {
+        const dynamicDefaultValue = getNestedValue(rowContext, element.defaultValueKey);
+        if (dynamicDefaultValue !== undefined && dynamicDefaultValue !== null) {
+            onValueChange(element.id, String(dynamicDefaultValue));
+        }
+    }
   }, []);
 
   const value = useMemo(() => {
@@ -848,21 +1092,6 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
     }
     return finalValue;
   }, [initialValue]);
-
-  const handleRadioChange = useCallback((val: string) => {
-    if (element.type === 'RadioGroup') {
-        onValueChange(element.id, val);
-    }
-  }, [onValueChange, element.id, element.type]);
-
-    useEffect(() => {
-        if (element.type === 'RadioGroup' && isTableCell && rowContext && element.defaultValueKey && (value === undefined || value === null)) {
-            const dynamicDefaultValue = getNestedValue(rowContext, element.defaultValueKey);
-            if (dynamicDefaultValue !== undefined && dynamicDefaultValue !== null) {
-                onValueChange(element.id, String(dynamicDefaultValue));
-            }
-        }
-    }, [isTableCell, rowContext, element.type, element.defaultValueKey, value, onValueChange, element.id]);
 
 
   useEffect(() => {
@@ -1105,7 +1334,7 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
   
 
   useEffect(() => {
-    if (element.type !== 'Select' && element.type !== 'List' && element.type !== 'Combobox') {
+    if (element.type !== 'Select' && element.type !== 'List' && element.type !== 'Combobox' && element.type !== 'PayrollTable') {
         return;
     }
 
@@ -1164,7 +1393,7 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
             setDynamicOptions([]);
         }
     }
-}, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState, rowContext, isTableCell]);
+}, [element.dataSource, element.apiUrl, element.dataSourceParentId, element.dataSourceParentKey, formState, rowContext, isTableCell, element.type]);
 
 
   const { type, label, required, placeholder, helperText, options, popup, inputFormat, isLink, linkUrl, linkUrlKey, textStyle, color, content: richTextContent, key, direction, leadText, leadTextKey, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
@@ -2101,6 +2330,8 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
             configurations={configurations}
             sections={sections}
         />;
+    case "PayrollTable":
+        return <PayrollTableRenderer element={element} value={value} onValueChange={onValueChange} />;
     case "DataGrid":
         content = <DataGridRenderer 
             element={element} 

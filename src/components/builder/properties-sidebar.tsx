@@ -856,7 +856,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   
 
   useEffect(() => {
-    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'DataGrid') && element.dataSource === 'dynamic' && element.apiUrl) {
+    if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'DataGrid' || element.type === 'PayrollTable') && element.dataSource === 'dynamic' && element.apiUrl) {
         handleFetchSchema(element.apiUrl, false);
     }
   }, [element.apiUrl, element.dataSource, element.type]);
@@ -2377,6 +2377,64 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     </AccordionItem>
                 </Accordion>
             );
+        case "PayrollTable":
+            return (
+                <Accordion type="multiple" defaultValue={["general", "data", "features"]} className="w-full">
+                    <AccordionItem value="general">
+                        <AccordionTrigger className="py-2">General</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                            {commonFields}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="data">
+                        <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2 mb-1.5">
+                                <Label>Source Type</Label>
+                                <RadioGroup
+                                    value={element.dataSource || 'static'}
+                                    onValueChange={(val) => {
+                                      const newDataSource = val as 'static' | 'dynamic';
+                                      updateMultipleProperties({
+                                        dataSource: newDataSource,
+                                        options: newDataSource === 'static' ? (element.options || ['Option 1']) : undefined,
+                                        apiUrl: newDataSource === 'dynamic' ? (element.apiUrl || '') : undefined,
+                                        valueKey: newDataSource === 'dynamic' ? element.valueKey : undefined,
+                                        labelKey: newDataSource === 'dynamic' ? element.labelKey : undefined,
+                                      })
+                                    }}
+                                    className="flex"
+                                >
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="static" id="source-static-payroll" />
+                                        <Label htmlFor="source-static-payroll">Static</Label>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <RadioGroupItem value="dynamic" id="source-dynamic-payroll" />
+                                        <Label htmlFor="source-dynamic-payroll">API</Label>
+                                    </div>
+                                </RadioGroup>
+                            </div>
+                            {element.dataSource === 'dynamic' ? dynamicDataSourceFields() : optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="features">
+                        <AccordionTrigger className="py-2">Features</AccordionTrigger>
+                        <AccordionContent className="flex flex-col gap-4">
+                             <div className="flex flex-col gap-2">
+                                <Label htmlFor="attachmentCount">Max File Attachments</Label>
+                                <Input
+                                    id="attachmentCount"
+                                    type="number"
+                                    min="0"
+                                    value={element.attachmentCount ?? 3}
+                                    onChange={(e) => updateProperty('attachmentCount', e.target.value ? parseInt(e.target.value, 10) : 0)}
+                                />
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+            );
         case "DataGrid": {
             return (
                 <Accordion type="multiple" defaultValue={["general", "data", "columns", "features"]} className="w-full">
@@ -2571,6 +2629,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     
 
     
+
 
 
 
