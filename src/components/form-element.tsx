@@ -66,6 +66,7 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
     const { user } = useAuth();
     const [items, setItems] = useState<PayrollItem[]>(Array.isArray(value) ? value : []);
     const [isComboboxOpen, setIsComboboxOpen] = useState(false);
+    const [isBestBefore, setIsBestBefore] = useState(false);
 
     const [itemName, setItemName] = useState('');
     const [isCustomItem, setIsCustomItem] = useState(false);
@@ -85,6 +86,7 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
         setIsCustomItem(false);
         setQuantity(1);
         setBestBefore(undefined);
+        setIsBestBefore(false);
         setAttachments([]);
         setEditingItemId(null);
     };
@@ -96,9 +98,9 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
             itemName: itemName.trim(),
             isCustom: isCustomItem,
             quantity,
-            bestBefore: bestBefore?.toISOString(),
+            bestBefore: isBestBefore && bestBefore ? bestBefore.toISOString() : undefined,
             attachments,
-            type: isCustomItem ? 'Others' : 'Standard',
+            type: isCustomItem ? 'Other' : 'Approved',
             createdBy: user.username || user.email || 'N/A',
             createdOn: new Date().toISOString(),
         };
@@ -119,7 +121,13 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
         setItemName(item.itemName);
         setIsCustomItem(item.isCustom);
         setQuantity(item.quantity);
-        setBestBefore(item.bestBefore ? new Date(item.bestBefore) : undefined);
+        if (item.bestBefore) {
+            setIsBestBefore(true);
+            setBestBefore(new Date(item.bestBefore));
+        } else {
+            setIsBestBefore(false);
+            setBestBefore(undefined);
+        }
         setAttachments(item.attachments);
     };
 
@@ -134,7 +142,6 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
         const newFiles = Array.from(files);
         const totalFiles = attachments.length + newFiles.length;
         if (element.attachmentCount && totalFiles > element.attachmentCount) {
-            // Handle error - maybe a toast
             console.error(`Cannot upload more than ${element.attachmentCount} files.`);
             return;
         }
@@ -147,98 +154,100 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
 
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>{editingItemId ? 'Edit Item' : 'Add New Item'}</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Item Name</Label>
-                            {!isCustomItem ? (
-                                <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                                    <PopoverTrigger asChild>
-                                        <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                                            {itemName || "Select item..."}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
-                                        {comboboxOptions.map(option => (
-                                            <div key={option} 
-                                                onClick={() => {
-                                                    if (option === 'Other') {
-                                                        setIsCustomItem(true);
-                                                        setItemName('');
-                                                    } else {
-                                                        setItemName(option);
-                                                    }
-                                                    setIsComboboxOpen(false);
-                                                }}
-                                                className="p-2 text-sm cursor-pointer hover:bg-accent"
-                                            >
-                                                {option}
-                                            </div>
-                                        ))}
-                                    </PopoverContent>
-                                </Popover>
-                            ) : (
-                                <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="Enter custom item name" />
-                            )}
-                        </div>
-                        <div className="space-y-2">
-                             <Label>Quantity</Label>
-                             <div className="flex items-center gap-2">
-                                <Button size="icon" variant="outline" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="h-4 w-4"/></Button>
-                                <Input type="number" value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="text-center" />
-                                <Button size="icon" variant="outline" onClick={() => setQuantity(q => q + 1)}><Plus className="h-4 w-4"/></Button>
-                             </div>
-                        </div>
-                     </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>Best before (Optional)</Label>
-                            <Popover>
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                    <div className="space-y-2">
+                        <Label>Item Name *</Label>
+                        {!isCustomItem ? (
+                            <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
                                 <PopoverTrigger asChild>
-                                    <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !bestBefore && "text-muted-foreground")}>
-                                        <CalendarDays className="mr-2 h-4 w-4" />
-                                        {bestBefore ? format(bestBefore, "PPP") : <span>Pick a date</span>}
+                                    <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                                        {itemName || "Select item..."}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-auto p-0">
-                                    <Calendar mode="single" selected={bestBefore} onSelect={setBestBefore} initialFocus />
+                                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
+                                    {comboboxOptions.map(option => (
+                                        <div key={option} 
+                                            onClick={() => {
+                                                if (option === 'Other') {
+                                                    setIsCustomItem(true);
+                                                    setItemName('');
+                                                } else {
+                                                    setItemName(option);
+                                                }
+                                                setIsComboboxOpen(false);
+                                            }}
+                                            className="p-2 text-sm cursor-pointer hover:bg-accent"
+                                        >
+                                            {option}
+                                        </div>
+                                    ))}
                                 </PopoverContent>
                             </Popover>
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Attachments (Optional)</Label>
-                            <div className="flex flex-col items-center justify-center w-full border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-accent/50 p-2 text-center"
-                                 onClick={() => document.getElementById(`file-upload-${element.id}`)?.click()}>
-                                <Upload className="h-6 w-6 text-muted-foreground mb-1" />
-                                <p className="text-xs text-muted-foreground">Click or drag to upload</p>
-                            </div>
-                            <input id={`file-upload-${element.id}`} type="file" multiple className="hidden" onChange={e => handleFileChange(e.target.files)} />
-                        </div>
-                     </div>
-                     {attachments.length > 0 && (
-                        <div className="space-y-2">
-                            <Label>Selected Files:</Label>
-                            <div className="space-y-1">
+                        ) : (
+                            <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="Enter custom item name" />
+                        )}
+                    </div>
+                    <div className="space-y-2">
+                         <Label>Quantity *</Label>
+                         <div className="flex items-center gap-2">
+                            <Button size="icon" variant="outline" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="h-4 w-4"/></Button>
+                            <Input type="number" value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="text-center" />
+                            <Button size="icon" variant="outline" onClick={() => setQuantity(q => q + 1)}><Plus className="h-4 w-4"/></Button>
+                         </div>
+                    </div>
+                </div>
+                 <div className="flex items-center space-x-2">
+                    <Checkbox id="best-before-check" checked={isBestBefore} onCheckedChange={(checked) => setIsBestBefore(!!checked)} />
+                    <Label htmlFor="best-before-check">Best before / Use by date *</Label>
+                    {isBestBefore && (
+                         <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" className={cn("w-auto justify-start text-left font-normal", !bestBefore && "text-muted-foreground")}>
+                                    <CalendarDays className="mr-2 h-4 w-4" />
+                                    {bestBefore ? format(bestBefore, "PPP") : <span>Pick a date</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <Calendar mode="single" selected={bestBefore} onSelect={setBestBefore} initialFocus />
+                            </PopoverContent>
+                        </Popover>
+                    )}
+                </div>
+                <div>
+                    <Label>Product</Label>
+                    <div 
+                        className="mt-2 flex flex-col items-center justify-center w-full min-h-[120px] border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-accent/50 p-4"
+                        onClick={() => document.getElementById(`file-upload-${element.id}`)?.click()}
+                    >
+                         <input id={`file-upload-${element.id}`} type="file" multiple className="hidden" onChange={e => handleFileChange(e.target.files)} />
+                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                            <span className="font-semibold">Click to upload</span> or Drag and drop
+                        </p>
+                    </div>
+                     <p className="text-xs text-muted-foreground mt-2">
+                        * Supported File Types: {element.allowedFileTypes?.join(', ').toUpperCase() || 'ANY'} 
+                        * Allowed File Size: {element.maxFileSize || 5}MB per image 
+                        * Allowed Attachement Count: {element.attachmentCount || 3} only
+                     </p>
+                    {attachments.length > 0 && (
+                        <div className="space-y-2 mt-4">
                             {attachments.map((file, index) => (
                                 <div key={index} className="flex items-center justify-between text-sm p-1.5 bg-muted/50 rounded-md">
-                                    <span>{file.name}</span>
+                                    <div className="flex items-center gap-2"><FileIcon className="h-4 w-4"/> {file.name}</div>
                                     <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeAttachment(index)}><X className="h-4 w-4 text-destructive"/></Button>
                                 </div>
                             ))}
-                            </div>
                         </div>
-                     )}
-                </CardContent>
-                <CardFooter>
-                    <Button onClick={handleAddOrUpdateItem}>{editingItemId ? 'Update Item' : 'Add Item'}</Button>
-                    {editingItemId && <Button variant="ghost" onClick={resetForm}>Cancel Edit</Button>}
-                </CardFooter>
-            </Card>
+                    )}
+                </div>
+                 <div className="flex justify-end">
+                    <Button onClick={handleAddOrUpdateItem} disabled={!itemName.trim()}>{editingItemId ? 'Update' : 'Add'}</Button>
+                    {editingItemId && <Button variant="ghost" onClick={resetForm}>Cancel</Button>}
+                </div>
+            </div>
 
             {items.length > 0 && (
                  <Table>
@@ -248,9 +257,10 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
                             <TableHead>Type</TableHead>
                             <TableHead>Quantity</TableHead>
                             <TableHead>Best Before</TableHead>
-                            <TableHead>Created By</TableHead>
-                            <TableHead>Created On</TableHead>
-                            <TableHead>Actions</TableHead>
+                            <TableHead>Created BY</TableHead>
+                            <TableHead>Created ON</TableHead>
+                            <TableHead>Attachment</TableHead>
+                            <TableHead>Action</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -259,9 +269,16 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
                                 <TableCell>{item.itemName}</TableCell>
                                 <TableCell>{item.type}</TableCell>
                                 <TableCell>{item.quantity}</TableCell>
-                                <TableCell>{item.bestBefore ? format(new Date(item.bestBefore), 'PP') : 'N/A'}</TableCell>
+                                <TableCell>{item.bestBefore ? format(new Date(item.bestBefore), 'dd/MM/yyyy') : 'N/A'}</TableCell>
                                 <TableCell>{item.createdBy}</TableCell>
-                                <TableCell>{format(new Date(item.createdOn), 'PP p')}</TableCell>
+                                <TableCell>{format(new Date(item.createdOn), 'dd/MM/yyyy')}</TableCell>
+                                <TableCell>
+                                    {item.attachments.map((file, i) => (
+                                        <a key={i} href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1 text-sm">
+                                           <FileIcon className="h-4 w-4" /> {file.name}
+                                        </a>
+                                    ))}
+                                </TableCell>
                                 <TableCell>
                                     <div className="flex gap-1">
                                         <Button size="icon" variant="ghost" onClick={() => handleEditItem(item)}><Edit className="h-4 w-4"/></Button>
@@ -1083,6 +1100,7 @@ const MemoizedFormElementRenderer = React.memo(function FormElementRenderer({ el
             onValueChange(element.id, String(dynamicDefaultValue));
         }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = useMemo(() => {
