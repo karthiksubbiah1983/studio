@@ -46,19 +46,7 @@ import {
 } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 
-type PayrollItem = {
-    id: string;
-    itemName: string;
-    isCustom: boolean;
-    quantity: number;
-    bestBefore?: string;
-    attachments: File[];
-    type: string;
-    createdBy: string;
-    createdOn: string;
-};
-
-function PayrollTableRenderer({ element, value, onValueChange }: { 
+const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element, value, onValueChange }: { 
     element: FormElementInstance, 
     value: any, 
     onValueChange: (id: string, value: any) => void 
@@ -95,7 +83,7 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
         if (editingItemId) setEditingItemId(null);
     };
 
-    const handleItemSelect = useCallback((option: string) => {
+    const handleItemSelect = (option: string) => {
         if (option === 'Other') {
             setIsCustomItem(true);
             setItemName('');
@@ -104,7 +92,7 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
             setIsCustomItem(false);
         }
         setIsComboboxOpen(false);
-    }, []);
+    };
 
     const handleAddOrUpdateItem = () => {
         if (!itemName.trim() || !user) return;
@@ -181,16 +169,26 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
                                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                     </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="p-0 w-[--radix-popover-trigger-width]">
-                                    {comboboxOptions.map(option => (
-                                        <button
-                                            key={option}
-                                            onClick={() => handleItemSelect(option)}
-                                            className="p-2 text-sm cursor-pointer hover:bg-accent w-full text-left"
-                                        >
-                                            {option}
-                                        </button>
-                                    ))}
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                    <ScrollArea className="max-h-60">
+                                        <div className="p-1">
+                                            {comboboxOptions.map((option) => (
+                                                <div
+                                                    key={option}
+                                                    onClick={() => handleItemSelect(option)}
+                                                    className="text-sm p-2 rounded-sm cursor-pointer hover:bg-accent flex items-center"
+                                                >
+                                                    <Check
+                                                        className={cn(
+                                                            "mr-2 h-4 w-4",
+                                                            itemName === option ? "opacity-100" : "opacity-0"
+                                                        )}
+                                                    />
+                                                    {option}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
                                 </PopoverContent>
                             </Popover>
                         ) : (
@@ -244,7 +242,7 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
                         <div className="space-y-2 mt-4">
                             {attachments.map((file, index) => (
                                 <div key={index} className="flex items-center justify-between text-sm p-1.5 bg-muted/50 rounded-md">
-                                    <div className="flex items-center gap-2"><FileIcon className="h-4 w-4"/> {file.name}</div>
+                                    <div className="flex items-center gap-2 overflow-hidden"><FileIcon className="h-4 w-4"/> {file.name}</div>
                                     <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeAttachment(index)}><X className="h-4 w-4 text-destructive"/></Button>
                                 </div>
                             ))}
@@ -259,6 +257,9 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
 
             {items.length > 0 && (
                 <div className="border rounded-lg">
+                    <div className="p-4 bg-[#F2F9FF] rounded-t-lg">
+                        <h3 className="font-bold text-sm text-[#004687]">Product List</h3>
+                    </div>
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -302,9 +303,23 @@ function PayrollTableRenderer({ element, value, onValueChange }: {
             )}
         </div>
     );
-}
+});
+PayrollTableRenderer.displayName = "PayrollTableRenderer";
 
-function DataGridRenderer({ element, value, onValueChange, formState, rules, configurations, sections }: { 
+
+type PayrollItem = {
+    id: string;
+    itemName: string;
+    isCustom: boolean;
+    quantity: number;
+    bestBefore?: string;
+    attachments: File[];
+    type: string;
+    createdBy: string;
+    createdOn: string;
+};
+
+const DataGridRenderer = React.memo(function DataGridRenderer({ element, value, onValueChange, formState, rules, configurations, sections }: { 
     element: FormElementInstance, 
     value: any, 
     onValueChange: (id: string, value: any) => void, 
@@ -527,7 +542,8 @@ function DataGridRenderer({ element, value, onValueChange, formState, rules, con
             )}
         </div>
     );
-}
+});
+DataGridRenderer.displayName = "DataGridRenderer";
 
 type EditableTableProps = {
   element: FormElementInstance;
@@ -539,7 +555,7 @@ type EditableTableProps = {
   sections?: Section[];
 };
 
-function EditableTable({ element, value, onValueChange, formState, rules, configurations, sections }: EditableTableProps) {
+const EditableTable = React.memo(function EditableTable({ element, value, onValueChange, formState, rules, configurations, sections }: EditableTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [activePopupPreview, setActivePopupPreview] = useState<{ rowId: string, sections: any[] } | null>(null);
   const [activeInlinePreview, setActiveInlinePreview] = useState<{ rowId: string, sections: any[] } | null>(null);
@@ -844,9 +860,11 @@ function EditableTable({ element, value, onValueChange, formState, rules, config
         )}
     </div>
   );
-}
+});
+EditableTable.displayName = "EditableTable";
 
-function DataListRenderer({ element, value, onValueChange, activeFilters }: { 
+
+const DataListRenderer = React.memo(function DataListRenderer({ element, value, onValueChange, activeFilters }: { 
     element: FormElementInstance, 
     value: any, 
     onValueChange: (id: string, value: any, fullObject?: any) => void,
@@ -1040,7 +1058,8 @@ function DataListRenderer({ element, value, onValueChange, activeFilters }: {
              )}
         </div>
     );
-}
+});
+DataListRenderer.displayName = "DataListRenderer";
 
 type Props = {
   element: FormElementInstance;
@@ -2023,7 +2042,8 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         break;
     }
     case "DataList":
-        return <DataListRenderer element={element} value={value} onValueChange={onValueChange} activeFilters={activeFilters} />;
+        content = <DataListRenderer element={element} value={value} onValueChange={onValueChange} activeFilters={activeFilters} />;
+        break;
     case "Checkbox": {
         const isChecked = value === true;
         const handleCheckedChange = (checked: boolean) => {
@@ -2347,7 +2367,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         )
         break;
      case "EditableTable":
-        return <EditableTable 
+        content = <EditableTable 
             element={element} 
             value={value} 
             onValueChange={onValueChange}
@@ -2356,8 +2376,10 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
             configurations={configurations}
             sections={sections}
         />;
+        break;
     case "PayrollTable":
-        return <PayrollTableRenderer element={element} value={value} onValueChange={onValueChange} />;
+        content = <PayrollTableRenderer element={element} value={value} onValueChange={onValueChange} />;
+        break;
     case "DataGrid":
         content = <DataGridRenderer 
             element={element} 
@@ -2371,7 +2393,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         break;
     case "TaskHistory":
         if (!element.dataGridColumns || element.dataGridColumns.length === 0) {
-            return (
+            content = (
                 <div>
                     {renderLabel()}
                     <div className="rounded-md border bg-background p-4 flex flex-col items-center justify-center gap-2 min-h-[150px] text-muted-foreground">
@@ -2380,30 +2402,32 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                     </div>
                 </div>
             );
-        }
-        return (
-            <div>
-                {renderLabel()}
-                <div className="mt-2 rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                {element.dataGridColumns.map(col => (
-                                    <TableHead key={col.id} style={{ width: col.width || 'auto' }}>{col.header}</TableHead>
-                                ))}
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell colSpan={element.dataGridColumns.length} className="h-24 text-center">
-                                    Historical data will be shown here.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
+        } else {
+            content = (
+                <div>
+                    {renderLabel()}
+                    <div className="mt-2 rounded-lg border">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    {element.dataGridColumns.map(col => (
+                                        <TableHead key={col.id} style={{ width: col.width || 'auto' }}>{col.header}</TableHead>
+                                    ))}
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                <TableRow>
+                                    <TableCell colSpan={element.dataGridColumns.length} className="h-24 text-center">
+                                        Historical data will be shown here.
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
                 </div>
-            </div>
-        );
+            );
+        }
+        break;
     default:
       content = <div>Unsupported element type: {type}</div>;
       break;
@@ -2413,6 +2437,8 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
 
   return <div style={wrapperStyle}>{content}</div>;
 }
+FormElementRenderer.displayName = "FormElementRenderer";
+
 
 const MemoizedFormElementRenderer = React.memo(FormElementRenderer);
 
