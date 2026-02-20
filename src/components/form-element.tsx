@@ -53,7 +53,6 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
 }) {
     const { user } = useAuth();
     const [items, setItems] = useState<PayrollItem[]>([]);
-    const [isComboboxOpen, setIsComboboxOpen] = useState(false);
     const [isBestBefore, setIsBestBefore] = useState(false);
 
     const [itemName, setItemName] = useState('');
@@ -83,7 +82,7 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
         if (editingItemId) setEditingItemId(null);
     };
 
-    const handleItemSelect = (option: string) => {
+    const handleItemSelect = useCallback((option: string) => {
         if (option === 'Other') {
             setIsCustomItem(true);
             setItemName('');
@@ -91,8 +90,7 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
             setItemName(option);
             setIsCustomItem(false);
         }
-        setIsComboboxOpen(false);
-    };
+    }, []);
 
     const handleAddOrUpdateItem = () => {
         if (!itemName.trim() || !user) return;
@@ -162,35 +160,18 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
                     <div className="space-y-2">
                         <Label>Item Name *</Label>
                         {!isCustomItem ? (
-                            <Popover open={isComboboxOpen} onOpenChange={setIsComboboxOpen}>
-                                <PopoverTrigger asChild>
-                                    <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                                        {itemName || "Select item..."}
-                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                                    <ScrollArea className="max-h-60">
-                                        <div className="p-1">
-                                            {comboboxOptions.map((option) => (
-                                                <div
-                                                    key={option}
-                                                    onClick={() => handleItemSelect(option)}
-                                                    className="text-sm p-2 rounded-sm cursor-pointer hover:bg-accent flex items-center"
-                                                >
-                                                    <Check
-                                                        className={cn(
-                                                            "mr-2 h-4 w-4",
-                                                            itemName === option ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                    />
-                                                    {option}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </ScrollArea>
-                                </PopoverContent>
-                            </Popover>
+                            <Select onValueChange={handleItemSelect} value={itemName}>
+                                <SelectTrigger className="w-full font-normal">
+                                    <SelectValue placeholder="Select item..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {comboboxOptions.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         ) : (
                             <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="Enter custom item name" />
                         )}
@@ -206,7 +187,7 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
                 </div>
                  <div className="flex items-center space-x-2">
                     <Checkbox id="best-before-check" checked={isBestBefore} onCheckedChange={(checked) => setIsBestBefore(!!checked)} />
-                    <Label htmlFor="best-before-check">Best before / Use by date *</Label>
+                    <Label htmlFor="best-before-check">Best before / Use by date</Label>
                     {isBestBefore && (
                          <Popover>
                             <PopoverTrigger asChild>
@@ -242,7 +223,7 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
                         <div className="space-y-2 mt-4">
                             {attachments.map((file, index) => (
                                 <div key={index} className="flex items-center justify-between text-sm p-1.5 bg-muted/50 rounded-md">
-                                    <div className="flex items-center gap-2 overflow-hidden"><FileIcon className="h-4 w-4"/> {file.name}</div>
+                                    <div className="flex items-center gap-2 overflow-hidden"><FileIcon className="h-4 w-4" /> {file.name}</div>
                                     <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeAttachment(index)}><X className="h-4 w-4 text-destructive"/></Button>
                                 </div>
                             ))}
