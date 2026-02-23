@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react"
@@ -158,7 +157,7 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
             <div className="space-y-6 p-4 border rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     <div className="space-y-2">
-                        <Label>Item Name *</Label>
+                        <Label>Item Name</Label>
                          <Select onValueChange={handleItemSelect} value={isCustomItem ? 'Other' : itemName}>
                             <SelectTrigger className="w-full font-normal">
                                 <SelectValue placeholder="Select item..." />
@@ -174,7 +173,7 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
                         {isCustomItem && <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="Enter custom item name" className="mt-2" />}
                     </div>
                     <div className="space-y-2">
-                         <Label>Quantity *</Label>
+                         <Label>Quantity</Label>
                          <div className="flex items-center gap-2">
                             <Button size="icon" variant="outline" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="h-4 w-4"/></Button>
                             <Input type="number" value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="text-center" />
@@ -1792,11 +1791,17 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                         ))
                     ) : (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.dataSource === 'local') ? (
                         filteredOptions.map((option, index) => {
-                            const valueKey = element.dataSource === 'local' ? 'id' : element.valueKey!;
-                            const labelKey = element.dataSource === 'local' ? element.labelKey! : element.labelKey!;
+                            let itemValue, itemLabel;
+                            if (element.dataSource === 'local') {
+                                itemValue = getNestedValue(option, 'id');
+                                itemLabel = getNestedValue(option.data, element.labelKey!);
+                            } else { // dynamic or fromParent
+                                itemValue = getNestedValue(option, element.valueKey!);
+                                itemLabel = getNestedValue(option, element.labelKey!);
+                            }
                             return (
-                                <SelectItem key={index} value={String(getNestedValue(option, valueKey))}>
-                                {getNestedValue(option, labelKey)}
+                                <SelectItem key={index} value={String(itemValue)}>
+                                {itemLabel}
                                 </SelectItem>
                             )
                         })
@@ -2479,3 +2484,5 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
+    
