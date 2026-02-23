@@ -1861,10 +1861,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                     <h4 className="font-medium text-sm">Cascading Filter</h4>
                                                      <div className="flex flex-col gap-2">
                                                         <Label>Parent Field</Label>
-                                                        <Select value={element.parentFieldId || ''} onValueChange={v => updateProperty('parentFieldId', v)}>
+                                                        <Select value={element.parentFieldId || 'none'} onValueChange={v => updateProperty('parentFieldId', v === 'none' ? undefined : v)}>
                                                             <SelectTrigger><SelectValue placeholder="Select parent field..." /></SelectTrigger>
                                                             <SelectContent>
-                                                                <SelectItem value="">None</SelectItem>
+                                                                <SelectItem value="none">None</SelectItem>
                                                                 {allElements.filter(el => 'type' in el && el.type === 'Select' && el.id !== element.id).map(el => (
                                                                     <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>
                                                                 ))}
