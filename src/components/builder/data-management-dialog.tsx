@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, memo, useMemo } from 'react';
@@ -234,44 +235,43 @@ const AdvancedDatasetEditor = memo(({ dataset, allDatasets, onUpdate, onDelete }
 });
 AdvancedDatasetEditor.displayName = "AdvancedDatasetEditor";
 
-const AdvancedDatasetsTab = () => {
-    const { advancedDatasets, updateAdvancedDatasets } = useBuilder();
-    const [localDatasets, setLocalDatasets] = useState<AdvancedDataset[]>([]);
+const AdvancedDatasetsTab = ({ 
+    datasets, 
+    setDatasets 
+}: { 
+    datasets: AdvancedDataset[], 
+    setDatasets: (datasets: AdvancedDataset[]) => void 
+}) => {
     const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
 
     useEffect(() => {
-        const datasetsCopy = JSON.parse(JSON.stringify(advancedDatasets || []));
-        setLocalDatasets(datasetsCopy);
-        if (datasetsCopy.length > 0 && !selectedDatasetId) {
-            setSelectedDatasetId(datasetsCopy[0].id);
-        } else if (datasetsCopy.length === 0) {
+        if (datasets.length > 0 && !datasets.some(d => d.id === selectedDatasetId)) {
+            setSelectedDatasetId(datasets[0].id);
+        } else if (datasets.length === 0) {
             setSelectedDatasetId(null);
         }
-    }, [advancedDatasets, selectedDatasetId]);
+    }, [datasets, selectedDatasetId]);
 
     const handleAddDataset = () => {
         const newDataset: AdvancedDataset = {
             id: crypto.randomUUID(),
-            name: `New Table ${localDatasets.length + 1}`,
+            name: `New Table ${datasets.length + 1}`,
             columns: [{ id: 'col_primary', name: 'Primary Column', type: 'text' }],
             rows: [],
         };
-        setLocalDatasets(prev => [...prev, newDataset]);
+        setDatasets([...datasets, newDataset]);
         setSelectedDatasetId(newDataset.id);
     };
 
     const handleDeleteDataset = (id: string) => {
-        setLocalDatasets(prev => prev.filter(ds => ds.id !== id));
-        if (selectedDatasetId === id) {
-            setSelectedDatasetId(localDatasets.length > 1 ? localDatasets.filter(ds => ds.id !== id)[0].id : null);
-        }
+        setDatasets(datasets.filter(ds => ds.id !== id));
     };
     
     const handleUpdateDataset = (updatedDataset: AdvancedDataset) => {
-        setLocalDatasets(prev => prev.map(ds => ds.id === updatedDataset.id ? updatedDataset : ds));
+        setDatasets(datasets.map(ds => ds.id === updatedDataset.id ? updatedDataset : ds));
     };
 
-    const selectedDataset = localDatasets.find(ds => ds.id === selectedDatasetId);
+    const selectedDataset = datasets.find(ds => ds.id === selectedDatasetId);
 
     return (
         <div className="flex-1 flex overflow-hidden bg-slate-50">
@@ -283,7 +283,7 @@ const AdvancedDatasetsTab = () => {
                 </div>
                 <ScrollArea className="flex-1">
                     <div className="p-4 space-y-2">
-                        {localDatasets.length > 0 ? localDatasets.map(ds => (
+                        {datasets.length > 0 ? datasets.map(ds => (
                             <div key={ds.id} className="relative group/dataset">
                                 <button onClick={() => setSelectedDatasetId(ds.id)} className={cn("w-full text-left px-3 py-2 truncate text-sm rounded-md", selectedDatasetId === ds.id ? 'bg-blue-50 font-semibold text-primary' : 'hover:bg-accent/50')}>
                                     {ds.name}
@@ -300,7 +300,7 @@ const AdvancedDatasetsTab = () => {
             </aside>
             <main className="flex-1 flex flex-col min-h-0">
                 {selectedDataset ? (
-                    <AdvancedDatasetEditor dataset={selectedDataset} allDatasets={localDatasets} onUpdate={handleUpdateDataset} onDelete={() => handleDeleteDataset(selectedDataset.id)} />
+                    <AdvancedDatasetEditor dataset={selectedDataset} allDatasets={datasets} onUpdate={handleUpdateDataset} onDelete={() => handleDeleteDataset(selectedDataset.id)} />
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
                         <TableIcon className="h-12 w-12 mb-4" />
@@ -317,32 +317,39 @@ const AdvancedDatasetsTab = () => {
 // #endregion Advanced Datasets Components
 
 export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
-  const { localDatasets, updateLocalDatasets } = useBuilder();
+  const { localDatasets, updateLocalDatasets, advancedDatasets, updateAdvancedDatasets } = useBuilder();
   const [activeTab, setActiveTab] = useState('simple');
   
-  // State specifically for the simple datasets tab
+  // State for simple datasets tab
   const [simpleDatasets, setSimpleDatasets] = useState<LocalDataset[]>([]);
   const [selectedSimpleDatasetId, setSelectedSimpleDatasetId] = useState<string | null>(null);
 
+  // State for advanced datasets tab
+  const [localAdvancedDatasets, setLocalAdvancedDatasets] = useState<AdvancedDataset[]>([]);
+
   useEffect(() => {
     if (isOpen) {
-      const initialDatasets = JSON.parse(JSON.stringify(localDatasets || []));
-      setSimpleDatasets(initialDatasets);
-      
-      const selectedExists = initialDatasets.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
-      if (initialDatasets.length > 0 && !selectedExists) {
-        setSelectedSimpleDatasetId(initialDatasets[0].id);
-      } else if (initialDatasets.length === 0) {
+      // Simple Datasets
+      const initialSimple = JSON.parse(JSON.stringify(localDatasets || []));
+      setSimpleDatasets(initialSimple);
+      const selectedSimpleExists = initialSimple.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
+      if (initialSimple.length > 0 && !selectedSimpleExists) {
+        setSelectedSimpleDatasetId(initialSimple[0].id);
+      } else if (initialSimple.length === 0) {
         setSelectedSimpleDatasetId(null);
       }
+
+      // Advanced Datasets
+      const initialAdvanced = JSON.parse(JSON.stringify(advancedDatasets || []));
+      setLocalAdvancedDatasets(initialAdvanced);
     }
-  }, [isOpen, localDatasets, selectedSimpleDatasetId]);
+  }, [isOpen, localDatasets, advancedDatasets]);
 
   const handleSaveChanges = () => {
     if (activeTab === 'simple') {
       updateLocalDatasets(simpleDatasets);
     } else {
-      // TODO: updateAdvancedDatasets() will be called from within its tab
+      updateAdvancedDatasets(localAdvancedDatasets);
     }
     onOpenChange(false);
   };
@@ -422,7 +429,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
                 </main>
             </TabsContent>
             <TabsContent value="advanced" className="flex-1 overflow-hidden flex bg-slate-50 m-0">
-                <AdvancedDatasetsTab />
+                <AdvancedDatasetsTab datasets={localAdvancedDatasets} setDatasets={setLocalAdvancedDatasets} />
             </TabsContent>
         </Tabs>
 
