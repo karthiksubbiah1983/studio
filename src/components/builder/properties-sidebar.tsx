@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { X, Plus, icons, AlignStartVertical, AlignCenterVertical, AlignEndVertical, StretchVertical, Baseline, AlignStartHorizontal, AlignCenterHorizontal, AlignEndHorizontal, AlignHorizontalSpaceBetween, AlignHorizontalSpaceAround, Pilcrow, CaseSensitive, Palette, GitCommitHorizontal, Link2, Settings2, Edit, Trash, Link, ChevronUp, ChevronDown } from "lucide-react";
-import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig, DataGridColumn, CustomOption } from "@/lib/types";
+import { FormElementInstance, PopupConfig, Section, Rule, Condition, RuleBehaviorType, ElementType, ListItemElement, TableColumn, Configuration, DisplayDataSourceConfig, DataGridColumn, CustomOption, AdvancedDataset } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -787,7 +787,7 @@ function DataGridColumnEditor({
 }
 
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false, dataSourceKeys = [] }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean, dataSourceKeys?: string[] }) {
-  const { dispatch, state, sections, rules, localDatasets } = useBuilder();
+  const { dispatch, state, sections, rules, localDatasets, advancedDatasets } = useBuilder();
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
@@ -854,6 +854,18 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       return Array.from(keys);
   }, [parentGrid, localDatasets, dataSourceKeys, displayDataSourceKeys, fetchedKeys]);
   
+  const currentDataset = useMemo(() => {
+    if (element.dataSource === 'local' && element.localDatasetName) {
+        return advancedDatasets.find(ds => ds.name === element.localDatasetName) || null;
+    }
+    return null;
+  }, [element, advancedDatasets]);
+
+  const linkColumns = useMemo(() => {
+      if (!currentDataset) return [];
+      return (currentDataset as AdvancedDataset).columns.filter(c => c.type === 'link');
+  }, [currentDataset]);
+
 
   useEffect(() => {
     if ((element.type === 'Select' || element.type === 'List' || element.type === 'Combobox' || element.type === 'DataGrid' || element.type === 'PayrollTable') && element.dataSource === 'dynamic' && element.apiUrl) {
@@ -1784,7 +1796,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <RadioGroup
                                             value={element.dataSource || 'static'}
                                             onValueChange={(val) => {
-                                              const newDataSource = val as 'static' | 'dynamic' | 'fromParent';
+                                              const newDataSource = val as 'static' | 'dynamic' | 'fromParent' | 'local';
                                               updateMultipleProperties({
                                                 dataSource: newDataSource,
                                                 options: newDataSource === 'static' ? (element.options || ['Option 1']) : undefined,
@@ -1794,26 +1806,88 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                 dataSourceParentId: newDataSource === 'fromParent' || (newDataSource === 'dynamic' && element.apiUrl?.includes('{')) ? element.dataSourceParentId : undefined,
                                                 dataSourceParentKey: newDataSource === 'fromParent' ? element.dataSourceParentKey : undefined,
                                                 customOptions: newDataSource === 'dynamic' ? (element.customOptions || []) : undefined,
+                                                localDatasetName: newDataSource === 'local' ? element.localDatasetName : undefined,
                                               })
                                             }}
-                                            className="grid grid-cols-3 gap-2"
+                                            className="grid grid-cols-2 gap-2"
                                         >
-                                            <Label htmlFor="source-static" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                            <Label htmlFor="source-static" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                                 <RadioGroupItem value="static" id="source-static" />
                                                 Static
                                             </Label>
-                                            <Label htmlFor="source-dynamic" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                            <Label htmlFor="source-dynamic" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                                 <RadioGroupItem value="dynamic" id="source-dynamic" />
                                                 API
                                             </Label>
-                                            <Label htmlFor="source-from-parent" className="flex items-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                            <Label htmlFor="source-from-parent" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                                 <RadioGroupItem value="fromParent" id="source-from-parent" />
                                                 Parent Field
+                                            </Label>
+                                             <Label htmlFor="source-local" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                                <RadioGroupItem value="local" id="source-local" />
+                                                Local Dataset
                                             </Label>
                                         </RadioGroup>
                                     </div>
                                     {element.dataSource === 'dynamic' ? dynamicDataSourceFields() : 
                                      element.dataSource === 'fromParent' ? parentDataSourceFields() : 
+                                     element.dataSource === 'local' ? (
+                                        <div className="flex flex-col gap-4">
+                                            <div className="flex flex-col gap-2">
+                                                <Label>Dataset</Label>
+                                                <Select value={element.localDatasetName || ''} onValueChange={(name) => updateMultipleProperties({ localDatasetName: name, valueKey: 'id', labelKey: '', parentFieldId: undefined, filterColumnId: undefined })}>
+                                                    <SelectTrigger><SelectValue placeholder="Select a local dataset..."/></SelectTrigger>
+                                                    <SelectContent>
+                                                        {advancedDatasets.map(ds => (
+                                                            <SelectItem key={ds.id} value={ds.name}>{ds.name}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+                                            {element.localDatasetName && currentDataset && (
+                                                <>
+                                                    <div className="flex flex-col gap-2">
+                                                        <Label>Display Label Column</Label>
+                                                        <Select value={element.labelKey || ''} onValueChange={key => updateProperty('labelKey', key)}>
+                                                            <SelectTrigger><SelectValue placeholder="Select column for label..."/></SelectTrigger>
+                                                            <SelectContent>
+                                                                {(currentDataset as AdvancedDataset).columns.map(col => (
+                                                                    <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    <Separator />
+                                                    <h4 className="font-medium text-sm">Cascading Filter</h4>
+                                                     <div className="flex flex-col gap-2">
+                                                        <Label>Parent Field</Label>
+                                                        <Select value={element.parentFieldId || ''} onValueChange={v => updateProperty('parentFieldId', v)}>
+                                                            <SelectTrigger><SelectValue placeholder="Select parent field..." /></SelectTrigger>
+                                                            <SelectContent>
+                                                                <SelectItem value="">None</SelectItem>
+                                                                {allElements.filter(el => 'type' in el && el.type === 'Select' && el.id !== element.id).map(el => (
+                                                                    <SelectItem key={el.id} value={el.id}>{el.label}</SelectItem>
+                                                                ))}
+                                                            </SelectContent>
+                                                        </Select>
+                                                    </div>
+                                                    {element.parentFieldId && (
+                                                        <div className="flex flex-col gap-2">
+                                                            <Label>Filter Using Column</Label>
+                                                            <Select value={element.filterColumnId || ''} onValueChange={v => updateProperty('filterColumnId', v)}>
+                                                                <SelectTrigger><SelectValue placeholder="Select link column..." /></SelectTrigger>
+                                                                <SelectContent>
+                                                                {linkColumns.map(col => (
+                                                                    <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
+                                                                ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                     ) :
                                      optionsField(element.options, (newOptions) => updateProperty('options', newOptions))}
                                 </>
                             )}

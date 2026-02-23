@@ -1,7 +1,7 @@
 
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, LocalDataset, AdvancedDataset, ChecklistRepository, TaskType, TaskTypeConfiguration, ChecklistCategory, ChecklistQuestion, ChecklistAnswerOption } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, LocalDataset, AdvancedDataset, ChecklistRepository, TaskType, TaskTypeConfiguration, ChecklistCategory, ChecklistQuestion, ChecklistAnswerOption, AdvancedRow } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
@@ -326,6 +326,95 @@ const demoTemplate: Form = {
             localDatasets: [],
         },
     ],
+};
+
+const sampleAdvancedDatasets: AdvancedDataset[] = [
+  {
+    id: 'incident_types_table',
+    name: 'IncidentTypes',
+    columns: [
+      { id: 'it_col_name', name: 'Name', type: 'text' },
+    ],
+    rows: [
+      { id: 'it_row_1', data: { 'it_col_name': "Injury" } },
+      { id: 'it_row_2', data: { 'it_col_name': "Property Damage" } },
+      { id: 'it_row_3', data: { 'it_col_name': "Public Liability" } },
+    ],
+  },
+  {
+    id: 'incident_subtypes_table',
+    name: 'IncidentSubtypes',
+    columns: [
+      { id: 'ist_col_name', name: 'Name', type: 'text' },
+      { 
+        id: 'ist_col_link', 
+        name: 'Related Types', 
+        type: 'link', 
+        linkToDatasetId: 'incident_types_table', 
+        allowMultipleLinks: true 
+      },
+    ],
+    rows: [
+      { id: 'ist_row_1', data: { 'ist_col_name': "Slip & Fall", 'ist_col_link': ['it_row_1', 'it_row_3'] } },
+      { id: 'ist_row_2', data: { 'ist_col_name': "Minor Cut", 'ist_col_link': ['it_row_1'] } },
+      { id: 'ist_row_3', data: { 'ist_col_name': "Broken Window", 'ist_col_link': ['it_row_2'] } },
+      { id: 'ist_row_4', data: { 'ist_col_name': "Equipment Failure", 'ist_col_link': ['it_row_2'] } },
+    ],
+  }
+];
+
+const advancedCascadingDemoTemplate: Form = {
+    id: "demo-advanced-cascading",
+    title: "Advanced Cascading (Many-to-Many)",
+    categoryId: "demo-templates",
+    versions: [
+        {
+            id: crypto.randomUUID(),
+            name: "Initial Version",
+            description: "A template demonstrating many-to-many cascading dropdowns using Advanced Datasets.",
+            type: "published",
+            timestamp: new Date().toISOString(),
+            sections: [
+                {
+                    id: "s1_adv_cascade",
+                    title: "Incident Report",
+                    displayMode: "default",
+                    elements: [
+                         {
+                            id: "adv_parent_incident_type",
+                            type: "Select",
+                            key: "incident_type",
+                            label: "Incident Type",
+                            required: true,
+                            dataSource: 'local',
+                            localDatasetName: 'IncidentTypes',
+                            valueKey: 'id', // Use the row ID as the value
+                            labelKey: 'it_col_name', // Use the 'Name' column for the label
+                            placeholder: "Select an incident type..."
+                        },
+                        {
+                            id: "adv_child_incident_subtype",
+                            type: "Select",
+                            key: "incident_subtype",
+                            label: "Incident Subtype",
+                            required: true,
+                            dataSource: 'local',
+                            localDatasetName: 'IncidentSubtypes',
+                            valueKey: 'id', // Use the row ID as the value
+                            labelKey: 'ist_col_name', // Use the 'Name' column for the label
+                            parentFieldId: 'adv_parent_incident_type', // Link to parent
+                            filterColumnId: 'ist_col_link', // The column in this dataset that links to the parent's dataset
+                            placeholder: "Select a subtype..."
+                        },
+                    ],
+                },
+            ],
+            rules: [],
+            workflows: [],
+            configurations: [],
+            advancedDatasets: sampleAdvancedDatasets,
+        }
+    ]
 };
 
 const demoCategory: Category = {
@@ -1426,6 +1515,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     }
     if (!mergedState.forms.some(f => f.id === editableTableCascadingDemo.id)) {
         mergedState.forms.unshift(editableTableCascadingDemo);
+    }
+     if (!mergedState.forms.some(f => f.id === advancedCascadingDemoTemplate.id)) {
+        mergedState.forms.unshift(advancedCascadingDemoTemplate);
     }
     if (!mergedState.categories.some(c => c.id === demoCategory.id)) {
         mergedState.categories.unshift(demoCategory);

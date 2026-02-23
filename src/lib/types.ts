@@ -260,6 +260,9 @@ export type FormElementInstance = {
     dataSourceParentKey?: string | null;
     customOptions?: CustomOption[];
     customOptionsPosition?: 'top' | 'bottom';
+     // For advanced local dataset filtering
+    parentFieldId?: string;
+    filterColumnId?: string;
     // For Display
     dataSourceConfig?: DisplayDataSourceConfig;
     textStyle?: 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';

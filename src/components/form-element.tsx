@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react"
-import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset, DataGridColumn, ChecklistRepository, TaskTypeConfiguration, ChecklistQuestion, ChecklistAnswerOption, ChecklistCategory } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset, DataGridColumn, ChecklistRepository, TaskTypeConfiguration, ChecklistQuestion, ChecklistAnswerOption, ChecklistCategory, AdvancedRow, AdvancedDataset } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -159,22 +159,19 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
                     <div className="space-y-2">
                         <Label>Item Name *</Label>
-                        {!isCustomItem ? (
-                            <Select onValueChange={handleItemSelect} value={itemName}>
-                                <SelectTrigger className="w-full font-normal">
-                                    <SelectValue placeholder="Select item..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {comboboxOptions.map((option) => (
-                                        <SelectItem key={option} value={option}>
-                                            {option}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        ) : (
-                            <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="Enter custom item name" />
-                        )}
+                         <Select onValueChange={handleItemSelect} value={isCustomItem ? 'Other' : itemName}>
+                            <SelectTrigger className="w-full font-normal">
+                                <SelectValue placeholder="Select item..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {comboboxOptions.map((option) => (
+                                    <SelectItem key={option} value={option}>
+                                        {option}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {isCustomItem && <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="Enter custom item name" className="mt-2" />}
                     </div>
                     <div className="space-y-2">
                          <Label>Quantity *</Label>
@@ -1068,7 +1065,7 @@ const interpolateString = (template: string, data: { [key: string]: any }): stri
 
 function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
   const builderContext = useBuilder();
-  const { rules: builderRules, sections: builderSections, configurations: builderConfigurations } = builderContext;
+  const { rules: builderRules, sections: builderSections, configurations: builderConfigurations, advancedDatasets } = builderContext;
   const { user } = useAuth();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -1711,18 +1708,63 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
       );
       break;
     case "Select": {
+        const [filteredOptions, setFilteredOptions] = useState<any[]>([]);
+
+        useEffect(() => {
+            let options: any[] = [];
+            if (element.dataSource === 'dynamic' || element.dataSource === 'fromParent') {
+                options = [...dynamicOptions];
+            } else if (element.dataSource === 'static') {
+                options = element.options || [];
+            } else if (element.dataSource === 'local') {
+                const dataset = advancedDatasets.find(ds => ds.name === element.localDatasetName);
+                if (dataset) {
+                    options = dataset.rows;
+                }
+            }
+
+            // Apply filtering if a parent field is selected
+            if (element.parentFieldId && formState && element.filterColumnId) {
+                const parentValue = formState[element.parentFieldId]?.value;
+                if (parentValue) {
+                     options = options.filter((row: AdvancedRow) => {
+                        const linkValue = row.data[element.filterColumnId!];
+                        return Array.isArray(linkValue) ? linkValue.includes(parentValue) : linkValue === parentValue;
+                    });
+                } else {
+                    options = []; // No parent value, so no options
+                }
+            }
+
+            if (element.dataSource === 'dynamic' && element.customOptions) {
+                const customSelectOptions = element.customOptions.map(opt => ({ [element.labelKey!]: opt.label, [element.valueKey!]: opt.value }));
+                if (element.customOptionsPosition === 'top') {
+                    options = [...customSelectOptions, ...options];
+                } else {
+                    options = [...options, ...customSelectOptions];
+                }
+            }
+            
+            setFilteredOptions(options);
+
+        }, [element, dynamicOptions, advancedDatasets, formState]);
+
+
         const handleSelectChange = (val: string) => {
             if (isTableCell && element.optionsDataKey && rowContext) {
                 onValueChange(element.id, val);
                 return;
             }
 
-            if (element.dataSource === 'dynamic' || (element.dataSource === 'fromParent' && dynamicOptions.length > 0)) {
+            if (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.dataSource === 'local') {
                 let fullObject: any;
                 if (element.customOptions?.some(opt => opt.value === val)) {
                     fullObject = element.customOptions.find(opt => opt.value === val);
                 } else {
-                    fullObject = dynamicOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === val);
+                    fullObject = filteredOptions.find(opt => {
+                        const valueKey = element.dataSource === 'local' ? 'id' : element.valueKey!;
+                        return String(getNestedValue(opt, valueKey)) === val;
+                    });
                 }
                 onValueChange(element.id, val, fullObject);
             } else {
@@ -1733,15 +1775,6 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         const rowOptions = isTableCell && element.optionsDataKey && rowContext ? getNestedValue(rowContext, element.optionsDataKey) : null;
         const hasRowOptions = Array.isArray(rowOptions);
     
-        let combinedOptions = [...dynamicOptions];
-        if (element.dataSource === 'dynamic' && element.customOptions) {
-            const customSelectOptions = element.customOptions.map(opt => ({ [element.labelKey!]: opt.label, [element.valueKey!]: opt.value }));
-            if (element.customOptionsPosition === 'top') {
-                combinedOptions = [...customSelectOptions, ...combinedOptions];
-            } else {
-                combinedOptions = [...combinedOptions, ...customSelectOptions];
-            }
-        }
 
         content = (
             <div>
@@ -1757,12 +1790,16 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                                 {option}
                             </SelectItem>
                         ))
-                    ) : element.dataSource === 'dynamic' || element.dataSource === 'fromParent' ? (
-                        combinedOptions.map((option, index) => (
-                          <SelectItem key={index} value={String(getNestedValue(option, element.valueKey!))}>
-                            {getNestedValue(option, element.labelKey!)}
-                          </SelectItem>
-                        ))
+                    ) : (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.dataSource === 'local') ? (
+                        filteredOptions.map((option, index) => {
+                            const valueKey = element.dataSource === 'local' ? 'id' : element.valueKey!;
+                            const labelKey = element.dataSource === 'local' ? element.labelKey! : element.labelKey!;
+                            return (
+                                <SelectItem key={index} value={String(getNestedValue(option, valueKey))}>
+                                {getNestedValue(option, labelKey)}
+                                </SelectItem>
+                            )
+                        })
                     ) : (
                         options?.map((option, index) => (
                           <SelectItem key={index} value={option}>
