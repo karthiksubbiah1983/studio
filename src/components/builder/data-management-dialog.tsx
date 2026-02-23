@@ -6,7 +6,7 @@ import { useBuilder } from '@/hooks/use-builder';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { LocalDataset, LocalDatasetColumn, AdvancedDataset, AdvancedColumn, AdvancedRow } from '@/lib/types';
-import { Plus, Trash, Copy, Edit, Table as TableIcon, X, Link as LinkIcon, CheckboxIcon, Check } from 'lucide-react';
+import { Plus, Trash, Copy, Edit, Table as TableIcon, X, Link as LinkIcon, CheckboxIcon, Check, Calendar as CalendarIcon, ChevronsUpDown } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
@@ -20,7 +20,6 @@ import { Checkbox } from '../ui/checkbox';
 import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
 
 type Props = {
   isOpen: boolean;
@@ -229,11 +228,335 @@ LocalDatasetEditor.displayName = "LocalDatasetEditor";
 
 // #region Advanced Datasets Components
 
-const AdvancedDatasetEditor = memo(({ dataset, allDatasets, onUpdate, onDelete }: { dataset: AdvancedDataset, allDatasets: AdvancedDataset[], onUpdate: (updated: AdvancedDataset) => void, onDelete: () => void }) => {
-    // ... Implementation for editing a single advanced dataset ...
-    return <div className='p-6'>Advanced Editor for {dataset.name}</div>
+const AdvancedColumnEditor = ({
+  isOpen,
+  onOpenChange,
+  column: initialColumn,
+  onSave,
+  allDatasets,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  column: Partial<AdvancedColumn> | null;
+  onSave: (column: AdvancedColumn) => void;
+  allDatasets: AdvancedDataset[];
+}) => {
+  const [column, setColumn] = useState<Partial<AdvancedColumn> | null>(null);
+
+  useEffect(() => {
+    if (isOpen && initialColumn) {
+      setColumn(JSON.parse(JSON.stringify(initialColumn)));
+    }
+  }, [isOpen, initialColumn]);
+  
+  if (!column) return null;
+
+  const handleSave = () => {
+      if (column.name?.trim()) {
+        onSave(column as AdvancedColumn);
+      }
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{column.id ? 'Edit' : 'Add'} Column</DialogTitle>
+        </DialogHeader>
+        <div className="py-4 space-y-4">
+          <div className="space-y-2">
+            <Label>Column Name</Label>
+            <Input value={column.name || ''} onChange={(e) => setColumn({ ...column, name: e.target.value })} />
+          </div>
+          <div className="space-y-2">
+            <Label>Column Type</Label>
+            <Select value={column.type || 'text'} onValueChange={(type: AdvancedColumn['type']) => setColumn({ ...column, type })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="text">Text</SelectItem>
+                    <SelectItem value="number">Number</SelectItem>
+                    <SelectItem value="boolean">Boolean</SelectItem>
+                    <SelectItem value="date">Date</SelectItem>
+                    <SelectItem value="link">Link to Record</SelectItem>
+                </SelectContent>
+            </Select>
+          </div>
+          {column.type === 'link' && (
+            <div className='border-t pt-4 space-y-4'>
+                <div className="space-y-2">
+                    <Label>Link to Table</Label>
+                    <Select value={column.linkToDatasetId || ''} onValueChange={(id) => setColumn({ ...column, linkToDatasetId: id })}>
+                        <SelectTrigger><SelectValue placeholder="Select a table..."/></SelectTrigger>
+                        <SelectContent>
+                            {allDatasets.map(ds => (
+                                <SelectItem key={ds.id} value={ds.id}>{ds.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                 <div className="flex items-center space-x-2">
+                    <Checkbox id="allow-multiple" checked={column.allowMultipleLinks} onCheckedChange={checked => setColumn({...column, allowMultipleLinks: !!checked})} />
+                    <Label htmlFor="allow-multiple">Allow multiple links</Label>
+                </div>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave}>Save</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+const LinkSelector = ({
+  allDatasets,
+  column,
+  currentValue,
+  onSave,
+}: {
+  allDatasets: AdvancedDataset[];
+  column: AdvancedColumn;
+  currentValue: any;
+  onSave: (newValue: any) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  const linkedDataset = allDatasets.find(ds => ds.id === column.linkToDatasetId);
+
+  useEffect(() => {
+    if (isOpen) {
+        if (column.allowMultipleLinks) {
+            setSelectedIds(Array.isArray(currentValue) ? currentValue : []);
+        } else {
+            setSelectedIds(currentValue ? [currentValue] : []);
+        }
+    }
+  }, [isOpen, currentValue, column.allowMultipleLinks]);
+
+  const handleToggle = (id: string) => {
+    if (column.allowMultipleLinks) {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    } else {
+        setSelectedIds([id]);
+    }
+  };
+
+  const handleConfirm = () => {
+    onSave(column.allowMultipleLinks ? selectedIds : selectedIds[0]);
+    setIsOpen(false);
+  }
+  
+  if (!linkedDataset) return <Badge variant="destructive">Linked table not found</Badge>;
+
+  const primaryColumnKey = linkedDataset.columns[0]?.id || 'id';
+
+  const getDisplayValue = () => {
+    if (!currentValue) return <span className="text-muted-foreground">Select...</span>;
+    if (column.allowMultipleLinks) {
+        const values = (Array.isArray(currentValue) ? currentValue : []).map(id => {
+            const row = linkedDataset.rows.find(r => r.id === id);
+            return row ? row.data[primaryColumnKey] : id;
+        });
+        return values.join(', ');
+    }
+    const row = linkedDataset.rows.find(r => r.id === currentValue);
+    return row ? row.data[primaryColumnKey] : currentValue;
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Popover open={isOpen} onOpenChange={setIsOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" className="w-full justify-between font-normal truncate">
+            {getDisplayValue()}
+            <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+          <div className="p-2">
+            <h4 className="font-medium text-sm px-2 py-1">{linkedDataset.name}</h4>
+          </div>
+          <ScrollArea className="max-h-60">
+            <div className="p-1">
+              {linkedDataset.rows.map(row => (
+                <div key={row.id} className="flex items-center gap-2 p-2 rounded-sm hover:bg-accent" onClick={() => handleToggle(row.id)}>
+                   <Checkbox checked={selectedIds.includes(row.id)} />
+                   <span className="text-sm">{row.data[primaryColumnKey]}</span>
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+           <div className="p-2 border-t">
+              <Button className="w-full" size="sm" onClick={handleConfirm}>Confirm</Button>
+            </div>
+        </PopoverContent>
+      </Popover>
+    </Dialog>
+  );
+};
+
+
+const AdvancedDatasetEditor = memo(({ dataset, allDatasets, onUpdate }: { dataset: AdvancedDataset; allDatasets: AdvancedDataset[]; onUpdate: (updatedDataset: AdvancedDataset) => void; }) => {
+    const [editingColumn, setEditingColumn] = useState<Partial<AdvancedColumn> | null>(null);
+    const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
+
+    const handleUpdateDataset = (updates: Partial<AdvancedDataset>) => {
+        onUpdate({ ...dataset, ...updates });
+    };
+
+    const handleAddColumn = () => {
+        setEditingColumn({ type: 'text' });
+        setIsColumnEditorOpen(true);
+    };
+
+    const handleEditColumn = (column: AdvancedColumn) => {
+        setEditingColumn(column);
+        setIsColumnEditorOpen(true);
+    };
+    
+    const handleDeleteColumn = (id: string) => {
+        handleUpdateDataset({ columns: dataset.columns.filter(c => c.id !== id) });
+    };
+
+    const handleSaveColumn = (colToSave: AdvancedColumn) => {
+        let newColumns;
+        if (colToSave.id) {
+            newColumns = dataset.columns.map(c => c.id === colToSave.id ? colToSave : c);
+        } else {
+            newColumns = [...dataset.columns, { ...colToSave, id: crypto.randomUUID() }];
+        }
+        handleUpdateDataset({ columns: newColumns });
+        setIsColumnEditorOpen(false);
+    };
+    
+    const handleAddRow = () => {
+        const newRow: AdvancedRow = { id: crypto.randomUUID(), data: {} };
+        handleUpdateDataset({ rows: [...dataset.rows, newRow] });
+    };
+
+    const handleUpdateCell = (rowIndex: number, colId: string, value: any) => {
+        const newRows = [...dataset.rows];
+        newRows[rowIndex] = {
+            ...newRows[rowIndex],
+            data: {
+                ...newRows[rowIndex].data,
+                [colId]: value,
+            }
+        };
+        handleUpdateDataset({ rows: newRows });
+    };
+
+    const handleDeleteRow = (rowId: string) => {
+        handleUpdateDataset({ rows: dataset.rows.filter(r => r.id !== rowId) });
+    };
+
+    const renderCell = (row: AdvancedRow, rowIndex: number, column: AdvancedColumn) => {
+        const value = row.data[column.id];
+
+        switch(column.type) {
+            case 'text':
+                return <Input value={value || ''} onBlur={e => handleUpdateCell(rowIndex, column.id, e.target.value)} className="h-8" />;
+            case 'number':
+                return <Input type="number" value={value || ''} onBlur={e => handleUpdateCell(rowIndex, column.id, parseFloat(e.target.value))} className="h-8" />;
+            case 'boolean':
+                return <div className="flex justify-center items-center h-8"><Checkbox checked={!!value} onCheckedChange={checked => handleUpdateCell(rowIndex, column.id, !!checked)} /></div>;
+            case 'date':
+                return (
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-8 w-full font-normal justify-start">
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {value ? format(new Date(value), 'PPP') : 'Select date'}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                            <Calendar mode="single" selected={value ? new Date(value) : undefined} onSelect={date => handleUpdateCell(rowIndex, column.id, date?.toISOString())} />
+                        </PopoverContent>
+                    </Popover>
+                );
+            case 'link':
+                return <LinkSelector allDatasets={allDatasets} column={column} currentValue={value} onSave={newValue => handleUpdateCell(rowIndex, column.id, newValue)} />;
+            default:
+                return null;
+        }
+    };
+    
+    return (
+        <div className="h-full relative">
+            <ScrollArea className="h-full">
+                <div className="space-y-6 p-6">
+                    <div>
+                        <Label>Table Name</Label>
+                        <Input value={dataset.name} onChange={(e) => handleUpdateDataset({ name: e.target.value })} className="mt-1 bg-white font-medium text-lg" />
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
+                            <h3 className="font-semibold text-primary">Columns</h3>
+                            <Button variant="outline" size="sm" onClick={handleAddColumn}><Plus className="mr-2 h-4 w-4" /> Column</Button>
+                        </div>
+                        <div className="border bg-white rounded-md p-2 space-y-1">
+                            {dataset.columns.map(col => (
+                                <div key={col.id} className="flex items-center gap-2 p-2 rounded-md hover:bg-accent/50 group">
+                                    <LinkIcon className="h-4 w-4 text-muted-foreground" />
+                                    <span className="flex-1 font-medium text-sm">{col.name}</span>
+                                    <Badge variant="outline" className="font-normal">{col.type}</Badge>
+                                    <div className="opacity-0 group-hover:opacity-100">
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleEditColumn(col)}><Edit className="h-3 w-3" /></Button>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleDeleteColumn(col.id)}><Trash className="h-3 w-3 text-destructive" /></Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
+                            <h3 className="font-semibold text-primary">Data Rows</h3>
+                            <Button variant="outline" size="sm" onClick={handleAddRow}><Plus className="mr-2 h-4 w-4" /> Row</Button>
+                        </div>
+                         <div className="border bg-white rounded-md">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        {dataset.columns.map(col => <TableHead key={col.id}>{col.name}</TableHead>)}
+                                        <TableHead className="w-12"></TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {dataset.rows.map((row, rowIndex) => (
+                                        <TableRow key={row.id}>
+                                            {dataset.columns.map(col => (
+                                                <TableCell key={col.id} className="py-1 px-2">
+                                                    {renderCell(row, rowIndex, col)}
+                                                </TableCell>
+                                            ))}
+                                            <TableCell>
+                                                <Button variant="ghost" size="icon" onClick={() => handleDeleteRow(row.id)}><Trash className="h-4 w-4 text-destructive" /></Button>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                         </div>
+                    </div>
+                </div>
+            </ScrollArea>
+             <AdvancedColumnEditor
+                isOpen={isColumnEditorOpen}
+                onOpenChange={setIsColumnEditorOpen}
+                column={editingColumn}
+                onSave={handleSaveColumn}
+                allDatasets={allDatasets}
+            />
+        </div>
+    );
 });
 AdvancedDatasetEditor.displayName = "AdvancedDatasetEditor";
+
 
 const AdvancedDatasetsTab = ({ 
     datasets, 
@@ -300,7 +623,7 @@ const AdvancedDatasetsTab = ({
             </aside>
             <main className="flex-1 flex flex-col min-h-0">
                 {selectedDataset ? (
-                    <AdvancedDatasetEditor dataset={selectedDataset} allDatasets={datasets} onUpdate={handleUpdateDataset} onDelete={() => handleDeleteDataset(selectedDataset.id)} />
+                    <AdvancedDatasetEditor dataset={selectedDataset} allDatasets={datasets} onUpdate={handleUpdateDataset} />
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
                         <TableIcon className="h-12 w-12 mb-4" />
@@ -343,7 +666,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
       const initialAdvanced = JSON.parse(JSON.stringify(advancedDatasets || []));
       setLocalAdvancedDatasets(initialAdvanced);
     }
-  }, [isOpen, localDatasets, advancedDatasets]);
+  }, [isOpen, localDatasets, advancedDatasets, selectedSimpleDatasetId]);
 
   const handleSaveChanges = () => {
     if (activeTab === 'simple') {
