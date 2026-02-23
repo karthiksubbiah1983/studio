@@ -627,7 +627,7 @@ function DataGridColumnEditor({
   onUpdate: (column: DataGridColumn) => void;
   isTaskHistory?: boolean;
 }) {
-  const { sections, datasets, state } = useBuilder();
+  const { sections, localDatasets, state } = useBuilder();
   const { selectedElement } = state;
 
   const allEditableTableColumns = useMemo(() => {
@@ -650,14 +650,14 @@ function DataGridColumnEditor({
     if (selectedElement?.elementId) {
         const dataGridElement = findElementRecursive(sections, selectedElement.elementId);
         if (dataGridElement?.type === 'DataGrid' && dataGridElement.dataSource === 'local' && dataGridElement.localDatasetName) {
-            const dataset = datasets.find(ds => ds.name === dataGridElement.localDatasetName);
+            const dataset = localDatasets.find(ds => ds.name === dataGridElement.localDatasetName);
             if (dataset) {
                 return dataset.columns.map(col => col.key);
             }
         }
     }
     return [];
-  }, [selectedElement, sections, datasets]);
+  }, [selectedElement, sections, localDatasets]);
 
   const column = initialColumn;
   if (!isOpen || !column) return null;
@@ -787,7 +787,7 @@ function DataGridColumnEditor({
 }
 
 function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = false, dataSourceKeys = [] }: { element: FormElementInstance, onUpdate?: (element: FormElementInstance) => void, isColumnElement?: boolean, dataSourceKeys?: string[] }) {
-  const { dispatch, state, sections, rules, datasets } = useBuilder();
+  const { dispatch, state, sections, rules, localDatasets } = useBuilder();
   const { selectedElement } = state;
   const [fetchedKeys, setFetchedKeys] = useState<string[]>([]);
   const [isFetching, setIsFetching] = useState(false);
@@ -843,7 +843,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
 
   const allAvailableKeys = useMemo(() => {
       if (parentGrid) {
-          const dataset = datasets.find(ds => ds.name === parentGrid.localDatasetName);
+          const dataset = localDatasets.find(ds => ds.name === parentGrid.localDatasetName);
           return dataset ? dataset.columns.map(col => col.key) : [];
       }
       
@@ -852,7 +852,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
       displayDataSourceKeys.forEach(k => keys.add(k));
       fetchedKeys.forEach(k => keys.add(k));
       return Array.from(keys);
-  }, [parentGrid, datasets, dataSourceKeys, displayDataSourceKeys, fetchedKeys]);
+  }, [parentGrid, localDatasets, dataSourceKeys, displayDataSourceKeys, fetchedKeys]);
   
 
   useEffect(() => {
@@ -1976,7 +1976,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                  </Accordion>
             );
         case "DataList": {
-            const dataset = datasets.find(d => d.name === element.localDatasetName);
+            const dataset = localDatasets.find(d => d.name === element.localDatasetName);
             const datasetKeys = dataset ? dataset.columns.map(c => c.key) : [];
         
             return (
@@ -2048,12 +2048,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <SelectValue placeholder="Select a local dataset..." />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {datasets?.map(ds => (
+                                        {localDatasets?.map(ds => (
                                             <SelectItem key={ds.id} value={ds.name}>
                                                 {ds.name}
                                             </SelectItem>
                                         ))}
-                                        {(!datasets || datasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No local datasets found.</div>}
+                                        {(!localDatasets || localDatasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No local datasets found.</div>}
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -2473,12 +2473,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                             <SelectValue placeholder="Select a local dataset..." />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            {datasets?.map(ds => (
+                                            {localDatasets?.map(ds => (
                                                 <SelectItem key={ds.id} value={ds.name}>
                                                     {ds.name}
                                                 </SelectItem>
                                             ))}
-                                            {(!datasets || datasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No local datasets found.</div>}
+                                            {(!localDatasets || localDatasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No local datasets found.</div>}
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -2625,24 +2625,3 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
-
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

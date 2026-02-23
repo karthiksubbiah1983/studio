@@ -116,19 +116,41 @@ export type CustomOption = {
   value: string;
 };
 
-export type DatasetColumn = {
+export type LocalDatasetColumn = {
   id: string;
   header: string;
   key: string;
   type?: 'text' | 'array';
 };
 
-export type Dataset = {
+export type LocalDataset = {
   id: string;
   name: string;
-  columns: DatasetColumn[];
+  columns: LocalDatasetColumn[];
   data: Record<string, any>[];
 };
+
+export type AdvancedColumn = {
+  id: string;
+  name: string;
+  type: 'text' | 'number' | 'boolean' | 'date' | 'link';
+  linkToDatasetId?: string; // ID of the dataset it links to
+  allowMultipleLinks?: boolean; // For many-to-one vs many-to-many
+};
+
+export type AdvancedRow = {
+  id: string;
+  // data is keyed by column id
+  data: Record<string, any>;
+};
+
+export type AdvancedDataset = {
+  id: string;
+  name: string;
+  columns: AdvancedColumn[];
+  rows: AdvancedRow[];
+};
+
 
 // --- CHECKLIST & TASK TYPES ---
 export type ChecklistAnswerOption = {
@@ -320,7 +342,8 @@ export type FormVersion = {
   rules: Rule[];
   workflows: Workflow[];
   configurations?: Configuration[];
-  datasets?: Dataset[];
+  localDatasets?: LocalDataset[];
+  advancedDatasets?: AdvancedDataset[];
 };
 
 export type SubCategory = {

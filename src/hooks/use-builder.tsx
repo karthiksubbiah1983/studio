@@ -1,7 +1,7 @@
 
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, RuleBehavior, Dataset, ChecklistRepository, TaskType, TaskTypeConfiguration, ChecklistCategory, ChecklistQuestion, ChecklistAnswerOption } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, LocalDataset, AdvancedDataset, ChecklistRepository, TaskType, TaskTypeConfiguration, ChecklistCategory, ChecklistQuestion, ChecklistAnswerOption } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
@@ -122,7 +122,7 @@ const editableTableCascadingDemo: Form = {
             rules: [],
             workflows: [],
             configurations: [],
-            datasets: [],
+            localDatasets: [],
         }
     ]
 };
@@ -207,7 +207,7 @@ const cascadingDemoTemplate: Form = {
             rules: [],
             workflows: [],
             configurations: [],
-            datasets: [],
+            localDatasets: [],
         }
     ]
 };
@@ -323,7 +323,7 @@ const demoTemplate: Form = {
                 { id: "config1", key: "approver_level", value: "manager" },
                 { id: "config2", key: "requires_urgent_review", value: "false" }
             ],
-            datasets: [],
+            localDatasets: [],
         },
     ],
 };
@@ -788,7 +788,7 @@ type Action =
   | { type: "SET_DRAGGED_ELEMENT"; payload: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null }
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string, elementId: string }, to: { sectionId: string, index?: number, parentId?: string } } }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number; toIndex: number } }
-  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[]; rules: Rule[]; workflows: Workflow[]; configurations?: Configuration[]; datasets?: Dataset[]; timestamp: string; } }
+  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[]; rules: Rule[]; workflows: Workflow[]; configurations?: Configuration[]; localDatasets?: LocalDataset[]; advancedDatasets?: AdvancedDataset[]; timestamp: string; } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any>, taskId?: string } }
@@ -1289,8 +1289,8 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SAVE_VERSION": {
         if (!activeForm) return state;
-        const { name, description, type, sections, rules, workflows, configurations, datasets, timestamp } = action.payload;
-        const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp, sections, rules, workflows, configurations, datasets };
+        const { name, description, type, sections, rules, workflows, configurations, localDatasets, advancedDatasets, timestamp } = action.payload;
+        const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp, sections, rules, workflows, configurations, localDatasets, advancedDatasets };
         const updatedVersions = [newVersion, ...activeForm.versions];
         const newForms = state.forms.map(form => 
             form.id === state.activeFormId ? { ...form, versions: updatedVersions } : form
@@ -1368,8 +1368,10 @@ type BuilderContextType = {
   updateWorkflows: (workflows: Workflow[]) => void;
   configurations: Configuration[];
   updateConfigurations: (configurations: Configuration[]) => void;
-  datasets: Dataset[];
-  updateDatasets: (datasets: Dataset[]) => void;
+  localDatasets: LocalDataset[];
+  updateLocalDatasets: (datasets: LocalDataset[]) => void;
+  advancedDatasets: AdvancedDataset[];
+  updateAdvancedDatasets: (datasets: AdvancedDataset[]) => void;
   checklistRepository: ChecklistRepository;
   taskTypes: TaskType[];
   taskTypeConfigurations: TaskTypeConfiguration[];
@@ -1469,7 +1471,8 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const rules = activeForm?.versions[0]?.rules || [];
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
-  const datasets = activeForm?.versions[0]?.datasets || [];
+  const localDatasets = activeForm?.versions[0]?.localDatasets || [];
+  const advancedDatasets = activeForm?.versions[0]?.advancedDatasets || [];
   const activePopupId = state.activePopupId;
   const checklistRepository = state.checklistRepository;
   const taskTypes = state.taskTypes;
@@ -1539,7 +1542,7 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
       rules: [],
       workflows: [],
       configurations: [],
-      datasets: [],
+      localDatasets: [],
     };
     const newFormWithId: Form = {
       id: crypto.randomUUID(),
@@ -1586,13 +1589,22 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: "SET_STATE", payload: { forms: newForms, formState: newFormState } });
   }, [activeForm, state.forms]);
 
-  const updateDatasets = useCallback((newDatasets: Dataset[]) => {
+  const updateLocalDatasets = useCallback((newDatasets: LocalDataset[]) => {
     if (!activeForm) return;
     const newVersions = [...activeForm.versions];
-    newVersions[0] = { ...newVersions[0], datasets: newDatasets, timestamp: new Date().toISOString() };
+    newVersions[0] = { ...newVersions[0], localDatasets: newDatasets, timestamp: new Date().toISOString() };
     const newForms = state.forms.map(f => (f.id === activeForm.id ? { ...f, versions: newVersions } : f));
     dispatch({ type: "SET_STATE", payload: { forms: newForms } });
   }, [activeForm, state.forms]);
+
+  const updateAdvancedDatasets = useCallback((newDatasets: AdvancedDataset[]) => {
+    if (!activeForm) return;
+    const newVersions = [...activeForm.versions];
+    newVersions[0] = { ...newVersions[0], advancedDatasets: newDatasets, timestamp: new Date().toISOString() };
+    const newForms = state.forms.map(f => (f.id === activeForm.id ? { ...f, versions: newVersions } : f));
+    dispatch({ type: "SET_STATE", payload: { forms: newForms } });
+  }, [activeForm, state.forms]);
+
 
   const setFormState = useCallback((newState: { [key: string]: { value: any; fullObject?: any; isVisible?: boolean } }) => {
     dispatch({ type: "SET_FORM_STATE", payload: newState });
@@ -1636,8 +1648,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     updateWorkflows, 
     configurations, 
     updateConfigurations, 
-    datasets, 
-    updateDatasets, 
+    localDatasets, 
+    updateLocalDatasets,
+    advancedDatasets,
+    updateAdvancedDatasets, 
     checklistRepository,
     taskTypes,
     taskTypeConfigurations,
@@ -1660,8 +1674,10 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     updateWorkflows,
     configurations,
     updateConfigurations,
-    datasets,
-    updateDatasets,
+    localDatasets,
+    updateLocalDatasets,
+    advancedDatasets,
+    updateAdvancedDatasets,
     checklistRepository,
     taskTypes,
     taskTypeConfigurations,
@@ -1696,18 +1712,3 @@ export const useBuilder = () => {
   }
   return context;
 };
-
-    
-
-    
-
-    
-
-
-
-
-
-
-
-
-
