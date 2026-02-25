@@ -3,7 +3,7 @@
 "use client";
 
 import * as React from "react"
-import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset, DataGridColumn, ChecklistRepository, TaskTypeConfiguration, ChecklistQuestion, ChecklistAnswerOption, ChecklistCategory, AdvancedRow, AdvancedDataset } from "@/lib/types";
+import { FormElementInstance, Rule, Condition, Section, ListItemElement, Configuration, TableColumn, CustomOption, Dataset, DataGridColumn, ChecklistRepository, TaskTypeConfiguration, ChecklistQuestion, ChecklistAnswerOption, ChecklistCategory } from "@/lib/types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -848,7 +848,7 @@ const DataListRenderer = React.memo(function DataListRenderer({ element, value, 
     onValueChange: (id: string, value: any, fullObject?: any) => void,
     activeFilters: { key: string; value: any; operator: 'equals' | 'contains' }[]
 }) {
-    const { localDatasets, advancedDatasets } = useBuilder();
+    const { localDatasets } = useBuilder();
     
     const isCheckbox = element.listType === 'checkbox';
     const isRadio = element.listType === 'radio';
@@ -856,10 +856,7 @@ const DataListRenderer = React.memo(function DataListRenderer({ element, value, 
 
     const listOptions = useMemo(() => {
         let baseOptions = [];
-        if (element.dataSource === 'advanced' && element.localDatasetName) {
-            const dataset = advancedDatasets.find(ds => ds.name === element.localDatasetName);
-            baseOptions = dataset?.rows || [];
-        } else if (element.localDatasetName) { // Default to simple 'local'
+        if (element.localDatasetName) {
             const dataset = localDatasets.find(ds => ds.name === element.localDatasetName);
             baseOptions = dataset?.data || [];
         }
@@ -868,14 +865,13 @@ const DataListRenderer = React.memo(function DataListRenderer({ element, value, 
             return baseOptions.filter(option => {
                 return activeFilters.every(filter => {
                     const optionValue = getNestedValue(option, filter.key);
-                    // Simple equality check for now
                     return String(optionValue).toLowerCase() === String(filter.value).toLowerCase();
                 });
             });
         }
 
         return baseOptions;
-    }, [element.localDatasetName, element.dataSource, localDatasets, advancedDatasets, activeFilters]);
+    }, [element.localDatasetName, localDatasets, activeFilters]);
     
     const mainListOptions = useMemo(() => {
         if (!value) return listOptions;
@@ -1068,7 +1064,7 @@ const interpolateString = (template: string, data: { [key: string]: any }): stri
 
 function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
   const builderContext = useBuilder();
-  const { rules: builderRules, sections: builderSections, configurations: builderConfigurations, advancedDatasets } = builderContext;
+  const { rules: builderRules, sections: builderSections, configurations: builderConfigurations } = builderContext;
   const { user } = useAuth();
   const [dynamicOptions, setDynamicOptions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -1719,25 +1715,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                 options = [...dynamicOptions];
             } else if (element.dataSource === 'static') {
                 options = element.options || [];
-            } else if (element.dataSource === 'advanced') {
-                const dataset = advancedDatasets.find(ds => ds.name === element.localDatasetName);
-                if (dataset) {
-                    options = dataset.rows;
-                }
-            }
-
-            // Apply filtering if a parent field is selected
-            if (element.parentFieldId && formState && element.filterColumnId) {
-                const parentValue = formState[element.parentFieldId]?.value;
-                if (parentValue) {
-                     options = options.filter((row: AdvancedRow) => {
-                        const linkValue = row.data[element.filterColumnId!];
-                        return Array.isArray(linkValue) ? linkValue.includes(parentValue) : linkValue === parentValue;
-                    });
-                } else {
-                    options = []; // No parent value, so no options
-                }
-            }
+            } 
 
             if (element.dataSource === 'dynamic' && element.customOptions) {
                 const customSelectOptions = element.customOptions.map(opt => ({ [element.labelKey!]: opt.label, [element.valueKey!]: opt.value }));
@@ -1750,7 +1728,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
             
             setFilteredOptions(options);
 
-        }, [element, dynamicOptions, advancedDatasets, formState]);
+        }, [element, dynamicOptions]);
 
 
         const handleSelectChange = (val: string) => {
@@ -1759,13 +1737,13 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                 return;
             }
 
-            if (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.dataSource === 'advanced') {
+            if (element.dataSource === 'dynamic' || element.dataSource === 'fromParent') {
                 let fullObject: any;
                 if (element.customOptions?.some(opt => opt.value === val)) {
                     fullObject = element.customOptions.find(opt => opt.value === val);
                 } else {
                     fullObject = filteredOptions.find(opt => {
-                        const valueKey = element.dataSource === 'advanced' ? 'id' : element.valueKey!;
+                        const valueKey = element.valueKey!;
                         return String(getNestedValue(opt, valueKey)) === val;
                     });
                 }
@@ -1793,16 +1771,11 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                                 {option}
                             </SelectItem>
                         ))
-                    ) : (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.dataSource === 'advanced') ? (
+                    ) : (element.dataSource === 'dynamic' || element.dataSource === 'fromParent') ? (
                         filteredOptions.map((option, index) => {
                             let itemValue, itemLabel;
-                            if (element.dataSource === 'advanced') {
-                                itemValue = getNestedValue(option, 'id');
-                                itemLabel = getNestedValue(option, element.labelKey!);
-                            } else { // dynamic or fromParent
-                                itemValue = getNestedValue(option, element.valueKey!);
-                                itemLabel = getNestedValue(option, element.labelKey!);
-                            }
+                            itemValue = getNestedValue(option, element.valueKey!);
+                            itemLabel = getNestedValue(option, element.labelKey!);
                             return (
                                 <SelectItem key={index} value={String(itemValue)}>
                                 {itemLabel}
