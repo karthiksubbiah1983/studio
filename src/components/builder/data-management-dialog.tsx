@@ -271,7 +271,7 @@ const AdvancedColumnEditor = ({
           </div>
           <div className="space-y-2">
             <Label>Column Type</Label>
-            <Select value={column.type || 'text'} onValueChange={(type: AdvancedColumn['type']) => setColumn({ ...column, type })}>
+            <Select value={column.type || 'text'} onValueChange={(type: AdvancedColumn['type']) => setColumn({ ...column, type, options: type === 'multi-select' ? (column.options || []) : undefined })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                     <SelectItem value="text">Text</SelectItem>
@@ -279,6 +279,7 @@ const AdvancedColumnEditor = ({
                     <SelectItem value="boolean">Boolean</SelectItem>
                     <SelectItem value="date">Date</SelectItem>
                     <SelectItem value="link">Link to Record</SelectItem>
+                    <SelectItem value="multi-select">Multi-Select</SelectItem>
                 </SelectContent>
             </Select>
           </div>
@@ -301,6 +302,12 @@ const AdvancedColumnEditor = ({
                 </div>
             </div>
           )}
+           {column.type === 'multi-select' && (
+            <div className='border-t pt-4 space-y-4'>
+                <Label>Options</Label>
+                <TagInput value={column.options} onChange={opts => setColumn({...column, options: opts})} />
+            </div>
+            )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -390,15 +397,11 @@ const LinkSelector = ({
           <ScrollArea className="max-h-60">
             <div className="p-1">
               {linkedDataset.rows.map(row => (
-                <div 
-                  key={row.id} 
-                  className="flex items-center gap-2 p-2 rounded-sm hover:bg-accent cursor-pointer"
-                  onClick={() => handleToggle(row.id)}
-                >
+                <div key={row.id} className="flex items-center gap-2 p-2 rounded-sm">
                    <Checkbox 
                         id={`link-${row.id}`} 
                         checked={selectedIds.includes(row.id)}
-                        readOnly 
+                        onCheckedChange={() => handleToggle(row.id)}
                    />
                    <Label htmlFor={`link-${row.id}`} className="text-sm font-normal flex-1 cursor-pointer">
                        {row.data[primaryColumnKey]}
@@ -414,6 +417,90 @@ const LinkSelector = ({
             )}
         </PopoverContent>
       </Popover>
+  );
+};
+
+const MultiSelectPopover = ({
+  column,
+  currentValue,
+  onSave,
+}: {
+  column: AdvancedColumn;
+  currentValue: any;
+  onSave: (newValue: any) => void;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedValues, setSelectedValues] = useState<string[]>([]);
+  const options = column.options || [];
+
+  useEffect(() => {
+    if (isOpen) {
+      const current = Array.isArray(currentValue) ? currentValue : [];
+      setSelectedValues(current);
+    }
+  }, [isOpen, currentValue]);
+
+  const handleToggle = (value: string) => {
+    const newSelectedValues = selectedValues.includes(value)
+      ? selectedValues.filter(v => v !== value)
+      : [...selectedValues, value];
+    setSelectedValues(newSelectedValues);
+  };
+
+  const handleConfirm = () => {
+    onSave(selectedValues);
+    setIsOpen(false);
+  };
+
+  const getDisplayValue = () => {
+    if (!currentValue || !Array.isArray(currentValue) || currentValue.length === 0) {
+      return <span className="text-muted-foreground">Select...</span>;
+    }
+    return currentValue.join(', ');
+  };
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full justify-between font-normal truncate">
+          {getDisplayValue()}
+          <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+        onMouseDown={(e) => e.preventDefault()}
+      >
+        <div className="p-2">
+          <h4 className="font-medium text-sm px-2 py-1">{column.name}</h4>
+        </div>
+        <ScrollArea className="max-h-60">
+          <div className="p-1">
+            {options.map(option => (
+              <div
+                key={option}
+                className="flex items-center gap-2 p-2 rounded-sm"
+              >
+                <Checkbox
+                  id={`multi-select-${column.id}-${option}`}
+                  checked={selectedValues.includes(option)}
+                  onCheckedChange={() => handleToggle(option)}
+                />
+                <Label
+                  htmlFor={`multi-select-${column.id}-${option}`}
+                  className="text-sm font-normal flex-1 cursor-pointer"
+                >
+                  {option}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+        <div className="p-2 border-t">
+          <Button className="w-full" size="sm" onClick={handleConfirm}>Confirm</Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 
@@ -498,6 +585,8 @@ const AdvancedDatasetEditor = memo(({ dataset, allDatasets, onUpdate }: { datase
                 );
             case 'link':
                 return <LinkSelector allDatasets={allDatasets} column={column} currentValue={value} onSave={newValue => handleUpdateCell(rowIndex, column.id, newValue)} />;
+            case 'multi-select':
+                return <MultiSelectPopover column={column} currentValue={value} onSave={newValue => handleUpdateCell(rowIndex, column.id, newValue)} />;
             default:
                 return null;
         }
@@ -616,7 +705,7 @@ const AdvancedDatasetsTab = ({
     const selectedDataset = datasets.find(ds => ds.id === selectedDatasetId);
 
     return (
-        <div className="flex-1 flex overflow-hidden bg-slate-50">
+        <div className="flex-1 flex flex-row overflow-hidden bg-slate-50">
             <aside className="w-[25%] border-r flex flex-col bg-white">
                 <div className="p-4 border-b shrink-0 flex items-center justify-center">
                     <Button variant="outline" className="w-full justify-center" onClick={handleAddDataset}>

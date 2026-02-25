@@ -133,9 +133,10 @@ export type LocalDataset = {
 export type AdvancedColumn = {
   id: string;
   name: string;
-  type: 'text' | 'number' | 'boolean' | 'date' | 'link';
+  type: 'text' | 'number' | 'boolean' | 'date' | 'link' | 'multi-select';
   linkToDatasetId?: string; // ID of the dataset it links to
   allowMultipleLinks?: boolean; // For many-to-one vs many-to-many
+  options?: string[]; // For multi-select
 };
 
 export type AdvancedRow = {
