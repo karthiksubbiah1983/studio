@@ -329,17 +329,17 @@ const LinkSelector = ({
 
   useEffect(() => {
     if (isOpen) {
-        if (column.allowMultipleLinks) {
-            setSelectedIds(Array.isArray(currentValue) ? currentValue : []);
-        } else {
-            setSelectedIds(currentValue ? [currentValue] : []);
-        }
+        const current = Array.isArray(currentValue) ? currentValue : (currentValue ? [currentValue] : []);
+        setSelectedIds(current);
     }
-  }, [isOpen, currentValue, column.allowMultipleLinks]);
+  }, [isOpen, currentValue]);
 
   const handleToggle = (id: string) => {
     if (column.allowMultipleLinks) {
-        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+        const newSelectedIds = selectedIds.includes(id)
+            ? selectedIds.filter(i => i !== id)
+            : [...selectedIds, id];
+        setSelectedIds(newSelectedIds);
     } else {
         setSelectedIds([id]);
         onSave(id);
@@ -348,7 +348,9 @@ const LinkSelector = ({
   };
 
   const handleConfirm = () => {
-    onSave(column.allowMultipleLinks ? selectedIds : selectedIds[0]);
+    if (column.allowMultipleLinks) {
+        onSave(selectedIds);
+    }
     setIsOpen(false);
   }
   
@@ -361,16 +363,11 @@ const LinkSelector = ({
         return <span className="text-muted-foreground">Select...</span>;
     }
     
-    let values: string[] = [];
-    if (column.allowMultipleLinks) {
-        values = (Array.isArray(currentValue) ? currentValue : []).map(id => {
-            const row = linkedDataset.rows.find(r => r.id === id);
-            return row ? row.data[primaryColumnKey] : id;
-        });
-    } else {
-        const row = linkedDataset.rows.find(r => r.id === currentValue);
-        values = row ? [row.data[primaryColumnKey]] : [currentValue];
-    }
+    const ids = Array.isArray(currentValue) ? currentValue : [currentValue];
+    const values = ids.map(id => {
+        const row = linkedDataset.rows.find(r => r.id === id);
+        return row ? row.data[primaryColumnKey] : id;
+    });
     
     return values.join(', ');
   }
@@ -383,18 +380,25 @@ const LinkSelector = ({
             <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+        <PopoverContent 
+            className="w-[var(--radix-popover-trigger-width)] p-0"
+            onMouseDown={(e) => e.preventDefault()}
+        >
           <div className="p-2">
             <h4 className="font-medium text-sm px-2 py-1">{linkedDataset.name}</h4>
           </div>
           <ScrollArea className="max-h-60">
             <div className="p-1">
               {linkedDataset.rows.map(row => (
-                <div key={row.id} className="flex items-center gap-2 p-2 rounded-sm hover:bg-accent">
+                <div 
+                  key={row.id} 
+                  className="flex items-center gap-2 p-2 rounded-sm hover:bg-accent cursor-pointer"
+                  onClick={() => handleToggle(row.id)}
+                >
                    <Checkbox 
                         id={`link-${row.id}`} 
-                        checked={selectedIds.includes(row.id)} 
-                        onCheckedChange={() => handleToggle(row.id)} 
+                        checked={selectedIds.includes(row.id)}
+                        readOnly 
                    />
                    <Label htmlFor={`link-${row.id}`} className="text-sm font-normal flex-1 cursor-pointer">
                        {row.data[primaryColumnKey]}
@@ -730,7 +734,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
                 <TabsTrigger value="simple">Simple Datasets</TabsTrigger>
                 <TabsTrigger value="advanced">Advanced Datasets (Relational)</TabsTrigger>
             </TabsList>
-            <TabsContent value="simple" className="flex-1 overflow-hidden flex bg-slate-50 m-0">
+            <TabsContent value="simple" className="flex-1 flex flex-row overflow-hidden bg-slate-50 m-0">
                  <aside className="w-[25%] border-r flex flex-col bg-white">
                     <div className="p-4 border-b shrink-0 flex items-center justify-center">
                         <Button variant="outline" className="w-full justify-center" onClick={handleAddSimpleDataset}>
@@ -766,7 +770,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
                     )}
                 </main>
             </TabsContent>
-            <TabsContent value="advanced" className="flex-1 overflow-hidden flex bg-slate-50 m-0">
+            <TabsContent value="advanced" className="flex-1 flex flex-row overflow-hidden bg-slate-50 m-0">
                 <AdvancedDatasetsTab datasets={localAdvancedDatasets} setDatasets={setLocalAdvancedDatasets} />
             </TabsContent>
         </Tabs>
