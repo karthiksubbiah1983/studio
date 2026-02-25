@@ -130,29 +130,6 @@ export type LocalDataset = {
   data: Record<string, any>[];
 };
 
-export type AdvancedColumn = {
-  id: string;
-  name: string;
-  type: 'text' | 'number' | 'boolean' | 'date' | 'link' | 'multi-select';
-  linkToDatasetId?: string; // ID of the dataset it links to
-  allowMultipleLinks?: boolean; // For many-to-one vs many-to-many
-  options?: string[]; // For multi-select
-};
-
-export type AdvancedRow = {
-  id: string;
-  // data is keyed by column id
-  data: Record<string, any>;
-};
-
-export type AdvancedDataset = {
-  id: string;
-  name: string;
-  columns: AdvancedColumn[];
-  rows: AdvancedRow[];
-};
-
-
 // --- CHECKLIST & TASK TYPES ---
 export type ChecklistAnswerOption = {
   id: string;
@@ -347,7 +324,6 @@ export type FormVersion = {
   workflows: Workflow[];
   configurations?: Configuration[];
   localDatasets?: LocalDataset[];
-  advancedDatasets?: AdvancedDataset[];
 };
 
 export type SubCategory = {

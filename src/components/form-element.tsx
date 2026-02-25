@@ -2461,5 +2461,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
-    

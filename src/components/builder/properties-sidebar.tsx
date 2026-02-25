@@ -1979,7 +1979,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
              const simpleDatasetKeys = simpleDataset ? simpleDataset.columns.map(c => c.key) : [];
 
             return (
-                <Accordion type="multiple" defaultValue={["general", "data", "layout", "scoring"]} className="w-full">
+                <Accordion type="multiple" defaultValue={["general", "data", "layout"]} className="w-full">
                     <AccordionItem value="general">
                         <AccordionTrigger className="py-2">General</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
@@ -2106,27 +2106,6 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                             </Select>
                                         </div>
                                     )}
-                                </>
-                            )}
-                        </AccordionContent>
-                    </AccordionItem>
-                     <AccordionItem value="scoring">
-                        <AccordionTrigger className="py-2">Scoring</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="enable-scoring">Enable Scoring</Label>
-                                <Switch id="enable-scoring" checked={element.enableScoring || false} onCheckedChange={(checked) => updateMultipleProperties({ 
-                                    enableScoring: checked,
-                                    scorePerItem: checked ? (element.scorePerItem ?? 1) : null,
-                                    passingScore: checked ? (element.passingScore ?? 1) : null,
-                                 })} />
-                            </div>
-                            {element.enableScoring && (
-                                <>
-                                <div className="flex flex-col gap-2">
-                                    <Label htmlFor="score-per-item">Score per Item</Label>
-                                    <Input id="score-per-item" type="number" value={element.scorePerItem || 1} onChange={(e) => updateProperty('scorePerItem', parseInt(e.target.value))} />
-                                </div>
                                 </>
                             )}
                         </AccordionContent>
