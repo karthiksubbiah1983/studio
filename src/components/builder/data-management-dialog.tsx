@@ -477,9 +477,9 @@ const AdvancedDatasetEditor = memo(({ dataset, allDatasets, onUpdate }: { datase
 
         switch(column.type) {
             case 'text':
-                return <Input defaultValue={value || ''} onBlur={e => handleUpdateCell(rowIndex, column.id, e.target.value)} className="h-8" />;
+                return <Input value={value || ''} onChange={e => handleUpdateCell(rowIndex, column.id, e.target.value)} className="h-8" />;
             case 'number':
-                return <Input type="number" defaultValue={value || ''} onBlur={e => handleUpdateCell(rowIndex, column.id, parseFloat(e.target.value))} className="h-8" />;
+                return <Input type="number" value={value ?? ''} onChange={e => handleUpdateCell(rowIndex, column.id, e.target.value === '' ? null : e.target.valueAsNumber)} className="h-8" />;
             case 'boolean':
                 return <div className="flex justify-center items-center h-8"><Checkbox checked={!!value} onCheckedChange={checked => handleUpdateCell(rowIndex, column.id, !!checked)} /></div>;
             case 'date':
