@@ -387,9 +387,8 @@ const LinkSelector = ({
             <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent 
-            className="w-[var(--radix-popover-trigger-width)] p-0"
-            onMouseDown={(e) => e.preventDefault()}
+        <PopoverContent
+          className="w-[var(--radix-popover-trigger-width)] p-0"
         >
           <div className="p-2">
             <h4 className="font-medium text-sm px-2 py-1">{linkedDataset.name}</h4>
@@ -397,7 +396,11 @@ const LinkSelector = ({
           <ScrollArea className="max-h-60">
             <div className="p-1">
               {linkedDataset.rows.map(row => (
-                <div key={row.id} className="flex items-center gap-2 p-2 rounded-sm">
+                <div
+                  key={row.id}
+                  className="flex items-center gap-2 p-2 rounded-sm"
+                  onMouseDown={(e) => e.preventDefault()}
+                >
                    <Checkbox 
                         id={`link-${row.id}`} 
                         checked={selectedIds.includes(row.id)}
@@ -469,7 +472,6 @@ const MultiSelectPopover = ({
       </PopoverTrigger>
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] p-0"
-        onMouseDown={(e) => e.preventDefault()}
       >
         <div className="p-2">
           <h4 className="font-medium text-sm px-2 py-1">{column.name}</h4>
@@ -480,6 +482,7 @@ const MultiSelectPopover = ({
               <div
                 key={option}
                 className="flex items-center gap-2 p-2 rounded-sm"
+                onMouseDown={(e) => e.preventDefault()}
               >
                 <Checkbox
                   id={`multi-select-${column.id}-${option}`}
@@ -505,12 +508,19 @@ const MultiSelectPopover = ({
 };
 
 
-const AdvancedDatasetEditor = memo(({ dataset, allDatasets, onUpdate }: { dataset: AdvancedDataset; allDatasets: AdvancedDataset[]; onUpdate: (updatedDataset: AdvancedDataset) => void; }) => {
+const AdvancedDatasetEditor = memo(({ dataset: initialDataset, allDatasets, onUpdate }: { dataset: AdvancedDataset; allDatasets: AdvancedDataset[]; onUpdate: (updatedDataset: AdvancedDataset) => void; }) => {
+    const [dataset, setDataset] = useState(initialDataset);
     const [editingColumn, setEditingColumn] = useState<Partial<AdvancedColumn> | null>(null);
     const [isColumnEditorOpen, setIsColumnEditorOpen] = useState(false);
 
+    useEffect(() => {
+        setDataset(initialDataset);
+    }, [initialDataset]);
+    
     const handleUpdateDataset = (updates: Partial<AdvancedDataset>) => {
-        onUpdate({ ...dataset, ...updates });
+        const newDataset = { ...dataset, ...updates };
+        setDataset(newDataset);
+        onUpdate(newDataset);
     };
 
     const handleAddColumn = () => {
@@ -564,11 +574,11 @@ const AdvancedDatasetEditor = memo(({ dataset, allDatasets, onUpdate }: { datase
 
         switch(column.type) {
             case 'text':
-                return <Input value={value || ''} onChange={e => handleUpdateCell(rowIndex, column.id, e.target.value)} className="h-8" />;
+                return <Input defaultValue={value || ''} onBlur={e => handleUpdateCell(rowIndex, column.id, e.target.value)} className="h-8" />;
             case 'number':
-                return <Input type="number" value={value ?? ''} onChange={e => handleUpdateCell(rowIndex, column.id, e.target.value === '' ? null : e.target.valueAsNumber)} className="h-8" />;
+                return <Input type="number" defaultValue={value ?? ''} onBlur={e => handleUpdateCell(rowIndex, column.id, e.target.value === '' ? null : Number(e.target.value))} className="h-8" />;
             case 'boolean':
-                return <div className="flex justify-center items-center h-8"><Checkbox checked={!!value} onCheckedChange={checked => handleUpdateCell(rowIndex, column.id, !!checked)} /></div>;
+                return <div className="flex justify-center items-center h-8"><Checkbox defaultChecked={!!value} onCheckedChange={checked => handleUpdateCell(rowIndex, column.id, !!checked)} /></div>;
             case 'date':
                 return (
                     <Popover>
@@ -667,14 +677,19 @@ AdvancedDatasetEditor.displayName = "AdvancedDatasetEditor";
 
 
 const AdvancedDatasetsTab = ({ 
-    datasets, 
-    setDatasets 
+    datasets: initialDatasets,
+    onUpdateDatasets,
 }: { 
     datasets: AdvancedDataset[], 
-    setDatasets: (datasets: AdvancedDataset[]) => void 
+    onUpdateDatasets: (datasets: AdvancedDataset[]) => void
 }) => {
+    const [datasets, setDatasets] = useState(initialDatasets);
     const [selectedDatasetId, setSelectedDatasetId] = useState<string | null>(null);
 
+    useEffect(() => {
+        setDatasets(initialDatasets);
+    }, [initialDatasets]);
+    
     useEffect(() => {
         if (datasets.length > 0 && !datasets.some(d => d.id === selectedDatasetId)) {
             setSelectedDatasetId(datasets[0].id);
@@ -690,16 +705,22 @@ const AdvancedDatasetsTab = ({
             columns: [{ id: 'col_primary', name: 'Primary Column', type: 'text' }],
             rows: [],
         };
-        setDatasets([...datasets, newDataset]);
+        const newDatasets = [...datasets, newDataset];
+        setDatasets(newDatasets);
+        onUpdateDatasets(newDatasets);
         setSelectedDatasetId(newDataset.id);
     };
 
     const handleDeleteDataset = (id: string) => {
-        setDatasets(datasets.filter(ds => ds.id !== id));
+        const newDatasets = datasets.filter(ds => ds.id !== id);
+        setDatasets(newDatasets);
+        onUpdateDatasets(newDatasets);
     };
     
     const handleUpdateDataset = (updatedDataset: AdvancedDataset) => {
-        setDatasets(datasets.map(ds => ds.id === updatedDataset.id ? updatedDataset : ds));
+        const newDatasets = datasets.map(ds => ds.id === updatedDataset.id ? updatedDataset : ds);
+        setDatasets(newDatasets);
+        onUpdateDatasets(newDatasets);
     };
 
     const selectedDataset = datasets.find(ds => ds.id === selectedDatasetId);
@@ -823,7 +844,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
                 <TabsTrigger value="simple">Simple Datasets</TabsTrigger>
                 <TabsTrigger value="advanced">Advanced Datasets (Relational)</TabsTrigger>
             </TabsList>
-            <TabsContent value="simple" className="flex-1 flex flex-row overflow-hidden bg-slate-50 m-0">
+            <TabsContent value="simple" className="m-0 flex-1 flex flex-row overflow-hidden bg-slate-50">
                  <aside className="w-[25%] border-r flex flex-col bg-white">
                     <div className="p-4 border-b shrink-0 flex items-center justify-center">
                         <Button variant="outline" className="w-full justify-center" onClick={handleAddSimpleDataset}>
@@ -859,8 +880,8 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
                     )}
                 </main>
             </TabsContent>
-            <TabsContent value="advanced" className="flex-1 flex flex-row overflow-hidden bg-slate-50 m-0">
-                <AdvancedDatasetsTab datasets={localAdvancedDatasets} setDatasets={setLocalAdvancedDatasets} />
+            <TabsContent value="advanced" className="m-0 flex-1 flex flex-row overflow-hidden bg-slate-50">
+                <AdvancedDatasetsTab datasets={localAdvancedDatasets} onUpdateDatasets={setLocalAdvancedDatasets} />
             </TabsContent>
         </Tabs>
 
