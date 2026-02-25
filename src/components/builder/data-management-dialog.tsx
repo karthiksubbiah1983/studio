@@ -389,6 +389,7 @@ const LinkSelector = ({
         </PopoverTrigger>
         <PopoverContent
           className="w-[var(--radix-popover-trigger-width)] p-0"
+          onMouseDown={(e) => e.preventDefault()}
         >
           <div className="p-2">
             <h4 className="font-medium text-sm px-2 py-1">{linkedDataset.name}</h4>
@@ -399,7 +400,6 @@ const LinkSelector = ({
                 <div
                   key={row.id}
                   className="flex items-center gap-2 p-2 rounded-sm"
-                  onMouseDown={(e) => e.preventDefault()}
                 >
                    <Checkbox 
                         id={`link-${row.id}`} 
@@ -472,6 +472,7 @@ const MultiSelectPopover = ({
       </PopoverTrigger>
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] p-0"
+        onMouseDown={(e) => e.preventDefault()}
       >
         <div className="p-2">
           <h4 className="font-medium text-sm px-2 py-1">{column.name}</h4>
@@ -482,7 +483,6 @@ const MultiSelectPopover = ({
               <div
                 key={option}
                 className="flex items-center gap-2 p-2 rounded-sm"
-                onMouseDown={(e) => e.preventDefault()}
               >
                 <Checkbox
                   id={`multi-select-${column.id}-${option}`}
@@ -564,6 +564,14 @@ const AdvancedDatasetEditor = memo(({ dataset: initialDataset, allDatasets, onUp
         };
         handleUpdateDataset({ rows: newRows });
     };
+    
+    const handleControlledUpdateCell = (rowIndex: number, colId: string, value: any) => {
+        const newRows = [...dataset.rows];
+        newRows[rowIndex].data[colId] = value;
+        const newDataset = { ...dataset, rows: newRows };
+        setDataset(newDataset);
+        onUpdate(newDataset);
+    }
 
     const handleDeleteRow = (rowId: string) => {
         handleUpdateDataset({ rows: dataset.rows.filter(r => r.id !== rowId) });
@@ -574,9 +582,9 @@ const AdvancedDatasetEditor = memo(({ dataset: initialDataset, allDatasets, onUp
 
         switch(column.type) {
             case 'text':
-                return <Input defaultValue={value || ''} onBlur={e => handleUpdateCell(rowIndex, column.id, e.target.value)} className="h-8" />;
+                return <Input value={value || ''} onChange={e => handleControlledUpdateCell(rowIndex, column.id, e.target.value)} className="h-8" />;
             case 'number':
-                return <Input type="number" defaultValue={value ?? ''} onBlur={e => handleUpdateCell(rowIndex, column.id, e.target.value === '' ? null : Number(e.target.value))} className="h-8" />;
+                return <Input type="number" value={value ?? ''} onChange={e => handleControlledUpdateCell(rowIndex, column.id, e.target.value === '' ? null : e.target.value)} className="h-8" />;
             case 'boolean':
                 return <div className="flex justify-center items-center h-8"><Checkbox defaultChecked={!!value} onCheckedChange={checked => handleUpdateCell(rowIndex, column.id, !!checked)} /></div>;
             case 'date':
