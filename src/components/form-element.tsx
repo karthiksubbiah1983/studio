@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react"
@@ -305,7 +306,7 @@ const DataGridRenderer = React.memo(function DataGridRenderer({ element, value, 
     configurations?: Configuration[],
     sections?: Section[],
 }) {
-    const { datasets } = useBuilder();
+    const { localDatasets } = useBuilder();
     const [isLoading, setIsLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -329,8 +330,8 @@ const DataGridRenderer = React.memo(function DataGridRenderer({ element, value, 
                     .finally(() => {
                         if (isMounted) setIsLoading(false);
                     });
-            } else if (element.dataSource === 'local' && element.localDatasetName && datasets) {
-                const localDataset = datasets.find(ds => ds.name === element.localDatasetName);
+            } else if (element.dataSource === 'local' && element.localDatasetName && localDatasets) {
+                const localDataset = localDatasets.find(ds => ds.name === element.localDatasetName);
                 const data = localDataset?.data || [];
                 stableOnValueChange(element.id, data);
             }
@@ -341,7 +342,7 @@ const DataGridRenderer = React.memo(function DataGridRenderer({ element, value, 
         return () => {
             isMounted = false;
         };
-    }, [element.apiUrl, element.dataSource, element.localDatasetName, datasets, element.id, stableOnValueChange]);
+    }, [element.apiUrl, element.dataSource, element.localDatasetName, localDatasets, element.id, stableOnValueChange]);
 
 
     const handleCellChange = (rowIndex: number, columnElementId: string, cellValue: any) => {
@@ -847,7 +848,7 @@ const DataListRenderer = React.memo(function DataListRenderer({ element, value, 
     onValueChange: (id: string, value: any, fullObject?: any) => void,
     activeFilters: { key: string; value: any; operator: 'equals' | 'contains' }[]
 }) {
-    const { datasets } = useBuilder();
+    const { localDatasets, advancedDatasets } = useBuilder();
     
     const isCheckbox = element.listType === 'checkbox';
     const isRadio = element.listType === 'radio';
@@ -855,8 +856,11 @@ const DataListRenderer = React.memo(function DataListRenderer({ element, value, 
 
     const listOptions = useMemo(() => {
         let baseOptions = [];
-        if (element.localDatasetName) {
-            const dataset = datasets.find(ds => ds.name === element.localDatasetName);
+        if (element.dataSource === 'advanced' && element.localDatasetName) {
+            const dataset = advancedDatasets.find(ds => ds.name === element.localDatasetName);
+            baseOptions = dataset?.rows || [];
+        } else if (element.localDatasetName) { // Default to simple 'local'
+            const dataset = localDatasets.find(ds => ds.name === element.localDatasetName);
             baseOptions = dataset?.data || [];
         }
 
@@ -871,7 +875,7 @@ const DataListRenderer = React.memo(function DataListRenderer({ element, value, 
         }
 
         return baseOptions;
-    }, [element.localDatasetName, datasets, activeFilters]);
+    }, [element.localDatasetName, element.dataSource, localDatasets, advancedDatasets, activeFilters]);
     
     const mainListOptions = useMemo(() => {
         if (!value) return listOptions;
@@ -1715,7 +1719,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                 options = [...dynamicOptions];
             } else if (element.dataSource === 'static') {
                 options = element.options || [];
-            } else if (element.dataSource === 'local') {
+            } else if (element.dataSource === 'advanced') {
                 const dataset = advancedDatasets.find(ds => ds.name === element.localDatasetName);
                 if (dataset) {
                     options = dataset.rows;
@@ -1755,13 +1759,13 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                 return;
             }
 
-            if (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.dataSource === 'local') {
+            if (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.dataSource === 'advanced') {
                 let fullObject: any;
                 if (element.customOptions?.some(opt => opt.value === val)) {
                     fullObject = element.customOptions.find(opt => opt.value === val);
                 } else {
                     fullObject = filteredOptions.find(opt => {
-                        const valueKey = element.dataSource === 'local' ? 'id' : element.valueKey!;
+                        const valueKey = element.dataSource === 'advanced' ? 'id' : element.valueKey!;
                         return String(getNestedValue(opt, valueKey)) === val;
                     });
                 }
@@ -1789,12 +1793,12 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                                 {option}
                             </SelectItem>
                         ))
-                    ) : (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.dataSource === 'local') ? (
+                    ) : (element.dataSource === 'dynamic' || element.dataSource === 'fromParent' || element.dataSource === 'advanced') ? (
                         filteredOptions.map((option, index) => {
                             let itemValue, itemLabel;
-                            if (element.dataSource === 'local') {
+                            if (element.dataSource === 'advanced') {
                                 itemValue = getNestedValue(option, 'id');
-                                itemLabel = getNestedValue(option.data, element.labelKey!);
+                                itemLabel = getNestedValue(option, element.labelKey!);
                             } else { // dynamic or fromParent
                                 itemValue = getNestedValue(option, element.valueKey!);
                                 itemLabel = getNestedValue(option, element.labelKey!);

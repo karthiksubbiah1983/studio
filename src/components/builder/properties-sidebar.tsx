@@ -855,7 +855,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   }, [parentGrid, localDatasets, dataSourceKeys, displayDataSourceKeys, fetchedKeys]);
   
   const currentDataset = useMemo(() => {
-    if (element.dataSource === 'local' && element.localDatasetName) {
+    if (element.dataSource === 'advanced' && element.localDatasetName) {
         return advancedDatasets.find(ds => ds.name === element.localDatasetName) || null;
     }
     return null;
@@ -1796,7 +1796,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <RadioGroup
                                             value={element.dataSource || 'static'}
                                             onValueChange={(val) => {
-                                              const newDataSource = val as 'static' | 'dynamic' | 'fromParent' | 'local';
+                                              const newDataSource = val as 'static' | 'dynamic' | 'fromParent' | 'advanced';
                                               updateMultipleProperties({
                                                 dataSource: newDataSource,
                                                 options: newDataSource === 'static' ? (element.options || ['Option 1']) : undefined,
@@ -1806,7 +1806,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                 dataSourceParentId: newDataSource === 'fromParent' || (newDataSource === 'dynamic' && element.apiUrl?.includes('{')) ? element.dataSourceParentId : undefined,
                                                 dataSourceParentKey: newDataSource === 'fromParent' ? element.dataSourceParentKey : undefined,
                                                 customOptions: newDataSource === 'dynamic' ? (element.customOptions || []) : undefined,
-                                                localDatasetName: newDataSource === 'local' ? element.localDatasetName : undefined,
+                                                localDatasetName: newDataSource === 'advanced' ? element.localDatasetName : undefined,
                                               })
                                             }}
                                             className="grid grid-cols-2 gap-2"
@@ -1823,20 +1823,20 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                 <RadioGroupItem value="fromParent" id="source-from-parent" />
                                                 Parent Field
                                             </Label>
-                                             <Label htmlFor="source-local" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
-                                                <RadioGroupItem value="local" id="source-local" />
-                                                Local Dataset
+                                             <Label htmlFor="source-advanced" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                                <RadioGroupItem value="advanced" id="source-advanced" />
+                                                Advanced Dataset
                                             </Label>
                                         </RadioGroup>
                                     </div>
                                     {element.dataSource === 'dynamic' ? dynamicDataSourceFields() : 
                                      element.dataSource === 'fromParent' ? parentDataSourceFields() : 
-                                     element.dataSource === 'local' ? (
+                                     element.dataSource === 'advanced' ? (
                                         <div className="flex flex-col gap-4">
                                             <div className="flex flex-col gap-2">
                                                 <Label>Dataset</Label>
                                                 <Select value={element.localDatasetName || ''} onValueChange={(name) => updateMultipleProperties({ localDatasetName: name, valueKey: 'id', labelKey: '', parentFieldId: undefined, filterColumnId: undefined })}>
-                                                    <SelectTrigger><SelectValue placeholder="Select a local dataset..."/></SelectTrigger>
+                                                    <SelectTrigger><SelectValue placeholder="Select an advanced dataset..."/></SelectTrigger>
                                                     <SelectContent>
                                                         {advancedDatasets.map(ds => (
                                                             <SelectItem key={ds.id} value={ds.name}>{ds.name}</SelectItem>
@@ -1852,7 +1852,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                             <SelectTrigger><SelectValue placeholder="Select column for label..."/></SelectTrigger>
                                                             <SelectContent>
                                                                 {(currentDataset as AdvancedDataset).columns.map(col => (
-                                                                    <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
+                                                                    <SelectItem key={col.id} value={`data.${col.id}`}>{col.name}</SelectItem>
                                                                 ))}
                                                             </SelectContent>
                                                         </Select>
@@ -2050,9 +2050,12 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                  </Accordion>
             );
         case "DataList": {
-            const dataset = localDatasets.find(d => d.name === element.localDatasetName);
-            const datasetKeys = dataset ? dataset.columns.map(c => c.key) : [];
-        
+             const simpleDataset = localDatasets.find(d => d.name === element.localDatasetName);
+             const simpleDatasetKeys = simpleDataset ? simpleDataset.columns.map(c => c.key) : [];
+
+             const advancedDataset = advancedDatasets.find(d => d.name === element.localDatasetName);
+             const advancedDatasetKeys = advancedDataset ? advancedDataset.columns.map(c => `data.${c.id}`) : [];
+
             return (
                 <Accordion type="multiple" defaultValue={["general", "data", "layout", "scoring"]} className="w-full">
                     <AccordionItem value="general">
@@ -2112,33 +2115,59 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                     <AccordionItem value="data">
                         <AccordionTrigger className="py-2">Data Source</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
+                            <RadioGroup
+                                value={element.dataSource || 'local'}
+                                onValueChange={(val) => {
+                                    updateMultipleProperties({ dataSource: val as 'local' | 'advanced', localDatasetName: '' })
+                                }}
+                                className="grid grid-cols-2 gap-2"
+                            >
+                                <Label htmlFor="datalist-source-local" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                    <RadioGroupItem value="local" id="datalist-source-local" />
+                                    Simple Dataset
+                                </Label>
+                                <Label htmlFor="datalist-source-advanced" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
+                                    <RadioGroupItem value="advanced" id="datalist-source-advanced" />
+                                    Advanced Dataset
+                                </Label>
+                            </RadioGroup>
+                            
                             <div className="space-y-2">
                                 <Label>Dataset</Label>
-                                <Select
-                                    value={element.localDatasetName || ''}
-                                    onValueChange={name => updateMultipleProperties({ localDatasetName: name, valueKey: '', labelKey: '', secondaryTextKey: '', linkUrlKey: '' })}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select a local dataset..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {localDatasets?.map(ds => (
-                                            <SelectItem key={ds.id} value={ds.name}>
-                                                {ds.name}
-                                            </SelectItem>
-                                        ))}
-                                        {(!localDatasets || localDatasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No local datasets found.</div>}
-                                    </SelectContent>
-                                </Select>
+                                {element.dataSource === 'advanced' ? (
+                                     <Select
+                                        value={element.localDatasetName || ''}
+                                        onValueChange={name => updateMultipleProperties({ localDatasetName: name, valueKey: 'id', labelKey: '', secondaryTextKey: '', linkUrlKey: '' })}
+                                    >
+                                        <SelectTrigger><SelectValue placeholder="Select an advanced dataset..." /></SelectTrigger>
+                                        <SelectContent>
+                                            {advancedDatasets?.map(ds => ( <SelectItem key={ds.id} value={ds.name}> {ds.name} </SelectItem> ))}
+                                            {(!advancedDatasets || advancedDatasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No advanced datasets found.</div>}
+                                        </SelectContent>
+                                    </Select>
+                                ) : (
+                                    <Select
+                                        value={element.localDatasetName || ''}
+                                        onValueChange={name => updateMultipleProperties({ localDatasetName: name, valueKey: '', labelKey: '', secondaryTextKey: '', linkUrlKey: '' })}
+                                    >
+                                        <SelectTrigger> <SelectValue placeholder="Select a simple dataset..." /> </SelectTrigger>
+                                        <SelectContent>
+                                            {localDatasets?.map(ds => ( <SelectItem key={ds.id} value={ds.name}> {ds.name} </SelectItem> ))}
+                                            {(!localDatasets || localDatasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No simple datasets found.</div>}
+                                        </SelectContent>
+                                    </Select>
+                                )}
                             </div>
-                             {datasetKeys.length > 0 && (
+                            
+                            {(simpleDatasetKeys.length > 0 || advancedDatasetKeys.length > 0) && (
                                 <>
                                     <div className="flex flex-col gap-2">
                                         <Label htmlFor="valueKey">Option Value Key</Label>
                                         <Select value={element.valueKey || ''} onValueChange={(value) => updateProperty('valueKey', value)}>
                                             <SelectTrigger><SelectValue placeholder="Select a key" /></SelectTrigger>
                                             <SelectContent>
-                                                {datasetKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                {element.dataSource === 'advanced' && <SelectItem value="id">Row ID</SelectItem>}
+                                                {(element.dataSource === 'advanced' ? advancedDatasetKeys : simpleDatasetKeys).map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -2147,7 +2176,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         <Select value={element.labelKey || ''} onValueChange={(value) => updateProperty('labelKey', value)}>
                                             <SelectTrigger><SelectValue placeholder="Select a key" /></SelectTrigger>
                                             <SelectContent>
-                                                {datasetKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                 {(element.dataSource === 'advanced' ? advancedDatasetKeys : simpleDatasetKeys).map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -2157,7 +2186,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                             <Select value={element.secondaryTextKey || ''} onValueChange={(value) => updateProperty('secondaryTextKey', value)}>
                                                 <SelectTrigger><SelectValue placeholder="Select a key" /></SelectTrigger>
                                                 <SelectContent>
-                                                    {datasetKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                     {(element.dataSource === 'advanced' ? advancedDatasetKeys : simpleDatasetKeys).map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -2168,7 +2197,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                             <Select value={element.linkUrlKey || ''} onValueChange={(value) => updateProperty('linkUrlKey', value)}>
                                                 <SelectTrigger><SelectValue placeholder="Select a key" /></SelectTrigger>
                                                 <SelectContent>
-                                                    {datasetKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                     {(element.dataSource === 'advanced' ? advancedDatasetKeys : simpleDatasetKeys).map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
                                                 </SelectContent>
                                             </Select>
                                         </div>
@@ -2532,7 +2561,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 </Label>
                                  <Label htmlFor="dg-source-local" className="flex items-center justify-center gap-2 border p-2 rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-primary/10 has-[:checked]:border-primary">
                                     <RadioGroupItem value="local" id="dg-source-local" />
-                                    Local
+                                    Simple Dataset
                                 </Label>
                             </RadioGroup>
 
@@ -2544,7 +2573,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                         onValueChange={name => updateProperty('localDatasetName', name)}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select a local dataset..." />
+                                            <SelectValue placeholder="Select a simple dataset..." />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {localDatasets?.map(ds => (
@@ -2552,7 +2581,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                                     {ds.name}
                                                 </SelectItem>
                                             ))}
-                                            {(!localDatasets || localDatasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No local datasets found.</div>}
+                                            {(!localDatasets || localDatasets.length === 0) && <div className="p-4 text-center text-sm text-muted-foreground">No simple datasets found.</div>}
                                         </SelectContent>
                                     </Select>
                                 </div>
