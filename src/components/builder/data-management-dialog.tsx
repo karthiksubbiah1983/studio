@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, memo, useMemo } from 'react';
@@ -341,6 +342,8 @@ const LinkSelector = ({
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     } else {
         setSelectedIds([id]);
+        onSave(id);
+        setIsOpen(false);
     }
   };
 
@@ -354,20 +357,25 @@ const LinkSelector = ({
   const primaryColumnKey = linkedDataset.columns[0]?.id || 'id';
 
   const getDisplayValue = () => {
-    if (!currentValue) return <span className="text-muted-foreground">Select...</span>;
+    if (!currentValue || (Array.isArray(currentValue) && currentValue.length === 0)) {
+        return <span className="text-muted-foreground">Select...</span>;
+    }
+    
+    let values: string[] = [];
     if (column.allowMultipleLinks) {
-        const values = (Array.isArray(currentValue) ? currentValue : []).map(id => {
+        values = (Array.isArray(currentValue) ? currentValue : []).map(id => {
             const row = linkedDataset.rows.find(r => r.id === id);
             return row ? row.data[primaryColumnKey] : id;
         });
-        return values.join(', ');
+    } else {
+        const row = linkedDataset.rows.find(r => r.id === currentValue);
+        values = row ? [row.data[primaryColumnKey]] : [currentValue];
     }
-    const row = linkedDataset.rows.find(r => r.id === currentValue);
-    return row ? row.data[primaryColumnKey] : currentValue;
+    
+    return values.join(', ');
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger asChild>
           <Button variant="outline" className="w-full justify-between font-normal truncate">
@@ -382,19 +390,26 @@ const LinkSelector = ({
           <ScrollArea className="max-h-60">
             <div className="p-1">
               {linkedDataset.rows.map(row => (
-                <div key={row.id} className="flex items-center gap-2 p-2 rounded-sm hover:bg-accent" onClick={() => handleToggle(row.id)}>
-                   <Checkbox checked={selectedIds.includes(row.id)} />
-                   <span className="text-sm">{row.data[primaryColumnKey]}</span>
+                <div key={row.id} className="flex items-center gap-2 p-2 rounded-sm hover:bg-accent">
+                   <Checkbox 
+                        id={`link-${row.id}`} 
+                        checked={selectedIds.includes(row.id)} 
+                        onCheckedChange={() => handleToggle(row.id)} 
+                   />
+                   <Label htmlFor={`link-${row.id}`} className="text-sm font-normal flex-1 cursor-pointer">
+                       {row.data[primaryColumnKey]}
+                   </Label>
                 </div>
               ))}
             </div>
           </ScrollArea>
-           <div className="p-2 border-t">
-              <Button className="w-full" size="sm" onClick={handleConfirm}>Confirm</Button>
-            </div>
+           {column.allowMultipleLinks && (
+                <div className="p-2 border-t">
+                    <Button className="w-full" size="sm" onClick={handleConfirm}>Confirm</Button>
+                </div>
+            )}
         </PopoverContent>
       </Popover>
-    </Dialog>
   );
 };
 
