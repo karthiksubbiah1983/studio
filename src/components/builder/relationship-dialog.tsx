@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { ArrowRight, Infinity } from 'lucide-react';
+import { ArrowRight, Infinity, GitCommitHorizontal } from 'lucide-react';
 import { LocalDataset, DatasetRelationship, DatasetRelationshipType } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
