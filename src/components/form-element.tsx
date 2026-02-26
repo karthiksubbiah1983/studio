@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react"
@@ -46,10 +45,11 @@ import {
 } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "./ui/accordion";
 
-const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element, value, onValueChange }: { 
+const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element, value, onValueChange, isPdfMode }: { 
     element: FormElementInstance, 
     value: any, 
-    onValueChange: (id: string, value: any) => void 
+    onValueChange: (id: string, value: any) => void,
+    isPdfMode?: boolean,
 }) {
     const { user } = useAuth();
     const [items, setItems] = useState<PayrollItem[]>([]);
@@ -155,83 +155,85 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
 
     return (
         <div className="space-y-6">
-            <div className="space-y-6 p-4 border rounded-lg">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                    <div className="space-y-2">
-                        <Label>Item Name</Label>
-                         <Select onValueChange={handleItemSelect} value={isCustomItem ? 'Other' : itemName}>
-                            <SelectTrigger className="w-full font-normal">
-                                <SelectValue placeholder="Select item..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {comboboxOptions.map((option) => (
-                                    <SelectItem key={option} value={option}>
-                                        {option}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {isCustomItem && <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="Enter custom item name" className="mt-2" />}
-                    </div>
-                    <div className="space-y-2">
-                         <Label>Quantity</Label>
-                         <div className="flex items-center gap-2">
-                            <Button size="icon" variant="outline" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="h-4 w-4"/></Button>
-                            <Input type="number" value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="text-center" />
-                            <Button size="icon" variant="outline" onClick={() => setQuantity(q => q + 1)}><Plus className="h-4 w-4"/></Button>
-                         </div>
-                    </div>
-                </div>
-                 <div className="flex items-center space-x-2">
-                    <Checkbox id="best-before-check" checked={isBestBefore} onCheckedChange={(checked) => setIsBestBefore(!!checked)} />
-                    <Label htmlFor="best-before-check">Best before / Use by date</Label>
-                    {isBestBefore && (
-                         <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className={cn("w-auto justify-start text-left font-normal", !bestBefore && "text-muted-foreground")}>
-                                    <CalendarDays className="mr-2 h-4 w-4" />
-                                    {bestBefore ? format(bestBefore, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar mode="single" selected={bestBefore} onSelect={setBestBefore} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                    )}
-                </div>
-                <div>
-                    <Label>Product</Label>
-                    <div 
-                        className="mt-2 flex flex-col items-center justify-center w-full min-h-[120px] border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-accent/50 p-4"
-                        onClick={() => document.getElementById(`file-upload-${element.id}`)?.click()}
-                    >
-                         <input id={`file-upload-${element.id}`} type="file" multiple className="hidden" onChange={e => handleFileChange(e.target.files)} />
-                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">
-                            <span className="font-semibold">Click to upload</span> or Drag and drop
-                        </p>
-                    </div>
-                     <p className="text-xs text-muted-foreground mt-2">
-                        * Supported File Types: {element.allowedFileTypes?.join(', ').toUpperCase() || 'ANY'} 
-                        * Allowed File Size: {element.maxFileSize || 5}MB per image 
-                        * Allowed Attachement Count: {element.attachmentCount || 3} only
-                     </p>
-                    {attachments.length > 0 && (
-                        <div className="space-y-2 mt-4">
-                            {attachments.map((file, index) => (
-                                <div key={index} className="flex items-center justify-between text-sm p-1.5 bg-muted/50 rounded-md">
-                                    <div className="flex items-center gap-2 overflow-hidden"><FileIcon className="h-4 w-4" /> {file.name}</div>
-                                    <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeAttachment(index)}><X className="h-4 w-4 text-destructive"/></Button>
-                                </div>
-                            ))}
+             {!isPdfMode && (
+                <div className="space-y-6 p-4 border rounded-lg">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        <div className="space-y-2">
+                            <Label>Item Name</Label>
+                            <Select onValueChange={handleItemSelect} value={isCustomItem ? 'Other' : itemName}>
+                                <SelectTrigger className="w-full font-normal">
+                                    <SelectValue placeholder="Select item..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {comboboxOptions.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            {isCustomItem && <Input value={itemName} onChange={e => setItemName(e.target.value)} placeholder="Enter custom item name" className="mt-2" />}
                         </div>
-                    )}
+                        <div className="space-y-2">
+                            <Label>Quantity</Label>
+                            <div className="flex items-center gap-2">
+                                <Button size="icon" variant="outline" onClick={() => setQuantity(q => Math.max(1, q - 1))}><Minus className="h-4 w-4"/></Button>
+                                <Input type="number" value={quantity} onChange={e => setQuantity(parseInt(e.target.value) || 1)} className="text-center" />
+                                <Button size="icon" variant="outline" onClick={() => setQuantity(q => q + 1)}><Plus className="h-4 w-4"/></Button>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Checkbox id="best-before-check" checked={isBestBefore} onCheckedChange={(checked) => setIsBestBefore(!!checked)} />
+                        <Label htmlFor="best-before-check">Best before / Use by date</Label>
+                        {isBestBefore && (
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className={cn("w-auto justify-start text-left font-normal", !bestBefore && "text-muted-foreground")}>
+                                        <CalendarDays className="mr-2 h-4 w-4" />
+                                        {bestBefore ? format(bestBefore, "PPP") : <span>Pick a date</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar mode="single" selected={bestBefore} onSelect={setBestBefore} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        )}
+                    </div>
+                    <div>
+                        <Label>Product</Label>
+                        <div 
+                            className="mt-2 flex flex-col items-center justify-center w-full min-h-[120px] border-2 border-dashed rounded-lg cursor-pointer bg-card hover:bg-accent/50 p-4"
+                            onClick={() => document.getElementById(`file-upload-${element.id}`)?.click()}
+                        >
+                            <input id={`file-upload-${element.id}`} type="file" multiple className="hidden" onChange={e => handleFileChange(e.target.files)} />
+                            <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground">
+                                <span className="font-semibold">Click to upload</span> or Drag and drop
+                            </p>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                            * Supported File Types: {element.allowedFileTypes?.join(', ').toUpperCase() || 'ANY'} 
+                            * Allowed File Size: {element.maxFileSize || 5}MB per image 
+                            * Allowed Attachement Count: {element.attachmentCount || 3} only
+                        </p>
+                        {attachments.length > 0 && (
+                            <div className="space-y-2 mt-4">
+                                {attachments.map((file, index) => (
+                                    <div key={index} className="flex items-center justify-between text-sm p-1.5 bg-muted/50 rounded-md">
+                                        <div className="flex items-center gap-2 overflow-hidden"><FileIcon className="h-4 w-4" /> {file.name}</div>
+                                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeAttachment(index)}><X className="h-4 w-4 text-destructive"/></Button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                    <div className="flex justify-end">
+                        <Button onClick={handleAddOrUpdateItem} disabled={!itemName.trim()}>{editingItemId ? 'Update' : 'Add'}</Button>
+                        {editingItemId && <Button variant="ghost" onClick={resetForm}>Cancel</Button>}
+                    </div>
                 </div>
-                 <div className="flex justify-end">
-                    <Button onClick={handleAddOrUpdateItem} disabled={!itemName.trim()}>{editingItemId ? 'Update' : 'Add'}</Button>
-                    {editingItemId && <Button variant="ghost" onClick={resetForm}>Cancel</Button>}
-                </div>
-            </div>
+             )}
 
             {items.length > 0 && (
                 <div className="border rounded-lg">
@@ -248,7 +250,7 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
                                 <TableHead>Created BY</TableHead>
                                 <TableHead>Created ON</TableHead>
                                 <TableHead>Attachment</TableHead>
-                                <TableHead>Action</TableHead>
+                                 {!isPdfMode && <TableHead>Action</TableHead>}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -262,17 +264,24 @@ const PayrollTableRenderer = React.memo(function PayrollTableRenderer({ element,
                                     <TableCell>{format(new Date(item.createdOn), 'dd/MM/yyyy')}</TableCell>
                                     <TableCell>
                                         {item.attachments.map((file, i) => (
+                                            isPdfMode ?
+                                            <div key={i} className="flex items-center gap-1 text-sm">
+                                                <FileIcon className="h-4 w-4" /> {file.name}
+                                            </div>
+                                            :
                                             <a key={i} href={URL.createObjectURL(file)} target="_blank" rel="noopener noreferrer" className="text-primary underline flex items-center gap-1 text-sm">
                                             <FileIcon className="h-4 w-4" /> {file.name}
                                             </a>
                                         ))}
                                     </TableCell>
-                                    <TableCell>
-                                        <div className="flex gap-1">
-                                            <Button size="icon" variant="ghost" onClick={() => handleEditItem(item)}><Edit className="h-4 w-4"/></Button>
-                                            <Button size="icon" variant="ghost" onClick={() => handleDeleteItem(item.id)}><Trash className="h-4 w-4 text-destructive"/></Button>
-                                        </div>
-                                    </TableCell>
+                                    {!isPdfMode && (
+                                        <TableCell>
+                                            <div className="flex gap-1">
+                                                <Button size="icon" variant="ghost" onClick={() => handleEditItem(item)}><Edit className="h-4 w-4"/></Button>
+                                                <Button size="icon" variant="ghost" onClick={() => handleDeleteItem(item.id)}><Trash className="h-4 w-4 text-destructive"/></Button>
+                                            </div>
+                                        </TableCell>
+                                    )}
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -2383,7 +2392,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         />;
         break;
     case "PayrollTable":
-        content = <PayrollTableRenderer element={element} value={value} onValueChange={onValueChange} />;
+        content = <PayrollTableRenderer element={element} value={value} onValueChange={onValueChange} isPdfMode={isPdfMode} />;
         break;
     case "DataGrid":
         content = <DataGridRenderer 
@@ -2466,3 +2475,5 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+
+    
