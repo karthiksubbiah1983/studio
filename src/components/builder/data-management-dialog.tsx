@@ -308,16 +308,21 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
     if (isOpen) {
       const initialSimple = JSON.parse(JSON.stringify(localDatasets || []));
       setSimpleDatasets(initialSimple);
-      const selectedSimpleExists = initialSimple.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
-      if (initialSimple.length > 0 && !selectedSimpleExists) {
-        setSelectedSimpleDatasetId(initialSimple[0].id);
-      } else if (initialSimple.length === 0) {
-        setSelectedSimpleDatasetId(null);
-      }
 
+      // Only change selection if the currently selected doesn't exist in the initial list
+      const selectedSimpleExists = initialSimple.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
+      if (!selectedSimpleExists) {
+        if (initialSimple.length > 0) {
+            setSelectedSimpleDatasetId(initialSimple[0].id);
+        } else {
+            setSelectedSimpleDatasetId(null);
+        }
+      }
+      
       setLocalRelationships(JSON.parse(JSON.stringify(relationships || [])));
     }
-  }, [isOpen, localDatasets, relationships, selectedSimpleDatasetId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, localDatasets, relationships]);
 
   const handleSaveChanges = () => {
     updateLocalDatasets(simpleDatasets);
