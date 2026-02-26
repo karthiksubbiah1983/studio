@@ -130,6 +130,18 @@ export type LocalDataset = {
   data: Record<string, any>[];
 };
 
+export type DatasetRelationshipType = 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many';
+
+export type DatasetRelationship = {
+  id: string;
+  name: string;
+  sourceDatasetId: string;
+  targetDatasetId: string;
+  type: DatasetRelationshipType;
+  sourceFieldKey: string;
+  targetFieldKey: string;
+};
+
 // --- CHECKLIST & TASK TYPES ---
 export type ChecklistAnswerOption = {
   id: string;
@@ -325,6 +337,7 @@ export type FormVersion = {
   workflows: Workflow[];
   configurations?: Configuration[];
   localDatasets?: LocalDataset[];
+  relationships?: DatasetRelationship[];
 };
 
 export type SubCategory = {
