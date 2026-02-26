@@ -12,6 +12,109 @@ import { useRouter } from "next/navigation";
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
 
+const relationalDataDemoTemplate: Form = {
+  id: 'demo-relational-data',
+  title: 'Relational Data Example',
+  categoryId: 'demo-templates',
+  versions: [
+    {
+      id: crypto.randomUUID(),
+      name: 'Initial Version',
+      description: 'A template demonstrating how to use dataset relationships to link data.',
+      type: 'published',
+      timestamp: new Date().toISOString(),
+      sections: [
+        {
+          id: 's1-relational',
+          title: 'Select a Body Part',
+          displayMode: 'default',
+          elements: [
+            {
+              id: 'datalist_body_parts',
+              type: 'DataList',
+              key: 'selected_body_part_inspection',
+              label: 'Body Parts for Inspection',
+              required: false,
+              dataSource: 'local',
+              localDatasetName: 'ds_body_parts',
+              valueKey: 'id',
+              labelKey: 'name',
+              listType: 'radio',
+            } as FormElementInstance,
+          ],
+        },
+      ],
+      rules: [],
+      workflows: [],
+      configurations: [],
+      localDatasets: [
+        {
+          id: 'ds1',
+          name: 'ds_body_parts',
+          columns: [
+            { id: 'c1', header: 'ID', key: 'id', type: 'text' },
+            { id: 'c2', header: 'Name', key: 'name', type: 'text' },
+            { id: 'c3', header: 'Priority ID', key: 'priority_id', type: 'text' },
+          ],
+          data: [
+            { id: 'bp1', name: 'Head', priority_id: 'p1' },
+            { id: 'bp2', name: 'Arm', priority_id: 'p2' },
+            { id: 'bp3', name: 'Leg', priority_id: 'p3' },
+            { id: 'bp4', name: 'Stomach', priority_id: 'p2' },
+          ],
+        },
+        {
+          id: 'ds2',
+          name: 'ds_priorities',
+          columns: [
+            { id: 'p_c1', header: 'ID', key: 'id', type: 'text' },
+            { id: 'p_c2', header: 'Level', key: 'level', type: 'text' },
+            { id: 'p_c3', header: 'Location ID', key: 'location_id', type: 'text' },
+          ],
+          data: [
+            { id: 'p1', level: 'High', location_id: 'loc1' },
+            { id: 'p2', level: 'Medium', location_id: 'loc2' },
+            { id: 'p3', level: 'Low', location_id: 'loc2' },
+          ],
+        },
+        {
+          id: 'ds3',
+          name: 'ds_locations',
+          columns: [
+            { id: 'l_c1', header: 'ID', key: 'id', type: 'text' },
+            { id: 'l_c2', header: 'Name', key: 'name', type: 'text' },
+          ],
+          data: [
+            { id: 'loc1', name: 'Hotel' },
+            { id: 'loc2', name: 'Restaurant' },
+          ],
+        },
+      ],
+      relationships: [
+        {
+          id: 'rel1',
+          name: 'BodyPart_to_Priority',
+          sourceDatasetId: 'ds1',
+          targetDatasetId: 'ds2',
+          type: 'many-to-one',
+          sourceFieldKey: 'priority_id',
+          targetFieldKey: 'id',
+        },
+        {
+          id: 'rel2',
+          name: 'Priority_to_Location',
+          sourceDatasetId: 'ds2',
+          targetDatasetId: 'ds3',
+          type: 'many-to-one',
+          sourceFieldKey: 'location_id',
+          targetFieldKey: 'id',
+        },
+      ],
+    },
+  ],
+};
+
+
 const editableTableCascadingDemo: Form = {
     id: "demo-editable-table-cascading",
     title: "Editable Table with Cascading Dropdowns",
@@ -606,7 +709,7 @@ const cloneWithNewIds = <T extends { id: string; [key: string]: any }>(item: T):
       }
       
       // Update any property that might be an ID reference
-      const referenceKeys = ['sourceElementId', 'comparisonElementId', 'targetElementId', 'dataSourceParentId'];
+      const referenceKeys = ['sourceElementId', 'comparisonElementId', 'targetElementId', 'dataSourceParentId', 'sourceDatasetId', 'targetDatasetId'];
       for (const refKey of referenceKeys) {
           if (obj[refKey] && idMap[obj[refKey]]) {
               obj[refKey] = idMap[obj[refKey]];
@@ -1426,6 +1529,9 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     }
     if (!mergedState.forms.some(f => f.id === editableTableCascadingDemo.id)) {
         mergedState.forms.unshift(editableTableCascadingDemo);
+    }
+     if (!mergedState.forms.some(f => f.id === relationalDataDemoTemplate.id)) {
+        mergedState.forms.unshift(relationalDataDemoTemplate);
     }
     if (!mergedState.categories.some(c => c.id === demoCategory.id)) {
         mergedState.categories.unshift(demoCategory);

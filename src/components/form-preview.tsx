@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { FormElementInstance, Section, Workflow, WorkflowAction, Rule, Configuration } from "@/lib/types";
-import { cn, getAllElements } from "@/lib/utils";
+import { FormElementInstance, Section, Workflow, WorkflowAction, Rule, Configuration, LocalDataset, DatasetRelationship } from "@/lib/types";
+import { cn, getAllElements, getNestedValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -23,22 +23,63 @@ import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 
 
-const generateSubmissionJson = (allElements: (FormElementInstance | Section)[], formState: { [key: string]: any }): Record<string, any> => {
+const generateSubmissionJson = (
+    allElements: FormElementInstance[], 
+    formState: { [key: string]: any }, 
+    relationships?: DatasetRelationship[], 
+    localDatasets?: LocalDataset[]
+): Record<string, any> => {
     const submission: Record<string, any> = {};
+    const allDatasets = localDatasets || [];
+
+    const findRelatedData = (currentItem: any, currentDatasetName?: string): any => {
+        if (!currentItem || !currentDatasetName) return currentItem;
+
+        let enrichedItem = { ...currentItem };
+        const relevantRelationships = (relationships || []).filter(r => {
+            const sourceDataset = allDatasets.find(ds => ds.id === r.sourceDatasetId);
+            return sourceDataset?.name === currentDatasetName;
+        });
+
+        for (const rel of relevantRelationships) {
+            const foreignKeyValue = currentItem[rel.sourceFieldKey];
+            if (foreignKeyValue === undefined) continue;
+
+            const targetDataset = allDatasets.find(ds => ds.id === rel.targetDatasetId);
+            if (!targetDataset) continue;
+
+            if (Array.isArray(foreignKeyValue)) { // many-to-many or one-to-many
+                const relatedItems = targetDataset.data.filter(targetItem =>
+                    foreignKeyValue.includes(targetItem[rel.targetFieldKey])
+                );
+                enrichedItem[targetDataset.name] = relatedItems.map(item => findRelatedData(item, targetDataset.name));
+            } else { // one-to-one or many-to-one
+                const relatedItem = targetDataset.data.find(targetItem =>
+                    targetItem[rel.targetFieldKey] === foreignKeyValue
+                );
+                if (relatedItem) {
+                    enrichedItem[targetDataset.name] = findRelatedData(relatedItem, targetDataset.name);
+                }
+            }
+        }
+        return enrichedItem;
+    };
+
     allElements.forEach(element => {
-        if ('key' in element && element.key) {
+        if (element.key) {
             const elementState = formState[element.id];
             if (elementState) {
-                 if (element.type === 'FileUpload' && Array.isArray(elementState.value)) {
-                    // For FileUpload, serialize the File objects
+                if (element.type === 'DataList' && element.dataSource === 'local' && elementState.fullObject) {
+                    const selectedItems = Array.isArray(elementState.fullObject) ? elementState.fullObject : [elementState.fullObject];
+                    const enrichedData = selectedItems.map(item => findRelatedData(item, element.localDatasetName));
+                    submission[element.key] = element.listType === 'checkbox' ? enrichedData : enrichedData[0];
+                } else if (element.type === 'FileUpload' && Array.isArray(elementState.value)) {
                     submission[element.key] = elementState.value.map((file: File) => ({
                         name: file.name,
                         size: file.size,
                         type: file.type,
                     }));
-                 } else if (element.type === 'Checklist') {
-                     submission[element.key] = elementState.value; // The whole value object with `responses`
-                 } else if (elementState.fullObject) {
+                } else if (elementState.fullObject) {
                     submission[element.key] = elementState.fullObject;
                 } else {
                     submission[element.key] = elementState.value;
@@ -241,12 +282,12 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
         return;
     }
     
+    const { state, activeForm, dispatch, localDatasets, relationships } = builderContext;
     const allElements = getAllElements(sections);
-    const submissionData = generateSubmissionJson(allElements, localFormState);
+    const submissionData = generateSubmissionJson(allElements, localFormState, relationships, localDatasets);
     
     setSubmissionJson(JSON.stringify(submissionData, null, 2));
 
-    const { state, activeForm, dispatch } = builderContext;
     const formId = taskId ? state.tasks.find(t => t.id === taskId)?.formId : activeForm?.id;
     if (!formId) return;
 
