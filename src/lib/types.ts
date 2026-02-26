@@ -287,6 +287,7 @@ export type FormElementInstance = {
     localDatasetName?: string;
     // General Layout
     labelDirection?: 'horizontal' | 'vertical';
+    maskForPdf?: boolean;
     // For DatePicker
     dateValidation?: 'all' | 'noFuture' | 'noPast' | 'dateRange';
     dateValidationRange?: { from: string | null; to: string | null; };

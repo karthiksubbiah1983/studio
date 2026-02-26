@@ -1049,6 +1049,7 @@ type Props = {
   rules?: Rule[];
   configurations?: Configuration[];
   sections?: Section[];
+  isPdfMode?: boolean;
 };
 
 const interpolateString = (template: string, data: { [key: string]: any }): string => {
@@ -1062,7 +1063,7 @@ const interpolateString = (template: string, data: { [key: string]: any }): stri
     });
 }
 
-function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp }: Props) {
+function FormElementRenderer({ element, value: initialValue, onValueChange, formState, isParentHorizontal, isTableCell, rowContext, rules: rulesProp, configurations: configsProp, sections: sectionsProp, isPdfMode = false }: Props) {
   const builderContext = useBuilder();
   const { rules: builderRules, sections: builderSections, configurations: builderConfigurations } = builderContext;
   const { user } = useAuth();
@@ -1419,7 +1420,8 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
 
 
   const { type, label, required, placeholder, helperText, options, popup, inputFormat, isLink, linkUrl, linkUrlKey, textStyle, color, content: richTextContent, key, direction, leadText, leadTextKey, fixedLength, leadingChar, formatType, currency, decimalPlaces, labelDirection, dateValidation, dateValidationRange, width } = element;
-
+  
+  const shouldMask = isPdfMode && element.maskForPdf;
   const PopupIcon = popup?.icon ? (icons as any)[popup.icon] : null;
   
   if (!isVisible) return null;
@@ -1652,12 +1654,12 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
           <div className={cn(finalLabelDirection === 'horizontal' && 'flex-1')}>
             <Input 
               placeholder={placeholder}
-              value={isReadOnly ? (value || element.defaultValue || '') : localValue}
+              value={shouldMask ? 'XXXXXX' : (isReadOnly ? (value || element.defaultValue || '') : localValue)}
               onChange={handleLocalInputChange}
               onBlur={handleBlur}
               style={appliedStyles.style}
               className={cn(appliedStyles.error && "border-destructive")}
-              disabled={isDisabled}
+              disabled={isDisabled || shouldMask}
               readOnly={isReadOnly}
             />
             {helperText && (
@@ -1681,12 +1683,12 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
           {renderLabel()}
           <Textarea 
             placeholder={placeholder}
-            value={localValue}
+            value={shouldMask ? 'XXXXXX' : localValue}
             onChange={handleLocalTextareaChange}
             onBlur={handleTextareaBlur}
             style={appliedStyles.style}
             className={cn(appliedStyles.error && "border-destructive")}
-            disabled={isDisabled}
+            disabled={isDisabled || shouldMask}
           />
           {helperText && (
             <p className="text-sm text-muted-foreground mt-1">{helperText}</p>
@@ -1760,9 +1762,11 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         content = (
             <div>
               {renderLabel()}
-              <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled}>
+              <Select value={value} onValueChange={handleSelectChange} disabled={isDisabled || shouldMask}>
                 <SelectTrigger style={appliedStyles.style} className={cn(appliedStyles.error && "border-destructive")}>
-                  <SelectValue placeholder={isLoading ? "Loading..." : placeholder} />
+                  <SelectValue placeholder={isLoading ? "Loading..." : placeholder}>
+                    {shouldMask ? 'XXXXXX' : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                     {hasRowOptions ? (
@@ -1819,6 +1823,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         : currentOptions;
 
       const getDisplayValue = () => {
+          if (shouldMask) return 'XXXXXX';
           if (value) {
             if (element.dataSource === 'dynamic') {
                 const selectedOption = currentOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === value);
@@ -1839,7 +1844,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                         role="combobox"
                         aria-expanded={isOpen}
                         className="w-full justify-between font-normal"
-                        disabled={isDisabled}
+                        disabled={isDisabled || shouldMask}
                     >
                         <span className="truncate">{getDisplayValue()}</span>
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -2054,9 +2059,9 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
             <div className="flex items-start space-x-2">
                 <Checkbox
                     id={element.id}
-                    checked={isChecked}
+                    checked={shouldMask ? false : isChecked}
                     onCheckedChange={handleCheckedChange}
-                    disabled={isDisabled}
+                    disabled={isDisabled || shouldMask}
                 />
                 <div className="grid gap-1.5 leading-none">
                     {renderLabelWithPopup(label)}
@@ -2087,10 +2092,10 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         <div id={element.id}>
           {renderLabelWithPopup()}
           <RadioGroup 
-            value={value !== undefined && value !== null ? String(value) : (element.defaultValue || undefined)}
+            value={shouldMask ? '' : (value !== undefined && value !== null ? String(value) : (element.defaultValue || undefined))}
             onValueChange={handleRadioChange}
             className={cn("mt-3", direction === 'horizontal' ? "flex flex-row gap-4" : "grid gap-2")}
-            disabled={isDisabled}
+            disabled={isDisabled || shouldMask}
           >
             {radioOptions?.map((option, index) => (
               <div key={index} className="flex items-center space-x-2">
@@ -2173,7 +2178,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
       }
 
       content = (
-        <div className={cn(isDisabled && 'pointer-events-none opacity-50')}>
+        <div className={cn((isDisabled || shouldMask) && 'pointer-events-none opacity-50')}>
           {renderLabel()}
           <Popover>
             <PopoverTrigger asChild>
@@ -2187,7 +2192,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                     style={appliedStyles.style}
                 >
                     <CalendarDays className="mr-2 h-4 w-4" />
-                    {value ? format(new Date(value), "PPP p") : (<span>{placeholder || "Pick a date"}</span>)}
+                    {shouldMask ? 'XXXXXX' : (value ? format(new Date(value), "PPP p") : (<span>{placeholder || "Pick a date"}</span>))}
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0">
@@ -2324,7 +2329,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                                     <div className="flex items-center gap-2 overflow-hidden">
                                         <FileIcon className="h-5 w-5 text-muted-foreground" />
                                         <div className="flex flex-col overflow-hidden">
-                                            <p className="font-semibold text-sm truncate">{file.name}</p>
+                                            <p className="font-semibold text-sm truncate">{shouldMask ? "XXXXXX.xxx" : file.name}</p>
                                             <p className="text-xs text-muted-foreground">
                                                 {(file.size / 1024 / 1024).toFixed(2)} MB
                                             </p>

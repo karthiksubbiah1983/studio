@@ -56,9 +56,10 @@ type SectionRendererProps = {
   rules: Rule[];
   configurations: Configuration[];
   sections: Section[];
+  isPdfMode?: boolean;
 };
 
-const SectionRenderer = ({ section, formState, updateFormState, rules, configurations, sections }: SectionRendererProps) => {
+const SectionRenderer = ({ section, formState, updateFormState, rules, configurations, sections, isPdfMode }: SectionRendererProps) => {
 
     const isVisible = useMemo(() => {
         let visible = !section.hidden;
@@ -90,6 +91,7 @@ const SectionRenderer = ({ section, formState, updateFormState, rules, configura
                 rules={rules}
                 configurations={configurations}
                 sections={sections}
+                isPdfMode={isPdfMode}
             />
         ));
     };
@@ -146,9 +148,10 @@ type FormPreviewProps = {
   initialState?: { [key: string]: any };
   onSubmit?: (state: { [key: string]: any }) => void;
   submitButtonText?: string;
+  isPdfMode?: boolean;
 };
 
-export function FormPreview({ showSubmitButton = true, sections, rules, configurations, taskId, initialState, onSubmit, submitButtonText = "Submit Form" }: FormPreviewProps) {
+export function FormPreview({ showSubmitButton = true, sections, rules, configurations, taskId, initialState, onSubmit, submitButtonText = "Submit Form", isPdfMode = false }: FormPreviewProps) {
   const builderContext = useBuilder();
   const router = useRouter();
   const { toast } = useToast();
@@ -278,6 +281,7 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
             rules={rules}
             configurations={configurations}
             sections={sections}
+            isPdfMode={isPdfMode}
         />
       ))}
        {showSubmitButton && <div className="flex justify-end mt-8">

@@ -982,6 +982,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
         <Label htmlFor="hidden">Hidden in Form</Label>
         <Switch id="hidden" checked={element.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
       </div>
+      <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+        <Label htmlFor="maskForPdf">Mask for PDF Export</Label>
+        <Switch id="maskForPdf" checked={element.maskForPdf || false} onCheckedChange={(checked) => updateProperty('maskForPdf', checked)} />
+      </div>
     </>
   );
 
