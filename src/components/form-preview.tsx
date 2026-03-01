@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { FormElementRenderer } from "./form-element";
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { FormElementInstance, Section, Workflow, WorkflowAction, Rule, Configuration, LocalDataset, DatasetRelationship } from "@/lib/types";
+import { FormElementInstance, Section, Workflow, WorkflowAction, Rule, Configuration, LocalDataset } from "@/lib/types";
 import { cn, getAllElements, getNestedValue } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +26,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 const generateSubmissionJson = (
     allElements: FormElementInstance[], 
     formState: { [key: string]: any }, 
-    relationships?: DatasetRelationship[], 
     localDatasets?: LocalDataset[]
 ): Record<string, any> => {
     const submission: Record<string, any> = {};
@@ -35,30 +34,31 @@ const generateSubmissionJson = (
     const findRelatedData = (currentItem: any, currentDatasetName?: string): any => {
         if (!currentItem || !currentDatasetName) return currentItem;
 
+        const currentDataset = allDatasets.find(ds => ds.name === currentDatasetName);
+        if (!currentDataset) return currentItem;
+
         let enrichedItem = { ...currentItem };
-        const relevantRelationships = (relationships || []).filter(r => {
-            const sourceDataset = allDatasets.find(ds => ds.id === r.sourceDatasetId);
-            return sourceDataset?.name === currentDatasetName;
-        });
+        
+        for (const col of currentDataset.columns) {
+            if (col.linkedDatasetId && col.linkedFieldKey) {
+                const targetDataset = allDatasets.find(ds => ds.id === col.linkedDatasetId);
+                if (!targetDataset) continue;
 
-        for (const rel of relevantRelationships) {
-            const foreignKeyValue = currentItem[rel.sourceFieldKey];
-            if (foreignKeyValue === undefined) continue;
+                const foreignKeyValue = currentItem[col.key];
+                if (foreignKeyValue === undefined) continue;
 
-            const targetDataset = allDatasets.find(ds => ds.id === rel.targetDatasetId);
-            if (!targetDataset) continue;
-
-            if (Array.isArray(foreignKeyValue)) { // many-to-many or one-to-many
-                const relatedItems = targetDataset.data.filter(targetItem =>
-                    foreignKeyValue.includes(targetItem[rel.targetFieldKey])
-                );
-                enrichedItem[targetDataset.name] = relatedItems.map(item => findRelatedData(item, targetDataset.name));
-            } else { // one-to-one or many-to-one
-                const relatedItem = targetDataset.data.find(targetItem =>
-                    targetItem[rel.targetFieldKey] === foreignKeyValue
-                );
-                if (relatedItem) {
-                    enrichedItem[targetDataset.name] = findRelatedData(relatedItem, targetDataset.name);
+                if (Array.isArray(foreignKeyValue)) { // many-to-many or one-to-many
+                    const relatedItems = targetDataset.data.filter(targetItem =>
+                        foreignKeyValue.includes(targetItem[col.linkedFieldKey!])
+                    );
+                    enrichedItem[targetDataset.name] = relatedItems.map(item => findRelatedData(item, targetDataset.name));
+                } else { // one-to-one or many-to-one
+                    const relatedItem = targetDataset.data.find(targetItem =>
+                        targetItem[col.linkedFieldKey!] === foreignKeyValue
+                    );
+                    if (relatedItem) {
+                        enrichedItem[targetDataset.name] = findRelatedData(relatedItem, targetDataset.name);
+                    }
                 }
             }
         }
@@ -282,9 +282,9 @@ export function FormPreview({ showSubmitButton = true, sections, rules, configur
         return;
     }
     
-    const { state, activeForm, dispatch, localDatasets, relationships } = builderContext;
+    const { state, activeForm, dispatch, localDatasets } = builderContext;
     const allElements = getAllElements(sections);
-    const submissionData = generateSubmissionJson(allElements, localFormState, relationships, localDatasets);
+    const submissionData = generateSubmissionJson(allElements, localFormState, localDatasets);
     
     setSubmissionJson(JSON.stringify(submissionData, null, 2));
 

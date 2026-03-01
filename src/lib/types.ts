@@ -121,6 +121,8 @@ export type LocalDatasetColumn = {
   header: string;
   key: string;
   type?: 'text' | 'array';
+  linkedDatasetId?: string;
+  linkedFieldKey?: string;
 };
 
 export type LocalDataset = {
@@ -128,18 +130,6 @@ export type LocalDataset = {
   name: string;
   columns: LocalDatasetColumn[];
   data: Record<string, any>[];
-};
-
-export type DatasetRelationshipType = 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many';
-
-export type DatasetRelationship = {
-  id: string;
-  name: string;
-  sourceDatasetId: string;
-  targetDatasetId: string;
-  type: DatasetRelationshipType;
-  sourceFieldKey: string;
-  targetFieldKey: string;
 };
 
 // --- CHECKLIST & TASK TYPES ---
@@ -337,7 +327,6 @@ export type FormVersion = {
   workflows: Workflow[];
   configurations?: Configuration[];
   localDatasets?: LocalDataset[];
-  relationships?: DatasetRelationship[];
 };
 
 export type SubCategory = {

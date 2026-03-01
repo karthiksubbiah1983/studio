@@ -6,8 +6,8 @@ import { useState, useEffect, memo } from 'react';
 import { useBuilder } from '@/hooks/use-builder';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { LocalDataset, LocalDatasetColumn, DatasetRelationship } from '@/lib/types';
-import { Plus, Trash, Copy, X, GitCommitHorizontal, Edit } from 'lucide-react';
+import { LocalDataset, LocalDatasetColumn } from '@/lib/types';
+import { Plus, Trash, Copy, X, Link } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
@@ -17,12 +17,99 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { RelationshipDialog } from './relationship-dialog';
 
 type Props = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 };
+
+const ColumnLinkDialog = ({
+  isOpen,
+  onOpenChange,
+  column,
+  datasets,
+  onSave,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  column: LocalDatasetColumn | null;
+  datasets: LocalDataset[];
+  onSave: (link: { linkedDatasetId?: string; linkedFieldKey?: string }) => void;
+}) => {
+  const [linkedDatasetId, setLinkedDatasetId] = useState(column?.linkedDatasetId || '');
+  const [linkedFieldKey, setLinkedFieldKey] = useState(column?.linkedFieldKey || '');
+
+  useEffect(() => {
+    setLinkedDatasetId(column?.linkedDatasetId || '');
+    setLinkedFieldKey(column?.linkedFieldKey || '');
+  }, [column]);
+  
+  const targetDataset = datasets.find(d => d.id === linkedDatasetId);
+
+  const handleSave = () => {
+    onSave({
+      linkedDatasetId: linkedDatasetId || undefined,
+      linkedFieldKey: linkedFieldKey || undefined,
+    });
+    onOpenChange(false);
+  };
+
+  const handleClear = () => {
+    onSave({ linkedDatasetId: undefined, linkedFieldKey: undefined });
+    onOpenChange(false);
+  }
+
+  if (!isOpen) return null;
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Link Column to Another Dataset</DialogTitle>
+          <DialogDescription>
+            Use this column's value to look up a row in another dataset.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>Target Dataset</Label>
+            <Select value={linkedDatasetId} onValueChange={setLinkedDatasetId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a dataset to link to..." />
+              </SelectTrigger>
+              <SelectContent>
+                {datasets.filter(d => d.id !== column?.id).map(d => ( // Exclude self
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {linkedDatasetId && (
+            <div className="space-y-2">
+              <Label>Target Field (in "{targetDataset?.name}")</Label>
+              <Select value={linkedFieldKey} onValueChange={setLinkedFieldKey} disabled={!targetDataset}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a field to match on..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {targetDataset?.columns.map(c => (
+                    <SelectItem key={c.id} value={c.key}>{c.header}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          {column?.linkedDatasetId && <Button variant="destructive" onClick={handleClear}>Remove Link</Button>}
+          <div className='flex-grow' />
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={handleSave} disabled={!linkedDatasetId || !linkedFieldKey}>Save Link</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
 const TagInput = ({ value: initialValue, onChange }: { value?: string[], onChange: (value: string[]) => void }) => {
     const [inputValue, setInputValue] = useState('');
@@ -72,9 +159,10 @@ const TagInput = ({ value: initialValue, onChange }: { value?: string[], onChang
     );
 };
 
-const LocalDatasetEditor = memo(({ dataset, onUpdate }: { dataset: LocalDataset, onUpdate: (updated: LocalDataset) => void }) => {
+const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: LocalDataset, onUpdate: (updated: LocalDataset) => void, allDatasets: LocalDataset[] }) => {
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string } | null>(null);
   const [editingListCell, setEditingListCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string[] } | null>(null);
+  const [linkingColumn, setLinkingColumn] = useState<LocalDatasetColumn | null>(null);
   
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdate({ ...dataset, name: e.target.value });
@@ -90,8 +178,8 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate }: { dataset: LocalDataset,
     onUpdate({ ...dataset, columns: [...dataset.columns, newColumn] });
   };
   
-  const handleUpdateColumn = (colId: string, field: 'header' | 'key' | 'type', value: string) => {
-    const newColumns = dataset.columns.map(c => (c.id === colId ? { ...c, [field]: value } : c));
+  const handleUpdateColumn = (colId: string, updates: Partial<LocalDatasetColumn>) => {
+    const newColumns = dataset.columns.map(c => (c.id === colId ? { ...c, ...updates } : c));
     onUpdate({ ...dataset, columns: newColumns });
   };
 
@@ -138,6 +226,13 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate }: { dataset: LocalDataset,
     }
   };
 
+  const handleSaveLink = (link: { linkedDatasetId?: string; linkedFieldKey?: string }) => {
+    if (linkingColumn) {
+      handleUpdateColumn(linkingColumn.id, link);
+    }
+  };
+
+
   return (
     <div className="h-full relative">
       <ScrollArea className="h-full">
@@ -154,17 +249,22 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate }: { dataset: LocalDataset,
                 </div>
                 <div className="border bg-white p-4 rounded-md">
                     <Table>
-                        <TableHeader><TableRow><TableHead className="w-[40%]">Header</TableHead><TableHead className="w-[40%]">Key</TableHead><TableHead className="w-[20%]">Type</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
+                        <TableHeader><TableRow><TableHead>Header</TableHead><TableHead>Key</TableHead><TableHead>Type</TableHead><TableHead className="w-10 text-center">Link</TableHead><TableHead className="w-10"></TableHead></TableRow></TableHeader>
                         <TableBody>
                             {dataset.columns.map(col => (
                                 <TableRow key={col.id}>
-                                    <TableCell className="py-1 px-2"><Input defaultValue={col.header} onBlur={(e) => handleUpdateColumn(col.id, 'header', e.target.value)} className="h-8"/></TableCell>
-                                    <TableCell className="py-1 px-2"><Input defaultValue={col.key} onBlur={(e) => handleUpdateColumn(col.id, 'key', e.target.value.replace(/\s+/g, '_').toLowerCase())} className="h-8"/></TableCell>
+                                    <TableCell className="py-1 px-2"><Input defaultValue={col.header} onBlur={(e) => handleUpdateColumn(col.id, { header: e.target.value })} className="h-8"/></TableCell>
+                                    <TableCell className="py-1 px-2"><Input defaultValue={col.key} onBlur={(e) => handleUpdateColumn(col.id, { key: e.target.value.replace(/\s+/g, '_').toLowerCase() })} className="h-8"/></TableCell>
                                     <TableCell className="py-1 px-2">
-                                        <Select value={col.type || 'text'} onValueChange={(value) => handleUpdateColumn(col.id, 'type', value)}>
+                                        <Select value={col.type || 'text'} onValueChange={(value) => handleUpdateColumn(col.id, { type: value as any })}>
                                             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
                                             <SelectContent><SelectItem value="text">Text</SelectItem><SelectItem value="array">List</SelectItem></SelectContent>
                                         </Select>
+                                    </TableCell>
+                                    <TableCell className="py-1 px-2 text-center">
+                                      <Button variant="ghost" size="icon" onClick={() => setLinkingColumn(col)} className={cn(col.linkedDatasetId && 'text-primary')}>
+                                        <Link className="h-4 w-4" />
+                                      </Button>
                                     </TableCell>
                                     <TableCell className="py-1 px-2"><Button variant="ghost" size="icon" onClick={() => handleDeleteColumn(col.id)}><Trash className="h-4 w-4 text-destructive" /></Button></TableCell>
                                 </TableRow>
@@ -214,119 +314,39 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate }: { dataset: LocalDataset,
       </ScrollArea>
       {editingCell && (<Dialog open={!!editingCell} onOpenChange={() => setEditingCell(null)}><DialogContent><DialogHeader><DialogTitle>Edit: {editingCell.header}</DialogTitle><DialogDescription>Editing row {editingCell.rowIndex + 1}.</DialogDescription></DialogHeader><Textarea value={editingCell.value} onChange={(e) => setEditingCell(prev => prev ? { ...prev, value: e.target.value } : null)} className="min-h-[200px] text-sm" rows={10}/><DialogFooter><Button variant="outline" onClick={() => setEditingCell(null)}>Cancel</Button><Button onClick={handleSaveModal}>Save</Button></DialogFooter></DialogContent></Dialog>)}
       {editingListCell && (<Dialog open={!!editingListCell} onOpenChange={() => setEditingListCell(null)}><DialogContent><DialogHeader><DialogTitle>Edit List: {editingListCell.header}</DialogTitle><DialogDescription>Editing row {editingListCell.rowIndex + 1}. Add or remove items from the list.</DialogDescription></DialogHeader><div className="py-4"><TagInput value={editingListCell.value} onChange={(newValue) => setEditingListCell(prev => prev ? { ...prev, value: newValue } : null)} /></div><DialogFooter><Button variant="outline" onClick={() => setEditingListCell(null)}>Cancel</Button><Button onClick={handleSaveListModal}>Save</Button></DialogFooter></DialogContent></Dialog>)}
+      <ColumnLinkDialog 
+        isOpen={!!linkingColumn}
+        onOpenChange={() => setLinkingColumn(null)}
+        column={linkingColumn}
+        datasets={allDatasets}
+        onSave={handleSaveLink}
+      />
     </div>
   );
 });
 LocalDatasetEditor.displayName = "LocalDatasetEditor";
 
-const RelationshipsEditor = ({
-  localDatasets,
-  relationships,
-  onUpdateRelationships,
-}: {
-  localDatasets: LocalDataset[];
-  relationships: DatasetRelationship[];
-  onUpdateRelationships: (newRelationships: DatasetRelationship[]) => void;
-}) => {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingRelationship, setEditingRelationship] = useState<DatasetRelationship | null>(null);
-
-  const openDialog = (rel?: DatasetRelationship) => {
-    setEditingRelationship(rel || null);
-    setIsDialogOpen(true);
-  };
-
-  const handleDelete = (id: string) => {
-    onUpdateRelationships(relationships.filter(r => r.id !== id));
-  };
-
-  const handleSave = (rel: DatasetRelationship) => {
-    let newRels;
-    if (relationships.some(r => r.id === rel.id)) {
-      newRels = relationships.map(r => (r.id === rel.id ? rel : r));
-    } else {
-      newRels = [...relationships, rel];
-    }
-    onUpdateRelationships(newRels);
-    setIsDialogOpen(false);
-  };
-
-  const getDatasetName = (id: string) => localDatasets.find(d => d.id === id)?.name || 'Unknown';
-
-  return (
-    <div className="h-full flex flex-col bg-white">
-      <div className="p-4 border-b flex justify-between items-center shrink-0">
-        <h3 className="font-semibold">Dataset Relationships</h3>
-        <Button variant="outline" size="sm" onClick={() => openDialog()}>
-          <Plus className="mr-2 h-4 w-4" /> Add Relationship
-        </Button>
-      </div>
-      <ScrollArea className="flex-1 p-4">
-        <div className="space-y-2">
-          {relationships.length > 0 ? (
-            relationships.map(rel => (
-              <div key={rel.id} className="flex items-center justify-between p-3 border rounded-md bg-accent/50">
-                <div className='flex items-center gap-2 text-sm'>
-                  <span className='font-medium'>{getDatasetName(rel.sourceDatasetId)}</span>
-                  <GitCommitHorizontal className='h-4 w-4 text-muted-foreground' />
-                  <span className='font-medium'>{getDatasetName(rel.targetDatasetId)}</span>
-                  <Badge variant="secondary">{rel.type}</Badge>
-                </div>
-                <div className='flex items-center gap-1'>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDialog(rel)}><Edit className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(rel.id)}><Trash className="h-4 w-4 text-destructive" /></Button>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="text-center text-sm text-muted-foreground pt-10">
-              No relationships created yet.
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-      {isDialogOpen && (
-        <RelationshipDialog
-          isOpen={isDialogOpen}
-          onOpenChange={setIsDialogOpen}
-          onSave={handleSave}
-          datasets={localDatasets}
-          relationship={editingRelationship}
-        />
-      )}
-    </div>
-  );
-};
-
 export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
-  const { localDatasets, updateLocalDatasets, relationships, updateRelationships } = useBuilder();
+  const { localDatasets, updateLocalDatasets } = useBuilder();
   const [simpleDatasets, setSimpleDatasets] = useState<LocalDataset[]>([]);
   const [selectedSimpleDatasetId, setSelectedSimpleDatasetId] = useState<string | null>(null);
-  const [localRelationships, setLocalRelationships] = useState<DatasetRelationship[]>([]);
 
   useEffect(() => {
     if (isOpen) {
       const initialSimple = JSON.parse(JSON.stringify(localDatasets || []));
       setSimpleDatasets(initialSimple);
 
-      // Only change selection if the currently selected doesn't exist in the initial list
-      const selectedSimpleExists = initialSimple.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
-      if (!selectedSimpleExists) {
-        if (initialSimple.length > 0) {
-            setSelectedSimpleDatasetId(initialSimple[0].id);
-        } else {
-            setSelectedSimpleDatasetId(null);
-        }
+      const selectedIdExists = initialSimple.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
+      if (!selectedIdExists && initialSimple.length > 0) {
+        setSelectedSimpleDatasetId(initialSimple[0].id);
+      } else if (initialSimple.length === 0) {
+        setSelectedSimpleDatasetId(null);
       }
-      
-      setLocalRelationships(JSON.parse(JSON.stringify(relationships || [])));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, localDatasets, relationships]);
-
+  }, [isOpen, localDatasets, selectedSimpleDatasetId]);
+  
   const handleSaveChanges = () => {
     updateLocalDatasets(simpleDatasets);
-    updateRelationships(localRelationships);
     onOpenChange(false);
   };
 
@@ -337,16 +357,18 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
         columns: [{id: crypto.randomUUID(), header: 'Column 1', key: 'column_1', type: 'text'}],
         data: []
     };
-    setSimpleDatasets([...simpleDatasets, newDataset]);
+    setSimpleDatasets(prev => [...prev, newDataset]);
     setSelectedSimpleDatasetId(newDataset.id);
   };
   
   const handleDeleteSimpleDataset = (id: string) => {
-    const newDatasets = simpleDatasets.filter(ds => ds.id !== id);
-    setSimpleDatasets(newDatasets);
-    if (selectedSimpleDatasetId === id) {
-        setSelectedSimpleDatasetId(newDatasets.length > 0 ? newDatasets[0].id : null);
-    }
+    setSimpleDatasets(prev => {
+      const newDatasets = prev.filter(ds => ds.id !== id);
+      if (selectedSimpleDatasetId === id) {
+          setSelectedSimpleDatasetId(newDatasets.length > 0 ? newDatasets[0].id : null);
+      }
+      return newDatasets;
+    });
   };
 
   const handleUpdateSelectedSimpleDataset = (updatedDataset: LocalDataset) => {
@@ -360,60 +382,49 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
       <DialogContent className="max-w-6xl w-full h-[90vh] flex flex-col p-0 gap-0">
         <DialogHeader className="p-4 border-b">
           <DialogTitle>Data Management</DialogTitle>
-          <DialogDescription>Create and manage datasets and their relationships for this form.</DialogDescription>
+          <DialogDescription>Create and manage datasets for this form.</DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="simple-datasets" className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-50 border-b">
-            <TabsTrigger value="simple-datasets">Simple Datasets</TabsTrigger>
-            <TabsTrigger value="relationships">Relationships</TabsTrigger>
-          </TabsList>
-          <TabsContent value="simple-datasets" className="flex-1 overflow-hidden m-0">
-            <div className="flex-1 flex flex-row overflow-hidden bg-slate-50 h-full">
-                <aside className="w-[25%] border-r flex flex-col bg-white">
-                    <div className="p-4 border-b shrink-0 flex items-center justify-center">
-                        <Button variant="outline" className="w-full justify-center" onClick={handleAddSimpleDataset}>
-                            <Plus className="mr-2 h-4 w-4" /> Add New Dataset
-                        </Button>
-                    </div>
-                    <ScrollArea className="flex-1">
-                        <div className="p-4 space-y-2">
-                            {simpleDatasets.length > 0 ? simpleDatasets.map(ds => (
-                                <div key={ds.id} className="relative group/dataset">
-                                    <button onClick={() => setSelectedSimpleDatasetId(ds.id)} className={cn("w-full text-left px-3 py-2 truncate text-sm rounded-md", selectedSimpleDatasetId === ds.id ? 'bg-blue-50 font-semibold text-primary' : 'hover:bg-accent/50')}>
-                                        {ds.name}
-                                    </button>
-                                    <div className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 flex opacity-0 group-hover/dataset:opacity-100">
-                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {e.stopPropagation(); handleDeleteSimpleDataset(ds.id)}}><Trash className="h-4 w-4 text-destructive" /></Button>
-                                    </div>
+        <div className="flex-1 flex flex-row overflow-hidden bg-slate-50 h-full">
+            <aside className="w-[25%] border-r flex flex-col bg-white">
+                <div className="p-4 border-b shrink-0 flex items-center justify-center">
+                    <Button variant="outline" className="w-full justify-center" onClick={handleAddSimpleDataset}>
+                        <Plus className="mr-2 h-4 w-4" /> Add New Dataset
+                    </Button>
+                </div>
+                <ScrollArea className="flex-1">
+                    <div className="p-4 space-y-2">
+                        {simpleDatasets.length > 0 ? simpleDatasets.map(ds => (
+                            <div key={ds.id} className="relative group/dataset">
+                                <button onClick={() => setSelectedSimpleDatasetId(ds.id)} className={cn("w-full text-left px-3 py-2 truncate text-sm rounded-md", selectedSimpleDatasetId === ds.id ? 'bg-blue-50 font-semibold text-primary' : 'hover:bg-accent/50')}>
+                                    {ds.name}
+                                </button>
+                                <div className="absolute top-1/2 -translate-y-1/2 right-1 h-6 w-6 flex opacity-0 group-hover/dataset:opacity-100">
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => {e.stopPropagation(); handleDeleteSimpleDataset(ds.id)}}><Trash className="h-4 w-4 text-destructive" /></Button>
                                 </div>
-                            )) : (
-                                <div className="text-center text-sm text-muted-foreground pt-10">No datasets created.</div>
-                            )}
-                        </div>
-                    </ScrollArea>
-                </aside>
-                <main className="flex-1 flex flex-col min-h-0">
-                    {selectedSimpleDataset ? (
-                        <LocalDatasetEditor dataset={selectedSimpleDataset} onUpdate={handleUpdateSelectedSimpleDataset} />
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                            <Table className="h-12 w-12 mb-4" />
-                            <h3 className="text-lg font-semibold">No Dataset Selected</h3>
-                            <p className="text-sm">Select a dataset from the left panel or create a new one.</p>
-                        </div>
-                    )}
-                </main>
-            </div>
-          </TabsContent>
-          <TabsContent value="relationships" className="flex-1 overflow-hidden m-0">
-            <RelationshipsEditor
-              localDatasets={simpleDatasets}
-              relationships={localRelationships}
-              onUpdateRelationships={setLocalRelationships}
-            />
-          </TabsContent>
-        </Tabs>
+                            </div>
+                        )) : (
+                            <div className="text-center text-sm text-muted-foreground pt-10">No datasets created.</div>
+                        )}
+                    </div>
+                </ScrollArea>
+            </aside>
+            <main className="flex-1 flex flex-col min-h-0">
+                {selectedSimpleDataset ? (
+                    <LocalDatasetEditor 
+                      dataset={selectedSimpleDataset} 
+                      onUpdate={handleUpdateSelectedSimpleDataset}
+                      allDatasets={simpleDatasets}
+                    />
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
+                        <Table className="h-12 w-12 mb-4" />
+                        <h3 className="text-lg font-semibold">No Dataset Selected</h3>
+                        <p className="text-sm">Select a dataset from the left panel or create a new one.</p>
+                    </div>
+                )}
+            </main>
+        </div>
 
         <DialogFooter className="p-4 border-t">
             <Button variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>

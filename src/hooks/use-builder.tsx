@@ -1,7 +1,7 @@
 
 
 import { createContext, useContext, useReducer, Dispatch, ReactNode, useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, LocalDataset, ChecklistRepository, TaskType, TaskTypeConfiguration, ChecklistCategory, ChecklistQuestion, ChecklistAnswerOption, RoomEntry, DatasetRelationship } from "@/lib/types";
+import { FormElementInstance, Section, ElementType, FormVersion, Form, Submission, Category, SubCategory, Rule, ClipboardItem, Workflow, Site, Task, Configuration, LocalDataset, ChecklistRepository, TaskType, TaskTypeConfiguration, ChecklistCategory, ChecklistQuestion, ChecklistAnswerOption, RoomEntry } from "@/lib/types";
 import { createNewElement } from "@/lib/form-elements";
 import { getAllElements, findElementRecursive, evaluateRule } from "@/lib/utils";
 import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } from "@/firebase";
@@ -54,7 +54,7 @@ const relationalDataDemoTemplate: Form = {
           columns: [
             { id: 'c1', header: 'ID', key: 'id', type: 'text' },
             { id: 'c2', header: 'Name', key: 'name', type: 'text' },
-            { id: 'c3', header: 'Priority ID', key: 'priority_id', type: 'text' },
+            { id: 'c3', header: 'Priority ID', key: 'priority_id', type: 'text', linkedDatasetId: 'ds2', linkedFieldKey: 'id' },
           ],
           data: [
             { id: 'bp1', name: 'Head', priority_id: 'p1' },
@@ -69,7 +69,7 @@ const relationalDataDemoTemplate: Form = {
           columns: [
             { id: 'p_c1', header: 'ID', key: 'id', type: 'text' },
             { id: 'p_c2', header: 'Level', key: 'level', type: 'text' },
-            { id: 'p_c3', header: 'Location ID', key: 'location_id', type: 'text' },
+            { id: 'p_c3', header: 'Location ID', key: 'location_id', type: 'text', linkedDatasetId: 'ds3', linkedFieldKey: 'id' },
           ],
           data: [
             { id: 'p1', level: 'High', location_id: 'loc1' },
@@ -88,26 +88,6 @@ const relationalDataDemoTemplate: Form = {
             { id: 'loc1', name: 'Hotel' },
             { id: 'loc2', name: 'Restaurant' },
           ],
-        },
-      ],
-      relationships: [
-        {
-          id: 'rel1',
-          name: 'BodyPart_to_Priority',
-          sourceDatasetId: 'ds1',
-          targetDatasetId: 'ds2',
-          type: 'many-to-one',
-          sourceFieldKey: 'priority_id',
-          targetFieldKey: 'id',
-        },
-        {
-          id: 'rel2',
-          name: 'Priority_to_Location',
-          sourceDatasetId: 'ds2',
-          targetDatasetId: 'ds3',
-          type: 'many-to-one',
-          sourceFieldKey: 'location_id',
-          targetFieldKey: 'id',
         },
       ],
     },
@@ -709,7 +689,7 @@ const cloneWithNewIds = <T extends { id: string; [key: string]: any }>(item: T):
       }
       
       // Update any property that might be an ID reference
-      const referenceKeys = ['sourceElementId', 'comparisonElementId', 'targetElementId', 'dataSourceParentId', 'sourceDatasetId', 'targetDatasetId'];
+      const referenceKeys = ['sourceElementId', 'comparisonElementId', 'targetElementId', 'dataSourceParentId', 'linkedDatasetId'];
       for (const refKey of referenceKeys) {
           if (obj[refKey] && idMap[obj[refKey]]) {
               obj[refKey] = idMap[obj[refKey]];
@@ -891,7 +871,7 @@ type Action =
   | { type: "SET_DRAGGED_ELEMENT"; payload: { element: FormElementInstance; sectionId: string } | { type: ElementType; id?: string } | { sectionId: string } | null }
   | { type: "MOVE_ELEMENT"; payload: { from: { sectionId: string, elementId: string }, to: { sectionId: string, index?: number, parentId?: string } } }
   | { type: "MOVE_SECTION"; payload: { fromIndex: number; toIndex: number } }
-  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[]; rules: Rule[]; workflows: Workflow[]; configurations?: Configuration[]; localDatasets?: LocalDataset[]; relationships?: DatasetRelationship[]; timestamp: string; } }
+  | { type: "SAVE_VERSION"; payload: { name: string; description: string; type: "draft" | "published"; sections: Section[]; rules: Rule[]; workflows: Workflow[]; configurations?: Configuration[]; localDatasets?: LocalDataset[]; timestamp: string; } }
   | { type: "LOAD_VERSION"; payload: { versionId: string } }
   | { type: "DELETE_VERSION"; payload: { versionId: string } }
   | { type: "ADD_SUBMISSION"; payload: { formId: string, data: Record<string, any>, taskId?: string } }
@@ -1392,8 +1372,8 @@ const builderReducer = (state: State, action: Action): State => {
     }
     case "SAVE_VERSION": {
         if (!activeForm) return state;
-        const { name, description, type, sections, rules, workflows, configurations, localDatasets, relationships, timestamp } = action.payload;
-        const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp, sections, rules, workflows, configurations, localDatasets, relationships };
+        const { name, description, type, sections, rules, workflows, configurations, localDatasets, timestamp } = action.payload;
+        const newVersion: FormVersion = { id: crypto.randomUUID(), name, description, type, timestamp, sections, rules, workflows, configurations, localDatasets };
         const updatedVersions = [newVersion, ...activeForm.versions];
         const newForms = state.forms.map(form => 
             form.id === state.activeFormId ? { ...form, versions: updatedVersions } : form
@@ -1473,8 +1453,6 @@ type BuilderContextType = {
   updateConfigurations: (configurations: Configuration[]) => void;
   localDatasets: LocalDataset[];
   updateLocalDatasets: (datasets: LocalDataset[]) => void;
-  relationships: DatasetRelationship[];
-  updateRelationships: (relationships: DatasetRelationship[]) => void;
   checklistRepository: ChecklistRepository;
   taskTypes: TaskType[];
   taskTypeConfigurations: TaskTypeConfiguration[];
@@ -1578,7 +1556,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   const workflows = activeForm?.versions[0]?.workflows || [];
   const configurations = activeForm?.versions[0]?.configurations || [];
   const localDatasets = activeForm?.versions[0]?.localDatasets || [];
-  const relationships = activeForm?.versions[0]?.relationships || [];
   const activePopupId = state.activePopupId;
   const checklistRepository = state.checklistRepository;
   const taskTypes = state.taskTypes;
@@ -1703,14 +1680,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: "SET_STATE", payload: { forms: newForms } });
   }, [activeForm, state.forms]);
 
-  const updateRelationships = useCallback((newRelationships: DatasetRelationship[]) => {
-    if (!activeForm) return;
-    const newVersions = [...activeForm.versions];
-    newVersions[0] = { ...newVersions[0], relationships: newRelationships, timestamp: new Date().toISOString() };
-    const newForms = state.forms.map(f => (f.id === activeForm.id ? { ...f, versions: newVersions } : f));
-    dispatch({ type: "SET_STATE", payload: { forms: newForms } });
-  }, [activeForm, state.forms]);
-
   const setFormState = useCallback((newState: { [key: string]: { value: any; fullObject?: any; isVisible?: boolean } }) => {
     dispatch({ type: "SET_FORM_STATE", payload: newState });
   }, []);
@@ -1755,8 +1724,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     updateConfigurations, 
     localDatasets, 
     updateLocalDatasets,
-    relationships,
-    updateRelationships,
     checklistRepository,
     taskTypes,
     taskTypeConfigurations,
@@ -1781,8 +1748,6 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
     updateConfigurations,
     localDatasets,
     updateLocalDatasets,
-    relationships,
-    updateRelationships,
     checklistRepository,
     taskTypes,
     taskTypeConfigurations,
