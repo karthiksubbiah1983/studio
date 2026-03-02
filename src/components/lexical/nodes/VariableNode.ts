@@ -33,6 +33,39 @@ export class VariableNode extends DecoratorNode<JSX.Element> {
     const node = $createVariableNode(serializedNode.variableKey);
     return node;
   }
+  
+  static importDOM(): {
+    span: (domNode: HTMLElement) => {
+      conversion: (lexicalNode: any) => { node: VariableNode | null };
+      priority: 1;
+    } | null;
+  } {
+    return {
+      span: (domNode: HTMLElement) => {
+        if (!domNode.hasAttribute('data-variable-key')) {
+          return null;
+        }
+        return {
+          conversion: () => {
+            const key = domNode.getAttribute('data-variable-key');
+            if (key) {
+              const node = $createVariableNode(key);
+              return { node };
+            }
+            return { node: null };
+          },
+          priority: 1, // High priority to ensure this rule matches first
+        };
+      },
+    };
+  }
+
+  exportDOM(): {element: HTMLElement} {
+    const element = document.createElement('span');
+    element.setAttribute('data-variable-key', this.__variableKey);
+    element.textContent = this.getTextContent();
+    return {element};
+  }
 
   constructor(variableKey: string, key?: NodeKey) {
     super(key);
@@ -50,7 +83,7 @@ export class VariableNode extends DecoratorNode<JSX.Element> {
 
   createDOM(config: EditorConfig): HTMLElement {
     const dom = document.createElement('span');
-    dom.className = 'variable-node-wrapper'; // A wrapper span
+    dom.className = 'lexical-variable-node';
     return dom;
   }
 
