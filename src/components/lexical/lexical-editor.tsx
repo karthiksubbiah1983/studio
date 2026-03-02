@@ -1,4 +1,3 @@
-
 "use client";
 
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
@@ -7,12 +6,12 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
-import { HeadingNode, $isHeadingNode, QuoteNode } from "@lexical/rich-text";
+import { HeadingNode, $isHeadingNode, QuoteNode, $createHeadingNode, $createQuoteNode } from "@lexical/rich-text";
 import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
 import { ListItemNode, ListNode, $isListItemNode } from "@lexical/list";
-import { CodeHighlightNode, CodeNode, $isCodeNode } from "@lexical/code";
+import { CodeHighlightNode, CodeNode, $isCodeNode, $createCodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
-import { EditorState, $getRoot, $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND, SELECTION_CHANGE_COMMAND, RangeSelection, NodeSelection, GridSelection, $createParagraphNode } from "lexical";
+import { EditorState, $getRoot, $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND, SELECTION_CHANGE_COMMAND, RangeSelection, NodeSelection, GridSelection, $createParagraphNode, $wrapNodes } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import {
@@ -37,6 +36,7 @@ import { Input } from "../ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu";
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "@lexical/react/LexicalHorizontalRuleNode";
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
+import { Separator } from "@/components/ui/separator";
 
 const theme = {
   text: {
