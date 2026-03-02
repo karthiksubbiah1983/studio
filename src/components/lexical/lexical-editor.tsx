@@ -7,7 +7,7 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, $isHeadingNode, QuoteNode, $createHeadingNode, $createQuoteNode } from "@lexical/rich-text";
-import { TableCellNode, TableNode, TableRowNode } from "@lexical/table";
+import { TableCellNode, TableNode, TableRowNode, INSERT_TABLE_COMMAND } from "@lexical/table";
 import { ListItemNode, ListNode, $isListItemNode } from "@lexical/list";
 import { CodeHighlightNode, CodeNode, $isCodeNode, $createCodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
@@ -286,6 +286,7 @@ function ToolbarPlugin() {
                 <DropdownMenuItem onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)}>Numbered List</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined)}>Check List</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined)}>Horizontal Rule</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' })}>Table</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
     </div>
