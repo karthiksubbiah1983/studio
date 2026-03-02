@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react"
@@ -1706,17 +1705,32 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         </div>
       );
       break;
-    case "RichText":
+    case "RichText": {
+      let processedContent = richTextContent || "";
+      if (formState && processedContent) {
+          // Regex to find all variable spans
+          processedContent = processedContent.replace(/<span data-variable-key="([^"]+)">[^<]*<\/span>/g, (match, key) => {
+              const element = allElements.find(el => el.key === key);
+              if (element && formState[element.id]) {
+                  const stateValue = formState[element.id];
+                  const value = (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
+                  return String(value ?? `{${key}}`); // Fallback to key if value is null/undefined
+              }
+              return match; // Keep original if no match found
+          });
+      }
+
       content = (
         <div>
             {renderLabel()}
             <div 
                 className="prose dark:prose-invert text-sm w-full"
-                dangerouslySetInnerHTML={{ __html: richTextContent || "" }}
+                dangerouslySetInnerHTML={{ __html: processedContent }}
             />
         </div>
       );
       break;
+    }
     case "Select": {
         const [filteredOptions, setFilteredOptions] = useState<any[]>([]);
 
@@ -2475,5 +2489,3 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
-
-    

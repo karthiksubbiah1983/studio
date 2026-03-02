@@ -15,7 +15,7 @@ import { EditorState, $getRoot, $getSelection, $isRangeSelection, FORMAT_TEXT_CO
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import {
-  Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Undo, Redo, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, AlignJustify, ListTodo, Indent, Outdent, Quote, Pilcrow, Type, Heading1, Heading2, Heading3, Heading4, Minus, Table, Image as ImageIcon,
+  Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Undo, Redo, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, AlignJustify, ListTodo, Indent, Outdent, Quote, Pilcrow, Type, Heading1, Heading2, Heading3, Heading4, Minus, Table, Image as ImageIcon, ChevronsUpDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +37,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { INSERT_HORIZONTAL_RULE_COMMAND } from "@lexical/react/LexicalHorizontalRuleNode";
 import { HorizontalRuleNode } from '@lexical/react/LexicalHorizontalRuleNode';
 import { Separator } from "@/components/ui/separator";
+import { $createVariableNode, VariableNode } from './nodes/VariableNode';
+import { useBuilder } from '@/hooks/use-builder';
+import { getAllElements } from '@/lib/utils';
 
 const theme = {
   text: {
@@ -87,6 +90,7 @@ const editorConfig = {
     AutoLinkNode,
     LinkNode,
     HorizontalRuleNode,
+    VariableNode,
   ],
   onError: (error: Error) => {
     console.error(error);
@@ -204,6 +208,40 @@ function BlockFormatDropDown({ editor, blockType }: { editor: any, blockType: ke
   );
 }
 
+function VariableDropDown({ editor }: { editor: any }) {
+    const { sections } = useBuilder();
+    const allElements = getAllElements(sections);
+    const variableFields = allElements.filter(el => el.key);
+
+    const onSelect = (key: string) => {
+        editor.update(() => {
+            const selection = $getSelection();
+            if ($isRangeSelection(selection)) {
+                const variableNode = $createVariableNode(key);
+                selection.insertNodes([variableNode]);
+            }
+        });
+    }
+
+    return (
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                    Insert Variable
+                    <ChevronsUpDown className="h-4 w-4 ml-2" />
+                </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+                {variableFields.map(field => (
+                     <DropdownMenuItem key={field.id} onSelect={() => onSelect(field.key!)}>
+                        {(field as any).label || field.key}
+                     </DropdownMenuItem>
+                ))}
+                {variableFields.length === 0 && <DropdownMenuItem disabled>No variables available</DropdownMenuItem>}
+            </DropdownMenuContent>
+        </DropdownMenu>
+    )
+}
 
 function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
@@ -289,6 +327,7 @@ function ToolbarPlugin() {
                 <DropdownMenuItem onClick={() => editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' })}>Table</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
+        <VariableDropDown editor={editor} />
     </div>
   );
 }
