@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react"
@@ -1706,19 +1707,21 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
       );
       break;
     case "RichText": {
-      let processedContent = richTextContent || "";
-      if (formState && processedContent) {
-          // Regex to find all variable spans
-          processedContent = processedContent.replace(/<span data-variable-key="([^"]+)">[^<]*<\/span>/g, (match, key) => {
-              const element = allElements.find(el => el.key === key);
-              if (element && formState[element.id]) {
-                  const stateValue = formState[element.id];
-                  const value = (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
-                  return String(value ?? `{${key}}`); // Fallback to key if value is null/undefined
-              }
-              return match; // Keep original if no match found
+      const processedContent = useMemo(() => {
+        let content = richTextContent || "";
+        if (formState && content) {
+          content = content.replace(/<span data-variable-key="([^"]+)">[^<]*<\/span>/g, (match, key) => {
+            const element = allElements.find(el => el.key === key);
+            if (element && formState[element.id]) {
+              const stateValue = formState[element.id];
+              const value = (typeof stateValue === 'object' && stateValue !== null && 'value' in stateValue) ? stateValue.value : stateValue;
+              return String(value ?? `{${key}}`); // Fallback to key if value is null/undefined
+            }
+            return match; // Keep original if no match found
           });
-      }
+        }
+        return content;
+      }, [richTextContent, formState, allElements]);
 
       content = (
         <div>
