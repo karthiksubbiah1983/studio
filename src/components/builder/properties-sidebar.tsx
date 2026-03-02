@@ -794,6 +794,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
   const [isFetchedJsonDialogOpen, setIsFetchedJsonDialogOpen] = useState(false);
   const [fetchedJsonData, setFetchedJsonData] = useState<object | null>(null);
   const [isListOptionsOpen, setIsListOptionsOpen] = useState(false);
+  const [isRichTextDialogOpen, setIsRichTextDialogOpen] = useState(false);
   const [displayDataSourceKeys, setDisplayDataSourceKeys] = useState<string[]>([]);
 
   const allElements = useMemo(() => getAllElements(sections), [sections]);
@@ -1622,19 +1623,28 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                                 <Label htmlFor="hidden">Hidden in Form</Label>
                                 <Switch id="hidden" checked={element.hidden} onCheckedChange={(checked) => updateProperty('hidden', checked)} />
                             </div>
-                            <div className="flex flex-col gap-2">
-                                <Label htmlFor="content">Content</Label>
-                                <LexicalComposer initialConfig={{
-                                    namespace: 'FormBuilder-Properties',
-                                    nodes: [],
-                                    onError: console.error,
-                                    editable: true,
-                                }}>
-                                    <LexicalEditor
-                                        initialValue={element.content}
-                                        onChange={(html) => updateProperty('content', html)}
-                                    />
-                                </LexicalComposer>
+                             <div className="flex flex-col gap-2">
+                                <Label>Content</Label>
+                                <Button variant="outline" onClick={() => setIsRichTextDialogOpen(true)}>
+                                    <Edit className="mr-2 h-4 w-4"/>
+                                    Edit Content
+                                </Button>
+                                <Dialog open={isRichTextDialogOpen} onOpenChange={setIsRichTextDialogOpen}>
+                                    <DialogContent className="max-w-4xl h-screen max-h-[80vh] flex flex-col">
+                                        <DialogHeader>
+                                            <DialogTitle>Edit Rich Text Content</DialogTitle>
+                                        </DialogHeader>
+                                        <div className="flex-grow overflow-y-auto -mx-6 px-6">
+                                            <LexicalEditor
+                                                initialValue={element.content}
+                                                onChange={(html) => updateProperty('content', html)}
+                                            />
+                                        </div>
+                                        <DialogFooter>
+                                            <Button onClick={() => setIsRichTextDialogOpen(false)}>Done</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                         </AccordionContent>
                     </AccordionItem>
