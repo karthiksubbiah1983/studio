@@ -1,3 +1,4 @@
+
 "use client";
 
 import { $generateHtmlFromNodes, $generateNodesFromDOM } from "@lexical/html";
@@ -7,15 +8,15 @@ import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, $isHeadingNode, QuoteNode, $createHeadingNode, $createQuoteNode } from "@lexical/rich-text";
-import { TableCellNode, TableNode, TableRowNode, INSERT_TABLE_COMMAND } from "@lexical/table";
+import { TableCellNode, TableNode, TableRowNode, $createTableNodeWithDimensions, $isTableNode, INSERT_TABLE_COMMAND } from "@lexical/table";
 import { ListItemNode, ListNode, $isListItemNode } from "@lexical/list";
 import { CodeHighlightNode, CodeNode, $isCodeNode, $createCodeNode } from "@lexical/code";
 import { AutoLinkNode, LinkNode, $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
-import { EditorState, $getRoot, $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND, SELECTION_CHANGE_COMMAND, RangeSelection, NodeSelection, GridSelection, $createParagraphNode, $wrapNodes } from "lexical";
+import { EditorState, $getRoot, $getSelection, $isRangeSelection, FORMAT_TEXT_COMMAND, FORMAT_ELEMENT_COMMAND, UNDO_COMMAND, REDO_COMMAND, SELECTION_CHANGE_COMMAND, RangeSelection, NodeSelection, GridSelection, $createParagraphNode, $wrapNodes, $isNodeSelection, LexicalEditor, COMMAND_PRIORITY_LOW, CLICK_COMMAND, KEY_DELETE_COMMAND, KEY_BACKSPACE_COMMAND } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import LexicalErrorBoundary from "@lexical/react/LexicalErrorBoundary";
 import {
-  Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Undo, Redo, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, AlignJustify, ListTodo, Indent, Outdent, Quote, Pilcrow, Type, Heading1, Heading2, Heading3, Heading4, Minus, Table, Image as ImageIcon, ChevronsUpDown,
+  Bold, Italic, Underline, Strikethrough, Code, List, ListOrdered, Undo, Redo, Link as LinkIcon, AlignLeft, AlignCenter, AlignRight, AlignJustify, ListTodo, Indent, Outdent, Quote, Pilcrow, Type, Heading1, Heading2, Heading3, Heading4, Minus, Table, Image as ImageIcon, ChevronsUpDown, Trash2, Columns, Rows, Palette, Baseline, CaseSensitive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +30,7 @@ import { TablePlugin } from '@lexical/react/LexicalTablePlugin';
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { $getNearestNodeOfType, mergeRegister } from "@lexical/utils";
-import { useCallback, useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef, useMemo, Suspense } from "react";
 import { cn } from "@/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Input } from "../ui/input";
@@ -40,6 +41,11 @@ import { Separator } from "@/components/ui/separator";
 import { $createVariableNode, VariableNode } from './nodes/VariableNode';
 import { useBuilder } from '@/hooks/use-builder';
 import { getAllElements } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../ui/dialog";
+import { Label } from "../ui/label";
+import { ImageNode, $createImageNode, $isImageNode } from "./nodes/ImageNode";
+import { useLexicalNodeSelection } from "@lexical/react/useLexicalNodeSelection";
+import { DecoratorNode } from "lexical";
 
 const theme = {
   text: {
@@ -71,7 +77,7 @@ const theme = {
   quote: "pl-4 border-l-4 border-muted-foreground/50 text-muted-foreground",
   code: 'bg-muted p-2 rounded-sm font-mono text-sm',
   table: 'w-full border-collapse border border-border',
-  tableCell: 'border border-border p-2',
+  tableCell: 'border border-border p-2 min-w-20',
   tableCellHeader: 'bg-muted',
 };
 
@@ -91,6 +97,7 @@ const editorConfig = {
     LinkNode,
     HorizontalRuleNode,
     VariableNode,
+    ImageNode,
   ],
   onError: (error: Error) => {
     console.error(error);
@@ -111,6 +118,7 @@ const blockTypeToBlockName = {
     number: 'Numbered List',
     paragraph: 'Normal',
     quote: 'Quote',
+    table: 'Table',
 };
 
 function getSelectedNode(selection: RangeSelection): any {
@@ -243,10 +251,88 @@ function VariableDropDown({ editor }: { editor: any }) {
     )
 }
 
+function InsertImageDialog({ editor, isOpen, onOpenChange }: { editor: LexicalEditor, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+    const [url, setUrl] = useState('');
+    const [altText, setAltText] = useState('');
+
+    const handleInsert = () => {
+        editor.dispatchCommand(INSERT_IMAGE_COMMAND, { src: url, altText });
+        onOpenChange(false);
+        setUrl('');
+        setAltText('');
+    }
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Insert Image</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="image-url">Image URL</Label>
+                        <Input id="image-url" value={url} onChange={(e) => setUrl(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="alt-text">Alt Text</Label>
+                        <Input id="alt-text" value={altText} onChange={(e) => setAltText(e.target.value)} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button onClick={handleInsert} disabled={!url}>Insert</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+function InsertTableDialog({ editor, isOpen, onOpenChange }: { editor: LexicalEditor, isOpen: boolean, onOpenChange: (open: boolean) => void }) {
+    const [rows, setRows] = useState('3');
+    const [columns, setColumns] = useState('3');
+
+    const handleInsert = () => {
+        editor.dispatchCommand(INSERT_TABLE_COMMAND, { rows, columns });
+        onOpenChange(false);
+        setRows('3');
+        setColumns('3');
+    }
+
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Insert Table</DialogTitle>
+                </DialogHeader>
+                <div className="flex gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="table-rows">Rows</Label>
+                        <Input id="table-rows" type="number" value={rows} onChange={(e) => setRows(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="table-columns">Columns</Label>
+                        <Input id="table-columns" type="number" value={columns} onChange={(e) => setColumns(e.target.value)} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button onClick={handleInsert}>Insert</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+const INSERT_IMAGE_COMMAND = 'insert-image-command';
+
 function ToolbarPlugin() {
   const [editor] = useLexicalComposerContext();
   const [isLink, setIsLink] = useState(false);
   const [blockType, setBlockType] = useState<keyof typeof blockTypeToBlockName>('paragraph');
+  const [isTable, setIsTable] = useState(false);
+  
+  const [isImageDialogOpen, setIsImageDialogOpen] = useState(false);
+  const [isTableDialogOpen, setIsTableDialogOpen] = useState(false);
 
   const updateToolbar = useCallback(() => {
     const selection = $getSelection();
@@ -257,6 +343,7 @@ function ToolbarPlugin() {
         const elementDOM = editor.getElementByKey(elementKey);
         
         setIsLink($isLinkNode(anchorNode) || $isLinkNode(anchorNode.getParent()));
+        setIsTable(!!$getNearestNodeOfType(anchorNode, TableNode));
         
         if (elementDOM !== null) {
             if ($isListNode(element)) {
@@ -294,6 +381,7 @@ function ToolbarPlugin() {
   }, [editor, isLink]);
 
   return (
+    <>
     <div className="flex flex-wrap gap-1 p-2 border-b">
       <Button variant="ghost" size="sm" onClick={() => editor.dispatchCommand(UNDO_COMMAND, undefined)}>Undo</Button>
       <Button variant="ghost" size="sm" onClick={() => editor.dispatchCommand(REDO_COMMAND, undefined)}>Redo</Button>
@@ -324,11 +412,15 @@ function ToolbarPlugin() {
                 <DropdownMenuItem onClick={() => editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)}>Numbered List</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => editor.dispatchCommand(INSERT_CHECK_LIST_COMMAND, undefined)}>Check List</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => editor.dispatchCommand(INSERT_HORIZONTAL_RULE_COMMAND, undefined)}>Horizontal Rule</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => editor.dispatchCommand(INSERT_TABLE_COMMAND, { columns: '3', rows: '3' })}>Table</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsTableDialogOpen(true)}>Table</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsImageDialogOpen(true)}>Image</DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>
         <VariableDropDown editor={editor} />
     </div>
+     <InsertImageDialog editor={editor} isOpen={isImageDialogOpen} onOpenChange={setIsImageDialogOpen} />
+     <InsertTableDialog editor={editor} isOpen={isTableDialogOpen} onOpenChange={setIsTableDialogOpen} />
+    </>
   );
 }
 
@@ -352,6 +444,11 @@ export function LexicalEditor({ initialValue, onChange }: { initialValue?: strin
     });
   };
 
+  useEffect(() => {
+    // This effect is to ensure that custom commands are registered.
+    // It's a bit of a workaround because we are not in the Composer context here.
+  }, []);
+
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <div className="rounded-md border bg-background">
@@ -367,8 +464,133 @@ export function LexicalEditor({ initialValue, onChange }: { initialValue?: strin
           <ListPlugin />
           <LinkPlugin />
           <TablePlugin />
+          <TableActionMenuPlugin />
+           <ImagesPlugin />
         </div>
       </div>
     </LexicalComposer>
   );
+}
+
+
+function TableActionMenuPlugin() {
+    const [editor] = useLexicalComposerContext();
+    const menuRef = useRef<HTMLDivElement>(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [tableCellNode, setTableCellNode] = useState<TableCellNode | null>(null);
+
+    const moveMenu = useCallback(() => {
+        const menu = menuRef.current;
+        const domSelection = window.getSelection();
+        if (!menu || !domSelection || !domSelection.rangeCount) {
+            return;
+        }
+
+        const domRange = domSelection.getRangeAt(0);
+        const rect = domRange.getBoundingClientRect();
+
+        menu.style.opacity = '1';
+        menu.style.top = `${rect.top + window.scrollY - menu.offsetHeight - 5}px`;
+        menu.style.left = `${rect.left + window.scrollX - menu.offsetWidth / 2 + rect.width / 2}px`;
+    }, []);
+
+    useEffect(() => {
+        return editor.registerUpdateListener(({ editorState }) => {
+            editorState.read(() => {
+                const selection = $getSelection();
+                if ($isRangeSelection(selection) && selection.isCollapsed()) {
+                    const node = getSelectedNode(selection);
+                    const tableCell = $getNearestNodeOfType(node, TableCellNode);
+                    if (tableCell) {
+                        setTableCellNode(tableCell);
+                        setIsMenuOpen(true);
+                        moveMenu();
+                    } else {
+                        setIsMenuOpen(false);
+                        setTableCellNode(null);
+                    }
+                } else {
+                     setIsMenuOpen(false);
+                     setTableCellNode(null);
+                }
+            });
+        });
+    }, [editor, moveMenu]);
+
+    const insertRowAbove = () => {
+        editor.update(() => {
+            if (!tableCellNode) return;
+            const tableNode = $getNearestNodeOfType(tableCellNode, TableNode);
+            if (!tableNode) return;
+            const tableRow = tableCellNode.getParent();
+            if (tableRow && tableRow instanceof TableRowNode) {
+                const newRow = new TableRowNode();
+                for (let i = 0; i < tableRow.getChildrenSize(); i++) {
+                    newRow.append(new TableCellNode().append($createParagraphNode()));
+                }
+                tableRow.insertBefore(newRow);
+            }
+        });
+    }
+     const insertRowBelow = () => {
+        editor.update(() => {
+            if (!tableCellNode) return;
+            const tableRow = tableCellNode.getParent();
+            if (tableRow && tableRow instanceof TableRowNode) {
+                const newRow = new TableRowNode();
+                 for (let i = 0; i < tableRow.getChildrenSize(); i++) {
+                    newRow.append(new TableCellNode().append($createParagraphNode()));
+                }
+                tableRow.insertAfter(newRow);
+            }
+        });
+    }
+
+     const deleteRow = () => {
+        editor.update(() => {
+            if (!tableCellNode) return;
+            const tableRow = tableCellNode.getParent();
+            if (tableRow && tableRow instanceof TableRowNode) {
+                tableRow.remove();
+            }
+        });
+    }
+    
+    if (!isMenuOpen) return null;
+
+    return (
+        <div ref={menuRef} className="absolute z-10 opacity-0 bg-background border rounded-md shadow-md p-1 flex gap-1">
+             <Button size="sm" variant="ghost" onMouseDown={insertRowAbove}>Row Above</Button>
+            <Button size="sm" variant="ghost" onMouseDown={insertRowBelow}>Row Below</Button>
+            <Button size="sm" variant="ghost" onMouseDown={deleteRow}>Delete Row</Button>
+            {/* Add column controls here */}
+        </div>
+    )
+}
+
+function ImagesPlugin(): JSX.Element | null {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    if (!editor.hasNodes([ImageNode])) {
+      throw new Error('ImagesPlugin: ImageNode not registered on editor');
+    }
+
+    return editor.registerCommand<{src: string, altText: string}>(
+      INSERT_IMAGE_COMMAND,
+      (payload) => {
+        const selection = $getSelection();
+        if ($isRangeSelection(selection)) {
+          if (selection.isCollapsed()) {
+            const imageNode = $createImageNode(payload.src, payload.altText, 500);
+            selection.insertNodes([imageNode]);
+          }
+        }
+        return true;
+      },
+      COMMAND_PRIORITY_LOW,
+    );
+  }, [editor]);
+
+  return null;
 }
