@@ -23,6 +23,74 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
+const DataLinkerDialog = ({
+  isOpen,
+  onOpenChange,
+  datasets,
+  linkedDatasetId,
+  onSelect,
+}: {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  datasets: LocalDataset[];
+  linkedDatasetId: string | undefined;
+  onSelect: (value: any) => void;
+}) => {
+  if (!isOpen || !linkedDatasetId) return null;
+
+  const linkedDataset = datasets.find(d => d.id === linkedDatasetId);
+
+  if (!linkedDataset) {
+    return (
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Error</DialogTitle>
+                    <DialogDescription>Linked dataset not found.</DialogDescription>
+                </DialogHeader>
+            </DialogContent>
+        </Dialog>
+    )
+  }
+
+  const selectionKey = linkedDataset.columns[0]?.key;
+  if (!selectionKey) {
+      return <Dialog open={isOpen} onOpenChange={onOpenChange}><DialogContent><p>Linked dataset has no columns to select from.</p></DialogContent></Dialog>;
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>Select from "{linkedDataset.name}"</DialogTitle>
+          <DialogDescription>Choose a row to link to.</DialogDescription>
+        </DialogHeader>
+        <ScrollArea className="max-h-[60vh] border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {linkedDataset.columns.map(col => <TableHead key={col.id}>{col.header}</TableHead>)}
+                <TableHead className="w-10"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {linkedDataset.data.map((row, rowIndex) => (
+                <TableRow key={rowIndex}>
+                  {linkedDataset.columns.map(col => <TableCell key={col.id}>{String(row[col.key] ?? '')}</TableCell>)}
+                  <TableCell>
+                    <Button size="sm" onClick={() => onSelect(row[selectionKey])}>Select</Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+
 const ColumnLinkDialog = ({
   isOpen,
   onOpenChange,
@@ -163,6 +231,7 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string } | null>(null);
   const [editingListCell, setEditingListCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string[] } | null>(null);
   const [linkingColumn, setLinkingColumn] = useState<LocalDatasetColumn | null>(null);
+  const [linkingDataCell, setLinkingDataCell] = useState<{ rowIndex: number; colKey: string; linkedDatasetId: string; } | null>(null);
   
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdate({ ...dataset, name: e.target.value });
@@ -232,6 +301,25 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
     }
   };
 
+  const handleCellClick = (rowIndex: number, col: LocalDatasetColumn) => {
+    const cellValue = dataset.data[rowIndex][col.key] || '';
+
+    if (col.linkedDatasetId) {
+        setLinkingDataCell({ rowIndex, colKey: col.key, linkedDatasetId: col.linkedDatasetId });
+    } else if (col.type === 'array') {
+        setEditingListCell({ rowIndex, colKey: col.key, header: col.header, value: Array.isArray(cellValue) ? cellValue : [] });
+    } else {
+        setEditingCell({ rowIndex, colKey: col.key, header: col.header, value: cellValue });
+    }
+  };
+
+  const handleSelectLinkedData = (value: any) => {
+    if (linkingDataCell) {
+        handleUpdateCell(linkingDataCell.rowIndex, linkingDataCell.colKey, value);
+    }
+    setLinkingDataCell(null);
+  };
+
 
   return (
     <div className="h-full relative">
@@ -290,15 +378,12 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
                                             const cellValue = row[col.key] || '';
                                             return (
                                                 <TableCell key={col.id} className="py-1 px-2">
-                                                    {col.type === 'array' ? (
-                                                        <div className="truncate cursor-pointer hover:bg-muted/50 p-1.5 rounded-sm h-8 flex items-center" onClick={() => setEditingListCell({ rowIndex, colKey: col.key, header: col.header, value: Array.isArray(cellValue) ? cellValue : [] })}>
-                                                            {Array.isArray(cellValue) && cellValue.length > 0 ? cellValue.join(', ') : <span className="text-muted-foreground italic">Empty list</span>}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="truncate cursor-pointer hover:bg-muted/50 p-1.5 rounded-sm h-8 flex items-center" onClick={() => setEditingCell({ rowIndex, colKey: col.key, header: col.header, value: cellValue })}>
-                                                            {cellValue}
-                                                        </div>
-                                                    )}
+                                                    <div className="truncate cursor-pointer hover:bg-muted/50 p-1.5 rounded-sm h-8 flex items-center" onClick={() => handleCellClick(rowIndex, col)}>
+                                                        {col.type === 'array' ? 
+                                                            (Array.isArray(cellValue) && cellValue.length > 0 ? cellValue.join(', ') : <span className="text-muted-foreground italic">Empty list</span>)
+                                                            : cellValue
+                                                        }
+                                                    </div>
                                                 </TableCell>
                                             )
                                         })}
@@ -320,6 +405,13 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
         column={linkingColumn}
         datasets={allDatasets}
         onSave={handleSaveLink}
+      />
+      <DataLinkerDialog
+        isOpen={!!linkingDataCell}
+        onOpenChange={() => setLinkingDataCell(null)}
+        datasets={allDatasets}
+        linkedDatasetId={linkingDataCell?.linkedDatasetId}
+        onSelect={handleSelectLinkedData}
       />
     </div>
   );
