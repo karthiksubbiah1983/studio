@@ -16,7 +16,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '.
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Textarea } from '../ui/textarea';
 import { Badge } from '../ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Checkbox } from '../ui/checkbox';
 
 type Props = {
   isOpen: boolean;
@@ -28,14 +28,26 @@ const DataLinkerDialog = ({
   onOpenChange,
   datasets,
   linkedDatasetId,
-  onSelect,
+  onSave,
+  currentValue,
+  selectionMode = 'single',
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   datasets: LocalDataset[];
   linkedDatasetId: string | undefined;
-  onSelect: (value: any) => void;
+  onSave: (value: any) => void;
+  currentValue: any;
+  selectionMode?: 'single' | 'multiple';
 }) => {
+  const [internalSelection, setInternalSelection] = useState(currentValue);
+
+  useEffect(() => {
+    if (isOpen) {
+      setInternalSelection(currentValue || (selectionMode === 'multiple' ? [] : null));
+    }
+  }, [isOpen, currentValue, selectionMode]);
+
   if (!isOpen || !linkedDatasetId) return null;
 
   const linkedDataset = datasets.find(d => d.id === linkedDatasetId);
@@ -58,6 +70,25 @@ const DataLinkerDialog = ({
       return <Dialog open={isOpen} onOpenChange={onOpenChange}><DialogContent><p>Linked dataset has no columns to select from.</p></DialogContent></Dialog>;
   }
 
+  const handleSingleSelect = (value: any) => {
+    onSave(value);
+    onOpenChange(false);
+  }
+
+  const handleMultiSelectToggle = (value: any) => {
+    const currentArray = Array.isArray(internalSelection) ? internalSelection : [];
+    if (currentArray.includes(value)) {
+      setInternalSelection(currentArray.filter(v => v !== value));
+    } else {
+      setInternalSelection([...currentArray, value]);
+    }
+  }
+
+  const handleSaveMultiSelection = () => {
+    onSave(internalSelection);
+    onOpenChange(false);
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
@@ -78,13 +109,26 @@ const DataLinkerDialog = ({
                 <TableRow key={rowIndex}>
                   {linkedDataset.columns.map(col => <TableCell key={col.id}>{String(row[col.key] ?? '')}</TableCell>)}
                   <TableCell>
-                    <Button size="sm" onClick={() => onSelect(row[selectionKey])}>Select</Button>
+                    {selectionMode === 'single' ? (
+                      <Button size="sm" onClick={() => handleSingleSelect(row[selectionKey])}>Select</Button>
+                    ) : (
+                      <Checkbox 
+                        checked={Array.isArray(internalSelection) && internalSelection.includes(row[selectionKey])}
+                        onCheckedChange={() => handleMultiSelectToggle(row[selectionKey])}
+                      />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </ScrollArea>
+        {selectionMode === 'multiple' && (
+          <DialogFooter>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button onClick={handleSaveMultiSelection}>Done</Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -231,7 +275,7 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
   const [editingCell, setEditingCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string } | null>(null);
   const [editingListCell, setEditingListCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string[] } | null>(null);
   const [linkingColumn, setLinkingColumn] = useState<LocalDatasetColumn | null>(null);
-  const [linkingDataCell, setLinkingDataCell] = useState<{ rowIndex: number; colKey: string; linkedDatasetId: string; } | null>(null);
+  const [linkingDataCell, setLinkingDataCell] = useState<{ rowIndex: number; colKey: string; linkedDatasetId: string; selectionMode: 'single' | 'multiple'; currentValue: any } | null>(null);
   
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdate({ ...dataset, name: e.target.value });
@@ -302,18 +346,24 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
   };
 
   const handleCellClick = (rowIndex: number, col: LocalDatasetColumn) => {
-    const cellValue = dataset.data[rowIndex][col.key] || '';
+    const cellValue = dataset.data[rowIndex][col.key] || (col.type === 'array' ? [] : '');
 
     if (col.linkedDatasetId) {
-        setLinkingDataCell({ rowIndex, colKey: col.key, linkedDatasetId: col.linkedDatasetId });
+        setLinkingDataCell({
+          rowIndex,
+          colKey: col.key,
+          linkedDatasetId: col.linkedDatasetId,
+          selectionMode: col.type === 'array' ? 'multiple' : 'single',
+          currentValue: cellValue,
+        });
     } else if (col.type === 'array') {
         setEditingListCell({ rowIndex, colKey: col.key, header: col.header, value: Array.isArray(cellValue) ? cellValue : [] });
     } else {
-        setEditingCell({ rowIndex, colKey: col.key, header: col.header, value: cellValue });
+        setEditingCell({ rowIndex, colKey: col.key, header: col.header, value: String(cellValue) });
     }
   };
 
-  const handleSelectLinkedData = (value: any) => {
+  const handleSaveLinkedData = (value: any) => {
     if (linkingDataCell) {
         handleUpdateCell(linkingDataCell.rowIndex, linkingDataCell.colKey, value);
     }
@@ -375,14 +425,15 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
                                 {dataset.data.map((row, rowIndex) => (
                                     <TableRow key={rowIndex}>
                                         {dataset.columns.map(col => {
-                                            const cellValue = row[col.key] || '';
+                                            const cellValue = row[col.key];
+                                            const displayValue = Array.isArray(cellValue)
+                                                ? cellValue.join(', ')
+                                                : cellValue || '';
+
                                             return (
                                                 <TableCell key={col.id} className="py-1 px-2">
                                                     <div className="truncate cursor-pointer hover:bg-muted/50 p-1.5 rounded-sm h-8 flex items-center" onClick={() => handleCellClick(rowIndex, col)}>
-                                                        {col.type === 'array' ? 
-                                                            (Array.isArray(cellValue) && cellValue.length > 0 ? cellValue.join(', ') : <span className="text-muted-foreground italic">Empty list</span>)
-                                                            : cellValue
-                                                        }
+                                                        {displayValue || (col.type === 'array' ? <span className="text-muted-foreground italic">Empty list</span> : '')}
                                                     </div>
                                                 </TableCell>
                                             )
@@ -411,7 +462,9 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
         onOpenChange={() => setLinkingDataCell(null)}
         datasets={allDatasets}
         linkedDatasetId={linkingDataCell?.linkedDatasetId}
-        onSelect={handleSelectLinkedData}
+        onSave={handleSaveLinkedData}
+        currentValue={linkingDataCell?.currentValue}
+        selectionMode={linkingDataCell?.selectionMode}
       />
     </div>
   );
