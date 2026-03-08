@@ -120,7 +120,7 @@ export type LocalDatasetColumn = {
   id: string;
   header: string;
   key: string;
-  type?: 'text' | 'array';
+  type?: 'text' | 'array' | 'order';
   linkedDatasetId?: string;
   linkedFieldKey?: string;
 };

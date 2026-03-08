@@ -7,7 +7,7 @@ import { useBuilder } from '@/hooks/use-builder';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { LocalDataset, LocalDatasetColumn } from '@/lib/types';
-import { Plus, Trash, Copy, X, Link } from 'lucide-react';
+import { Plus, Trash, Copy, X, Link, ChevronUp, ChevronDown } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
@@ -292,8 +292,22 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
   };
   
   const handleUpdateColumn = (colId: string, updates: Partial<LocalDatasetColumn>) => {
-    const newColumns = dataset.columns.map(c => (c.id === colId ? { ...c, ...updates } : c));
-    onUpdate({ ...dataset, columns: newColumns });
+    let newColumns = dataset.columns.map(c => (c.id === colId ? { ...c, ...updates } : c));
+    let newData = [...dataset.data];
+
+    if (updates.type === 'order') {
+        const updatedColumn = newColumns.find(c => c.id === colId);
+        // Ensure only one order column exists
+        newColumns.forEach(c => {
+            if (c.id !== colId && c.type === 'order') c.type = 'text';
+        });
+        // Update data with order numbers
+        if (updatedColumn) {
+            newData = newData.map((row, index) => ({...row, [updatedColumn.key]: index + 1}));
+        }
+    }
+    
+    onUpdate({ ...dataset, columns: newColumns, data: newData });
   };
 
   const handleDeleteColumn = (colId: string) => {
@@ -301,10 +315,16 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
   };
   
   const handleAddRow = () => {
+    const orderColumn = dataset.columns.find(c => c.type === 'order');
     const newRow = dataset.columns.reduce((acc, col) => {
         acc[col.key] = col.type === 'array' ? [] : '';
         return acc;
     }, {} as Record<string, any>);
+    
+    if (orderColumn) {
+        newRow[orderColumn.key] = dataset.data.length + 1;
+    }
+
     onUpdate({ ...dataset, data: [...dataset.data, newRow] });
   };
 
@@ -315,13 +335,40 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
   };
   
   const handleDeleteRow = (rowIndex: number) => {
-    onUpdate({ ...dataset, data: dataset.data.filter((_, i) => i !== rowIndex) });
+    let newData = dataset.data.filter((_, i) => i !== rowIndex);
+    const orderColumn = dataset.columns.find(c => c.type === 'order');
+    if (orderColumn) {
+        newData = newData.map((row, i) => ({
+            ...row,
+            [orderColumn.key]: i + 1,
+        }));
+    }
+    onUpdate({ ...dataset, data: newData });
   };
 
   const handleCopyRow = (rowIndex: number) => {
     const rowToCopy = JSON.parse(JSON.stringify(dataset.data[rowIndex]));
     const newData = [...dataset.data];
     newData.splice(rowIndex + 1, 0, rowToCopy);
+    onUpdate({ ...dataset, data: newData });
+  };
+
+  const handleMoveRow = (index: number, direction: 'up' | 'down') => {
+    if ((direction === 'up' && index === 0) || (direction === 'down' && index === dataset.data.length - 1)) {
+        return;
+    }
+    const newData = [...dataset.data];
+    const [movedRow] = newData.splice(index, 1);
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    newData.splice(newIndex, 0, movedRow);
+    
+    const orderColumn = dataset.columns.find(c => c.type === 'order');
+    if (orderColumn) {
+        newData.forEach((row, i) => {
+            row[orderColumn.key] = i + 1;
+        });
+    }
+
     onUpdate({ ...dataset, data: newData });
   };
 
@@ -396,7 +443,11 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
                                     <TableCell className="py-1 px-2">
                                         <Select value={col.type || 'text'} onValueChange={(value) => handleUpdateColumn(col.id, { type: value as any })}>
                                             <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                            <SelectContent><SelectItem value="text">Text</SelectItem><SelectItem value="array">List</SelectItem></SelectContent>
+                                            <SelectContent>
+                                                <SelectItem value="text">Text</SelectItem>
+                                                <SelectItem value="array">List</SelectItem>
+                                                <SelectItem value="order">Order Number</SelectItem>
+                                            </SelectContent>
                                         </Select>
                                     </TableCell>
                                     <TableCell className="py-1 px-2 text-center">
@@ -420,7 +471,7 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
                 <div className="border bg-white rounded-md">
                     <ScrollArea className="max-h-96">
                         <Table>
-                            <TableHeader><TableRow>{dataset.columns.map(col => <TableHead key={col.id}>{col.header}</TableHead>)}<TableHead className="w-20 text-right">Actions</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow>{dataset.columns.map(col => <TableHead key={col.id}>{col.header}</TableHead>)}<TableHead className="w-[150px] text-right">Actions</TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {dataset.data.map((row, rowIndex) => (
                                     <TableRow key={rowIndex}>
@@ -428,17 +479,24 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
                                             const cellValue = row[col.key];
                                             const displayValue = Array.isArray(cellValue)
                                                 ? cellValue.join(', ')
-                                                : cellValue || '';
+                                                : cellValue ?? '';
 
                                             return (
                                                 <TableCell key={col.id} className="py-1 px-2">
-                                                    <div className="truncate cursor-pointer hover:bg-muted/50 p-1.5 rounded-sm h-8 flex items-center" onClick={() => handleCellClick(rowIndex, col)}>
+                                                    <div className={cn("truncate p-1.5 rounded-sm h-8 flex items-center", col.type !== 'order' && "cursor-pointer hover:bg-muted/50")} onClick={() => col.type !== 'order' && handleCellClick(rowIndex, col)}>
                                                         {displayValue || (col.type === 'array' ? <span className="text-muted-foreground italic">Empty list</span> : '')}
                                                     </div>
                                                 </TableCell>
                                             )
                                         })}
-                                        <TableCell className="py-1 px-2 text-right"><div className="flex items-center justify-end"><Button variant="ghost" size="icon" onClick={() => handleCopyRow(rowIndex)}><Copy className="h-4 w-4" /></Button><Button variant="ghost" size="icon" onClick={() => handleDeleteRow(rowIndex)}><Trash className="h-4 w-4 text-destructive" /></Button></div></TableCell>
+                                        <TableCell className="py-1 px-2 text-right">
+                                            <div className="flex items-center justify-end">
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleMoveRow(rowIndex, 'up')} disabled={rowIndex === 0}><ChevronUp className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleMoveRow(rowIndex, 'down')} disabled={rowIndex === dataset.data.length - 1}><ChevronDown className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleCopyRow(rowIndex)}><Copy className="h-4 w-4" /></Button>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDeleteRow(rowIndex)}><Trash className="h-4 w-4 text-destructive" /></Button>
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
