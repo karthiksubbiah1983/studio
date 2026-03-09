@@ -7,7 +7,7 @@ import { useBuilder } from '@/hooks/use-builder';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { LocalDataset, LocalDatasetColumn } from '@/lib/types';
-import { Plus, Trash, Copy, X, Link, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Trash, Copy, X, Link, ChevronUp, ChevronDown, Table as TableIcon } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { Input } from '../ui/input';
@@ -621,7 +621,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
                     />
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-center text-muted-foreground p-8">
-                        <Table className="h-12 w-12 mb-4" />
+                        <TableIcon className="h-12 w-12 mb-4" />
                         <h3 className="text-lg font-semibold">No Dataset Selected</h3>
                         <p className="text-sm">Select a dataset from the left panel or create a new one.</p>
                     </div>
