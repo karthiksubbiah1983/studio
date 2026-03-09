@@ -555,17 +555,15 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
       // Deep copy the datasets from props to create a local, editable copy for the dialog session.
       const localCopyOfDatasets = JSON.parse(JSON.stringify(localDatasets || []));
       setSimpleDatasets(localCopyOfDatasets);
-
-      // Check if the currently selected ID is still valid within the new set of datasets.
-      const currentSelectionIsValid = localCopyOfDatasets.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
-
-      // If the selection is not valid (or there's no selection yet),
-      // default to selecting the first dataset if one exists.
-      if (!currentSelectionIsValid) {
-        setSelectedSimpleDatasetId(localCopyOfDatasets.length > 0 ? localCopyOfDatasets[0].id : null);
+      
+      const stillExists = localCopyOfDatasets.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
+      if (localCopyOfDatasets.length > 0 && !stillExists) {
+        setSelectedSimpleDatasetId(localCopyOfDatasets[0].id);
+      } else if (localCopyOfDatasets.length === 0) {
+        setSelectedSimpleDatasetId(null);
       }
     }
-  }, [isOpen, localDatasets]);
+  }, [isOpen, localDatasets, selectedSimpleDatasetId]);
   
   const handleSaveChanges = () => {
     updateLocalDatasets(simpleDatasets);
@@ -576,7 +574,7 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
     const newDataset: LocalDataset = {
         id: crypto.randomUUID(),
         name: `Dataset ${simpleDatasets.length + 1}`,
-        columns: [{id: crypto.randomUUID(), header: 'Column 1', key: 'column_1', type: 'text'}],
+        columns: [{id: crypto.randomUUID(), header: 'ID', key: 'id', type: 'text'}],
         data: []
     };
     setSimpleDatasets(prev => [...prev, newDataset]);
