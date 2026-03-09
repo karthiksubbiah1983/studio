@@ -276,6 +276,7 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
   const [editingListCell, setEditingListCell] = useState<{ rowIndex: number; colKey: string; header: string; value: string[] } | null>(null);
   const [linkingColumn, setLinkingColumn] = useState<LocalDatasetColumn | null>(null);
   const [linkingDataCell, setLinkingDataCell] = useState<{ rowIndex: number; colKey: string; linkedDatasetId: string; selectionMode: 'single' | 'multiple'; currentValue: any } | null>(null);
+  const [idPrefix, setIdPrefix] = useState('');
   
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onUpdate({ ...dataset, name: e.target.value });
@@ -315,12 +316,19 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
   };
   
   const handleAddRow = () => {
-    const orderColumn = dataset.columns.find(c => c.type === 'order');
     const newRow = dataset.columns.reduce((acc, col) => {
         acc[col.key] = col.type === 'array' ? [] : '';
         return acc;
     }, {} as Record<string, any>);
     
+    const idColumn = dataset.columns.find(c => c.key.toLowerCase() === 'id');
+    if (idColumn) {
+        const prefix = idPrefix.trim().replace(/\s+/g, '_') || dataset.name.slice(0, 3).toLowerCase();
+        const newId = `${prefix}-${crypto.randomUUID().slice(0, 6)}`;
+        newRow[idColumn.key] = newId;
+    }
+
+    const orderColumn = dataset.columns.find(c => c.type === 'order');
     if (orderColumn) {
         newRow[orderColumn.key] = dataset.data.length + 1;
     }
@@ -466,7 +474,15 @@ const LocalDatasetEditor = memo(({ dataset, onUpdate, allDatasets }: { dataset: 
             <div className="space-y-4">
                 <div className="p-3 bg-primary/10 rounded-md flex justify-between items-center">
                     <h3 className="font-semibold text-primary">Data Rows</h3>
-                    <Button variant="outline" size="sm" onClick={handleAddRow}><Plus className="mr-2 h-4 w-4" /> Row</Button>
+                    <div className="flex items-center gap-2">
+                        <Input 
+                            placeholder="ID prefix..."
+                            value={idPrefix}
+                            onChange={(e) => setIdPrefix(e.target.value)}
+                            className="h-8 text-xs w-32 bg-white"
+                        />
+                        <Button variant="outline" size="sm" onClick={handleAddRow}><Plus className="mr-2 h-4 w-4" /> Row</Button>
+                    </div>
                 </div>
                 <div className="border bg-white rounded-md">
                     <ScrollArea className="max-h-96">
