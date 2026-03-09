@@ -553,17 +553,19 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
   useEffect(() => {
     if (isOpen) {
       // Deep copy the datasets from props to create a local, editable copy for the dialog session.
+      // This should only run when the dialog is opened, not on subsequent re-renders caused by state changes inside this dialog.
       const localCopyOfDatasets = JSON.parse(JSON.stringify(localDatasets || []));
       setSimpleDatasets(localCopyOfDatasets);
       
       const stillExists = localCopyOfDatasets.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
-      if (localCopyOfDatasets.length > 0 && !stillExists) {
+      if (localCopyOfDatasets.length > 0 && (!selectedSimpleDatasetId || !stillExists)) {
         setSelectedSimpleDatasetId(localCopyOfDatasets[0].id);
       } else if (localCopyOfDatasets.length === 0) {
         setSelectedSimpleDatasetId(null);
       }
     }
-  }, [isOpen, localDatasets, selectedSimpleDatasetId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
   
   const handleSaveChanges = () => {
     updateLocalDatasets(simpleDatasets);
