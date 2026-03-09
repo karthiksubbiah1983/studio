@@ -536,17 +536,20 @@ export function DataManagementDialog({ isOpen, onOpenChange }: Props) {
 
   useEffect(() => {
     if (isOpen) {
-      const initialSimple = JSON.parse(JSON.stringify(localDatasets || []));
-      setSimpleDatasets(initialSimple);
+      // Deep copy the datasets from props to create a local, editable copy for the dialog session.
+      const localCopyOfDatasets = JSON.parse(JSON.stringify(localDatasets || []));
+      setSimpleDatasets(localCopyOfDatasets);
 
-      const selectedIdExists = initialSimple.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
-      if (!selectedIdExists && initialSimple.length > 0) {
-        setSelectedSimpleDatasetId(initialSimple[0].id);
-      } else if (initialSimple.length === 0) {
-        setSelectedSimpleDatasetId(null);
+      // Check if the currently selected ID is still valid within the new set of datasets.
+      const currentSelectionIsValid = localCopyOfDatasets.some((d: LocalDataset) => d.id === selectedSimpleDatasetId);
+
+      // If the selection is not valid (or there's no selection yet),
+      // default to selecting the first dataset if one exists.
+      if (!currentSelectionIsValid) {
+        setSelectedSimpleDatasetId(localCopyOfDatasets.length > 0 ? localCopyOfDatasets[0].id : null);
       }
     }
-  }, [isOpen, localDatasets, selectedSimpleDatasetId]);
+  }, [isOpen, localDatasets]);
   
   const handleSaveChanges = () => {
     updateLocalDatasets(simpleDatasets);
