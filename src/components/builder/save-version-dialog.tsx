@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -25,7 +24,7 @@ type Props = {
 };
 
 export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
-  const { activeForm, sections, rules, workflows, configurations, dispatch } = useBuilder();
+  const { activeForm, sections, rules, workflows, configurations, localDatasets, dispatch } = useBuilder();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -57,6 +56,8 @@ export function SaveVersionDialog({ isOpen, onOpenChange, saveType }: Props) {
         rules: rules,
         workflows: workflows,
         configurations: configurations,
+        localDatasets: localDatasets,
+        timestamp: new Date().toISOString(),
       },
     });
 
