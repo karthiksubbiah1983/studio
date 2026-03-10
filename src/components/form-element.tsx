@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react"
@@ -1830,88 +1831,119 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         break;
     }
     case "Combobox": {
-      const [isOpen, setIsOpen] = useState(false);
-      const [searchTerm, setSearchTerm] = useState("");
+      const getLabelForValue = useCallback((val: string) => {
+        if (!val) return '';
+        const allOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
+        const selectedOption = allOptions.find(opt => {
+            const optionValue = String(typeof opt === 'object' ? getNestedValue(opt, element.valueKey!) : opt);
+            return optionValue === val;
+        });
+        if (selectedOption) {
+            return String(typeof selectedOption === 'object' ? getNestedValue(selectedOption, element.labelKey!) : selectedOption);
+        }
+        return element.allowCustomValue ? val : '';
+      }, [dynamicOptions, options, element.dataSource, element.valueKey, element.labelKey, element.allowCustomValue]);
 
-      const handleSelect = (currentValue: string) => {
-        const newValue = currentValue === value ? "" : currentValue;
-        onValueChange(element.id, newValue);
+      const [inputValue, setInputValue] = useState(() => getLabelForValue(value));
+      const [isOpen, setIsOpen] = useState(false);
+
+      useEffect(() => {
+        setInputValue(getLabelForValue(value));
+      }, [value, getLabelForValue]);
+
+      const handleSelect = (optionValue: string, optionLabel: string) => {
+        onValueChange(element.id, optionValue);
+        setInputValue(optionLabel);
         setIsOpen(false);
       };
 
-      const currentOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
+      const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setInputValue(e.target.value);
+        if (!isOpen) setIsOpen(true);
+      };
 
-      const filteredOptions = searchTerm
+      const handleInputBlur = () => {
+          setTimeout(() => {
+              if (document.activeElement?.closest('[data-radix-popper-content-wrapper]')) {
+                  return;
+              }
+              setIsOpen(false);
+      
+              if (element.allowCustomValue) {
+                  if (value !== inputValue) {
+                      onValueChange(element.id, inputValue);
+                  }
+              } else {
+                  const currentOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
+                  const match = currentOptions.find(opt => {
+                      const label = String(typeof opt === 'object' ? getNestedValue(opt, element.labelKey!) : opt);
+                      return label.toLowerCase() === inputValue.toLowerCase();
+                  });
+      
+                  if (!match) {
+                      setInputValue(getLabelForValue(value));
+                  }
+              }
+          }, 150);
+      };
+      
+
+      const currentOptions = element.dataSource === 'dynamic' ? dynamicOptions : (options || []);
+      const filteredOptions = inputValue
         ? currentOptions.filter(option => {
-            const label = typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option;
-            return label.toLowerCase().includes(searchTerm.toLowerCase());
+            const label = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
+            return label.toLowerCase().includes(inputValue.toLowerCase());
           })
         : currentOptions;
 
-      const getDisplayValue = () => {
-          if (shouldMask) return 'XXXXXX';
-          if (value) {
-            if (element.dataSource === 'dynamic') {
-                const selectedOption = currentOptions.find(opt => String(getNestedValue(opt, element.valueKey!)) === value);
-                return selectedOption ? getNestedValue(selectedOption, element.labelKey!) : placeholder;
-            }
-            return value;
-          }
-          return placeholder;
-      }
-      
       content = (
         <div>
           {renderLabel()}
-            <Popover open={isOpen} onOpenChange={setIsOpen}>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={isOpen}
-                        className="w-full justify-between font-normal"
+          <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+                <div className="relative">
+                    <Input
+                        placeholder={placeholder}
+                        value={shouldMask ? 'XXXXXX' : inputValue}
+                        onChange={handleInputChange}
+                        onBlur={handleInputBlur}
+                        onFocus={() => setIsOpen(true)}
                         disabled={isDisabled || shouldMask}
-                    >
-                        <span className="truncate">{getDisplayValue()}</span>
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
-                    <div className="p-2">
-                        <Input 
-                            placeholder="Search..." 
-                            value={searchTerm}
-                            onChange={e => setSearchTerm(e.target.value)}
-                            className="h-9"
-                        />
-                    </div>
-                    <ScrollArea className="max-h-60">
-                        <div className="p-1">
-                        {isLoading ? (
-                            <div className="p-2 text-center text-sm text-muted-foreground">Loading...</div>
-                        ) : filteredOptions.length === 0 ? (
-                            <div className="p-2 text-center text-sm text-muted-foreground">No options found.</div>
-                        ) : (
-                            filteredOptions.map((option, index) => {
-                                const optionValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
-                                const optionLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
-                                return (
-                                <div
-                                    key={index}
-                                    onClick={() => handleSelect(optionValue)}
-                                    className="text-sm p-2 rounded-sm cursor-pointer hover:bg-accent flex items-center"
-                                >
-                                    <Check className={cn("mr-2 h-4 w-4", value === optionValue ? "opacity-100" : "opacity-0")} />
-                                    {optionLabel}
-                                </div>
-                                );
-                            })
-                        )}
+                        className={cn("pr-8", appliedStyles.error && "border-destructive")}
+                        style={appliedStyles.style}
+                    />
+                    <ChevronsUpDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 shrink-0 opacity-50" />
+                </div>
+            </PopoverTrigger>
+            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+              <ScrollArea className="max-h-60">
+                <div className="p-1">
+                  {isLoading ? (
+                    <div className="p-2 text-center text-sm text-muted-foreground">Loading...</div>
+                  ) : filteredOptions.length > 0 ? (
+                    filteredOptions.map((option, index) => {
+                      const optionValue = String(typeof option === 'object' ? getNestedValue(option, element.valueKey!) : option);
+                      const optionLabel = String(typeof option === 'object' ? getNestedValue(option, element.labelKey!) : option);
+                      return (
+                        <div
+                          key={index}
+                          onClick={() => handleSelect(optionValue, optionLabel)}
+                          className="text-sm p-2 rounded-sm cursor-pointer hover:bg-accent flex items-center"
+                        >
+                           <Check className={cn("mr-2 h-4 w-4", value === optionValue ? "opacity-100" : "opacity-0")} />
+                          {optionLabel}
                         </div>
-                    </ScrollArea>
-                </PopoverContent>
-            </Popover>
-           {helperText && (<p className="text-sm text-muted-foreground mt-1">{helperText}</p>)}
+                      );
+                    })
+                  ) : (element.allowCustomValue || !inputValue) ? null : (
+                     <div className="p-2 text-center text-sm text-muted-foreground">No options found.</div>
+                  )}
+                </div>
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
+          {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
+          {renderError()}
         </div>
       );
       break;

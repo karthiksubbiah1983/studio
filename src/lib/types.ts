@@ -276,6 +276,8 @@ export type FormElementInstance = {
     passingScore?: number | null;
     listColumns?: number;
     placeholder?: string;
+    // For Combobox
+    allowCustomValue?: boolean;
     // For EditableTable / PayrollTable
     columns?: TableColumn[];
     maxRows?: number;

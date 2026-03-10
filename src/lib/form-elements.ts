@@ -76,6 +76,7 @@ export const createNewElement = (type: ElementType, id?: string): FormElementIns
                 apiUrl: null,
                 valueKey: null,
                 labelKey: null,
+                allowCustomValue: true,
             }
         case "List":
             return {

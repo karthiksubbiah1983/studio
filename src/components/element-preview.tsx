@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { Link, icons, Upload, CalendarDays, Grid, List, ListFilter, Table, MessageSquare, ListChecks, Eye, FileClock, ClipboardCheck } from "lucide-react";
+import { Link, icons, Upload, CalendarDays, Grid, List, ListFilter, Table, MessageSquare, ListChecks, Eye, FileClock, ClipboardCheck, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -99,10 +99,10 @@ export function ElementPreview({ element }: { element: FormElementInstance }) {
        return (
         <div>
           {renderLabel()}
-          <Button variant="outline" className="w-full justify-between">
-            {placeholder || "Select or type..."}
-            <ListFilter className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
+          <div className="relative">
+            <Input readOnly placeholder={placeholder || "Select or type..."} />
+            <ChevronsUpDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 shrink-0 opacity-50" />
+          </div>
           {helperText && <p className="text-sm text-muted-foreground mt-1">{helperText}</p>}
         </div>
        );

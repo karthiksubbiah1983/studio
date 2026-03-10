@@ -1842,6 +1842,10 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                         <AccordionContent className="flex flex-col gap-4">
                             {commonFields}
                             {element.placeholder !== undefined && placeholderField}
+                             <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                <Label htmlFor="allow-custom-value">Allow Custom Value</Label>
+                                <Switch id="allow-custom-value" checked={element.allowCustomValue} onCheckedChange={(checked) => updateProperty('allowCustomValue', checked)} />
+                            </div>
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="data">
