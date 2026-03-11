@@ -761,33 +761,31 @@ function DataGridColumnEditor({
             </div>
             
             <Separator />
-             {(!column.element.key) && (
-                <>
-                <h3 className="text-lg font-medium">Field Properties</h3>
-                <div className="space-y-2">
+            <>
+              <h3 className="text-lg font-medium">Field Properties</h3>
+              <div className="space-y-2">
                 <Label>Field Type</Label>
                 <Select
-                    value={column.element.type}
-                    onValueChange={handleFieldTypeChange}
+                  value={column.element.type}
+                  onValueChange={handleFieldTypeChange}
                 >
-                    <SelectTrigger>
+                  <SelectTrigger>
                     <SelectValue placeholder="Select a field type" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                     {allowedColumnTypes.map(type => (
-                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
-                    </SelectContent>
+                  </SelectContent>
                 </Select>
-                </div>
-                <ElementProperties
-                    element={column.element}
-                    onUpdate={handleElementUpdate}
-                    isColumnElement={true}
-                    dataSourceKeys={dataSourceKeys}
-                />
-                </>
-             )}
+              </div>
+              <ElementProperties
+                element={column.element}
+                onUpdate={handleElementUpdate}
+                isColumnElement={true}
+                dataSourceKeys={dataSourceKeys}
+              />
+            </>
           </div>
         </ScrollArea>
         <DialogFooter>
@@ -2645,3 +2643,4 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
     </div>
   );
 }
+
