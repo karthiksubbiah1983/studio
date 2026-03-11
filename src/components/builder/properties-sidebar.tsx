@@ -1405,138 +1405,140 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                             </div>
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="data_linking">
-                        <AccordionTrigger className="py-2">Data &amp; Linking</AccordionTrigger>
-                        <AccordionContent className="flex flex-col gap-4">
-                            {parentGrid ? (
-                                <>
-                                    <div className="text-sm p-2 bg-blue-50/50 border border-blue-200 rounded-md">
-                                        Data from parent grid: <span className="font-semibold">{parentGrid.localDatasetName}</span>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Display Value Key</Label>
-                                        <Select value={element.key || ''} onValueChange={v => updateProperty('key', v)}>
-                                            <SelectTrigger><SelectValue placeholder="Select a key to display..." /></SelectTrigger>
-                                            <SelectContent>
-                                                {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="flex flex-col gap-2">
-                                        <Label>Source Type</Label>
-                                        <Select 
-                                            value={element.dataSourceConfig?.sourceType || 'field'} 
-                                            onValueChange={(v) => updateProperty('dataSourceConfig', { ...element.dataSourceConfig, sourceType: v as any })}
-                                        >
-                                            <SelectTrigger><SelectValue /></SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="field">Another Form Field</SelectItem>
-                                                <SelectItem value="currentUser">Current User</SelectItem>
-                                                <SelectItem value="currentDateTime">Current Date/Time</SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    </div>
-                                    {element.dataSourceConfig?.sourceType === 'field' && (
-                                        <>
-                                            <div className="flex flex-col gap-2">
-                                                <Label>Source Field</Label>
-                                                <Select
-                                                    value={element.dataSourceConfig.sourceElementId}
-                                                    onValueChange={v => updateProperty('dataSourceConfig', { ...element.dataSourceConfig, sourceElementId: v, displayKey: '' })}
-                                                >
-                                                    <SelectTrigger><SelectValue placeholder="Select a field..."/></SelectTrigger>
-                                                    <SelectContent>
-                                                        {allElements.filter(el => 'type' in el && el.id !== element.id && !['DataGrid', 'EditableTable', 'PayrollTable'].includes(el.type) && !(el as any).isTableColumn).map(el => (
-                                                            <SelectItem key={el.id} value={el.id}>{(el as any).label}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                            <div className="flex flex-col gap-2">
-                                                <Label>Display Key from Source</Label>
-                                                <Select
-                                                    value={element.dataSourceConfig.displayKey}
-                                                    onValueChange={(value) => updateProperty('dataSourceConfig', { ...element.dataSourceConfig, displayKey: value })}
-                                                >
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder={displayDataSourceKeys.length > 0 ? "Select a key" : "No keys available from source"} />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {displayDataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </>
-                                    )}
-                                    {element.dataSourceConfig?.sourceType === 'currentUser' && (
-                                        <div className="flex flex-col gap-2">
-                                            <Label>User Property</Label>
-                                            <Input 
-                                                value={element.dataSourceConfig.displayKey}
-                                                onChange={e => updateProperty('dataSourceConfig', {...element.dataSourceConfig, displayKey: e.target.value})}
-                                                placeholder="e.g., email, uid"
-                                            />
+                    {!(isColumnElement && element.key) && (
+                        <AccordionItem value="data_linking">
+                            <AccordionTrigger className="py-2">Data &amp; Linking</AccordionTrigger>
+                            <AccordionContent className="flex flex-col gap-4">
+                                {parentGrid ? (
+                                    <>
+                                        <div className="text-sm p-2 bg-blue-50/50 border border-blue-200 rounded-md">
+                                            Data from parent grid: <span className="font-semibold">{parentGrid.localDatasetName}</span>
                                         </div>
-                                    )}
-                                </>
-                            )}
-                            <Separator />
-                            <div className="flex flex-col gap-2">
-                                <Label>Lead Text</Label>
-                                <Select value={element.leadTextKey || 'none'} onValueChange={v => updateProperty('leadTextKey', v === 'none' ? null : v)}>
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Use Static Text</SelectItem>
-                                        {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{`Use value from "${key}"`}</SelectItem>)}
-                                    </SelectContent>
-                                </Select>
-                                {(!element.leadTextKey || element.leadTextKey === 'none') && (
-                                    <Input value={element.leadText || ''} onChange={e => updateProperty('leadText', e.target.value)} placeholder="Static lead text" />
+                                        <div className="flex flex-col gap-2">
+                                            <Label>Display Value Key</Label>
+                                            <Select value={element.key || ''} onValueChange={v => updateProperty('key', v)}>
+                                                <SelectTrigger><SelectValue placeholder="Select a key to display..." /></SelectTrigger>
+                                                <SelectContent>
+                                                    {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="flex flex-col gap-2">
+                                            <Label>Source Type</Label>
+                                            <Select 
+                                                value={element.dataSourceConfig?.sourceType || 'field'} 
+                                                onValueChange={(v) => updateProperty('dataSourceConfig', { ...element.dataSourceConfig, sourceType: v as any })}
+                                            >
+                                                <SelectTrigger><SelectValue /></SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="field">Another Form Field</SelectItem>
+                                                    <SelectItem value="currentUser">Current User</SelectItem>
+                                                    <SelectItem value="currentDateTime">Current Date/Time</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        {element.dataSourceConfig?.sourceType === 'field' && (
+                                            <>
+                                                <div className="flex flex-col gap-2">
+                                                    <Label>Source Field</Label>
+                                                    <Select
+                                                        value={element.dataSourceConfig.sourceElementId}
+                                                        onValueChange={v => updateProperty('dataSourceConfig', { ...element.dataSourceConfig, sourceElementId: v, displayKey: '' })}
+                                                    >
+                                                        <SelectTrigger><SelectValue placeholder="Select a field..."/></SelectTrigger>
+                                                        <SelectContent>
+                                                            {allElements.filter(el => 'type' in el && el.id !== element.id && !['DataGrid', 'EditableTable', 'PayrollTable'].includes(el.type) && !(el as any).isTableColumn).map(el => (
+                                                                <SelectItem key={el.id} value={el.id}>{(el as any).label}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                                <div className="flex flex-col gap-2">
+                                                    <Label>Display Key from Source</Label>
+                                                    <Select
+                                                        value={element.dataSourceConfig.displayKey}
+                                                        onValueChange={(value) => updateProperty('dataSourceConfig', { ...element.dataSourceConfig, displayKey: value })}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder={displayDataSourceKeys.length > 0 ? "Select a key" : "No keys available from source"} />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {displayDataSourceKeys.map(key => <SelectItem key={key} value={key}>{key}</SelectItem>)}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
+                                            </>
+                                        )}
+                                        {element.dataSourceConfig?.sourceType === 'currentUser' && (
+                                            <div className="flex flex-col gap-2">
+                                                <Label>User Property</Label>
+                                                <Input 
+                                                    value={element.dataSourceConfig.displayKey}
+                                                    onChange={e => updateProperty('dataSourceConfig', {...element.dataSourceConfig, displayKey: e.target.value})}
+                                                    placeholder="e.g., email, uid"
+                                                />
+                                            </div>
+                                        )}
+                                    </>
                                 )}
-                            </div>
-                            <Separator />
-                            <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
-                                <Label htmlFor="is-link">Enable as Link</Label>
-                                <Switch id="is-link" checked={!!element.isLink} onCheckedChange={checked => updateProperty('isLink', checked)} />
-                            </div>
-                            {element.isLink && (
+                                <Separator />
                                 <div className="flex flex-col gap-2">
-                                    <Label>Link URL</Label>
-                                    <Select value={element.linkUrlKey || 'none'} onValueChange={v => updateProperty('linkUrlKey', v === 'none' ? null : v)}>
+                                    <Label>Lead Text</Label>
+                                    <Select value={element.leadTextKey || 'none'} onValueChange={v => updateProperty('leadTextKey', v === 'none' ? null : v)}>
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="none">Use Static URL</SelectItem>
+                                            <SelectItem value="none">Use Static Text</SelectItem>
                                             {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{`Use value from "${key}"`}</SelectItem>)}
                                         </SelectContent>
                                     </Select>
-                                    {(!element.linkUrlKey || element.linkUrlKey === 'none') && (
-                                        <Input value={element.linkUrl || ''} onChange={e => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com/{id}" />
+                                    {(!element.leadTextKey || element.leadTextKey === 'none') && (
+                                        <Input value={element.leadText || ''} onChange={e => updateProperty('leadText', e.target.value)} placeholder="Static lead text" />
                                     )}
                                 </div>
-                            )}
-                            <Separator />
-                            <div className="flex flex-col gap-2">
-                                <Label>Direction</Label>
-                                <RadioGroup
-                                    value={element.direction || 'horizontal'}
-                                    onValueChange={(value) => updateProperty('direction', value as 'horizontal' | 'vertical')}
-                                    className="flex gap-4"
-                                >
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="horizontal" id="dir-horizontal-display" />
-                                        <Label htmlFor="dir-horizontal-display">Horizontal</Label>
+                                <Separator />
+                                <div className="flex items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <Label htmlFor="is-link">Enable as Link</Label>
+                                    <Switch id="is-link" checked={!!element.isLink} onCheckedChange={checked => updateProperty('isLink', checked)} />
+                                </div>
+                                {element.isLink && (
+                                    <div className="flex flex-col gap-2">
+                                        <Label>Link URL</Label>
+                                        <Select value={element.linkUrlKey || 'none'} onValueChange={v => updateProperty('linkUrlKey', v === 'none' ? null : v)}>
+                                            <SelectTrigger><SelectValue /></SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">Use Static URL</SelectItem>
+                                                {allAvailableKeys.map(key => <SelectItem key={key} value={key}>{`Use value from "${key}"`}</SelectItem>)}
+                                            </SelectContent>
+                                        </Select>
+                                        {(!element.linkUrlKey || element.linkUrlKey === 'none') && (
+                                            <Input value={element.linkUrl || ''} onChange={e => updateProperty('linkUrl', e.target.value)} placeholder="https://example.com/{id}" />
+                                        )}
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                        <RadioGroupItem value="vertical" id="dir-vertical-display" />
-                                        <Label htmlFor="dir-vertical-display">Vertical</Label>
-                                    </div>
-                                </RadioGroup>
-                            </div>
-                        </AccordionContent>
-                    </AccordionItem>
+                                )}
+                                <Separator />
+                                <div className="flex flex-col gap-2">
+                                    <Label>Direction</Label>
+                                    <RadioGroup
+                                        value={element.direction || 'horizontal'}
+                                        onValueChange={(value) => updateProperty('direction', value as 'horizontal' | 'vertical')}
+                                        className="flex gap-4"
+                                    >
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="horizontal" id="dir-horizontal-display" />
+                                            <Label htmlFor="dir-horizontal-display">Horizontal</Label>
+                                        </div>
+                                        <div className="flex items-center space-x-2">
+                                            <RadioGroupItem value="vertical" id="dir-vertical-display" />
+                                            <Label htmlFor="dir-vertical-display">Vertical</Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
+                    )}
                     <AccordionItem value="formatting">
                         <AccordionTrigger className="py-2">Value Formatting</AccordionTrigger>
                         <AccordionContent className="flex flex-col gap-4">
