@@ -523,11 +523,13 @@ function ColumnEditorDialog({
 function DataGridColumnManager({
   columns,
   onUpdate,
-  isTaskHistory
+  isTaskHistory,
+  dataSourceKeys,
 }: {
   columns: DataGridColumn[];
   onUpdate: (columns: DataGridColumn[]) => void;
   isTaskHistory?: boolean;
+  dataSourceKeys?: string[];
 }) {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingColumn, setEditingColumn] = useState<DataGridColumn | null>(null);
@@ -607,6 +609,7 @@ function DataGridColumnManager({
         onSave={handleSave}
         onUpdate={handleUpdateEditingColumn}
         isTaskHistory={isTaskHistory}
+        dataSourceKeys={dataSourceKeys}
       />
     </div>
   );
@@ -619,6 +622,7 @@ function DataGridColumnEditor({
   onSave,
   onUpdate: onUpdateProp,
   isTaskHistory,
+  dataSourceKeys,
 }: {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
@@ -626,6 +630,7 @@ function DataGridColumnEditor({
   onSave: () => void;
   onUpdate: (column: DataGridColumn) => void;
   isTaskHistory?: boolean;
+  dataSourceKeys?: string[];
 }) {
   const { sections, localDatasets, state } = useBuilder();
   const { selectedElement } = state;
@@ -646,19 +651,6 @@ function DataGridColumnEditor({
     return groupedColumns;
   }, [sections, isTaskHistory]);
   
-  const availableKeys = useMemo(() => {
-    if (selectedElement?.elementId) {
-        const dataGridElement = findElementRecursive(sections, selectedElement.elementId);
-        if (dataGridElement?.type === 'DataGrid' && dataGridElement.dataSource === 'local' && dataGridElement.localDatasetName) {
-            const dataset = localDatasets.find(ds => ds.name === dataGridElement.localDatasetName);
-            if (dataset) {
-                return dataset.columns.map(col => col.key);
-            }
-        }
-    }
-    return [];
-  }, [selectedElement, sections, localDatasets]);
-
   const column = initialColumn;
   if (!isOpen || !column) return null;
 
@@ -742,10 +734,26 @@ function DataGridColumnEditor({
             <h3 className="text-lg font-medium">Data Binding</h3>
             <div className="space-y-2">
               <Label>Column Data Key</Label>
-              <Input
-                value={column.element.key || ''}
-                onChange={e => handleElementUpdate({ ...column.element, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
-              />
+                {dataSourceKeys && dataSourceKeys.length > 0 ? (
+                    <Select
+                        value={column.element.key || ''}
+                        onValueChange={value => handleElementUpdate({ ...column.element, key: value })}
+                    >
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select a data key..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {dataSourceKeys.map(key => (
+                                <SelectItem key={key} value={key}>{key}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                ) : (
+                    <Input
+                        value={column.element.key || ''}
+                        onChange={e => handleElementUpdate({ ...column.element, key: e.target.value.replace(/\s+/g, '_').toLowerCase() })}
+                    />
+                )}
               <p className="text-xs text-muted-foreground">
                 Key from the data source to display. To create a column for user input, provide a new, unique key that is not in your data source.
               </p>
@@ -773,7 +781,7 @@ function DataGridColumnEditor({
                 element={column.element}
                 onUpdate={handleElementUpdate}
                 isColumnElement={true}
-                dataSourceKeys={availableKeys}
+                dataSourceKeys={dataSourceKeys}
             />
           </div>
         </ScrollArea>
@@ -2505,6 +2513,7 @@ function ElementProperties({ element, onUpdate: onUpdateProp, isColumnElement = 
                              <DataGridColumnManager
                                 columns={element.dataGridColumns || []}
                                 onUpdate={newColumns => updateProperty('dataGridColumns', newColumns)}
+                                dataSourceKeys={allAvailableKeys}
                             />
                         </AccordionContent>
                     </AccordionItem>
