@@ -473,12 +473,30 @@ const DataGridRenderer = React.memo(function DataGridRenderer({ element, value, 
                                             if (!isVisible) {
                                                 return <TableCell key={col.id} style={{ width: col.width || 'auto' }}></TableCell>;
                                             }
+                                            
                                             const cellValue = col.element.key ? getNestedValue(row, col.element.key) : undefined;
+                                            let finalCellValue = cellValue;
+                                            
+                                            const contextToCheck = { ...formState, ...row };
+                                            if (rules) {
+                                                for (const rule of [...rules].reverse()) {
+                                                    if (!rule) continue;
+                                                    const isTriggered = evaluateRule(rule, contextToCheck, configurations, sections, row);
+                                                    if (isTriggered) {
+                                                        const setValueBehavior = rule.behaviors.find(b => b.type === 'set_value' && b.targetElementId === col.element.id);
+                                                        if (setValueBehavior && setValueBehavior.value !== undefined) {
+                                                            finalCellValue = setValueBehavior.value;
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+
                                             return (
                                                 <TableCell key={col.id} style={{ width: col.width || 'auto' }}>
                                                     <MemoizedFormElementRenderer
                                                         element={col.element}
-                                                        value={cellValue}
+                                                        value={finalCellValue}
                                                         onValueChange={(id, val) => {
                                                             handleCellChange(originalIndex, id, val);
                                                         }}
