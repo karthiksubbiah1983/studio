@@ -737,12 +737,13 @@ function DataGridColumnEditor({
                 {dataSourceKeys && dataSourceKeys.length > 0 ? (
                     <Select
                         value={column.element.key || ''}
-                        onValueChange={value => handleElementUpdate({ ...column.element, key: value })}
+                        onValueChange={value => handleElementUpdate({ ...column.element, key: value === 'none' ? '' : value })}
                     >
                         <SelectTrigger>
                             <SelectValue placeholder="Select a data key..." />
                         </SelectTrigger>
                         <SelectContent>
+                             <SelectItem value="none">-- Not Mapped --</SelectItem>
                             {dataSourceKeys.map(key => (
                                 <SelectItem key={key} value={key}>{key}</SelectItem>
                             ))}
@@ -760,29 +761,33 @@ function DataGridColumnEditor({
             </div>
             
             <Separator />
-            <h3 className="text-lg font-medium">Field Properties</h3>
-            <div className="space-y-2">
-              <Label>Field Type</Label>
-              <Select
-                value={column.element.type}
-                onValueChange={handleFieldTypeChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a field type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allowedColumnTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-             <ElementProperties
-                element={column.element}
-                onUpdate={handleElementUpdate}
-                isColumnElement={true}
-                dataSourceKeys={dataSourceKeys}
-            />
+             {(!column.element.key) && (
+                <>
+                <h3 className="text-lg font-medium">Field Properties</h3>
+                <div className="space-y-2">
+                <Label>Field Type</Label>
+                <Select
+                    value={column.element.type}
+                    onValueChange={handleFieldTypeChange}
+                >
+                    <SelectTrigger>
+                    <SelectValue placeholder="Select a field type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    {allowedColumnTypes.map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                    </SelectContent>
+                </Select>
+                </div>
+                <ElementProperties
+                    element={column.element}
+                    onUpdate={handleElementUpdate}
+                    isColumnElement={true}
+                    dataSourceKeys={dataSourceKeys}
+                />
+                </>
+             )}
           </div>
         </ScrollArea>
         <DialogFooter>
