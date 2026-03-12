@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from "react"
@@ -1537,9 +1536,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
       const context = isTableCell ? { ...formState, ...rowContext } : formState;
 
       let finalDisplayValue = value;
-      if ((isTableCell || isParentHorizontal) && !finalDisplayValue && finalDisplayValue !== "") {
-          // empty
-      } else if (finalDisplayValue === undefined || finalDisplayValue === null || finalDisplayValue === "") {
+      if (finalDisplayValue === undefined || finalDisplayValue === null) {
           finalDisplayValue = label;
       }
         
@@ -2214,7 +2211,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
         if(value) {
             const date = new Date(value);
             setDateValue(date);
-            setTimeValue(`${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2, '0')}`);
+            setTimeValue(`${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`);
         } else {
             setDateValue(undefined);
             setTimeValue('');
@@ -2352,7 +2349,7 @@ function FormElementRenderer({ element, value: initialValue, onValueChange, form
                 const file = files[i];
                  if (element.allowedFileTypes && element.allowedFileTypes.length > 0 && element.allowedFileTypes[0] !== '') {
                     if (!element.allowedFileTypes.includes(file.type)) {
-                        error = `Invalid file type: ${file.name}. Allowed: ${element.allowedFileTypes.join(', ')}`;
+                        error = `Invalid file type: ${file.type}. Allowed: ${element.allowedFileTypes.join(', ')}`;
                         continue;
                     }
                 }
@@ -2542,3 +2539,4 @@ const alignmentClasses = {
         baseline: 'items-baseline',
     }
 }
+    
