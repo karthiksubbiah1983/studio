@@ -8,7 +8,6 @@ import { useFirebase, useMemoFirebase, errorEmitter, FirestorePermissionError } 
 import { collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, DocumentReference, setDoc, query, where, getDoc, getDocs } from "firebase/firestore";
 import { setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from "@/firebase";
 import { useRouter } from "next/navigation";
-import { relationalDataDemoTemplate, editableTableCascadingDemo, cascadingDemoTemplate, demoTemplate, demoCategory, sampleChecklistRepository, sampleTaskTypes, sampleTaskTypeConfigurations, sampleSite } from "@/lib/demo-data";
 
 
 const LOCAL_STORAGE_KEY = "formBuilderState";
@@ -869,53 +868,47 @@ export const BuilderProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (isUserLoading) return;
 
-    let loadedState: Partial<State> | null = null;
-    try {
-      const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedStateJSON) {
-        loadedState = JSON.parse(savedStateJSON);
+    const savedStateJSON = localStorage.getItem(LOCAL_STORAGE_KEY);
+    
+    // Function to populate the state with demo data
+    const loadDemoData = () => {
+      import('@/lib/demo-data').then(demoData => {
+        const stateWithDemoData = {
+          ...initialState,
+          forms: [
+            demoData.relationalDataDemoTemplate,
+            demoData.editableTableCascadingDemo,
+            demoData.cascadingDemoTemplate,
+            demoData.demoTemplate,
+          ],
+          categories: [demoData.demoCategory],
+          sites: [demoData.sampleSite],
+          checklistRepository: demoData.sampleChecklistRepository,
+          taskTypes: demoData.sampleTaskTypes,
+          taskTypeConfigurations: demoData.sampleTaskTypeConfigurations,
+        };
+        dispatch({ type: 'SET_STATE', payload: stateWithDemoData });
+        setIsLoaded(true);
+      });
+    };
+
+    if (savedStateJSON) {
+      try {
+        const loadedState = JSON.parse(savedStateJSON) as Partial<State>;
+        // If we have saved state, trust it completely and don't load demo data again.
+        // This avoids bundling the large demo data file on every load.
+        dispatch({ type: "SET_STATE", payload: loadedState });
+        setIsLoaded(true);
+      } catch (error) {
+        console.error("Failed to parse state from localStorage, loading fresh demo data.", error);
+        // If parsing fails, treat it like a first load.
+        loadDemoData();
       }
-    } catch (error) {
-      console.error("Failed to parse state from localStorage", error);
-      loadedState = null;
+    } else {
+      // No state in localStorage, this is likely a first-time user.
+      // Dynamically load the demo data so it's not in the main bundle.
+      loadDemoData();
     }
-
-    const mergedState: State = { ...initialState };
-    if (loadedState) {
-        // Ensure all properties from initialState are present
-        mergedState.forms = loadedState.forms || initialState.forms;
-        mergedState.categories = loadedState.categories || initialState.categories;
-        mergedState.sites = loadedState.sites || initialState.sites;
-        mergedState.tasks = loadedState.tasks || initialState.tasks;
-        mergedState.submissions = loadedState.submissions || initialState.submissions;
-    }
-
-    if (!mergedState.forms.some(f => f.id === demoTemplate.id)) {
-        mergedState.forms.unshift(demoTemplate);
-    }
-    if (!mergedState.forms.some(f => f.id === cascadingDemoTemplate.id)) {
-        mergedState.forms.unshift(cascadingDemoTemplate);
-    }
-    if (!mergedState.forms.some(f => f.id === editableTableCascadingDemo.id)) {
-        mergedState.forms.unshift(editableTableCascadingDemo);
-    }
-     if (!mergedState.forms.some(f => f.id === relationalDataDemoTemplate.id)) {
-        mergedState.forms.unshift(relationalDataDemoTemplate);
-    }
-    if (!mergedState.categories.some(c => c.id === demoCategory.id)) {
-        mergedState.categories.unshift(demoCategory);
-    }
-    if (!mergedState.sites.some(s => s.id === sampleSite.id)) {
-        mergedState.sites.unshift(sampleSite);
-    }
-
-    mergedState.checklistRepository = sampleChecklistRepository;
-    mergedState.taskTypes = sampleTaskTypes;
-    mergedState.taskTypeConfigurations = sampleTaskTypeConfigurations;
-
-    dispatch({ type: 'SET_STATE', payload: mergedState });
-    setIsLoaded(true);
-
   }, [isUserLoading]);
 
   // Save to localStorage whenever relevant state changes
